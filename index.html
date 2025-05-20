@@ -45,26 +45,24 @@
       flex-direction: column;
       gap: 10px;
       margin-bottom: 15px;
-
-      /* 置中對齊 */
-      align-items: center;
-      text-align: center;
     }
 
     .userInputs .row {
       display: flex;
-      justify-content: center; /* 改成置中 */
-      gap: 20px; /* 間距稍大一點 */
-      flex-wrap: wrap;
+      justify-content: center;  /* 置中整行 */
+      gap: 40px;
     }
 
+    /* 置中 label 內容，讓 label 裡文字和輸入框水平排列並置中 */
     .userInputs label {
-      flex: 0 0 auto;
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      gap: 8px;
       font-size: 16px;
       color: #bbb;
-      align-items: center; /* 置中標籤文字與輸入框 */
+      flex-wrap: nowrap;
+      min-width: 200px;
+      justify-content: center;
     }
 
     .userInputs input {
@@ -74,10 +72,9 @@
       color: var(--text-color);
       border: none;
       border-radius: 6px;
-      margin-top: 4px;
       width: 150px;
       box-sizing: border-box;
-      text-align: center; /* 輸入文字置中 */
+      margin-top: 0; /* 移除原本的 margin-top */
     }
 
     #reportTable {
@@ -307,284 +304,279 @@
   <button id="clearImageBtn">❌ 清除圖片</button>
 
   <div id="inputArea">
-    <select id="nameInput"></select>
-    <select id="qtyInput"></select>
-    <button id="addBtn">新增品項</button>
+    <select id="nameInput" aria-label="選擇品項">
+      <option value="" disabled selected>請選擇商品</option>
+      <option value="康園膠囊組">康園膠囊組</option>
+      <option value="康園飲品組">康園飲品組</option>
+      <option value="康園膠囊單瓶">康園膠囊單瓶</option>
+      <option value="康園飲品單瓶">康園飲品單瓶</option>
+    </select>
+    <input
+      id="qtyInput"
+      type="number"
+      min="1"
+      value="1"
+      aria-label="輸入數量"
+      placeholder="數量"
+    />
+    <button id="addBtn">➕ 新增品項</button>
   </div>
 
   <script>
-   const API_URL = "https://script.google.com/macros/s/AKfycbxMK8aSmldCGKmXffbL5XU6IGuLbaKS1VABe9LuWXSF6hg2NtGLGZxS8fT-jqiFKy8_/exec";
-    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f"; // <-- 請替換成你的 imgbb API key
+    const itemPrices = {
+      "康園膠囊組": { price: 2400, pv: 2200 },
+      "康園飲品組": { price: 1980, pv: 1800 },
+      "康園膠囊單瓶": { price: 1100, pv: 900 },
+      "康園飲品單瓶": { price: 1000, pv: 900 },
+    };
 
-    const nameInput = document.getElementById("nameInput");
-    const qtyInput = document.getElementById("qtyInput");
-    const addBtn = document.getElementById("addBtn");
+    const targetPv1 = 112000;
+    const targetPv2 = 220000;
+
     const reportBody = document.getElementById("reportBody");
     const totalPriceCellDup = document.getElementById("totalPriceCellDup");
     const totalPvCellDup = document.getElementById("totalPvCellDup");
     const pvDiff = document.getElementById("pvDiff");
     const pvDiff2 = document.getElementById("pvDiff2");
+    const pvDiffText = document.getElementById("pvDiffText");
+    const pvDiff2Text = document.getElementById("pvDiff2Text");
+
+    const buyerInput = document.getElementById("buyerInput");
+    const calculatorInput = document.getElementById("calculatorInput");
+
+    let items = [];
+
+    function renderTable() {
+      reportBody.innerHTML = "";
+      let totalPrice = 0;
+      let totalPv = 0;
+
+      items.forEach((item, index) => {
+        const row = document.createElement("tr");
+
+        const tdName = document.createElement("td");
+        tdName.textContent = item.name;
+
+        const tdQty = document.createElement("td");
+        tdQty.textContent = item.qty;
+
+        const tdPrice = document.createElement("td");
+        tdPrice.textContent = itemPrices[item.name].price;
+
+        const tdPv = document.createElement("td");
+        tdPv.textContent = itemPrices[item.name].pv;
+
+        const subtotalPrice = item.qty * itemPrices[item.name].price;
+        const subtotalPv = item.qty * itemPrices[item.name].pv;
+
+        const tdSubtotalPrice = document.createElement("td");
+        tdSubtotalPrice.textContent = subtotalPrice;
+
+        const tdSubtotalPv = document.createElement("td");
+        tdSubtotalPv.textContent = subtotalPv;
+
+        totalPrice += subtotalPrice;
+        totalPv += subtotalPv;
+
+        const tdDelete = document.createElement("td");
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "刪除";
+        delBtn.classList.add("deleteBtn");
+        delBtn.setAttribute("aria-label", `刪除品項 ${item.name}`);
+        delBtn.addEventListener("click", () => {
+          items.splice(index, 1);
+          renderTable();
+        });
+        tdDelete.appendChild(delBtn);
+
+        row.appendChild(tdName);
+        row.appendChild(tdQty);
+        row.appendChild(tdPrice);
+        row.appendChild(tdPv);
+        row.appendChild(tdSubtotalPrice);
+        row.appendChild(tdSubtotalPv);
+        row.appendChild(tdDelete);
+
+        reportBody.appendChild(row);
+      });
+
+      totalPriceCellDup.textContent = totalPrice;
+      totalPvCellDup.textContent = totalPv;
+
+      const diff = targetPv1 - totalPv;
+      if (diff <= 0) {
+        pvDiffText.textContent = "已達成 11.2萬 PV 目標 🎉";
+      } else {
+        pvDiffText.textContent = `距 11.2萬 PV 還差：${diff}`;
+      }
+
+      const diff2 = targetPv2 - totalPv;
+      if (diff2 <= 0) {
+        pvDiff2Text.textContent = "已達成 22萬 PV 目標 🎉";
+      } else {
+        pvDiff2Text.textContent = `距 22.0萬 PV 還差：${diff2}`;
+      }
+    }
+
+    document.getElementById("addBtn").addEventListener("click", () => {
+      const name = document.getElementById("nameInput").value;
+      const qty = Number(document.getElementById("qtyInput").value);
+
+      if (!name) {
+        alert("請選擇商品");
+        return;
+      }
+
+      if (qty < 1) {
+        alert("數量必須大於 0");
+        return;
+      }
+
+      // 若品項已存在，累加數量
+      const existIndex = items.findIndex((i) => i.name === name);
+      if (existIndex >= 0) {
+        items[existIndex].qty += qty;
+      } else {
+        items.push({ name, qty });
+      }
+
+      renderTable();
+    });
+
+    // 匯出圖片
     const exportBtn = document.getElementById("exportBtn");
     const previewImage = document.getElementById("previewImage");
     const shareToLineBtn = document.getElementById("shareToLineBtn");
     const nativeShareBtn = document.getElementById("nativeShareBtn");
     const clearImageBtn = document.getElementById("clearImageBtn");
-    const buyerInput = document.getElementById("buyerInput");
-    const calculatorInput = document.getElementById("calculatorInput");
-
-    let productList = [];
-    let reportData = [];
-
-    // 初始化數量選項
-    for (let i = 1; i <= 99; i++) {
-      let option = document.createElement("option");
-      option.value = i;
-      option.textContent = i;
-      qtyInput.appendChild(option);
-    }
-
-    async function fetchProductList() {
-      try {
-        const response = await fetch(API_URL + "?action=getProducts");
-        const data = await response.json();
-        productList = data.products || [];
-        populateNameInput();
-      } catch (error) {
-        alert("無法取得商品清單，請稍後再試。");
-        console.error(error);
-      }
-    }
-
-    function populateNameInput() {
-      nameInput.innerHTML = "";
-      productList.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.name;
-        option.textContent = item.name;
-        nameInput.appendChild(option);
-      });
-    }
-
-    function addProduct() {
-      const selectedName = nameInput.value;
-      const quantity = parseInt(qtyInput.value);
-      if (!selectedName || quantity <= 0) {
-        alert("請選擇品項及數量。");
-        return;
-      }
-
-      // 找商品資料
-      const product = productList.find(p => p.name === selectedName);
-      if (!product) {
-        alert("選擇的商品不存在。");
-        return;
-      }
-
-      // 檢查是否已加入，若已加入則更新數量
-      const idx = reportData.findIndex(item => item.name === selectedName);
-      if (idx >= 0) {
-        reportData[idx].qty += quantity;
-      } else {
-        reportData.push({
-          name: product.name,
-          qty: quantity,
-          unitPrice: product.price,
-          unitPv: product.pv
-        });
-      }
-
-      renderReport();
-    }
-
-    function renderReport() {
-      reportBody.innerHTML = "";
-
-      let totalPrice = 0;
-      let totalPv = 0;
-
-      reportData.forEach((item, idx) => {
-        const subtotalPrice = item.qty * item.unitPrice;
-        const subtotalPv = item.qty * item.unitPv;
-        totalPrice += subtotalPrice;
-        totalPv += subtotalPv;
-
-        const tr = document.createElement("tr");
-
-        tr.innerHTML = `
-          <td>${item.name}</td>
-          <td>${item.qty}</td>
-          <td>${item.unitPrice.toLocaleString()}</td>
-          <td>${item.unitPv.toLocaleString()}</td>
-          <td>${subtotalPrice.toLocaleString()}</td>
-          <td>${subtotalPv.toLocaleString()}</td>
-          <td><button class="deleteBtn" data-idx="${idx}" aria-label="刪除 ${item.name}">刪除</button></td>
-        `;
-        reportBody.appendChild(tr);
-      });
-
-      totalPriceCellDup.textContent = totalPrice.toLocaleString();
-      totalPvCellDup.textContent = totalPv.toLocaleString();
-
-      const pvDiffVal = Math.max(0, 112000 - totalPv);
-      const pvDiff2Val = Math.max(0, 220000 - totalPv);
-
-      pvDiff.textContent = pvDiffVal.toLocaleString();
-      pvDiff2.textContent = pvDiff2Val.toLocaleString();
-
-      // 刪除事件綁定
-      document.querySelectorAll(".deleteBtn").forEach(btn => {
-        btn.addEventListener("click", e => {
-          const idx = parseInt(e.target.getAttribute("data-idx"));
-          if (!isNaN(idx)) {
-            reportData.splice(idx, 1);
-            renderReport();
-          }
-        });
-      });
-    }
-
-    addBtn.addEventListener("click", addProduct);
 
     exportBtn.addEventListener("click", () => {
-      if (reportData.length === 0) {
-        alert("請先新增品項後，再匯出圖片。");
-        return;
-      }
-      exportAsImage();
-    });
+      exportBtn.disabled = true;
+      exportBtn.textContent = "正在匯出...";
 
-    clearImageBtn.addEventListener("click", () => {
-      previewImage.style.display = "none";
-      previewImage.src = "";
-      shareToLineBtn.style.display = "none";
-      nativeShareBtn.style.display = "none";
-      clearImageBtn.style.display = "none";
-      exportBtn.style.display = "inline-block";
-    });
+      // 先讓輸入框失焦，避免游標閃爍
+      document.activeElement.blur();
 
-    shareToLineBtn.addEventListener("click", async () => {
-      if (!previewImage.src) {
-        alert("沒有圖片可以上傳備份。");
-        return;
-      }
-      try {
-        const uploadResult = await uploadImageToImgbb(previewImage.src);
-        if (uploadResult && uploadResult.data && uploadResult.data.url) {
-          const imageUrl = uploadResult.data.url;
-          // 傳送到LINE BOT
-          await sendImageToLineBot(imageUrl);
-          alert("已成功備份圖片到 LINE BOT。");
-        } else {
-          alert("上傳圖片失敗，請稍後再試。");
-        }
-      } catch (error) {
-        console.error(error);
-        alert("上傳圖片失敗: " + error.message);
-      }
-    });
-
-    nativeShareBtn.addEventListener("click", () => {
-      if (!navigator.canShare || !navigator.canShare({ files: [] })) {
-        alert("您的裝置或瀏覽器不支援原生分享。");
-        return;
-      }
-      if (!previewImage.src) {
-        alert("請先匯出圖片後，再使用分享功能。");
-        return;
-      }
-      shareNativeImage(previewImage.src);
-    });
-
-    async function exportAsImage() {
-      try {
-        // 載入並取得 #captureArea 的畫面
-        const canvas = await html2canvas(document.getElementById("captureArea"), {
-          backgroundColor: null,
-          scale: 2,
-        });
+      html2canvas(document.getElementById("captureArea"), {
+        scale: 2,
+        backgroundColor: null,
+      }).then((canvas) => {
         const dataUrl = canvas.toDataURL("image/png");
         previewImage.src = dataUrl;
         previewImage.style.display = "block";
 
-        // 顯示上傳備份與分享按鈕
+        // 顯示分享按鈕
         shareToLineBtn.style.display = "inline-block";
         nativeShareBtn.style.display = "inline-block";
         clearImageBtn.style.display = "inline-block";
 
-        // 隱藏匯出按鈕
-        exportBtn.style.display = "none";
-      } catch (error) {
-        alert("匯出圖片失敗，請稍後再試。");
-        console.error(error);
-      }
-    }
+        exportBtn.textContent = "📤 匯出報表為圖片";
+        exportBtn.disabled = false;
+      });
+    });
 
-    async function uploadImageToImgbb(dataUrl) {
-      const base64Image = dataUrl.split(",")[1];
+    // 清除圖片
+    clearImageBtn.addEventListener("click", () => {
+      previewImage.src = "";
+      previewImage.style.display = "none";
+      shareToLineBtn.style.display = "none";
+      nativeShareBtn.style.display = "none";
+      clearImageBtn.style.display = "none";
+    });
+
+    // 上傳圖片到 imgbb (需替換你的 imgbb API KEY)
+    async function uploadToImgbb(base64Image) {
+      const apiKey = "YOUR_IMGBB_API_KEY";
       const formData = new FormData();
-      formData.append("key", imgbbAPIKey);
-      formData.append("image", base64Image);
-      formData.append("name", "康園PV試算_" + Date.now());
+      formData.append("key", apiKey);
+      // 不包含前綴 "data:image/png;base64,"
+      formData.append("image", base64Image.replace(/^data:image\/\w+;base64,/, ""));
 
-      const response = await fetch("https://api.imgbb.com/1/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`imgbb 上傳失敗: ${response.status} ${response.statusText}\n${errorText}`);
-      }
-      return response.json();
-    }
-
-    async function sendImageToLineBot(imageUrl) {
-      const buyer = buyerInput.value.trim() || "未知購買者";
-      const calculator = calculatorInput.value.trim() || "未知試算者";
-
-      const message = `【康園PV試算備份】\n購買者：${buyer}\n試算者：${calculator}\n圖片連結：${imageUrl}`;
-
-      // 傳送給 GAS 後端（假設有一個 action=sendLine）
-      const payload = {
-        action: "sendLine",
-        message: message
-      };
-
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || "LINE 傳送失敗");
-      }
-    }
-
-    function shareNativeImage(dataUrl) {
-      const buyer = buyerInput.value.trim() || "未知購買者";
-      const calculator = calculatorInput.value.trim() || "未知試算者";
-      const shareText = `【康園PV試算分享】\n購買者：${buyer}\n試算者：${calculator}\n圖片已匯出，請查看附件。`;
-
-      fetch(dataUrl)
-        .then(res => res.blob())
-        .then(blob => {
-          const file = new File([blob], "康園PV試算.png", { type: "image/png" });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            navigator.share({
-              files: [file],
-              text: shareText,
-              title: "康園PV試算圖片分享"
-            }).catch(console.error);
-          } else {
-            alert("您的裝置不支援分享圖片檔案。");
-          }
+      try {
+        const response = await fetch("https://api.imgbb.com/1/upload", {
+          method: "POST",
+          body: formData,
         });
+        const uploadData = await response.json();
+        if (uploadData.success) {
+          // 使用 display_url 比較保險
+          return uploadData.data.display_url;
+        } else {
+          alert("圖片上傳失敗，請稍後再試");
+          return null;
+        }
+      } catch (error) {
+        alert("圖片上傳錯誤：" + error.message);
+        return null;
+      }
     }
 
-    fetchProductList();
-    renderReport();
+    // 上傳備份圖片並以 Line Bot 傳送訊息 (需後端 API 支援)
+    shareToLineBtn.addEventListener("click", async () => {
+      if (!previewImage.src) return;
+
+      shareToLineBtn.disabled = true;
+      shareToLineBtn.textContent = "上傳中...";
+
+      const uploadedUrl = await uploadToImgbb(previewImage.src);
+
+      if (uploadedUrl) {
+        // 這裡要改成你自己的後端 API 用 fetch 呼叫，範例:
+        // 輸入購買者、試算者帶入訊息文字中
+        const buyer = buyerInput.value.trim() || "匿名購買者";
+        const calculator = calculatorInput.value.trim() || "匿名試算者";
+
+        // 範例：後端請求 (請替換 URL 與實作)
+        fetch("https://你的後端服務/api/sendLineMessage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageUrl: uploadedUrl,
+            buyer,
+            calculator,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              alert("備份已上傳並傳送訊息給 Line Bot");
+            } else {
+              alert("上傳成功，但傳送訊息失敗");
+            }
+          })
+          .catch(() => {
+            alert("上傳成功，但呼叫後端出錯");
+          });
+      }
+
+      shareToLineBtn.textContent = "📩 上傳備份";
+      shareToLineBtn.disabled = false;
+    });
+
+    // 原生分享圖片 (支援者手機裝置)
+    nativeShareBtn.addEventListener("click", async () => {
+      if (!previewImage.src) return;
+
+      try {
+        const response = await fetch(previewImage.src);
+        const blob = await response.blob();
+        const file = new File([blob], "康園試算報表.png", { type: "image/png" });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: "康園PV試算報表",
+            text: "請查看附件圖片",
+          });
+        } else {
+          alert("您的裝置不支援原生分享功能");
+        }
+      } catch (error) {
+        alert("分享失敗：" + error.message);
+      }
+    });
+
+    renderTable();
   </script>
 </body>
 </html>
