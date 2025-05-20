@@ -285,7 +285,7 @@
 </head>
 <body>
   <div id="captureArea">
-    <h2>🧾 康園PV試算</h2>
+    <h2>🧾 康園試算</h2>
     <div class="userInputs">
       <div class="row">
         <label>購買者：
@@ -313,9 +313,9 @@
     </table>
 
     <div class="summaryBox" aria-live="polite">
-      總計 金額：<span id="totalPriceCellDup">0</span>｜總計 PV：<span id="totalPvCellDup">0</span>
-      <span class="extra">距 11.2萬 PV 還差：<span id="pvDiff">112000</span> <span id="pvMessage1"></span></span>
-      <span class="extra">距 22.0萬 PV 還差：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
+      總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
+      <span class="extra">距 11.2萬 PV ：<span id="pvDiff">112000</span> <span id="pvMessage1"></span></span>
+      <span class="extra">距 22.0萬 PV ：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
     </div>
   </div>
 
@@ -326,7 +326,7 @@
   <button id="clearImageBtn">❌ 清除圖片</button>
 
   <!-- ✅ 浮窗提示 -->
-  <div id="toast" class="toast">✅ 圖片已成功上傳</div>
+  <div id="toast" class="toast">✅ 圖片已上傳備份</div>
 
   <div id="inputArea">
     <select id="nameInput"></select>
@@ -507,7 +507,7 @@
           const imageUrl = result.data.url;
           const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent("康園PV試算圖片備份\n" + imageUrl)}`;
           window.open(lineShareUrl, "_blank");
-          showToast("✅ 圖片已成功上傳");
+          showToast("✅ 圖片已上傳備份");
         } else {
           alert("圖片上傳失敗，請稍後再試");
         }
