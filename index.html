@@ -300,7 +300,7 @@
   <button id="shareToLineBtn">📩 上傳備份</button>
   <button id="nativeShareBtn">📱 分享圖片</button>
   <button id="clearImageBtn">❌ 清除圖片</button>
-  <div id="uploadSuccessMessage">✅ 圖片已成功上傳</div>
+  <div id="uploadSuccessMessage">✅ 圖片已成功備份</div>
 
   <div id="inputArea">
     <select id="nameInput"></select>
@@ -454,7 +454,7 @@
         alert("匯出失敗：" + error);
       } finally {
         exportBtn.disabled = false;
-        exportBtn.textContent = "📤 匯出報表為圖片";
+        exportBtn.textContent = "📤 匯出報表";
       }
     });
 
