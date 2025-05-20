@@ -7,14 +7,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root {
-    --bg-color: #1f2937;       /* 深藍灰背景 */
-    --panel-bg: #374151;      /* 稍淺深藍灰面板背景 */
-    --text-color: #d1d5db;    /* 淡灰白文字 */
-    --accent: #60a5fa;        /* 柔和藍色點綴 */
-    --highlight: #3b82f6;     /* 明亮藍色高亮 */
-    --error: #f87171;         /* 柔和紅色錯誤 */
-    --button-green: #34d399;  /* 清新綠色按鈕 */
-    --button-grey: #6b7280;   /* 中性灰按鈕 */
+    --bg-color: #121212;
+    --panel-bg: #1e1e1e;
+    --text-color: #e0e0e0;
+    --accent: #00bfa5;
+    --highlight: #29b6f6;
+    --error: #ef5350;
+    --button-green: #00bfa5;
+    --button-grey: #424242;
   }
 
   body {
@@ -31,7 +31,7 @@
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 20px;
-    box-shadow: 0 0 25px rgba(59, 130, 246, 0.5); /* 藍色光暈質感 */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
   }
 
   #captureArea h2 {
@@ -58,35 +58,29 @@
     display: flex;
     flex-direction: column;
     font-size: 16px;
-    color: #9ca3af; /* 柔和淺灰 */
+    color: #bbb;
   }
 
   .userInputs input {
     padding: 8px;
     font-size: 18px;
-    background: #4b5563; /* 淺深灰 */
+    background: #333;
     color: var(--text-color);
     border: none;
     border-radius: 6px;
     margin-top: 4px;
     width: 150px;
     box-sizing: border-box;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
 
-  .userInputs input:focus {
-    transform: scale(1.02);
-    box-shadow: 0 0 12px var(--accent);
-    outline: none;
-  }
-
+  /* 表格交叉配色 淡深色系 */
   #reportTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  table-layout: fixed;
-  margin-left: auto;
-  margin-right: auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    table-layout: fixed;
+    background-color: #f9fafb; /* 淺灰白底 */
+    color: #374151; /* 深灰文字 */
   }
 
   #reportTable th:nth-child(1),
@@ -100,7 +94,7 @@
 
   #reportTable th,
   #reportTable td {
-    border: 1px solid #6b7280; /* 中灰線條 */
+    border: 1px solid #d1d5db; /* 淺灰邊框 */
     padding: 5px;
     text-align: center;
     white-space: nowrap;
@@ -108,13 +102,21 @@
   }
 
   #reportTable thead {
-    background: linear-gradient(90deg, #60a5fa, #3b82f6);
+    background: linear-gradient(90deg, #3b82f6, #60a5fa); /* 藍色漸層 */
     color: #f9fafb;
     font-weight: 600;
   }
 
+  #reportTable tbody tr:nth-child(odd) {
+    background-color: #f3f4f6; /* 超淺灰 */
+  }
+
+  #reportTable tbody tr:nth-child(even) {
+    background-color: #e5e7eb; /* 淺灰 */
+  }
+
   #reportTable tbody tr:hover {
-    background-color: rgba(96, 165, 250, 0.15);
+    background-color: #bfdbfe; /* 明亮淺藍 */
     font-weight: 600;
   }
 
@@ -126,21 +128,10 @@
     padding: 3px 7px;
     cursor: pointer;
     font-size: 12px;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
 
   .deleteBtn:hover {
-    background-color: #ef4444;
-    animation: pulseShadow 1.5s infinite;
-  }
-
-  @keyframes pulseShadow {
-    0%, 100% {
-      box-shadow: 0 0 8px rgba(248, 113, 113, 0.7);
-    }
-    50% {
-      box-shadow: 0 0 15px rgba(248, 113, 113, 1);
-    }
+    background-color: #c62828;
   }
 
   .summaryBox {
@@ -159,7 +150,7 @@
   }
 
   .summaryBox .done {
-    color: #34d399;
+    color: #4caf50;
     font-weight: bold;
   }
 
@@ -177,21 +168,12 @@
     font-size: 16px;
     border-radius: 6px;
     border: none;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
-    will-change: transform, box-shadow;
   }
 
   #nameInput,
   #qtyInput {
-    background-color: #4b5563;
+    background-color: #2c2c2c;
     color: var(--text-color);
-  }
-
-  #nameInput:focus,
-  #qtyInput:focus {
-    transform: scale(1.02);
-    box-shadow: 0 0 12px var(--accent);
-    outline: none;
   }
 
   #addBtn {
@@ -202,9 +184,7 @@
   }
 
   #addBtn:hover {
-    transform: scale(1.05);
-    background: linear-gradient(45deg, #34d399, #059669);
-    box-shadow: 0 6px 15px rgba(5, 150, 105, 0.85);
+    background-color: #009e8a;
   }
 
   #exportBtn,
@@ -222,16 +202,13 @@
     border-radius: 8px;
     cursor: pointer;
     box-sizing: border-box;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
-    will-change: transform, box-shadow;
+    transition: background-color 0.3s ease;
   }
 
   #exportBtn:hover,
   #shareToLineBtn:hover,
   #nativeShareBtn:hover {
-    transform: scale(1.05);
-    background: #059669;
-    box-shadow: 0 6px 15px rgba(5, 150, 105, 0.85);
+    background: #009e8a;
   }
 
   #clearImageBtn {
@@ -239,13 +216,13 @@
   }
 
   #clearImageBtn:hover {
-    background: #525252;
+    background: #424242;
   }
 
   #previewImage {
     display: none;
     max-width: 100%;
-    border: 2px solid #9ca3af;
+    border: 2px solid #888;
     border-radius: 10px;
     margin: 20px auto;
   }
@@ -308,7 +285,7 @@
   }
 
   #uploadSuccessMessage {
-    color: #34d399;
+    color: #4caf50;
     text-align: center;
     margin-top: 10px;
     display: none;
@@ -320,7 +297,7 @@
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #34d399;
+    background-color: #4caf50;
     color: white;
     padding: 12px 20px;
     border-radius: 6px;
@@ -335,6 +312,7 @@
     transform: translateX(-50%) translateY(-10px);
   }
 </style>
+
 
 </head>
 <body>
