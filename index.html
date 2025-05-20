@@ -7,14 +7,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
   :root {
-    --bg-color: #f9faf8;           /* 非常淺的白綠色背景 */
-    --panel-bg: #e6f0e8;          /* 淺綠灰色區塊背景 */
-    --text-color: #2a4d3a;        /* 深墨綠色文字 */
-    --accent: #6ebf4b;            /* 清新嫩綠作為強調色 */
-    --highlight: #3a7d44;         /* 稍深綠色做標題或重點 */
-    --error: #d9534f;             /* 失敗或刪除按鈕用紅色 */
-    --button-green: #5caf4a;      /* 按鈕主色，舒服的中綠 */
-    --button-grey: #a5b5a3;       /* 按鈕禁用或次要色調 */
+    --bg-color: #e1e8df;           /* 稍深柔和的淺灰綠 */
+    --panel-bg: #c7d3c3;          /* 霧感綠灰 */
+    --text-color: #2c3e2f;        /* 深墨綠，文字更明顯但不刺眼 */
+    --accent: #5a8d4a;            /* 柔和橄欖綠做強調色 */
+    --highlight: #436633;         /* 深綠做標題或重要元素 */
+    --error: #b94442;             /* 低飽和紅色，警示用 */
+    --button-green: #497937;      /* 沉穩中綠，按鈕主色 */
+    --button-grey: #8a9a85;       /* 暗灰綠 */
   }
 
   body {
@@ -31,7 +31,7 @@
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 20px;
-    box-shadow: 0 0 20px rgba(46, 100, 57, 0.25);
+    box-shadow: 0 0 18px rgba(44, 62, 47, 0.3);
   }
 
   #captureArea h2 {
@@ -59,15 +59,15 @@
     display: flex;
     flex-direction: column;
     font-size: 16px;
-    color: #4c6b46;
+    color: #475a41;
   }
 
   .userInputs input {
     padding: 8px;
     font-size: 18px;
-    background: #d5e3d1;
+    background: #bac9b0;
     color: var(--text-color);
-    border: 1.5px solid #9cc89c;
+    border: 1.5px solid #829664;
     border-radius: 6px;
     margin-top: 4px;
     width: 150px;
@@ -99,7 +99,7 @@
 
   #reportTable th,
   #reportTable td {
-    border: 1px solid #a3bfa2;
+    border: 1px solid #829664;
     padding: 5px;
     text-align: center;
     white-space: nowrap;
@@ -123,7 +123,7 @@
   }
 
   .deleteBtn:hover {
-    background-color: #b0413d;
+    background-color: #8b3535;
   }
 
   .summaryBox {
@@ -157,8 +157,8 @@
     padding: 10px;
     font-size: 16px;
     border-radius: 6px;
-    border: 1.5px solid #9cc89c;
-    background-color: #d5e3d1;
+    border: 1.5px solid #829664;
+    background-color: #bac9b0;
     color: var(--text-color);
   }
 
@@ -174,7 +174,7 @@
   }
 
   #addBtn:hover {
-    background-color: #4a8f3a;
+    background-color: #3a6b28;
   }
 
   /* 調整按鈕寬度、置中且每個寬度約30% */
@@ -198,7 +198,7 @@
   #exportBtn:hover,
   #shareToLineBtn:hover,
   #nativeShareBtn:hover {
-    background: #4a8f3a;
+    background: #3a6b28;
   }
 
   #clearImageBtn {
@@ -207,13 +207,13 @@
   }
 
   #clearImageBtn:hover {
-    background: #8ea28a;
+    background: #758669;
   }
 
   #previewImage {
     display: none;
     max-width: 100%;
-    border: 2px solid #7ea56f;
+    border: 2px solid #5a7b42;
     border-radius: 10px;
     margin: 20px auto;
   }
