@@ -288,8 +288,8 @@
 
     <div class="summaryBox" aria-live="polite">
       總計 金額：<span id="totalPriceCellDup">0</span>｜總計 PV：<span id="totalPvCellDup">0</span>
-      <span class="extra">距 11.2萬 PV 還差：<span id="pvDiff">112000</span></span>
-      <span class="extra">距 22.0萬 PV 還差：<span id="pvDiff2">220000</span></span>
+      <span class="extra" id="pvDiffText">距 11.2萬 PV 還差：<span id="pvDiff">112000</span></span>
+      <span class="extra" id="pvDiff2Text">距 22.0萬 PV 還差：<span id="pvDiff2">220000</span></span>
     </div>
   </div>
 
@@ -320,6 +320,8 @@
     const totalPvCellDup = document.getElementById("totalPvCellDup");
     const pvDiff = document.getElementById("pvDiff");
     const pvDiff2 = document.getElementById("pvDiff2");
+    const pvDiffText = document.getElementById("pvDiffText");
+    const pvDiff2Text = document.getElementById("pvDiff2Text");
 
     const exportBtn = document.getElementById("exportBtn");
     const previewImage = document.getElementById("previewImage");
@@ -413,7 +415,7 @@
           <td>${item.pv}</td>
           <td>${subtotalPrice}</td>
           <td>${subtotalPv}</td>
-          <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
+          <td><button class="deleteBtn" data-idx="${idx}">刪除</button></td>
         `;
 
         reportBody.appendChild(tr);
@@ -422,132 +424,163 @@
       totalPriceCellDup.textContent = totalPrice;
       totalPvCellDup.textContent = totalPv;
 
-      pvDiff.textContent = Math.max(0, 112000 - totalPv);
-      pvDiff2.textContent = Math.max(0, 220000 - totalPv);
+      const diff1 = 112000 - totalPv;
+      const diff2 = 220000 - totalPv;
 
-      // 刪除按鈕事件綁定
-      document.querySelectorAll(".deleteBtn").forEach(btn => {
-        btn.onclick = e => {
-          const idx = parseInt(e.target.dataset.index);
-          selectedProducts.splice(idx, 1);
-          renderTable();
-        };
-      });
+      pvDiff.textContent = diff1 > 0 ? diff1.toLocaleString() : "已達標";
+      pvDiffText.style.color = diff1 > 0 ? "#00bfa5" : "#4caf50";
+
+      pvDiff2.textContent = diff2 > 0 ? diff2.toLocaleString() : "已達標";
+      pvDiff2Text.style.color = diff2 > 0 ? "#00bfa5" : "#4caf50";
     }
 
-    // 匯出報表為圖片（html2canvas）
-    exportBtn.addEventListener("click", async () => {
-      // 新增檢查：必須有品項才能匯出
-      if (selectedProducts.length === 0) {
-        alert("請先新增至少一個品項，才能匯出圖片！");
-        return;
+    // 刪除品項
+    reportBody.addEventListener("click", e => {
+      if (e.target.classList.contains("deleteBtn")) {
+        const idx = parseInt(e.target.getAttribute("data-idx"));
+        selectedProducts.splice(idx, 1);
+        renderTable();
       }
+    });
 
-      exportBtn.disabled = true;
-      exportBtn.textContent = "匯出中...";
+    addBtn.addEventListener("click", () => {
+      addProduct();
+    });
 
+    // 匯出報表成圖片
+    exportBtn.addEventListener("click", async () => {
       try {
-        const canvas = await html2canvas(document.getElementById("captureArea"), {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
+        exportBtn.disabled = true;
+        exportBtn.textContent = "生成中...";
+
+        // 使用 html2canvas
+        const captureArea = document.getElementById("captureArea");
+
+        const canvas = await html2canvas(captureArea, {
+          scale: 3,
           backgroundColor: null,
-          logging: false,
+          useCORS: true,
         });
+
         const dataUrl = canvas.toDataURL("image/png");
+
         previewImage.src = dataUrl;
         previewImage.style.display = "block";
+
         shareToLineBtn.style.display = "inline-block";
-        nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
+        nativeShareBtn.style.display = navigator.canShare ? "inline-block" : "none";
         clearImageBtn.style.display = "inline-block";
-      } catch (error) {
-        alert("匯出失敗：" + error);
+
+      } catch (err) {
+        alert("生成圖片失敗：" + err);
       } finally {
         exportBtn.disabled = false;
         exportBtn.textContent = "📤 匯出報表為圖片";
       }
     });
 
-    // 分享到 LINE (上傳到 imgbb 並產生 LINE 分享連結)
+    // 清除圖片
+    clearImageBtn.addEventListener("click", () => {
+      previewImage.src = "";
+      previewImage.style.display = "none";
+      shareToLineBtn.style.display = "none";
+      nativeShareBtn.style.display = "none";
+      clearImageBtn.style.display = "none";
+    });
+
+    // 分享圖片到 LINE Bot (上傳備份)
     shareToLineBtn.addEventListener("click", async () => {
       if (!previewImage.src) {
-        alert("請先匯出圖片");
+        alert("請先匯出報表為圖片");
         return;
       }
+
       shareToLineBtn.disabled = true;
       shareToLineBtn.textContent = "上傳中...";
 
       try {
-        // imgbb API 傳送圖片
-        const base64Data = previewImage.src.split(",")[1];
+        // 上傳圖片到 imgbb
+        const blob = await (await fetch(previewImage.src)).blob();
         const formData = new FormData();
-        formData.append("image", base64Data);
         formData.append("key", IMGBB_API_KEY);
+        formData.append("image", blob);
 
-        const res = await fetch("https://api.imgbb.com/1/upload", {
+        const uploadRes = await fetch("https://api.imgbb.com/1/upload", {
           method: "POST",
           body: formData,
         });
-        const result = await res.json();
-        if (result.success) {
-          const imageUrl = result.data.url;
-          const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(
-            "康園PV試算圖片備份\n" + imageUrl
-          )}`;
-          window.open(lineShareUrl, "_blank");
-        } else {
-          alert("圖片上傳失敗，請稍後再試");
+        const uploadData = await uploadRes.json();
+
+        if (!uploadData.success) {
+          throw new Error("圖片上傳失敗");
         }
+
+        const imageUrl = uploadData.data.url;
+
+        // 傳送訊息給 LINE Bot 伺服器
+        const sendRes = await fetch(API_URL + "?action=sendMsg", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            imageUrl,
+            text: "康園PV試算報表備份圖",
+          }),
+        });
+
+        const sendData = await sendRes.json();
+
+        if (sendData.success) {
+          alert("圖片已成功上傳並發送至 LINE Bot");
+        } else {
+          alert("發送 LINE 訊息失敗");
+        }
+
       } catch (error) {
-        alert("圖片上傳錯誤: " + error);
+        alert("上傳或發送失敗：" + error);
       } finally {
         shareToLineBtn.disabled = false;
         shareToLineBtn.textContent = "📩 上傳備份";
       }
     });
 
-    // 原生分享（手機專用）
+    // 瀏覽器原生分享
     nativeShareBtn.addEventListener("click", async () => {
-      if (!navigator.share) {
-        alert("您的瀏覽器不支援原生分享功能");
+      if (!previewImage.src) {
+        alert("請先匯出報表為圖片");
         return;
       }
-      if (!previewImage.src) {
-        alert("請先匯出圖片");
+
+      if (!navigator.canShare) {
+        alert("此裝置不支援原生分享功能");
         return;
       }
 
       try {
+        // 先轉成 blob
         const response = await fetch(previewImage.src);
         const blob = await response.blob();
         const filesArray = [
-          new File([blob], "康園PV試算.png", { type: blob.type }),
+          new File([blob], "康園PV試算報表.png", {
+            type: blob.type,
+          }),
         ];
 
-        await navigator.share({
-          files: filesArray,
-          title: "康園PV試算",
-          text: "康園PV試算圖片",
-        });
-      } catch (error) {
-        alert("分享失敗: " + error);
+        if (navigator.canShare({ files: filesArray })) {
+          await navigator.share({
+            files: filesArray,
+            title: "康園PV試算報表",
+            text: "這是我的康園PV試算報表圖片。",
+          });
+        } else {
+          alert("裝置不支援分享檔案");
+        }
+      } catch (err) {
+        alert("分享失敗：" + err);
       }
     });
 
-    // 清除圖片
-    clearImageBtn.addEventListener("click", () => {
-      previewImage.style.display = "none";
-      previewImage.src = "";
-      shareToLineBtn.style.display = "none";
-      nativeShareBtn.style.display = "none";
-      clearImageBtn.style.display = "none";
-    });
-
-    addBtn.addEventListener("click", addProduct);
-
-    window.onload = () => {
-      loadProducts();
-    };
+    // 頁面載入後執行
+    loadProducts();
   </script>
 </body>
 </html>
