@@ -329,258 +329,261 @@
     const nativeShareBtn = document.getElementById("nativeShareBtn");
     const clearImageBtn = document.getElementById("clearImageBtn");
 
-    // 初始化選擇數量選項 1~10
-    for (let i = 1; i <= 10; i++) {
-      const option = document.createElement("option");
-      option.value = i;
-      option.textContent = i;
-      qtyInput.appendChild(option);
-    }
-
-    // 載入商品列表
-    async function loadProducts() {
-      try {
-        const res = await fetch(API_URL + "?action=all");
-        const data = await res.json();
-        if (!data || !data.length) {
-          alert("商品資料讀取失敗");
-          return;
-        }
+    // 取得資料後初始化
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(data => {
         allProducts = data;
-        // 清空舊選項
-        nameInput.innerHTML = "";
-        data.forEach(item => {
-          const opt = document.createElement("option");
-          opt.value = item.name;
-          opt.textContent = `${item.name} `;
-          nameInput.appendChild(opt);
-        });
-      } catch (error) {
-        alert("讀取商品失敗: " + error);
+        initSelectOptions();
+      })
+      .catch(err => {
+        alert("無法取得商品資料，請稍後再試");
+        console.error(err);
+      });
+
+    function initSelectOptions() {
+      // 填入商品選項
+      nameInput.innerHTML = "";
+      allProducts.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.品項名稱;
+        option.textContent = item.品項名稱;
+        nameInput.appendChild(option);
+      });
+
+      // 數量選項 1~30
+      qtyInput.innerHTML = "";
+      for (let i = 1; i <= 30; i++) {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = i;
+        qtyInput.appendChild(option);
       }
     }
 
-    // 新增品項到表格
-    function addProduct() {
-      const selectedName = nameInput.value;
-      const qty = parseInt(qtyInput.value);
-
-      if (!selectedName || qty <= 0) {
-        alert("請選擇品項與數量");
-        return;
-      }
-
-      // 找產品資料
-      const product = allProducts.find(p => p.name === selectedName);
-      if (!product) {
-        alert("找不到該品項");
-        return;
-      }
-
-      // 檢查是否已存在
-      const exists = selectedProducts.find(p => p.name === selectedName);
-      if (exists) {
-        exists.qty += qty;
-      } else {
-        selectedProducts.push({
-          name: product.name,
-          qty: qty,
-          price: product.price,
-          pv: product.pv,
-        });
-      }
-
-      renderTable();
-    }
-
-    // 渲染表格
-    function renderTable() {
+    function updateReport() {
       reportBody.innerHTML = "";
       let totalPrice = 0;
       let totalPv = 0;
 
-      selectedProducts.forEach((item, idx) => {
+      selectedProducts.forEach((item, index) => {
         const tr = document.createElement("tr");
 
-        const subtotalPrice = item.price * item.qty;
-        const subtotalPv = item.pv * item.qty;
+        const tdName = document.createElement("td");
+        tdName.textContent = item.品項名稱;
+
+        const tdQty = document.createElement("td");
+        tdQty.textContent = item.數量;
+
+        const tdPrice = document.createElement("td");
+        tdPrice.textContent = item.單價.toLocaleString();
+
+        const tdPv = document.createElement("td");
+        tdPv.textContent = item.PV.toLocaleString();
+
+        const subtotalPrice = item.數量 * item.單價;
+        const subtotalPv = item.數量 * item.PV;
 
         totalPrice += subtotalPrice;
         totalPv += subtotalPv;
 
-        tr.innerHTML = `
-          <td>${item.name}</td>
-          <td>${item.qty}</td>
-          <td>${item.price}</td>
-          <td>${item.pv}</td>
-          <td>${subtotalPrice}</td>
-          <td>${subtotalPv}</td>
-          <td><button class="deleteBtn" data-idx="${idx}">刪除</button></td>
-        `;
+        const tdSubPrice = document.createElement("td");
+        tdSubPrice.textContent = subtotalPrice.toLocaleString();
+
+        const tdSubPv = document.createElement("td");
+        tdSubPv.textContent = subtotalPv.toLocaleString();
+
+        const tdDel = document.createElement("td");
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "刪除";
+        delBtn.classList.add("deleteBtn");
+        delBtn.setAttribute("aria-label", `刪除品項 ${item.品項名稱}`);
+        delBtn.addEventListener("click", () => {
+          selectedProducts.splice(index, 1);
+          updateReport();
+        });
+        tdDel.appendChild(delBtn);
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdQty);
+        tr.appendChild(tdPrice);
+        tr.appendChild(tdPv);
+        tr.appendChild(tdSubPrice);
+        tr.appendChild(tdSubPv);
+        tr.appendChild(tdDel);
 
         reportBody.appendChild(tr);
       });
 
-      totalPriceCellDup.textContent = totalPrice;
-      totalPvCellDup.textContent = totalPv;
+      totalPriceCellDup.textContent = totalPrice.toLocaleString();
+      totalPvCellDup.textContent = totalPv.toLocaleString();
 
-      const diff1 = 112000 - totalPv;
+      // PV 差距計算
+      const diff = 112000 - totalPv;
       const diff2 = 220000 - totalPv;
 
-      pvDiff.textContent = diff1 > 0 ? diff1.toLocaleString() : "已達標";
-      pvDiffText.style.color = diff1 > 0 ? "#00bfa5" : "#4caf50";
+      if (diff <= 0) {
+        pvDiffText.textContent = "已達 11.2萬 PV 目標";
+        pvDiffText.style.color = "#4caf50";
+      } else {
+        pvDiffText.textContent = `距 11.2萬 PV 還差：${diff.toLocaleString()}`;
+        pvDiffText.style.color = "#29b6f6";
+      }
 
-      pvDiff2.textContent = diff2 > 0 ? diff2.toLocaleString() : "已達標";
-      pvDiff2Text.style.color = diff2 > 0 ? "#00bfa5" : "#4caf50";
+      if (diff2 <= 0) {
+        pvDiff2Text.textContent = "已達 22.0萬 PV 目標";
+        pvDiff2Text.style.color = "#4caf50";
+      } else {
+        pvDiff2Text.textContent = `距 22.0萬 PV 還差：${diff2.toLocaleString()}`;
+        pvDiff2Text.style.color = "#29b6f6";
+      }
     }
 
-    // 刪除品項
-    reportBody.addEventListener("click", e => {
-      if (e.target.classList.contains("deleteBtn")) {
-        const idx = parseInt(e.target.getAttribute("data-idx"));
-        selectedProducts.splice(idx, 1);
-        renderTable();
-      }
-    });
-
     addBtn.addEventListener("click", () => {
-      addProduct();
-    });
+      const name = nameInput.value;
+      const qty = Number(qtyInput.value);
 
-    // 匯出報表成圖片
-    exportBtn.addEventListener("click", async () => {
-      try {
-        exportBtn.disabled = true;
-        exportBtn.textContent = "生成中...";
-
-        // 使用 html2canvas
-        const captureArea = document.getElementById("captureArea");
-
-        const canvas = await html2canvas(captureArea, {
-          scale: 3,
-          backgroundColor: null,
-          useCORS: true,
-        });
-
-        const dataUrl = canvas.toDataURL("image/png");
-
-        previewImage.src = dataUrl;
-        previewImage.style.display = "block";
-
-        shareToLineBtn.style.display = "inline-block";
-        nativeShareBtn.style.display = navigator.canShare ? "inline-block" : "none";
-        clearImageBtn.style.display = "inline-block";
-
-      } catch (err) {
-        alert("生成圖片失敗：" + err);
-      } finally {
-        exportBtn.disabled = false;
-        exportBtn.textContent = "📤 匯出報表為圖片";
+      if (!name) {
+        alert("請選擇品項名稱");
+        return;
       }
+      if (!qty || qty < 1) {
+        alert("請選擇有效數量");
+        return;
+      }
+
+      const product = allProducts.find(p => p.品項名稱 === name);
+      if (!product) {
+        alert("選擇的品項不存在");
+        return;
+      }
+
+      selectedProducts.push({
+        ...product,
+        數量: qty
+      });
+
+      updateReport();
     });
 
-    // 清除圖片
+    exportBtn.addEventListener("click", () => {
+      // 先隱藏刪除按鈕，避免被截圖
+      document.querySelectorAll(".deleteBtn").forEach(btn => btn.style.display = "none");
+
+      html2canvas(document.getElementById("captureArea"), {
+        scale: 3,
+        useCORS: true,
+      }).then(canvas => {
+        previewImage.src = canvas.toDataURL("image/png");
+        previewImage.style.display = "block";
+        shareToLineBtn.style.display = "inline-block";
+        nativeShareBtn.style.display = "inline-block";
+        clearImageBtn.style.display = "inline-block";
+        exportBtn.style.display = "none";
+
+        // 還原刪除按鈕顯示
+        document.querySelectorAll(".deleteBtn").forEach(btn => btn.style.display = "");
+      }).catch(e => {
+        alert("匯出圖片失敗，請稍後再試");
+        console.error(e);
+      });
+    });
+
     clearImageBtn.addEventListener("click", () => {
       previewImage.src = "";
       previewImage.style.display = "none";
       shareToLineBtn.style.display = "none";
       nativeShareBtn.style.display = "none";
       clearImageBtn.style.display = "none";
+      exportBtn.style.display = "inline-block";
     });
 
-    // 分享圖片到 LINE Bot (上傳備份)
+    nativeShareBtn.addEventListener("click", async () => {
+      if (!previewImage.src) {
+        alert("請先匯出圖片");
+        return;
+      }
+      if (navigator.canShare && navigator.canShare({ files: [] })) {
+        const response = await fetch(previewImage.src);
+        const blob = await response.blob();
+        const file = new File([blob], "康園PV報表.png", { type: "image/png" });
+        try {
+          await navigator.share({
+            files: [file],
+            title: "康園PV報表",
+            text: "康園PV試算結果"
+          });
+        } catch (err) {
+          console.error("分享失敗:", err);
+          alert("分享失敗或取消");
+        }
+      } else {
+        alert("您的裝置不支援原生分享");
+      }
+    });
+
+    // 這裡是最重要的部分：分享圖片給 LINE BOT
     shareToLineBtn.addEventListener("click", async () => {
       if (!previewImage.src) {
-        alert("請先匯出報表為圖片");
+        alert("請先匯出圖片");
         return;
       }
 
-      shareToLineBtn.disabled = true;
-      shareToLineBtn.textContent = "上傳中...";
+      // 取得購買者與試算者名稱
+      const buyer = document.querySelector(".userInputs input[placeholder='輸入購買者']").value.trim();
+      const calculator = document.querySelector(".userInputs input[placeholder='輸入試算者']").value.trim();
+
+      if (!buyer || !calculator) {
+        alert("請輸入購買者與試算者");
+        return;
+      }
 
       try {
-        // 上傳圖片到 imgbb
-        const blob = await (await fetch(previewImage.src)).blob();
+        // 先把 dataURL 轉成純 Base64 字串 (去除前綴)
+        const base64Str = previewImage.src.split(",")[1];
+
+        // 透過 formData 發送給 imgbb
         const formData = new FormData();
         formData.append("key", IMGBB_API_KEY);
-        formData.append("image", blob);
+        formData.append("image", base64Str);
 
-        const uploadRes = await fetch("https://api.imgbb.com/1/upload", {
+        const res = await fetch("https://api.imgbb.com/1/upload", {
           method: "POST",
-          body: formData,
+          body: formData
         });
-        const uploadData = await uploadRes.json();
 
-        if (!uploadData.success) {
+        const json = await res.json();
+        if (!json.success) {
           throw new Error("圖片上傳失敗");
         }
 
-        const imageUrl = uploadData.data.url;
+        const imageUrl = json.data.url;
 
-        // 傳送訊息給 LINE Bot 伺服器
-        const sendRes = await fetch(API_URL + "?action=sendMsg", {
+        // 組成要傳給 LINE 的訊息文字
+        const messageText = `康園PV計算：購買者：${buyer}、試算者：${calculator}`;
+
+        // 呼叫你的 LINE Bot webhook API，送出文字與圖片 URL
+        const payload = {
+          message: messageText,
+          imageUrl: imageUrl
+        };
+
+        const lineRes = await fetch("你的LINEBOT Webhook網址", {
           method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({
-            imageUrl,
-            text: "康園PV試算報表備份圖",
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         });
 
-        const sendData = await sendRes.json();
-
-        if (sendData.success) {
-          alert("圖片已成功上傳並發送至 LINE Bot");
-        } else {
-          alert("發送 LINE 訊息失敗");
+        if (!lineRes.ok) {
+          throw new Error("傳送給LINE Bot失敗");
         }
 
-      } catch (error) {
-        alert("上傳或發送失敗：" + error);
-      } finally {
-        shareToLineBtn.disabled = false;
-        shareToLineBtn.textContent = "📩 上傳備份";
-      }
-    });
-
-    // 瀏覽器原生分享
-    nativeShareBtn.addEventListener("click", async () => {
-      if (!previewImage.src) {
-        alert("請先匯出報表為圖片");
-        return;
-      }
-
-      if (!navigator.canShare) {
-        alert("此裝置不支援原生分享功能");
-        return;
-      }
-
-      try {
-        // 先轉成 blob
-        const response = await fetch(previewImage.src);
-        const blob = await response.blob();
-        const filesArray = [
-          new File([blob], "康園PV試算報表.png", {
-            type: blob.type,
-          }),
-        ];
-
-        if (navigator.canShare({ files: filesArray })) {
-          await navigator.share({
-            files: filesArray,
-            title: "康園PV試算報表",
-            text: "這是我的康園PV試算報表圖片。",
-          });
-        } else {
-          alert("裝置不支援分享檔案");
-        }
+        alert("圖片上傳並備份至LINE Bot成功！");
       } catch (err) {
-        alert("分享失敗：" + err);
+        console.error(err);
+        alert("圖片上傳失敗，請稍後再試");
       }
     });
-
-    // 頁面載入後執行
-    loadProducts();
   </script>
 </body>
 </html>
