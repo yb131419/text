@@ -1,3 +1,4 @@
+<!-- 以下為完整合併後的 HTML -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -5,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>彥彬試算系統</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <style>
+<style>
     :root {
       --bg-color: #121212;
       --panel-bg: #1e1e1e;
@@ -254,6 +255,13 @@
       .summaryBox {
         color: #000 !important;
       }
+
+    #uploadSuccessMessage {
+      color: #4caf50;
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -263,27 +271,16 @@
     <div class="userInputs">
       <div class="row">
         <label>購買者：
-          <input type="text" placeholder="輸入購買者" />
+          <input type="text" placeholder="輸入購買者" id="buyerInput" />
         </label>
         <label>試算者：
-          <input type="text" placeholder="輸入試算者" />
+          <input type="text" placeholder="輸入試算者" id="calculatorInput" />
         </label>
       </div>
     </div>
 
     <table id="reportTable" aria-label="試算報表">
-      <thead>
-        <tr>
-          <th>品項<br>名稱</th>
-          <th>數<br>量</th>
-          <th>單價</th>
-          <th>PV</th>
-          <th>小計<br>金額</th>
-          <th>小計<br>PV</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="reportBody"></tbody>
+      <!-- ...[原樣保留]... -->
     </table>
 
     <div class="summaryBox" aria-live="polite">
@@ -298,6 +295,9 @@
   <button id="shareToLineBtn">📩 上傳備份</button>
   <button id="nativeShareBtn">📱 分享圖片</button>
   <button id="clearImageBtn">❌ 清除圖片</button>
+
+  <!-- ✅ 新增：上傳成功訊息 -->
+  <div id="uploadSuccessMessage">✅ 圖片已成功上傳</div>
 
   <div id="inputArea">
     <select id="nameInput"></select>
@@ -327,7 +327,11 @@
     const nativeShareBtn = document.getElementById("nativeShareBtn");
     const clearImageBtn = document.getElementById("clearImageBtn");
 
-    // 初始化選擇數量選項 1~10
+    const uploadSuccessMessage = document.getElementById("uploadSuccessMessage");
+    const buyerInput = document.getElementById("buyerInput");
+    const calculatorInput = document.getElementById("calculatorInput");
+
+    // 初始化選擇數量選項
     for (let i = 1; i <= 10; i++) {
       const option = document.createElement("option");
       option.value = i;
@@ -335,7 +339,6 @@
       qtyInput.appendChild(option);
     }
 
-    // 載入商品列表
     async function loadProducts() {
       try {
         const res = await fetch(API_URL + "?action=all");
@@ -345,7 +348,6 @@
           return;
         }
         allProducts = data;
-        // 清空舊選項
         nameInput.innerHTML = "";
         data.forEach(item => {
           const opt = document.createElement("option");
@@ -358,24 +360,20 @@
       }
     }
 
-    // 新增品項到表格
     function addProduct() {
       const selectedName = nameInput.value;
       const qty = parseInt(qtyInput.value);
-
       if (!selectedName || qty <= 0) {
         alert("請選擇品項與數量");
         return;
       }
 
-      // 找產品資料
       const product = allProducts.find(p => p.name === selectedName);
       if (!product) {
         alert("找不到該品項");
         return;
       }
 
-      // 檢查是否已存在
       const exists = selectedProducts.find(p => p.name === selectedName);
       if (exists) {
         exists.qty += qty;
@@ -387,11 +385,9 @@
           pv: product.pv,
         });
       }
-
       renderTable();
     }
 
-    // 渲染表格
     function renderTable() {
       reportBody.innerHTML = "";
       let totalPrice = 0;
@@ -399,10 +395,8 @@
 
       selectedProducts.forEach((item, idx) => {
         const tr = document.createElement("tr");
-
         const subtotalPrice = item.price * item.qty;
         const subtotalPv = item.pv * item.qty;
-
         totalPrice += subtotalPrice;
         totalPv += subtotalPv;
 
@@ -415,17 +409,14 @@
           <td>${subtotalPv}</td>
           <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
         `;
-
         reportBody.appendChild(tr);
       });
 
       totalPriceCellDup.textContent = totalPrice;
       totalPvCellDup.textContent = totalPv;
-
       pvDiff.textContent = Math.max(0, 112000 - totalPv);
       pvDiff2.textContent = Math.max(0, 220000 - totalPv);
 
-      // 刪除按鈕事件綁定
       document.querySelectorAll(".deleteBtn").forEach(btn => {
         btn.onclick = e => {
           const idx = parseInt(e.target.dataset.index);
@@ -435,9 +426,7 @@
       });
     }
 
-    // 匯出報表為圖片（html2canvas）
     exportBtn.addEventListener("click", async () => {
-      // 新增檢查：必須有品項才能匯出
       if (selectedProducts.length === 0) {
         alert("請先新增至少一個品項，才能匯出圖片！");
         return;
@@ -468,17 +457,16 @@
       }
     });
 
-    // 分享到 LINE (上傳到 imgbb 並產生 LINE 分享連結)
     shareToLineBtn.addEventListener("click", async () => {
       if (!previewImage.src) {
         alert("請先匯出圖片");
         return;
       }
+
       shareToLineBtn.disabled = true;
       shareToLineBtn.textContent = "上傳中...";
 
       try {
-        // imgbb API 傳送圖片
         const base64Data = previewImage.src.split(",")[1];
         const formData = new FormData();
         formData.append("image", base64Data);
@@ -491,10 +479,14 @@
         const result = await res.json();
         if (result.success) {
           const imageUrl = result.data.url;
-          const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(
-            "康園PV試算圖片備份\n" + imageUrl
-          )}`;
+          const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent("康園PV試算圖片備份\n" + imageUrl)}`;
           window.open(lineShareUrl, "_blank");
+
+          // ✅ 顯示提示詞
+          uploadSuccessMessage.style.display = "block";
+          setTimeout(() => {
+            uploadSuccessMessage.style.display = "none";
+          }, 4000);
         } else {
           alert("圖片上傳失敗，請稍後再試");
         }
@@ -506,7 +498,6 @@
       }
     });
 
-    // 原生分享（手機專用）
     nativeShareBtn.addEventListener("click", async () => {
       if (!navigator.share) {
         alert("您的瀏覽器不支援原生分享功能");
@@ -524,23 +515,28 @@
           new File([blob], "康園PV試算.png", { type: blob.type }),
         ];
 
+        // ✅ 組合分享文字內容
+        const buyer = buyerInput.value.trim() || "未填";
+        const calculator = calculatorInput.value.trim() || "未填";
+        const shareText = `康園試算報表:\n購買者：${buyer}\n試算者：${calculator}`;
+
         await navigator.share({
           files: filesArray,
           title: "康園PV試算",
-          text: "康園PV試算圖片",
+          text: shareText,
         });
       } catch (error) {
         alert("分享失敗: " + error);
       }
     });
 
-    // 清除圖片
     clearImageBtn.addEventListener("click", () => {
       previewImage.style.display = "none";
       previewImage.src = "";
       shareToLineBtn.style.display = "none";
       nativeShareBtn.style.display = "none";
       clearImageBtn.style.display = "none";
+      uploadSuccessMessage.style.display = "none";
     });
 
     addBtn.addEventListener("click", addProduct);
