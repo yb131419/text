@@ -5,16 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>彥彬試算系統</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <style>
+ <style>
   :root {
-    --bg-color: #e1e8df;           /* 稍深柔和的淺灰綠 */
-    --panel-bg: #c7d3c3;          /* 霧感綠灰 */
-    --text-color: #2c3e2f;        /* 深墨綠，文字更明顯但不刺眼 */
-    --accent: #5a8d4a;            /* 柔和橄欖綠做強調色 */
-    --highlight: #436633;         /* 深綠做標題或重要元素 */
-    --error: #b94442;             /* 低飽和紅色，警示用 */
-    --button-green: #497937;      /* 沉穩中綠，按鈕主色 */
-    --button-grey: #8a9a85;       /* 暗灰綠 */
+    --bg-color: #1b3a2f;        /* 深綠背景 */
+    --panel-bg: #21402f;       /* 比較深的綠做區塊背景 */
+    --text-color: #ffffff;     /* 白色字體 */
+    --accent: #4caf50;          /* 綠色強調色 */
+    --highlight: #81c784;       /* 淡綠做標題或強調 */
+    --error: #e53935;           /* 紅色警示 */
+    --button-green: #388e3c;    /* 按鈕深綠 */
+    --button-grey: #2c2c2c;     /* 暗灰 */
+    --border-color: #000000;    /* 黑色框線 */
   }
 
   body {
@@ -31,7 +32,8 @@
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 20px;
-    box-shadow: 0 0 18px rgba(44, 62, 47, 0.3);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--border-color);
   }
 
   #captureArea h2 {
@@ -59,15 +61,15 @@
     display: flex;
     flex-direction: column;
     font-size: 16px;
-    color: #475a41;
+    color: var(--highlight);
   }
 
   .userInputs input {
     padding: 8px;
     font-size: 18px;
-    background: #bac9b0;
+    background: #2a4d38; /* 深綠調輸入框 */
     color: var(--text-color);
-    border: 1.5px solid #829664;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     margin-top: 4px;
     width: 150px;
@@ -81,7 +83,7 @@
     table-layout: fixed;
   }
 
-  /* 修改欄位寬度，品項名稱欄位3份，數量欄位2份，其他不變 */
+  /* 調整欄位寬度 */
   #reportTable th:nth-child(1),
   #reportTable td:nth-child(1) {
     width: 22%;
@@ -94,22 +96,24 @@
 
   #reportTable th:nth-child(n+3),
   #reportTable td:nth-child(n+3) {
-    width: auto; /* 其他欄位保持預設 */
+    width: auto;
   }
 
   #reportTable th,
   #reportTable td {
-    border: 1px solid #829664;
+    border: 2px solid var(--border-color);
     padding: 5px;
     text-align: center;
     white-space: nowrap;
     color: var(--text-color);
+    background-color: #2a4d38; /* 表格背景深綠 */
   }
 
   #reportTable thead {
     background: linear-gradient(90deg, var(--accent), var(--highlight));
     color: #fff;
     font-weight: 600;
+    border-color: var(--border-color);
   }
 
   .deleteBtn {
@@ -120,10 +124,11 @@
     padding: 3px 7px;
     cursor: pointer;
     font-size: 12px;
+    border: 1px solid var(--border-color);
   }
 
   .deleteBtn:hover {
-    background-color: #8b3535;
+    background-color: #b71c1c;
   }
 
   .summaryBox {
@@ -157,8 +162,8 @@
     padding: 10px;
     font-size: 16px;
     border-radius: 6px;
-    border: 1.5px solid #829664;
-    background-color: #bac9b0;
+    border: 2px solid var(--border-color);
+    background-color: #2a4d38;
     color: var(--text-color);
   }
 
@@ -174,7 +179,7 @@
   }
 
   #addBtn:hover {
-    background-color: #3a6b28;
+    background-color: #2c6b2a;
   }
 
   /* 調整按鈕寬度、置中且每個寬度約30% */
@@ -193,27 +198,29 @@
     border-radius: 8px;
     cursor: pointer;
     box-sizing: border-box;
+    border: 2px solid var(--border-color);
   }
 
   #exportBtn:hover,
   #shareToLineBtn:hover,
   #nativeShareBtn:hover {
-    background: #3a6b28;
+    background: #2c6b2a;
   }
 
   #clearImageBtn {
     background: var(--button-grey);
     color: var(--text-color);
+    border: 2px solid var(--border-color);
   }
 
   #clearImageBtn:hover {
-    background: #758669;
+    background: #424242;
   }
 
   #previewImage {
     display: none;
     max-width: 100%;
-    border: 2px solid #5a7b42;
+    border: 2px solid var(--border-color);
     border-radius: 10px;
     margin: 20px auto;
   }
@@ -259,11 +266,13 @@
       box-shadow: none;
       background: #fff;
       color: #000;
+      border-color: #000;
     }
 
     #reportTable th {
       background: #ccc !important;
       color: #000 !important;
+      border-color: #000 !important;
     }
 
     .deleteBtn {
@@ -283,7 +292,7 @@
     font-weight: bold;
   }
 </style>
-
+  
 </head>
 <body>
   <div id="captureArea">
