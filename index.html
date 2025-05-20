@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>彥彬試算系統</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <style>
+<style>
     :root {
-      --bg-color: #e8f5e9;
-      --panel-bg: #c8e6c9;
-      --text-color: #2e7d32;
-      --accent: #66bb6a;
-      --highlight: #81c784;
-      --error: #d32f2f;
-      --button-green: #43a047;
-      --button-grey: #a5d6a7;
+      --bg-color: #121212;
+      --panel-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --accent: #00bfa5;
+      --highlight: #29b6f6;
+      --error: #ef5350;
+      --button-green: #00bfa5;
+      --button-grey: #424242;
     }
 
     body {
@@ -31,14 +31,13 @@
       padding: 20px;
       border-radius: 12px;
       margin-bottom: 20px;
-      box-shadow: 0 0 20px rgba(67, 160, 71, 0.7);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
     }
 
     #captureArea h2 {
       text-align: center;
       font-size: 1.4rem;
       margin-bottom: 15px;
-      color: var(--text-color);
     }
 
     .userInputs {
@@ -59,13 +58,13 @@
       display: flex;
       flex-direction: column;
       font-size: 16px;
-      color: var(--text-color);
+      color: #bbb;
     }
 
     .userInputs input {
       padding: 8px;
       font-size: 18px;
-      background: #a5d6a7;
+      background: #333;
       color: var(--text-color);
       border: none;
       border-radius: 6px;
@@ -81,6 +80,7 @@
       table-layout: fixed;
     }
 
+    /* 修改欄位寬度，品項名稱欄位3份，數量欄位2份，其他不變 */
     #reportTable th:nth-child(1),
     #reportTable td:nth-child(1) {
       width: 22%;
@@ -91,21 +91,19 @@
     }
     #reportTable th:nth-child(n+3),
     #reportTable td:nth-child(n+3) {
-      width: auto;
+      width: auto; /* 其他欄位保持預設 */
     }
 
     #reportTable th, #reportTable td {
-      border: 1px solid #4caf50;
+      border: 1px solid #555;
       padding: 5px;
       text-align: center;
       white-space: nowrap;
-      color: var(--text-color);
-      background-color: #dcedc8;
     }
 
     #reportTable thead {
-      background: linear-gradient(90deg, #66bb6a, #81c784);
-      color: #1b5e20;
+      background: linear-gradient(90deg, #00bfa5, #29b6f6);
+      color: #fff;
       font-weight: 600;
     }
 
@@ -117,11 +115,10 @@
       padding: 3px 7px;
       cursor: pointer;
       font-size: 12px;
-      transition: background-color 0.3s;
     }
 
     .deleteBtn:hover {
-      background-color: #9a0007;
+      background-color: #c62828;
     }
 
     .summaryBox {
@@ -140,7 +137,7 @@
     }
 
     .summaryBox .done {
-      color: #388e3c;
+      color: #4caf50;
     }
 
     #inputArea {
@@ -158,7 +155,7 @@
     }
 
     #nameInput, #qtyInput {
-      background-color: #a5d6a7;
+      background-color: #2c2c2c;
       color: var(--text-color);
     }
 
@@ -167,14 +164,13 @@
       color: white;
       cursor: pointer;
       flex-shrink: 0;
-      transition: background-color 0.3s;
     }
 
     #addBtn:hover {
-      background-color: #2e7d32;
+      background-color: #009e8a;
     }
 
-    /* 按鈕寬度與置中 */
+    /* 調整按鈕寬度、置中且每個寬度約30% */
     #exportBtn, #shareToLineBtn, #nativeShareBtn, #clearImageBtn {
       margin: 10px auto;
       display: block;
@@ -187,11 +183,10 @@
       border-radius: 8px;
       cursor: pointer;
       box-sizing: border-box;
-      transition: background-color 0.3s;
     }
 
     #exportBtn:hover, #shareToLineBtn:hover, #nativeShareBtn:hover {
-      background: #2e7d32;
+      background: #009e8a;
     }
 
     #clearImageBtn {
@@ -199,13 +194,13 @@
     }
 
     #clearImageBtn:hover {
-      background: #81c784;
+      background: #424242;
     }
 
     #previewImage {
       display: none;
       max-width: 100%;
-      border: 2px solid #4caf50;
+      border: 2px solid #888;
       border-radius: 10px;
       margin: 20px auto;
     }
@@ -263,19 +258,15 @@
   </style>
 </head>
 <body>
+  <!-- 主體區域 -->
   <div id="captureArea">
     <h2>🧾 康園PV試算</h2>
     <div class="userInputs">
       <div class="row">
-        <label>購買者：
-          <input type="text" id="buyerInput" placeholder="輸入購買者" />
-        </label>
-        <label>試算者：
-          <input type="text" id="calculatorInput" placeholder="輸入試算者" />
-        </label>
+        <label>購買者：<input type="text" id="buyerInput" placeholder="輸入購買者" /></label>
+        <label>試算者：<input type="text" id="calculatorInput" placeholder="輸入試算者" /></label>
       </div>
     </div>
-
     <table id="reportTable" aria-label="試算報表">
       <thead>
         <tr>
@@ -290,7 +281,6 @@
       </thead>
       <tbody id="reportBody"></tbody>
     </table>
-
     <div class="summaryBox" aria-live="polite">
       總計 金額：<span id="totalPriceCellDup">0</span>｜總計 PV：<span id="totalPvCellDup">0</span>
       <span class="extra" id="pvDiffText">距 11.2萬 PV 還差：<span id="pvDiff">112000</span></span>
@@ -298,25 +288,26 @@
     </div>
   </div>
 
+  <!-- 按鈕區 -->
   <button id="exportBtn">📤 匯出報表為圖片</button>
   <img id="previewImage" alt="預覽匯出圖片" />
   <button id="shareToLineBtn">📩 上傳備份</button>
   <button id="nativeShareBtn">📱 分享圖片</button>
   <button id="clearImageBtn">❌ 清除圖片</button>
 
+  <!-- 新增品項區 -->
   <div id="inputArea">
     <select id="nameInput"></select>
     <select id="qtyInput"></select>
     <button id="addBtn">新增品項</button>
   </div>
 
+  <!-- JavaScript 區域 -->
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxMK8aSmldCGKmXffbL5XU6IGuLbaKS1VABe9LuWXSF6hg2NtGLGZxS8fT-jqiFKy8_/exec";
-    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f"; // <-- 請替換成你的 imgbb API key
+    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
 
-    let allProducts = [];
-    let selectedProducts = [];
-
+    let allProducts = [], selectedProducts = [];
     const nameInput = document.getElementById("nameInput");
     const qtyInput = document.getElementById("qtyInput");
     const addBtn = document.getElementById("addBtn");
@@ -342,20 +333,15 @@
         .then(data => {
           allProducts = data.map(item => ({
             name: item.品項,
-            price: Number(item.價格),
-            pv: Number(item.PV)
           }));
           populateNameOptions();
           populateQtyOptions();
         })
-        .catch(err => {
-          alert("取得商品資料失敗，請稍後再試。");
-          console.error(err);
-        });
+        .catch(err => alert("取得商品資料失敗"));
     }
 
     function populateNameOptions() {
-      nameInput.innerHTML = `<option value="">選擇品項</option>`;
+      nameInput.innerHTML = '<option value="">選擇品項</option>';
       allProducts.forEach(p => {
         const option = document.createElement("option");
         option.value = p.name;
@@ -377,22 +363,12 @@
     function addProduct() {
       const name = nameInput.value;
       const qty = Number(qtyInput.value);
-      if (!name) {
-        alert("請選擇品項！");
-        return;
-      }
+      if (!name) return alert("請選擇品項！");
       const product = allProducts.find(p => p.name === name);
-      if (!product) {
-        alert("選擇的品項不存在！");
-        return;
-      }
-      const existingIndex = selectedProducts.findIndex(p => p.name === name);
-      if (existingIndex >= 0) {
-        // 已有品項，加數量
-        selectedProducts[existingIndex].qty += qty;
-      } else {
-        selectedProducts.push({ ...product, qty });
-      }
+      if (!product) return;
+      const existing = selectedProducts.find(p => p.name === name);
+      if (existing) existing.qty += qty;
+      else selectedProducts.push({ ...product, qty });
       renderTable();
     }
 
@@ -403,56 +379,34 @@
 
     function renderTable() {
       reportBody.innerHTML = "";
-      let totalPrice = 0;
-      let totalPv = 0;
-
+      let totalPrice = 0, totalPv = 0;
       selectedProducts.forEach((item, index) => {
         const subtotalPrice = item.price * item.qty;
         const subtotalPv = item.pv * item.qty;
         totalPrice += subtotalPrice;
         totalPv += subtotalPv;
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${item.name}</td>
-          <td>${item.qty}</td>
-          <td>${item.price.toLocaleString()}</td>
-          <td>${item.pv.toLocaleString()}</td>
-          <td>${subtotalPrice.toLocaleString()}</td>
-          <td>${subtotalPv.toLocaleString()}</td>
-          <td><button class="deleteBtn" aria-label="刪除 ${item.name}" onclick="deleteProduct(${index})">刪除</button></td>
-        `;
-        reportBody.appendChild(tr);
+        reportBody.innerHTML += `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.qty}</td>
+            <td>${item.price.toLocaleString()}</td>
+            <td>${item.pv.toLocaleString()}</td>
+            <td>${subtotalPrice.toLocaleString()}</td>
+            <td>${subtotalPv.toLocaleString()}</td>
+            <td><button class="deleteBtn" onclick="deleteProduct(${index})">刪除</button></td>
+          </tr>`;
       });
-
       totalPriceCellDup.textContent = totalPrice.toLocaleString();
       totalPvCellDup.textContent = totalPv.toLocaleString();
-
-      const pvTarget1 = 112000;
-      const pvTarget2 = 220000;
-
-      const diff1 = pvTarget1 - totalPv;
-      const diff2 = pvTarget2 - totalPv;
-
-      if (diff1 > 0) {
-        pvDiff.textContent = diff1.toLocaleString();
-        pvDiffText.style.display = "inline";
-      } else {
-        pvDiffText.style.display = "none";
-      }
-      if (diff2 > 0) {
-        pvDiff2.textContent = diff2.toLocaleString();
-        pvDiff2Text.style.display = "inline";
-      } else {
-        pvDiff2Text.style.display = "none";
-      }
+      const pvTarget1 = 112000, pvTarget2 = 220000;
+      pvDiff.textContent = Math.max(pvTarget1 - totalPv, 0).toLocaleString();
+      pvDiff2.textContent = Math.max(pvTarget2 - totalPv, 0).toLocaleString();
+      pvDiffText.style.display = totalPv < pvTarget1 ? "inline" : "none";
+      pvDiff2Text.style.display = totalPv < pvTarget2 ? "inline" : "none";
     }
 
-    // 刪除按鈕改成外部函式
     window.deleteProduct = deleteProduct;
-
     addBtn.addEventListener("click", addProduct);
-
     exportBtn.addEventListener("click", () => {
       exportBtn.disabled = true;
       exportBtn.textContent = "生成圖片中...";
@@ -462,11 +416,6 @@
         shareToLineBtn.style.display = "inline-block";
         nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
         clearImageBtn.style.display = "inline-block";
-        exportBtn.disabled = false;
-        exportBtn.textContent = "📤 匯出報表為圖片";
-      }).catch(err => {
-        alert("圖片生成失敗，請稍後再試。");
-        console.error(err);
         exportBtn.disabled = false;
         exportBtn.textContent = "📤 匯出報表為圖片";
       });
@@ -481,90 +430,50 @@
     });
 
     shareToLineBtn.addEventListener("click", () => {
-      if (!previewImage.src) {
-        alert("請先匯出圖片");
-        return;
-      }
+      if (!previewImage.src) return alert("請先匯出圖片");
       shareToLineBtn.disabled = true;
       shareToLineBtn.textContent = "上傳備份中...";
-
-      // 上傳 imgbb
-      fetch("https://api.imgbb.com/1/upload?key=" + IMGBB_API_KEY, {
+      const base64Image = previewImage.src.split(",")[1];
+      fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
         method: "POST",
-        body: JSON.stringify({
-          image: previewImage.src.replace(/^data:image\/png;base64,/, "")
-        }),
-        headers: {
-          "Content-Type": "application/json"
-        }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64Image })
       })
         .then(res => res.json())
         .then(data => {
-          if (!data || !data.data || !data.data.url) {
-            throw new Error("上傳失敗，伺服器回應格式異常");
-          }
           const imageUrl = data.data.url;
-          const buyer = buyerInput.value.trim() || "匿名購買者";
-          const calculator = calculatorInput.value.trim() || "匿名試算者";
-
-          // 構造分享訊息文字
-          const shareText = `康園PV試算\n購買者：${buyer}\n試算者：${calculator}\n總金額：${totalPriceCellDup.textContent}\n總PV：${totalPvCellDup.textContent}\n圖片連結：${imageUrl}`;
-
-          // 傳給 Line Bot
-          return fetch("https://script.google.com/macros/s/AKfycbxMK8aSmldCGKmXffbL5XU6IGuLbaKS1VABe9LuWXSF6hg2NtGLGZxS8fT-jqiFKy8_/exec", {
+          const shareText = `康園PV試算\n購買者：${buyerInput.value || '匿名'}\n試算者：${calculatorInput.value || '匿名'}\n總金額：${totalPriceCellDup.textContent}\n總PV：${totalPvCellDup.textContent}\n圖片連結：${imageUrl}`;
+          return fetch(API_URL, {
             method: "POST",
-            body: JSON.stringify({
-              text: shareText,
-              imageUrl: imageUrl
-            }),
-            headers: {
-              "Content-Type": "application/json"
-            }
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: shareText, imageUrl })
           });
         })
         .then(res => res.json())
-        .then(res => {
-          alert("上傳備份成功！");
-          shareToLineBtn.disabled = false;
-          shareToLineBtn.textContent = "📩 上傳備份";
-        })
-        .catch(err => {
-          alert("上傳備份失敗，請稍後再試。");
-          console.error(err);
+        .then(() => alert("上傳備份成功！"))
+        .catch(() => alert("上傳備份失敗，請稍後再試。"))
+        .finally(() => {
           shareToLineBtn.disabled = false;
           shareToLineBtn.textContent = "📩 上傳備份";
         });
     });
 
     nativeShareBtn.addEventListener("click", () => {
-      if (!previewImage.src) {
-        alert("請先匯出圖片");
-        return;
-      }
-      if (!navigator.share) {
-        alert("您的瀏覽器不支援分享功能");
-        return;
-      }
-
-      fetch(previewImage.src)
-        .then(res => res.blob())
-        .then(blob => {
-          const file = new File([blob], "試算報表.png", { type: "image/png" });
-          navigator.share({
-            files: [file],
-            title: "康園PV試算報表",
-            text: `購買者：${buyerInput.value.trim() || "匿名"}\n試算者：${calculatorInput.value.trim() || "匿名"}`
+      if (navigator.share && previewImage.src) {
+        fetch(previewImage.src)
+          .then(res => res.blob())
+          .then(blob => {
+            const file = new File([blob], "report.png", { type: "image/png" });
+            navigator.share({
+              title: "康園PV試算報表",
+              text: "這是我的試算報表圖片",
+              files: [file]
+            });
           });
-        })
-        .catch(err => {
-          alert("分享失敗，請稍後再試。");
-          console.error(err);
-        });
+      }
     });
 
-    // 初始
-    fetchData();
-    populateQtyOptions();
+    window.onload = fetchData;
   </script>
 </body>
 </html>
