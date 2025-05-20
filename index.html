@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>彥彬試算系統</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
- <style>
+<style>
   :root {
-    --bg-color: #1b3a2f;        /* 深綠背景 */
-    --panel-bg: #21402f;       /* 比較深的綠做區塊背景 */
-    --text-color: #ffffff;     /* 白色字體 */
-    --accent: #4caf50;          /* 綠色強調色 */
-    --highlight: #81c784;       /* 淡綠做標題或強調 */
-    --error: #e53935;           /* 紅色警示 */
-    --button-green: #388e3c;    /* 按鈕深綠 */
-    --button-grey: #2c2c2c;     /* 暗灰 */
-    --border-color: #000000;    /* 黑色框線 */
+    --bg-color: #ffffff;             /* 白色背景 */
+    --panel-bg: #f7faf7;             /* 霧白偏綠，柔和面板背景 */
+    --text-color: #22543d;           /* 柔和深綠色字體 */
+    --accent: #2f855a;               /* 質感中綠強調色 */
+    --highlight: #38a169;            /* 亮綠色高亮 */
+    --error: #e53e3e;                /* 紅色警示 */
+    --button-green: #276749;         /* 深霧綠按鈕色 */
+    --button-grey: #a0aec0;          /* 淡灰色按鈕 */
+    --border-color: #1a202c;         /* 黑色框線（偏暗霧黑） */
   }
 
   body {
@@ -32,8 +32,8 @@
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 20px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
-    border: 2px solid var(--border-color);
+    box-shadow: 0 4px 10px rgba(34, 84, 61, 0.15); /* 柔和陰影 */
+    border: 1.5px solid var(--border-color);
   }
 
   #captureArea h2 {
@@ -41,19 +41,20 @@
     font-size: 1.4rem;
     margin-bottom: 15px;
     color: var(--highlight);
+    font-weight: 600;
   }
 
   .userInputs {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     margin-bottom: 15px;
   }
 
   .userInputs .row {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
   }
 
   .userInputs label {
@@ -61,29 +62,39 @@
     display: flex;
     flex-direction: column;
     font-size: 16px;
-    color: var(--highlight);
+    color: var(--accent);
+    font-weight: 500;
   }
 
   .userInputs input {
-    padding: 8px;
+    padding: 10px;
     font-size: 18px;
-    background: #2a4d38; /* 深綠調輸入框 */
+    background: #e6f1eb; /* 霧白帶綠色調 */
     color: var(--text-color);
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
-    margin-top: 4px;
+    border: 1.8px solid var(--border-color);
+    border-radius: 8px;
+    margin-top: 6px;
     width: 150px;
     box-sizing: border-box;
+    transition: border-color 0.3s ease;
+  }
+
+  .userInputs input:focus {
+    outline: none;
+    border-color: var(--highlight);
+    background: #d1e7d3; /* 輕微亮綠背景焦點 */
   }
 
   #reportTable {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 13px;
     table-layout: fixed;
+    background: var(--bg-color);
+    color: var(--text-color);
   }
 
-  /* 調整欄位寬度 */
+  /* 欄位寬度 */
   #reportTable th:nth-child(1),
   #reportTable td:nth-child(1) {
     width: 22%;
@@ -101,12 +112,12 @@
 
   #reportTable th,
   #reportTable td {
-    border: 2px solid var(--border-color);
-    padding: 5px;
+    border: 1.5px solid var(--border-color);
+    padding: 8px;
     text-align: center;
     white-space: nowrap;
     color: var(--text-color);
-    background-color: #2a4d38; /* 表格背景深綠 */
+    background-color: #f7faf7; /* 霧白背景 */
   }
 
   #reportTable thead {
@@ -121,108 +132,120 @@
     border: none;
     color: white;
     border-radius: 5px;
-    padding: 3px 7px;
+    padding: 4px 9px;
     cursor: pointer;
-    font-size: 12px;
-    border: 1px solid var(--border-color);
+    font-size: 13px;
+    border: 1.5px solid var(--border-color);
+    transition: background-color 0.3s ease;
   }
 
   .deleteBtn:hover {
-    background-color: #b71c1c;
+    background-color: #9b2c2c;
   }
 
   .summaryBox {
     text-align: center;
-    margin-top: 13px;
-    font-size: 1rem;
-    font-weight: bold;
+    margin-top: 15px;
+    font-size: 1.1rem;
+    font-weight: 600;
     color: var(--highlight);
+    letter-spacing: 0.05em;
   }
 
   .summaryBox .extra {
     display: block;
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: var(--accent);
     margin-top: 6px;
   }
 
   .summaryBox .done {
-    color: #4caf50;
+    color: #38a169;
   }
 
   #inputArea {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 14px;
+    margin-top: 25px;
   }
 
   #nameInput,
   #qtyInput {
-    padding: 10px;
+    padding: 12px;
     font-size: 16px;
-    border-radius: 6px;
-    border: 2px solid var(--border-color);
-    background-color: #2a4d38;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color);
+    background-color: #e6f1eb;
     color: var(--text-color);
+    transition: border-color 0.3s ease;
+  }
+
+  #nameInput:focus,
+  #qtyInput:focus {
+    outline: none;
+    border-color: var(--highlight);
+    background: #d1e7d3;
   }
 
   #addBtn {
-    padding: 10px;
+    padding: 12px;
     font-size: 16px;
-    border-radius: 6px;
+    border-radius: 8px;
     border: none;
     background-color: var(--button-green);
     color: white;
     cursor: pointer;
     flex-shrink: 0;
+    transition: background-color 0.3s ease;
   }
 
   #addBtn:hover {
-    background-color: #2c6b2a;
+    background-color: #22543d;
   }
 
-  /* 調整按鈕寬度、置中且每個寬度約30% */
+  /* 按鈕統一樣式 */
   #exportBtn,
   #shareToLineBtn,
   #nativeShareBtn,
   #clearImageBtn {
-    margin: 10px auto;
+    margin: 15px auto;
     display: block;
-    padding: 10px 0;
+    padding: 12px 0;
     width: 30%;
     font-size: 16px;
     background: var(--button-green);
     color: white;
-    border: none;
-    border-radius: 8px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
     cursor: pointer;
     box-sizing: border-box;
-    border: 2px solid var(--border-color);
+    transition: background-color 0.3s ease;
   }
 
   #exportBtn:hover,
   #shareToLineBtn:hover,
   #nativeShareBtn:hover {
-    background: #2c6b2a;
+    background-color: #22543d;
   }
 
   #clearImageBtn {
     background: var(--button-grey);
     color: var(--text-color);
-    border: 2px solid var(--border-color);
+    border: 1.5px solid var(--border-color);
   }
 
   #clearImageBtn:hover {
-    background: #424242;
+    background: #718096;
   }
 
   #previewImage {
     display: none;
     max-width: 100%;
-    border: 2px solid var(--border-color);
-    border-radius: 10px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
     margin: 20px auto;
+    box-shadow: 0 4px 8px rgba(34, 84, 61, 0.1);
   }
 
   #shareToLineBtn,
@@ -243,7 +266,7 @@
     }
 
     #addBtn {
-      width: 120px;
+      width: 130px;
     }
   }
 
@@ -285,11 +308,11 @@
   }
 
   #uploadSuccessMessage {
-    color: #4caf50;
+    color: #38a169;
     text-align: center;
     margin-top: 10px;
     display: none;
-    font-weight: bold;
+    font-weight: 700;
   }
 </style>
   
