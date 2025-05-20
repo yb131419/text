@@ -255,6 +255,14 @@
       .summaryBox {
         color: #000 !important;
       }
+
+    #uploadSuccessMessage {
+      color: #4caf50;
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -271,9 +279,22 @@
       </div>
     </div>
 
-    <table id="reportTable" aria-label="試算報表">
-      <!-- ...[原樣保留]... -->
-    </table>
+<table id="reportTable" aria-label="試算報表">
+  <thead>
+    <tr>
+      <th>品項名稱</th>
+      <th>數量</th>
+      <th>單價</th>
+      <th>PV</th>
+      <th>小計金額</th>
+      <th>小計PV</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody id="reportBody">
+    <!-- JavaScript 動態插入的資料列 -->
+  </tbody>
+</table>
 
     <div class="summaryBox" aria-live="polite">
       總計 金額：<span id="totalPriceCellDup">0</span>｜總計 PV：<span id="totalPvCellDup">0</span>
