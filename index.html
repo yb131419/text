@@ -6,311 +6,344 @@
   <title>彥彬試算系統</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-  :root {
-    --bg-color: #121212;
-    --panel-bg: #1e1e1e;
-    --text-color: #e0e0e0;
-    --accent: #00bfa5;
-    --highlight: #29b6f6;
-    --error: #ef5350;
-    --button-green: #00bfa5;
-    --button-grey: #424242;
+ :root {
+  --bg-color: #f5f7fa;          /* 淺色背景 */
+  --panel-bg: #ffffff;          /* 面板白 */
+  --text-color: #374151;        /* 深灰文字 */
+  --accent: #2563eb;            /* 主藍色 */
+  --highlight: #3b82f6;         /* 高亮淺藍 */
+  --error: #ef4444;             /* 錯誤紅 */
+  --button-green: #10b981;      /* 清新綠 */
+  --button-grey: #9ca3af;       /* 淺灰 */
+  --table-row-even: #f9fafb;    /* 表格偶數行淺灰 */
+  --table-row-odd: #e0e7ff;     /* 表格奇數行淡藍 */
+  --table-hover: #bae6fd;       /* 表格懸浮藍 */
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 20px;
+}
+
+#captureArea {
+  background: var(--panel-bg);
+  color: var(--text-color);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#captureArea h2 {
+  text-align: center;
+  font-size: 1.4rem;
+  margin-bottom: 15px;
+}
+
+.userInputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.userInputs .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.userInputs label {
+  flex: 0 0 150px;
+  display: flex;
+  flex-direction: column;
+  font-size: 16px;
+  color: #6b7280; /* 中灰色文字 */
+}
+
+/* 清新淡雅輸入框 - 輸入購買者、試算者 */
+#buyerInput,
+#calculatorInput {
+  background-color: #f9fafb;          /* 超淺灰白 */
+  border: 1.5px solid #d1d5db;       /* 淡灰邊框 */
+  color: #374151;                     /* 深灰文字 */
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  font-weight: 500;
+  font-family: 'Arial', sans-serif;
+}
+
+#buyerInput:focus,
+#calculatorInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px 2px rgba(37, 99, 235, 0.3);
+  outline: none;
+  background-color: #ffffff;
+}
+
+#buyerInput::placeholder,
+#calculatorInput::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* 其他輸入欄位（若需使用深色）保留原樣，這邊示範 */
+.userInputs input:not(#buyerInput):not(#calculatorInput) {
+  padding: 8px;
+  font-size: 18px;
+  background: #333;
+  color: var(--text-color);
+  border: none;
+  border-radius: 6px;
+  margin-top: 4px;
+  width: 150px;
+  box-sizing: border-box;
+}
+
+#reportTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+#reportTable th:nth-child(1),
+#reportTable td:nth-child(1) {
+  width: 22%;
+}
+#reportTable th:nth-child(2),
+#reportTable td:nth-child(2) {
+  width: 8%;
+}
+
+#reportTable th, #reportTable td {
+  border: 1px solid #cbd5e1; /* 淺邊框 */
+  padding: 8px 10px;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--text-color);
+}
+
+/* 表頭 */
+#reportTable thead {
+  background: linear-gradient(90deg, var(--accent), var(--highlight));
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 交叉配色 */
+#reportTable tbody tr:nth-child(even) {
+  background-color: var(--table-row-even);
+  color: #1e293b; /* 深灰文字 */
+}
+
+#reportTable tbody tr:nth-child(odd) {
+  background-color: var(--table-row-odd);
+  color: #1e293b;
+}
+
+/* 懸浮行變藍強調 */
+#reportTable tbody tr:hover {
+  background-color: var(--table-hover);
+  color: #1e3a8a; /* 深藍 */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+/* 刪除按鈕 */
+.deleteBtn {
+  background-color: var(--error);
+  border: none;
+  color: white;
+  border-radius: 5px;
+  padding: 3px 7px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s ease;
+}
+
+.deleteBtn:hover {
+  background-color: #b91c1c;
+}
+
+/* Summary Box */
+.summaryBox {
+  text-align: center;
+  margin-top: 13px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--highlight);
+}
+
+.summaryBox .extra {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--accent);
+  margin-top: 6px;
+}
+
+.summaryBox .done {
+  color: #22c55e;
+  font-weight: bold;
+}
+
+/* 輸入區域 */
+#inputArea {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+#nameInput, #qtyInput, #addBtn {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+}
+
+#nameInput, #qtyInput {
+  background-color: #f3f4f6; /* 淺灰背景 */
+  color: var(--text-color);
+}
+
+#addBtn {
+  background-color: var(--button-green);
+  color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease;
+}
+
+#addBtn:hover {
+  background-color: #059669;
+}
+
+#exportBtn, #shareToLineBtn, #nativeShareBtn, #clearImageBtn {
+  margin: 10px auto;
+  display: block;
+  padding: 10px 0;
+  width: 30%;
+  font-size: 16px;
+  background: var(--button-green);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease;
+}
+
+#exportBtn:hover, #shareToLineBtn:hover, #nativeShareBtn:hover {
+  background: #059669;
+}
+
+#clearImageBtn {
+  background: var(--button-grey);
+}
+
+#clearImageBtn:hover {
+  background: #6b7280;
+}
+
+#previewImage {
+  display: none;
+  max-width: 100%;
+  border: 2px solid #888;
+  border-radius: 10px;
+  margin: 20px auto;
+}
+
+#shareToLineBtn,
+#nativeShareBtn,
+#clearImageBtn {
+  display: none;
+}
+
+/* 響應式 */
+@media (min-width: 600px) {
+  #inputArea {
+    flex-direction: row;
+    align-items: center;
   }
 
+  #nameInput, #qtyInput {
+    flex: 1;
+  }
+
+  #addBtn {
+    width: 120px;
+  }
+}
+
+/* 列印樣式 */
+@media print {
   body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: 'Arial', sans-serif;
-    margin: 0;
-    padding: 20px;
+    background: #fff;
+    color: #000;
+  }
+
+  #inputArea, #addBtn, #exportBtn, #shareToLineBtn, #clearImageBtn, #nativeShareBtn {
+    display: none !important;
   }
 
   #captureArea {
-    background: var(--panel-bg);
-    color: var(--text-color);
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+    box-shadow: none;
+    background: #fff;
+    color: #000;
   }
 
-  #captureArea h2 {
-    text-align: center;
-    font-size: 1.4rem;
-    margin-bottom: 15px;
-  }
-
-  .userInputs {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 15px;
-  }
-
-  .userInputs .row {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  .userInputs label {
-    flex: 0 0 150px;
-    display: flex;
-    flex-direction: column;
-    font-size: 16px;
-    color: #bbb;
-  }
-
-  .userInputs input {
-    padding: 8px;
-    font-size: 18px;
-    background: #333;
-    color: var(--text-color);
-    border: none;
-    border-radius: 6px;
-    margin-top: 4px;
-    width: 150px;
-    box-sizing: border-box;
-  }
-
-  /* 表格交叉配色 淡深色系 */
-  #reportTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 11px;
-    table-layout: fixed;
-    background-color: #f9fafb; /* 淺灰白底 */
-    color: #374151; /* 深灰文字 */
-  }
-
-  #reportTable th:nth-child(1),
-  #reportTable td:nth-child(1) {
-    width: 22%;
-  }
-  #reportTable th:nth-child(2),
-  #reportTable td:nth-child(2) {
-    width: 8%;
-  }
-
-  #reportTable th,
-  #reportTable td {
-    border: 1px solid #d1d5db; /* 淺灰邊框 */
-    padding: 5px;
-    text-align: center;
-    white-space: nowrap;
-    transition: background-color 0.3s ease, font-weight 0.3s ease;
-  }
-
-  #reportTable thead {
-    background: linear-gradient(90deg, #3b82f6, #60a5fa); /* 藍色漸層 */
-    color: #f9fafb;
-    font-weight: 600;
-  }
-
-  #reportTable tbody tr:nth-child(odd) {
-    background-color: #f3f4f6; /* 超淺灰 */
-  }
-
-  #reportTable tbody tr:nth-child(even) {
-    background-color: #e5e7eb; /* 淺灰 */
-  }
-
-  #reportTable tbody tr:hover {
-    background-color: #bfdbfe; /* 明亮淺藍 */
-    font-weight: 600;
+  #reportTable th {
+    background: #ccc !important;
+    color: #000 !important;
   }
 
   .deleteBtn {
-    background-color: var(--error);
-    border: none;
-    color: white;
-    border-radius: 5px;
-    padding: 3px 7px;
-    cursor: pointer;
-    font-size: 12px;
-  }
-
-  .deleteBtn:hover {
-    background-color: #c62828;
+    display: none !important;
   }
 
   .summaryBox {
-    text-align: center;
-    margin-top: 13px;
-    font-size: 1rem;
-    font-weight: bold;
-    color: var(--highlight);
+    color: #000 !important;
   }
+}
 
-  .summaryBox .extra {
-    display: block;
-    font-size: 0.95rem;
-    color: var(--accent);
-    margin-top: 6px;
-  }
+/* 上傳成功訊息 */
+#uploadSuccessMessage {
+  color: #22c55e;
+  text-align: center;
+  margin-top: 10px;
+  display: none;
+  font-weight: bold;
+}
 
-  .summaryBox .done {
-    color: #4caf50;
-    font-weight: bold;
-  }
+/* Toast 動畫 */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #22c55e;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  z-index: 1000;
+}
 
-  #inputArea {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 20px;
-  }
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
 
-  #nameInput,
-  #qtyInput,
-  #addBtn {
-    padding: 10px;
-    font-size: 16px;
-    border-radius: 6px;
-    border: none;
-  }
-
-  #nameInput,
-  #qtyInput {
-    background-color: #2c2c2c;
-    color: var(--text-color);
-  }
-
-  #addBtn {
-    background-color: var(--button-green);
-    color: white;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-
-  #addBtn:hover {
-    background-color: #009e8a;
-  }
-
-  #exportBtn,
-  #shareToLineBtn,
-  #nativeShareBtn,
-  #clearImageBtn {
-    margin: 10px auto;
-    display: block;
-    padding: 10px 0;
-    width: 30%;
-    font-size: 16px;
-    background: var(--button-green);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    box-sizing: border-box;
-    transition: background-color 0.3s ease;
-  }
-
-  #exportBtn:hover,
-  #shareToLineBtn:hover,
-  #nativeShareBtn:hover {
-    background: #009e8a;
-  }
-
-  #clearImageBtn {
-    background: var(--button-grey);
-  }
-
-  #clearImageBtn:hover {
-    background: #424242;
-  }
-
-  #previewImage {
-    display: none;
-    max-width: 100%;
-    border: 2px solid #888;
-    border-radius: 10px;
-    margin: 20px auto;
-  }
-
-  #shareToLineBtn,
-  #nativeShareBtn,
-  #clearImageBtn {
-    display: none;
-  }
-
-  @media (min-width: 600px) {
-    #inputArea {
-      flex-direction: row;
-      align-items: center;
-    }
-
-    #nameInput,
-    #qtyInput {
-      flex: 1;
-    }
-
-    #addBtn {
-      width: 120px;
-    }
-  }
-
-  @media print {
-    body {
-      background: #fff;
-      color: #000;
-    }
-
-    #inputArea,
-    #addBtn,
-    #exportBtn,
-    #shareToLineBtn,
-    #clearImageBtn,
-    #nativeShareBtn {
-      display: none !important;
-    }
-
-    #captureArea {
-      box-shadow: none;
-      background: #fff;
-      color: #000;
-    }
-
-    #reportTable th {
-      background: #ccc !important;
-      color: #000 !important;
-    }
-
-    .deleteBtn {
-      display: none !important;
-    }
-
-    .summaryBox {
-      color: #000 !important;
-    }
-  }
-
-  #uploadSuccessMessage {
-    color: #4caf50;
-    text-align: center;
-    margin-top: 10px;
-    display: none;
-    font-weight: bold;
-  }
-
-  .toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #4caf50;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 6px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    opacity: 0;
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    z-index: 1000;
-  }
-
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-10px);
-  }
 </style>
 
 
