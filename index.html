@@ -1,4 +1,3 @@
-<!-- 以下為完整合併後的 HTML -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -6,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>彥彬試算系統</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<style>
+  <style>
     :root {
       --bg-color: #121212;
       --panel-bg: #1e1e1e;
@@ -81,7 +80,6 @@
       table-layout: fixed;
     }
 
-    /* 修改欄位寬度，品項名稱欄位3份，數量欄位2份，其他不變 */
     #reportTable th:nth-child(1),
     #reportTable td:nth-child(1) {
       width: 22%;
@@ -89,10 +87,6 @@
     #reportTable th:nth-child(2),
     #reportTable td:nth-child(2) {
       width: 8%;
-    }
-    #reportTable th:nth-child(n+3),
-    #reportTable td:nth-child(n+3) {
-      width: auto; /* 其他欄位保持預設 */
     }
 
     #reportTable th, #reportTable td {
@@ -171,7 +165,6 @@
       background-color: #009e8a;
     }
 
-    /* 調整按鈕寬度、置中且每個寬度約30% */
     #exportBtn, #shareToLineBtn, #nativeShareBtn, #clearImageBtn {
       margin: 10px auto;
       display: block;
@@ -255,6 +248,7 @@
       .summaryBox {
         color: #000 !important;
       }
+    }
 
     #uploadSuccessMessage {
       color: #4caf50;
@@ -279,22 +273,20 @@
       </div>
     </div>
 
-<table id="reportTable" aria-label="試算報表">
-  <thead>
-   <tr>
-          <th>品項<br>名稱</th>
-          <th>數<br>量</th>
+    <table id="reportTable" aria-label="試算報表">
+      <thead>
+        <tr>
+          <th>品項名稱</th>
+          <th>數量</th>
           <th>單價</th>
           <th>PV</th>
-          <th>小計<br>金額</th>
-          <th>小計<br>PV</th>
+          <th>小計金額</th>
+          <th>小計PV</th>
           <th>操作</th>
         </tr>
-  </thead>
-  <tbody id="reportBody">
-    <!-- JavaScript 動態插入的資料列 -->
-  </tbody>
-</table>
+      </thead>
+      <tbody id="reportBody"></tbody>
+    </table>
 
     <div class="summaryBox" aria-live="polite">
       總計 金額：<span id="totalPriceCellDup">0</span>｜總計 PV：<span id="totalPvCellDup">0</span>
@@ -303,13 +295,11 @@
     </div>
   </div>
 
-  <button id="exportBtn">📤 匯出報表為圖片</button>
+  <button id="exportBtn">📤 匯出報表</button>
   <img id="previewImage" alt="預覽匯出圖片" />
   <button id="shareToLineBtn">📩 上傳備份</button>
   <button id="nativeShareBtn">📱 分享圖片</button>
   <button id="clearImageBtn">❌ 清除圖片</button>
-
-  <!-- ✅ 新增：上傳成功訊息 -->
   <div id="uploadSuccessMessage">✅ 圖片已成功上傳</div>
 
   <div id="inputArea">
@@ -320,7 +310,7 @@
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxMK8aSmldCGKmXffbL5XU6IGuLbaKS1VABe9LuWXSF6hg2NtGLGZxS8fT-jqiFKy8_/exec";
-    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f"; // <-- 請替換成你的 imgbb API key
+    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
 
     let allProducts = [];
     let selectedProducts = [];
@@ -339,12 +329,10 @@
     const shareToLineBtn = document.getElementById("shareToLineBtn");
     const nativeShareBtn = document.getElementById("nativeShareBtn");
     const clearImageBtn = document.getElementById("clearImageBtn");
-
     const uploadSuccessMessage = document.getElementById("uploadSuccessMessage");
     const buyerInput = document.getElementById("buyerInput");
     const calculatorInput = document.getElementById("calculatorInput");
 
-    // 初始化選擇數量選項
     for (let i = 1; i <= 10; i++) {
       const option = document.createElement("option");
       option.value = i;
@@ -407,12 +395,12 @@
       let totalPv = 0;
 
       selectedProducts.forEach((item, idx) => {
-        const tr = document.createElement("tr");
         const subtotalPrice = item.price * item.qty;
         const subtotalPv = item.pv * item.qty;
         totalPrice += subtotalPrice;
         totalPv += subtotalPv;
 
+        const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${item.name}</td>
           <td>${item.qty}</td>
@@ -466,7 +454,7 @@
         alert("匯出失敗：" + error);
       } finally {
         exportBtn.disabled = false;
-        exportBtn.textContent = "📤 匯出報表為圖片";
+        exportBtn.textContent = "📤 匯出報表";
       }
     });
 
@@ -495,7 +483,6 @@
           const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent("康園PV試算圖片備份\n" + imageUrl)}`;
           window.open(lineShareUrl, "_blank");
 
-          // ✅ 顯示提示詞
           uploadSuccessMessage.style.display = "block";
           setTimeout(() => {
             uploadSuccessMessage.style.display = "none";
@@ -524,11 +511,8 @@
       try {
         const response = await fetch(previewImage.src);
         const blob = await response.blob();
-        const filesArray = [
-          new File([blob], "康園PV試算.png", { type: blob.type }),
-        ];
+        const filesArray = [new File([blob], "康園PV試算.png", { type: blob.type })];
 
-        // ✅ 組合分享文字內容
         const buyer = buyerInput.value.trim() || "未填";
         const calculator = calculatorInput.value.trim() || "未填";
         const shareText = `康園試算報表:\n購買者：${buyer}\n試算者：${calculator}`;
