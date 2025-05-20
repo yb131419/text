@@ -257,6 +257,30 @@
       display: none;
       font-weight: bold;
     }
+ .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #4caf50;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-10px);
+    }
+
+    .summaryBox .done {
+      color: #4caf50;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -290,8 +314,8 @@
 
     <div class="summaryBox" aria-live="polite">
       總計 金額：<span id="totalPriceCellDup">0</span>｜總計 PV：<span id="totalPvCellDup">0</span>
-      <span class="extra">距 11.2萬 PV 還差：<span id="pvDiff">112000</span></span>
-      <span class="extra">距 22.0萬 PV 還差：<span id="pvDiff2">220000</span></span>
+      <span class="extra">距 11.2萬 PV 還差：<span id="pvDiff">112000</span> <span id="pvMessage1"></span></span>
+      <span class="extra">距 22.0萬 PV 還差：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
     </div>
   </div>
 
@@ -300,7 +324,9 @@
   <button id="shareToLineBtn">📩 上傳備份</button>
   <button id="nativeShareBtn">📱 分享圖片</button>
   <button id="clearImageBtn">❌ 清除圖片</button>
-  <div id="uploadSuccessMessage">✅ 圖片已成功上傳</div>
+
+  <!-- ✅ 浮窗提示 -->
+  <div id="toast" class="toast">✅ 圖片已成功上傳</div>
 
   <div id="inputArea">
     <select id="nameInput"></select>
@@ -323,15 +349,17 @@
     const totalPvCellDup = document.getElementById("totalPvCellDup");
     const pvDiff = document.getElementById("pvDiff");
     const pvDiff2 = document.getElementById("pvDiff2");
+    const pvMessage1 = document.getElementById("pvMessage1");
+    const pvMessage2 = document.getElementById("pvMessage2");
 
     const exportBtn = document.getElementById("exportBtn");
     const previewImage = document.getElementById("previewImage");
     const shareToLineBtn = document.getElementById("shareToLineBtn");
     const nativeShareBtn = document.getElementById("nativeShareBtn");
     const clearImageBtn = document.getElementById("clearImageBtn");
-    const uploadSuccessMessage = document.getElementById("uploadSuccessMessage");
     const buyerInput = document.getElementById("buyerInput");
     const calculatorInput = document.getElementById("calculatorInput");
+    const toast = document.getElementById("toast");
 
     for (let i = 1; i <= 10; i++) {
       const option = document.createElement("option");
@@ -344,49 +372,17 @@
       try {
         const res = await fetch(API_URL + "?action=all");
         const data = await res.json();
-        if (!data || !data.length) {
-          alert("商品資料讀取失敗");
-          return;
-        }
         allProducts = data;
         nameInput.innerHTML = "";
         data.forEach(item => {
           const opt = document.createElement("option");
           opt.value = item.name;
-          opt.textContent = `${item.name} `;
+          opt.textContent = item.name;
           nameInput.appendChild(opt);
         });
       } catch (error) {
         alert("讀取商品失敗: " + error);
       }
-    }
-
-    function addProduct() {
-      const selectedName = nameInput.value;
-      const qty = parseInt(qtyInput.value);
-      if (!selectedName || qty <= 0) {
-        alert("請選擇品項與數量");
-        return;
-      }
-
-      const product = allProducts.find(p => p.name === selectedName);
-      if (!product) {
-        alert("找不到該品項");
-        return;
-      }
-
-      const exists = selectedProducts.find(p => p.name === selectedName);
-      if (exists) {
-        exists.qty += qty;
-      } else {
-        selectedProducts.push({
-          name: product.name,
-          qty: qty,
-          price: product.price,
-          pv: product.pv,
-        });
-      }
-      renderTable();
     }
 
     function renderTable() {
@@ -415,8 +411,13 @@
 
       totalPriceCellDup.textContent = totalPrice;
       totalPvCellDup.textContent = totalPv;
-      pvDiff.textContent = Math.max(0, 112000 - totalPv);
-      pvDiff2.textContent = Math.max(0, 220000 - totalPv);
+      const diff1 = 112000 - totalPv;
+      const diff2 = 220000 - totalPv;
+
+      pvDiff.textContent = diff1 > 0 ? diff1 : 0;
+      pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
+      pvMessage1.innerHTML = totalPv >= 112000 ? '<span class="done">✅ 已達標</span>' : '';
+      pvMessage2.innerHTML = totalPv >= 220000 ? '<span class="done">✅ 已達標</span>' : '';
 
       document.querySelectorAll(".deleteBtn").forEach(btn => {
         btn.onclick = e => {
@@ -425,6 +426,30 @@
           renderTable();
         };
       });
+    }
+
+    function addProduct() {
+      const selectedName = nameInput.value;
+      const qty = parseInt(qtyInput.value);
+      if (!selectedName || qty <= 0) {
+        alert("請選擇品項與數量");
+        return;
+      }
+
+      const product = allProducts.find(p => p.name === selectedName);
+      if (!product) {
+        alert("找不到該品項");
+        return;
+      }
+
+      const exists = selectedProducts.find(p => p.name === selectedName);
+      if (exists) {
+        exists.qty += qty;
+      } else {
+        selectedProducts.push({ ...product, qty });
+      }
+
+      renderTable();
     }
 
     exportBtn.addEventListener("click", async () => {
@@ -482,11 +507,7 @@
           const imageUrl = result.data.url;
           const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent("康園PV試算圖片備份\n" + imageUrl)}`;
           window.open(lineShareUrl, "_blank");
-
-          uploadSuccessMessage.style.display = "block";
-          setTimeout(() => {
-            uploadSuccessMessage.style.display = "none";
-          }, 4000);
+          showToast("✅ 圖片已成功上傳");
         } else {
           alert("圖片上傳失敗，請稍後再試");
         }
@@ -499,12 +520,8 @@
     });
 
     nativeShareBtn.addEventListener("click", async () => {
-      if (!navigator.share) {
-        alert("您的瀏覽器不支援原生分享功能");
-        return;
-      }
-      if (!previewImage.src) {
-        alert("請先匯出圖片");
+      if (!navigator.share || !previewImage.src) {
+        alert("無法使用原生分享");
         return;
       }
 
@@ -533,8 +550,13 @@
       shareToLineBtn.style.display = "none";
       nativeShareBtn.style.display = "none";
       clearImageBtn.style.display = "none";
-      uploadSuccessMessage.style.display = "none";
     });
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
 
     addBtn.addEventListener("click", addProduct);
 
