@@ -300,8 +300,8 @@
     <table id="reportTable" aria-label="試算報表">
       <thead>
         <tr>
-          <th>品項 名稱</th>
-          <th>數量</th>
+          <th>品項<br>名稱</th>
+          <th>數<br>量</th>
           <th>單價</th>
           <th>PV</th>
           <th>小計<br>金額</th>
@@ -479,7 +479,7 @@
         alert("匯出失敗：" + error);
       } finally {
         exportBtn.disabled = false;
-        exportBtn.textContent = "📤 匯出報表";
+        exportBtn.textContent = "📤 報表轉圖片";
       }
     });
 
