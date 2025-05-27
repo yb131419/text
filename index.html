@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>主選單導引</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body style="background:#222;color:white;text-align:center;padding:2em;">
   <h2>正在打開 LINE 主選單...</h2>
   <script>
-    liff.init({ liffId: "2007488640" }).then(() => {
+    liff.init({ liffId: "2007488640-MVdW20Xe" }).then(() => {
       if (!liff.isLoggedIn()) {
         liff.login();
       } else {
@@ -17,13 +17,13 @@
     });
 
     function sendMenuCommand() {
-      liff.getProfile().then(profile => {
-        liff.sendMessages([{
-          type: 'text',
-          text: '主選單'
-        }]).then(() => {
-          liff.closeWindow();
-        });
+      liff.sendMessages([{
+        type: 'text',
+        text: '主選單'
+      }]).then(() => {
+        liff.closeWindow();
+      }).catch((err) => {
+        alert('訊息傳送失敗: ' + err.message);
       });
     }
   </script>
