@@ -8,21 +8,33 @@
 <body style="background:#222;color:white;text-align:center;padding:2em;">
   <h2>正在打開 LINE 主選單...</h2>
   <script>
-    liff.init({ liffId: "2007488640-MVdW20Xe" }).then(() => {
-      if (!liff.isLoggedIn()) {
-        liff.login();
-      } else {
-        sendMenuCommand();
-      }
-    });
+    liff.init({ liffId: "2007488640-MVdW20Xe" })
+      .then(() => {
+        console.log('LIFF 初始化成功');
+        if (!liff.isLoggedIn()) {
+          console.log('尚未登入，跳轉登入');
+          liff.login();
+        } else {
+          console.log('已登入，發送主選單指令');
+          sendMenuCommand();
+        }
+      })
+      .catch((err) => {
+        console.error('LIFF 初始化失敗:', err);
+        alert('LIFF 初始化失敗: ' + err.message);
+      });
 
     function sendMenuCommand() {
       liff.sendMessages([{
         type: 'text',
         text: '主選單'
-      }]).then(() => {
+      }])
+      .then(() => {
+        console.log('訊息傳送成功，關閉視窗');
         liff.closeWindow();
-      }).catch((err) => {
+      })
+      .catch((err) => {
+        console.error('訊息傳送失敗:', err);
         alert('訊息傳送失敗: ' + err.message);
       });
     }
