@@ -1,64 +1,31 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LINE Bot 主選單入口</title>
+  <meta charset="UTF-8">
+  <title>主選單導引</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      text-align: center;
-      background: #f6f6f6;
-    }
-    button {
-      font-size: 18px;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      background-color: #00c300;
-      color: white;
-      cursor: pointer;
-      margin-top: 30px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    #username {
-      margin-top: 20px;
-      font-weight: bold;
-    }
-  </style>
 </head>
-<body>
-  <h1>歡迎使用 LINE Bot 主選單</h1>
-  <button id="sendMenuBtn">打開主選單</button>
-  <div id="username"></div>
-
+<body style="background:#222;color:white;text-align:center;padding:2em;">
+  <h2>正在打開 LINE 主選單...</h2>
   <script>
-    const liffId = "2007488636";
-
-    async function main() {
-      await liff.init({ liffId });
+    liff.init({ liffId: "2007488640" }).then(() => {
       if (!liff.isLoggedIn()) {
         liff.login();
       } else {
-        const profile = await liff.getProfile();
-        document.getElementById('username').innerText = `您好，${profile.displayName}`;
+        sendMenuCommand();
       }
+    });
+
+    function sendMenuCommand() {
+      liff.getProfile().then(profile => {
+        liff.sendMessages([{
+          type: 'text',
+          text: '主選單'
+        }]).then(() => {
+          liff.closeWindow();
+        });
+      });
     }
-
-    async function sendMainMenu() {
-      try {
-        await liff.sendMessages([{ type: 'text', text: '主選單' }]);
-        alert('主選單已發送，請查看聊天視窗');
-      } catch (error) {
-        alert('發送失敗，請確定你是在LINE內開啟本頁面');
-      }
-    }
-
-    document.getElementById('sendMenuBtn').addEventListener('click', sendMainMenu);
-
-    main();
   </script>
 </body>
 </html>
