@@ -17,25 +17,24 @@ function doGet(e) {
 
 // Webhook 接收使用者訊息
 function doPost(e) {
-  const json = JSON.parse(e.postData.contents);
-  const events = json.events;
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1");
+    const data = JSON.parse(e.postData.contents);
 
-  events.forEach(event => {
-    if (event.type === 'message' && event.message.type === 'text') {
-      const userId = event.source.userId;
-      const userMessage = event.message.text;
-      const timestamp = new Date();
+    const time = new Date();
+    const userId = data.userId || "未提供";
+    const displayName = data.displayName || "未提供";
+    const message = data.message || "無";
+    const replyMessage = data.replyMessage || "無";
 
-      // 寫入 Google Sheet
-      recordUserResponse(userId, userMessage, timestamp);
+    sheet.appendRow([time, userId, displayName, message, replyMessage]);
 
-      // 自動回覆使用者（可選）
-      replyToUser(userId, '感謝你的回覆，我們會盡快與你聯繫。');
-    }
-  });
-
-  return ContentService.createTextOutput('OK');
+    return ContentService.createTextOutput("success").setMimeType(ContentService.MimeType.TEXT);
+  } catch (error) {
+    return ContentService.createTextOutput("error: " + error.message).setMimeType(ContentService.MimeType.TEXT);
+  }
 }
+
 
 // 寫入使用者訊息到 Google Sheet
 function recordUserResponse(userId, message, timestamp) {
