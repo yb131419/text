@@ -1,20 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>LIFF 訊息紀錄測試</title>
+  <meta charset="UTF-8" />
+  <title>LIFF 自動紀錄 userId</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <h2>請輸入訊息：</h2>
-  <input type="text" id="userMessage" placeholder="輸入內容">
-  <button onclick="sendMessage()">送出</button>
-  <p id="status"></p>
+  <h1>歡迎使用 LIFF，正在自動記錄您的資料...</h1>
 
- 
   <script>
-    const liffId = '你的 LIFF ID'; // 請改成你的 LIFF ID
-    const scriptUrl = '你的 GAS Web App URL'; // 請改成你的 GAS Web App 部署 URL
+    const liffId = '2007488640-MVdW20Xe'; // 請改成你的 LIFF ID
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // 請改成你的 GAS Web App 部署 URL
 
     async function init() {
       try {
