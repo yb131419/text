@@ -2,61 +2,58 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>LIFF 訊息回傳</title>
+  <title>LIFF 訊息紀錄測試</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <h2>請輸入您的訊息：</h2>
-  <input type="text" id="userMessage" placeholder="輸入訊息" style="width: 300px;">
+  <h2>請輸入訊息：</h2>
+  <input type="text" id="userMessage" placeholder="輸入內容">
   <button onclick="sendMessage()">送出</button>
-
   <p id="status"></p>
 
   <script>
-    const liffId = '2007488640-MVdW20Xe'; // 替換成你自己的 LIFF ID
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // 例如：https://script.google.com/macros/s/xxxxx/exec
+    const liffId = '2007488640-MVdW20Xe'; // ✅ 替換
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // ✅ 替換
 
     async function initializeLiff() {
       await liff.init({ liffId });
 
       if (!liff.isLoggedIn()) {
         liff.login();
+        return;
       }
 
       const profile = await liff.getProfile();
-      const userId = profile.userId;
-      const displayName = profile.displayName;
-
+      const context = liff.getContext();
       window.liffUser = {
-        userId,
-        displayName
+        userId: context.userId || '無法取得',
+        displayName: profile.displayName
       };
     }
 
     async function sendMessage() {
-      const message = document.getElementById('userMessage').value.trim();
-      if (!message) {
+      const msg = document.getElementById('userMessage').value.trim();
+      if (!msg) {
         document.getElementById('status').textContent = "請輸入訊息";
         return;
       }
 
-      const data = {
+      const body = {
         userId: window.liffUser.userId,
         displayName: window.liffUser.displayName,
-        message: message,
-        replyMessage: "謝謝您的留言，我們會盡快回覆您！"
+        message: msg,
+        replyMessage: "收到您的訊息，感謝您！"
       };
 
       try {
         const res = await fetch(scriptUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
         });
 
         const text = await res.text();
-        document.getElementById('status').textContent = `送出成功：${text}`;
-        document.getElementById('userMessage').value = '';
+        document.getElementById('status').textContent = "送出成功：" + text;
       } catch (err) {
         document.getElementById('status').textContent = "送出失敗：" + err;
       }
