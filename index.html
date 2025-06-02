@@ -11,55 +11,46 @@
   <button onclick="sendMessage()">送出</button>
   <p id="status"></p>
 
+ 
   <script>
-    const liffId = '2007488640-MVdW20Xe'; // ✅ 替換
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // ✅ 替換
+    const liffId = '你的 LIFF ID'; // 請改成你的 LIFF ID
+    const scriptUrl = '你的 GAS Web App URL'; // 請改成你的 GAS Web App 部署 URL
 
-    async function initializeLiff() {
-      await liff.init({ liffId });
-
-      if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
-      }
-
-      const profile = await liff.getProfile();
-      const context = liff.getContext();
-      window.liffUser = {
-        userId: context.userId || '無法取得',
-        displayName: profile.displayName
-      };
-    }
-
-    async function sendMessage() {
-      const msg = document.getElementById('userMessage').value.trim();
-      if (!msg) {
-        document.getElementById('status').textContent = "請輸入訊息";
-        return;
-      }
-
-      const body = {
-        userId: window.liffUser.userId,
-        displayName: window.liffUser.displayName,
-        message: msg,
-        replyMessage: "收到您的訊息，感謝您！"
-      };
-
+    async function init() {
       try {
-        const res = await fetch(scriptUrl, {
+        await liff.init({ liffId });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();  // 未登入會導向登入頁
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        const userId = profile.userId;
+        const displayName = profile.displayName;
+
+        // 傳送自動紀錄資料
+        const payload = {
+          userId,
+          displayName,
+          userMessage: '開啟 LIFF (自動紀錄)',
+          replyMessage: '感謝您的使用！'
+        };
+
+        await fetch(scriptUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify(payload)
         });
 
-        const text = await res.text();
-        document.getElementById('status').textContent = "送出成功：" + text;
+        document.body.innerHTML += '<p>資料已成功記錄，謝謝！</p>';
       } catch (err) {
-        document.getElementById('status').textContent = "送出失敗：" + err;
+        console.error(err);
+        document.body.innerHTML += '<p>發生錯誤，請稍後再試。</p>';
       }
     }
 
-    initializeLiff();
+    window.onload = init;
   </script>
 </body>
 </html>
