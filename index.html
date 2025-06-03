@@ -76,8 +76,9 @@
         return;
       }
       // 初始化 LIFF，明確要求訊息發送權限
+      // **使用新的 LIFF ID**
       liff.init({
-        liffId: '2007488640-PbB48ELN', // <-- 使用您提供的 LIFF ID
+        liffId: '2007488640-PbB48ELN', // <-- 使用您提供的新 LIFF ID
         permission: { message: true } // 要求訊息發送權限
       })
       .then(() => {
@@ -92,8 +93,8 @@
         const profilePromise = liff.getProfile().then(profile => {
           return {
             displayName: profile.displayName,
-            pictureUrl: profile.pictureUrl, // 雖然目前不使用，但可以保留以供未來使用
-            statusMessage: profile.statusMessage || "無狀態訊息" // 獲取用戶狀態訊息，若沒有則設為"無狀態訊息"
+            pictureUrl: profile.pictureUrl,
+            statusMessage: profile.statusMessage || "無狀態訊息"
           };
         }).catch(err => {
           showStatus('無法取得用戶名稱', true);
@@ -124,7 +125,7 @@
           return profilePromise;
         })
         .then(profileData => {
-          // 使用您提供的 Web App URL
+          // **使用您提供的 Web App URL**
           const backendUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec';
           
           // 獲取當前時間
@@ -173,7 +174,8 @@
           showStatus(data.message || 'LIFF 事件已記錄到 Sheet3', false, true);
           
           // 開啟新的視窗到您的 Google Apps Script Web App
-          const webAppUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // 請確保這個 URL 是正確的
+          // **使用您提供的 Web App URL**
+          const webAppUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec';
           liff.openWindow({
             url: webAppUrl,
             external: false // 設為 false 會在新標籤頁開啟，true 會在外部瀏覽器開啟
@@ -185,7 +187,7 @@
           if (error.message.includes('HTTP error')) {
             showStatus(`發送資料到後端失敗: ${error.message}`, true);
           } else if (error.message.includes('Failed to fetch')) {
-            showStatus('無法連接到後端伺服器，請檢查網路連線或後端服務是否正常。', true);
+            showStatus('無法連接到後端伺服器，請檢查網路連線或後端服務是否正常', true);
           } else {
             showStatus('處理過程中發生錯誤: ' + error.message, true);
           }
