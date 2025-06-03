@@ -89,18 +89,6 @@
     .btn:hover {
       background-color: #bfa332;
     }
-
-    .input-box {
-      margin: 16px 0;
-    }
-
-    input[type="text"] {
-      width: 90%;
-      padding: 10px;
-      font-size: 1em;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
   </style>
 </head>
 <body>
@@ -108,13 +96,7 @@
     <h1>🌿 三癌末病人 真實分享</h1>
     <p>二十年乳癌、轉肺癌再轉骨癌</p>
 
-    <div class="input-box" id="inputBox" style="display: none;">
-      <input type="text" id="userInput" placeholder="請輸入您的想法或目的" />
-      <br><br>
-      <button class="btn" onclick="submitAndShowVideo()">✅ 確認並觀看影片</button>
-    </div>
-
-    <button class="btn" id="startBtn" onclick="prepareInput()">👉 點我輸入再觀看</button>
+    <button class="btn" onclick="handleClick()">👉 進入影片</button>
 
     <div class="video-wrapper" id="videoSection">
       <iframe 
@@ -130,26 +112,16 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    const liffId = '2007488640-MVdW20Xe'; // <<== 請填入
-    const gasUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // <<== 請填入
+    const liffId = '2007488640-MVdW20Xe'; // <-- 替換成你的 LIFF ID
+    const gasUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // <-- 替換成你部署的 Google Apps Script 網址
 
-    function prepareInput() {
-      document.getElementById("startBtn").style.display = "none";
-      document.getElementById("inputBox").style.display = "block";
-    }
-
-    async function submitAndShowVideo() {
-      const input = document.getElementById("userInput").value.trim();
-      if (!input) {
-        alert("請輸入內容再觀看影片！");
-        return;
-      }
-
-      document.getElementById("inputBox").style.display = "none";
-      document.getElementById("videoSection").style.display = "block";
-
+    async function handleClick() {
       try {
+        document.querySelector(".btn").style.display = "none";
+        document.getElementById("videoSection").style.display = "block";
+
         await liff.init({ liffId });
+
         if (!liff.isLoggedIn()) {
           liff.login();
           return;
@@ -159,17 +131,17 @@
         const data = {
           userId: profile.userId || "無法取得",
           displayName: profile.displayName || "未知使用者",
-          message: input,
-          replyMessage: "使用者觀看影片"
+          message: "點擊進入影片",
+          replyMessage: "使用者已進入觀看頁面"
         };
 
         const query = new URLSearchParams(data).toString();
         await fetch(`${gasUrl}?${query}`);
-
-        console.log("✅ 寫入完成");
-      } catch (err) {
-        console.error("❌ 發生錯誤:", err);
+        console.log("✅ 已送出資料到 Google Sheet");
+      } catch (error) {
+        console.error("❌ 發生錯誤：", error);
       }
     }
   </script>
 </body>
+</html>
