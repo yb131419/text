@@ -1,40 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://cdn.jsdelivr.net/line-sdk@2.12.0/umd/linebot-sdk.min.js"></script>
+  <title>LIFF App</title>
+  <script src="https://static.line-scdn.net/liff/edge/2.1/liff.js"></script>
+</head>
+<body>
+  <h1>LIFF App</h1>
+  <button id="sendMessageButton">開啟 LIFF</button>
   <script>
-  </head>
-  <body>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // 初始化 LINE 訊息
-        lineClient = new line.Client({ channelAccessToken: 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec' });
-
-        // 當用戶登入後，獲取用戶資訊
-        lineClient.getProfile(userId).then(profile => {
-          const userId = profile.userId;
-          const displayName = profile.displayName;
-
-          // 呼叫 Google Apps Script 函式來記錄用戶開啟事件
-          fetch('https://your-web-app-url/us-central1/doLiffEvent', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              userId: userId,
-              displayName: displayName,
-              liffId: '2007488640-MVdW20Xe',
-              message: 'LIFF 開啟'
-            })
-          }).then(response => response.json())
-          .then(data => {
-            console.log('LIFF 事件已記錄');
-          }).catch(error => {
-            console.error('記錄 LIFF 事件時發生錯誤:', error);
-          });
+    document.getElementById('sendMessageButton').addEventListener('click', function() {
+      liff.sendMessages([
+        {
+          type: 'text',
+          text: 'LIFF 開啟'
+        }
+      ])
+      .then(function() {
+        window.alert('訊息已送出！');
+        liff.closeWindow();
+      })
+      .catch(function(error) {
+        window.alert('訊息送出失敗: ' + error);
       });
     });
+
+    liff.init({ liffId: '2007488640-MVdW20Xe' })
+      .then(() => {
+        const userId = liff.getUserId();
+        const displayName = liff.getProfile().then(profile => {
+          return profile.displayName;
+        });
+
+        // 發送 LIFF 事件到後端
+        fetch('https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            event: {
+              userId: userId,
+              displayName: displayName,
+              liffId: liff.getId(),
+              message: 'LIFF 開啟'
+            }
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log(data.message);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+      })
+      .catch((err) => {
+        console.error('LIFF 初始化失敗', err);
+      });
   </script>
 </body>
 </html>
