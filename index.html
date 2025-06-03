@@ -54,11 +54,6 @@
   <div id="statusMessage"></div>
 
   <script>
-    // 配置常數 (如果需要，可以移到外部配置檔案)
-    const CONFIG = {
-      // sheetId: 'YOUR_SPREADSHEET_ID' // 如果需要直接在前端讀取，可以取消註解並填入
-    };
-
     // 輔助函數：顯示狀態訊息
     function showStatus(message, isError = false, isSuccess = false) {
       const statusElement = document.getElementById('statusMessage');
@@ -125,7 +120,9 @@
           // 發送 LIFF 事件到後端 Google Apps Script
           // 等待 displayName promise 完成
           displayName.then(name => {
-            fetch('https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec', { // <-- 使用您提供的 Web App URL
+            // 使用您提供的 Web App URL
+            const backendUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec';
+            fetch(backendUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
