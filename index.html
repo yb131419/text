@@ -6,64 +6,112 @@
 </head>
 <body>
   <h1>LIFF App</h1>
-  <button id="sendMessageButton">開啟 LIFF</button>
+  <p>點擊下方按鈕開啟 LIFF 並記錄到 Sheet3</p>
+  <button id="openLiffButton">開啟 LIFF</button>
+  <div id="statusMessage"></div>
+
   <script>
-    document.getElementById('sendMessageButton').addEventListener('click', function() {
-      // 檢查是否已授權
-      if (!liff.isLoggedIn()) {
-        // 如果未授權，提示用戶授權
-        liff.login();
-      } else {
-        // 如果已授權，發送訊息
+    document.getElementById('openLiffButton').addEventListener('click', function() {
+      // 檢查 LIFF 是否已初始化
+      if (!window.liff) {
+        document.getElementById('statusMessage').textContent = 'LIFF 套件載入中，請稍候...';
+        return;
+      }
+
+      // 初始化 LIFF，明確要求訊息發送權限
+      liff.init({
+        liffId: '2007488640-MVdW20Xe', // <-- 請替換成你的 LIFF ID
+        // 這裡加上 permission: { message: true } 來要求訊息發送權限
+        permission: { message: true }
+      })
+      .then(() => {
+        document.getElementById('statusMessage').textContent = 'LIFF 初始化成功';
+        
+        // 獲取用戶基本資訊
+        const userId = liff.getUserId();
+        if (!userId) {
+          document.getElementById('statusMessage').textContent = '無法取得用戶ID，請確保有讀取個人資料的權限';
+          console.error('無法取得用戶ID');
+          return;
+        }
+
+        const displayName = liff.getProfile().then(profile => {
+          return profile.displayName;
+        }).catch(err => {
+          document.getElementById('statusMessage').textContent = '無法取得用戶名稱';
+          console.error('無法取得用戶名稱:', err);
+          return "未知使用者";
+        });
+
+        // 準備要發送的資料
+        const eventMessage = "LIFF 開啟";
+        const responseMessage = "LIFF 開啟";
+
+        // 發送訊息到 LINE 對話
         liff.sendMessages([
           {
             type: 'text',
-            text: 'LIFF 開啟'
+            text: eventMessage
           }
         ])
-        .then(function() {
-          window.alert('訊息已送出！');
-          liff.closeWindow();
+        .then(() => {
+          document.getElementById('statusMessage').textContent = '訊息已送出！';
+          console.log('訊息已送出');
+          
+          // 發送 LIFF 事件到後端 Google Apps Script
+          // 等待 displayName promise 完成
+          displayName.then(name => {
+            fetch('https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec', { // <-- 請替換成你的 Web App URL
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                event: {
+                  userId: userId,
+                  displayName: name,
+                  liffId: liff.getId(),
+                  message: eventMessage,
+                  replyMessage: responseMessage // 這裡用 responseMessage 作為用戶訊息的回覆訊息
+                }
+              })
+            })
+            .then(response => response.json())
+            .then(data => {
+              console.log('後端回覆:', data.message);
+              document.getElementById('statusMessage').textContent = data.message || 'LIFF 事件已記錄到 Sheet3';
+            })
+            .catch(error => {
+              console.error('發送資料到後端失敗:', error);
+              document.getElementById('statusMessage').textContent = '記錄到 Sheet3 失敗';
+            });
+          });
+          
+          // 關閉 LIFF 視窗 (如果需要)
+          // liff.closeWindow();
         })
-        .catch(function(error) {
-          window.alert('訊息送出失敗: ' + error);
-        });
-      }
-    });
-
-    liff.init({ liffId: '2007488640-MVdW20Xe' })
-      .then(() => {
-        const userId = liff.getUserId();
-        const displayName = liff.getProfile().then(profile => {
-          return profile.displayName;
-        });
-
-        // 發送 LIFF 事件到後端
-        fetch('https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            event: {
-              userId: userId,
-              displayName: displayName,
-              liffId: liff.getId(),
-              message: 'LIFF 開啟'
-            }
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log(data.message);
-        })
-        .catch(error => {
-          console.error('Error:', error);
+        .catch((error) => {
+          console.error('訊息送出失敗:', error);
+          
+          // 檢查是否是權限問題
+          if (error.message.includes('permission')) {
+            document.getElementById('statusMessage').textContent = '需要訊息發送權限，請授權後再試';
+            // 可以嘗試再次引導授權，或者讓用戶手動授權
+            // 例如: window.location.href = liff.getExternalLinkUrl();
+          } else {
+            document.getElementById('statusMessage').textContent = '訊息送出失敗: ' + error.message;
+          }
         });
       })
       .catch((err) => {
-        console.error('LIFF 初始化失敗', err);
+        console.error('LIFF 初始化失敗:', err);
+        document.getElementById('statusMessage').textContent = 'LIFF 初始化失敗，請確認 LIFF ID 是否正確';
       });
+    });
+
+    // 可以在頁面載入時就初始化，但不強制要求權限
+    // 這樣使用者點擊按鈕時，權限要求會更明確
+    // liff.init({liffId: 'YOUR_LIFF_ID'}).catch(err => console.error('初始載入初始化:', err));
   </script>
 </body>
 </html>
