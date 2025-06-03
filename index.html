@@ -31,18 +31,16 @@
       padding: 20px;
       border-radius: 18px;
       box-shadow: 0 8px 30px var(--shadow);
+      text-align: center;
     }
 
     h1 {
       font-size: 1.6em;
-      text-align: center;
       margin-bottom: 12px;
-      color: var(--text);
     }
 
     p {
       font-size: 1em;
-      text-align: center;
       color: var(--subtext);
       line-height: 1.5;
       margin-bottom: 20px;
@@ -55,8 +53,8 @@
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-      margin-bottom: 24px;
-      background-color: #000;
+      margin-top: 20px;
+      display: none;
     }
 
     .video-wrapper iframe {
@@ -76,9 +74,20 @@
       margin-top: 30px;
     }
 
-    @media (max-width: 480px) {
-      h1 { font-size: 1.4em; }
-      p { font-size: 0.95em; }
+    .btn {
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1em;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: background-color 0.2s;
+    }
+
+    .btn:hover {
+      background-color: #bfa332;
     }
   </style>
 </head>
@@ -87,7 +96,9 @@
     <h1>🌿 三癌末病人 真實分享</h1>
     <p>二十年乳癌、轉肺癌再轉骨癌</p>
 
-    <div class="video-wrapper">
+    <button class="btn" onclick="showVideoAndLog()">👉 進入影片</button>
+
+    <div class="video-wrapper" id="videoSection">
       <iframe 
         src="https://player.vimeo.com/video/1087548335?h=62123a69c1" 
         frameborder="0" 
@@ -99,13 +110,15 @@
     <div class="footer">© 2025 彥彬 🌿健康美麗 · 保留所有權利</div>
   </div>
 
-  <!-- LIFF 初始化與記錄功能 -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    const liffId = '2007475335-RVyOa6YG'; // 替換為你的 LIFF ID
+    const liffId = '2007475335-RVyOa6yg'; // 替換為你的 LIFF ID
     const gasUrl = 'https://script.google.com/macros/s/AKfycbxndZDNdJcSfk5ZX-5zKk9sFSQ_2CCDjYAUKwBvcVlyjmwwHWYib5CbzhItx9kFvyH1/exec'; // 替換為你的 GAS URL
 
-    async function init() {
+    async function showVideoAndLog() {
+      document.querySelector('.btn').style.display = 'none';
+      document.getElementById('videoSection').style.display = 'block';
+
       try {
         await liff.init({ liffId });
 
@@ -121,8 +134,8 @@
         const data = {
           userId: userId || '無法取得',
           displayName: displayName || '未知使用者',
-          message: '開啟影片頁面',
-          replyMessage: '自動記錄成功'
+          message: '點擊進入影片',
+          replyMessage: '使用者已進入觀看頁面'
         };
 
         await fetch(gasUrl, {
@@ -132,13 +145,12 @@
           },
           body: JSON.stringify(data)
         });
-        console.log("✅ 記錄成功");
+
+        console.log("✅ 觀看紀錄成功");
       } catch (err) {
-        console.error('❌ LIFF 或紀錄錯誤:', err);
+        console.error('❌ 錯誤:', err);
       }
     }
-
-    window.onload = init;
   </script>
 </body>
 </html>
