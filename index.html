@@ -9,19 +9,26 @@
   <button id="sendMessageButton">開啟 LIFF</button>
   <script>
     document.getElementById('sendMessageButton').addEventListener('click', function() {
-      liff.sendMessages([
-        {
-          type: 'text',
-          text: 'LIFF 開啟'
-        }
-      ])
-      .then(function() {
-        window.alert('訊息已送出！');
-        liff.closeWindow();
-      })
-      .catch(function(error) {
-        window.alert('訊息送出失敗: ' + error);
-      });
+      // 檢查是否已授權
+      if (!liff.isLoggedIn()) {
+        // 如果未授權，提示用戶授權
+        liff.login();
+      } else {
+        // 如果已授權，發送訊息
+        liff.sendMessages([
+          {
+            type: 'text',
+            text: 'LIFF 開啟'
+          }
+        ])
+        .then(function() {
+          window.alert('訊息已送出！');
+          liff.closeWindow();
+        })
+        .catch(function(error) {
+          window.alert('訊息送出失敗: ' + error);
+        });
+      }
     });
 
     liff.init({ liffId: '2007488640-MVdW20Xe' })
