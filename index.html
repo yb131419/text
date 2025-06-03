@@ -112,8 +112,8 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    const liffId = '2007488640-PbB48ELN'; // 替換為你的 LIFF ID
-    const gasUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // 替換為你的 GAS URL
+    const liffId = '2007475335-RVyOa6yg'; // 替換為你的 LIFF ID
+    const gasUrl = 'https://script.google.com/macros/s/AKfycbxndZDNdJcSfk5ZX-5zKk9sFSQ_2CCDjYAUKwBvcVlyjmwwHWYib5CbzhItx9kFvyH1/exec'; // 替換為你的 GAS URL
 
     async function showVideoAndLog() {
       document.querySelector('.btn').style.display = 'none';
@@ -131,20 +131,16 @@
         const userId = profile.userId;
         const displayName = profile.displayName;
 
-        const data = {
+        // 用 URLSearchParams 將資料打包
+        const params = new URLSearchParams({
           userId: userId || '無法取得',
           displayName: displayName || '未知使用者',
           message: '點擊進入影片',
           replyMessage: '使用者已進入觀看頁面'
-        };
-
-        await fetch(gasUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
         });
+
+        // 用 GET 發送資料
+        await fetch(`${gasUrl}?${params.toString()}`);
 
         console.log("✅ 觀看紀錄成功");
       } catch (err) {
