@@ -77,10 +77,10 @@
       }
       // 初始化 LIFF，明確要求訊息發送權限
       // **使用新的 LIFF ID**
-      liff.init({
-        liffId: '2007475335-pD3NvQZ7', // <-- 使用您提供的新 LIFF ID
-        permission: { message: true } // 要求訊息發送權限
-      })
+  liff.init({
+  liffId: '2007475335-pD3NvQZ7', // <-- 使用新的 LIFF ID
+  permission: { message: true } // 要求訊息發送權限
+})
       .then(() => {
         showStatus('LIFF 初始化成功');
         // 獲取用戶基本資訊
