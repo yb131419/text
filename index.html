@@ -49,14 +49,15 @@
 </head>
 <body>
   <h1>LIFF App</h1>
-  <p>点击下方按钮打开 LIFF 并记录到 Sheet3</p>
-  <button id="openLiffButton">打开 LIFF</button>
+  <p>點擊下方按鈕開啟 LIFF、發送訊息並記錄到 Sheet3</p>
+  <button id="openLiffButton">開啟 LIFF</button>
   <div id="statusMessage"></div>
   <script>
+    // 輔助函數：顯示狀態訊息
     function showStatus(message, isError = false, isSuccess = false) {
       const statusElement = document.getElementById('statusMessage');
       statusElement.textContent = message;
-      statusElement.className = '';
+      statusElement.className = ''; // 清除所有類別
       if (isError) {
         statusElement.classList.add('error');
       } else if (isSuccess) {
@@ -69,20 +70,130 @@
 
     document.getElementById('openLiffButton').addEventListener('click', function() {
       showStatus('正在初始化 LIFF...');
+      // 檢查 LIFF SDK 是否已載入
       if (typeof liff === 'undefined') {
-        showStatus('LIFF SDK 未加载，请确保网页已正确加载。', true);
+        showStatus('LIFF 套件未載入，請確保網頁已正確載入。', true);
         return;
       }
+      // 初始化 LIFF，明確要求訊息發送權限
       liff.init({
-        liffId: '2007488640-MVdW20Xe',
-        permission: { message: true }
+        liffId: '2007488640-MVdW20Xe', // <-- 使用您提供的 LIFF ID
+        permission: { message: true } // 要求訊息發送權限
       })
       .then(() => {
         showStatus('LIFF 初始化成功');
+        // 獲取用戶基本資訊
+        const userId = liff.getUserId();
+        if (!userId) {
+          showStatus('無法取得用戶ID，請確保有讀取個人資料的權限', true);
+          console.error('無法取得用戶ID');
+          return;
+        }
+        const profilePromise = liff.getProfile().then(profile => {
+          return {
+            displayName: profile.displayName,
+            pictureUrl: profile.pictureUrl, // 雖然目前不使用，但可以保留以供未來使用
+            statusMessage: profile.statusMessage || "無狀態訊息" // 獲取用戶狀態訊息，若沒有則設為"無狀態訊息"
+          };
+        }).catch(err => {
+          showStatus('無法取得用戶名稱', true);
+          console.error('無法取得用戶名稱:', err);
+          return {
+            displayName: "未知使用者",
+            pictureUrl: "",
+            statusMessage: "無狀態訊息"
+          };
+        });
+
+        // 準備要發送的訊息
+        const eventMessage = "LIFF 開啟";
+        const responseMessage = "LIFF 開啟";
+
+        // 發送訊息到 LINE 對話
+        liff.sendMessages([
+          {
+            type: 'text',
+            text: eventMessage
+          }
+        ])
+        .then(() => {
+          showStatus('訊息已送出！', false, true);
+          console.log('訊息已送出');
+          
+          // 等待用戶資料 Promise 完成
+          return profilePromise;
+        })
+        .then(profileData => {
+          // 使用您提供的 Web App URL
+          const backendUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec';
+          
+          // 獲取當前時間
+          const currentTime = new Date().toLocaleString('zh-TW', { 
+            timeZone: 'Asia/Taipei',
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit'
+          });
+
+          // 準備要發送的完整資料
+          const dataToSend = {
+            event: {
+              timestamp: currentTime, // 時間
+              userId: userId,
+              displayName: profileData.displayName,
+              liffId: liff.getId(),
+              message: eventMessage,       // 事件訊息
+              replyMessage: responseMessage, // 回覆訊息
+              statusMessage: profileData.statusMessage // 用戶狀態訊息
+            }
+          };
+
+          console.log('即將發送的資料:', dataToSend); // 加入這行以便除錯
+
+          // 發送資料到後端 Google Apps Script
+          return fetch(backendUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dataToSend)
+          });
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('後端回覆:', data.message);
+          showStatus(data.message || 'LIFF 事件已記錄到 Sheet3', false, true);
+          
+          // 開啟新的視窗到您的 Google Apps Script Web App
+          const webAppUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // 請確保這個 URL 是正確的
+          liff.openWindow({
+            url: webAppUrl,
+            external: false // 設為 false 會在新標籤頁開啟，true 會在外部瀏覽器開啟
+          });
+          showStatus('已開啟記錄頁面', false, true);
+        })
+        .catch(error => {
+          console.error('處理過程中發生錯誤:', error);
+          if (error.message.includes('HTTP error')) {
+            showStatus(`發送資料到後端失敗: ${error.message}`, true);
+          } else if (error.message.includes('Failed to fetch')) {
+            showStatus('無法連接到後端伺服器，請檢查網路連線或後端服務是否正常。', true);
+          } else {
+            showStatus('處理過程中發生錯誤: ' + error.message, true);
+          }
+        });
       })
       .catch((err) => {
-        console.error('LIFF 初始化失败:', err);
-        showStatus('LIFF 初始化失败，请确认 LIFF ID 是否正确并已启用', true);
+        console.error('LIFF 初始化失敗:', err);
+        showStatus('LIFF 初始化失敗，請確認 LIFF ID 是否正確並已啟用', true);
       });
     });
   </script>
