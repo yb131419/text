@@ -1,203 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
-  <title>LIFF App</title>
-  <script src="https://static.line-scdn.net/liff/edge/2.1/liff.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>彥彬 🌿健康美麗</title>
   <style>
+    :root {
+      --bg: #fffdf7;
+      --text: #333;
+      --subtext: #777;
+      --accent: #d4af37;
+      --shadow: rgba(0, 0, 0, 0.08);
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 0 auto;
+      margin: 0;
+      padding: 24px 16px;
+      font-family: 'Helvetica Neue', 'Segoe UI', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: white;
       padding: 20px;
+      border-radius: 18px;
+      box-shadow: 0 8px 30px var(--shadow);
     }
+
     h1 {
-      color: #00b900; /* LINE Green */
+      font-size: 1.6em;
+      text-align: center;
+      margin-bottom: 12px;
+      color: var(--text);
     }
-    button {
-      background-color: #00b900; /* LINE Green */
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      border-radius: 4px;
-      margin-top: 20px;
+
+    p {
+      font-size: 1em;
+      text-align: center;
+      color: var(--subtext);
+      line-height: 1.5;
+      margin-bottom: 20px;
     }
-    button:hover {
-      background-color: #00a000;
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      margin-bottom: 24px;
+      background-color: #000;
     }
-    #statusMessage {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 4px;
-      background-color: #f0f0f0;
-      min-height: 20px;
+
+    .video-wrapper iframe {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 177.78%;
+      height: 100%;
+      transform: translate(-50%, -50%);
+      border: 0;
     }
-    .success {
-      background-color: #d4edda;
-      color: #155724;
+
+    .footer {
+      text-align: center;
+      font-size: 0.85em;
+      color: #bbb;
+      margin-top: 30px;
     }
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-    .info {
-      background-color: #d1ecf1;
-      color: #0c5460;
+
+    @media (max-width: 480px) {
+      h1 { font-size: 1.4em; }
+      p { font-size: 0.95em; }
     }
   </style>
 </head>
 <body>
-  <h1>LIFF App</h1>
-  <p>點擊下方按鈕開啟 LIFF、發送訊息並記錄到 Sheet3</p>
-  <button id="openLiffButton">開啟 LIFF</button>
-  <div id="statusMessage"></div>
-  <script>
-    // 輔助函數：顯示狀態訊息
-    function showStatus(message, isError = false, isSuccess = false) {
-      const statusElement = document.getElementById('statusMessage');
-      statusElement.textContent = message;
-      statusElement.className = ''; // 清除所有類別
-      if (isError) {
-        statusElement.classList.add('error');
-      } else if (isSuccess) {
-        statusElement.classList.add('success');
-      } else {
-        statusElement.classList.add('info');
-      }
-      console.log(message);
-    }
+  <div class="container">
+    <h1>🌿 三癌末病人 真實分享</h1>
+    <p>二十年乳癌、轉肺癌再轉骨癌</p>
 
-    document.getElementById('openLiffButton').addEventListener('click', function() {
-      showStatus('正在初始化 LIFF...');
-      // 檢查 LIFF SDK 是否已載入
-      if (typeof liff === 'undefined') {
-        showStatus('LIFF 套件未載入，請確保網頁已正確載入。', true);
-        return;
-      }
-      // 初始化 LIFF，明確要求訊息發送權限
-      // **使用新的 LIFF ID**
-  liff.init({
-  liffId: '2007475335-pD3NvQZ7', // <-- 使用新的 LIFF ID
-  permission: { message: true } // 要求訊息發送權限
-})
-      .then(() => {
-        showStatus('LIFF 初始化成功');
-        // 獲取用戶基本資訊
-        const userId = liff.getUserId();
-        if (!userId) {
-          showStatus('無法取得用戶ID，請確保有讀取個人資料的權限', true);
-          console.error('無法取得用戶ID');
+    <div class="video-wrapper">
+      <iframe 
+        src="https://player.vimeo.com/video/1087548335?h=62123a69c1" 
+        frameborder="0" 
+        allow="autoplay; fullscreen; picture-in-picture" 
+        allowfullscreen>
+      </iframe>
+    </div>
+
+    <div class="footer">© 2025 彥彬 🌿健康美麗 · 保留所有權利</div>
+  </div>
+
+  <!-- LIFF 初始化與記錄功能 -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    const liffId = '2007475335-RVyOa6yg'; // 替換為你的 LIFF ID
+    const gasUrl = 'https://script.google.com/macros/s/AKfycbxndZDNdJcSfk5ZX-5zKk9sFSQ_2CCDjYAUKwBvcVlyjmwwHWYib5CbzhItx9kFvyH1/exec'; // 替換為你的 GAS URL
+
+    async function init() {
+      try {
+        await liff.init({ liffId });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
           return;
         }
-        const profilePromise = liff.getProfile().then(profile => {
-          return {
-            displayName: profile.displayName,
-            pictureUrl: profile.pictureUrl,
-            statusMessage: profile.statusMessage || "無狀態訊息"
-          };
-        }).catch(err => {
-          showStatus('無法取得用戶名稱', true);
-          console.error('無法取得用戶名稱:', err);
-          return {
-            displayName: "未知使用者",
-            pictureUrl: "",
-            statusMessage: "無狀態訊息"
-          };
+
+        const profile = await liff.getProfile();
+        const userId = profile.userId;
+        const displayName = profile.displayName;
+
+        const data = {
+          userId: userId || '無法取得',
+          displayName: displayName || '未知使用者',
+          message: '開啟影片頁面',
+          replyMessage: '自動記錄成功'
+        };
+
+        await fetch(gasUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
         });
+        console.log("✅ 記錄成功");
+      } catch (err) {
+        console.error('❌ LIFF 或紀錄錯誤:', err);
+      }
+    }
 
-        // 準備要發送的訊息
-        const eventMessage = "LIFF 開啟";
-        const responseMessage = "LIFF 開啟";
-
-        // 發送訊息到 LINE 對話
-        liff.sendMessages([
-          {
-            type: 'text',
-            text: eventMessage
-          }
-        ])
-        .then(() => {
-          showStatus('訊息已送出！', false, true);
-          console.log('訊息已送出');
-          
-          // 等待用戶資料 Promise 完成
-          return profilePromise;
-        })
-        .then(profileData => {
-          // **使用您提供的 Web App URL**
-          const backendUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec';
-          
-          // 獲取當前時間
-          const currentTime = new Date().toLocaleString('zh-TW', { 
-            timeZone: 'Asia/Taipei',
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit',
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit'
-          });
-
-          // 準備要發送的完整資料
-          const dataToSend = {
-            event: {
-              timestamp: currentTime, // 時間
-              userId: userId,
-              displayName: profileData.displayName,
-              liffId: liff.getId(),
-              message: eventMessage,       // 事件訊息
-              replyMessage: responseMessage, // 回覆訊息
-              statusMessage: profileData.statusMessage // 用戶狀態訊息
-            }
-          };
-
-          console.log('即將發送的資料:', dataToSend); // 加入這行以便除錯
-
-          // 發送資料到後端 Google Apps Script
-          return fetch(backendUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dataToSend)
-          });
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          console.log('後端回覆:', data.message);
-          showStatus(data.message || 'LIFF 事件已記錄到 Sheet3', false, true);
-          
-          // 開啟新的視窗到您的 Google Apps Script Web App
-          // **使用您提供的 Web App URL**
-          const webAppUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec';
-          liff.openWindow({
-            url: webAppUrl,
-            external: false // 設為 false 會在新標籤頁開啟，true 會在外部瀏覽器開啟
-          });
-          showStatus('已開啟記錄頁面', false, true);
-        })
-        .catch(error => {
-          console.error('處理過程中發生錯誤:', error);
-          if (error.message.includes('HTTP error')) {
-            showStatus(`發送資料到後端失敗: ${error.message}`, true);
-          } else if (error.message.includes('Failed to fetch')) {
-            showStatus('無法連接到後端伺服器，請檢查網路連線或後端服務是否正常', true);
-          } else {
-            showStatus('處理過程中發生錯誤: ' + error.message, true);
-          }
-        });
-      })
-      .catch((err) => {
-        console.error('LIFF 初始化失敗:', err);
-        showStatus('LIFF 初始化失敗，請確認 LIFF ID 是否正確並已啟用', true);
-      });
-    });
+    window.onload = init;
   </script>
 </body>
 </html>
