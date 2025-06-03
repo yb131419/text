@@ -49,16 +49,14 @@
 </head>
 <body>
   <h1>LIFF App</h1>
-  <p>點擊下方按鈕開啟 LIFF 並記錄到 Sheet3</p>
-  <button id="openLiffButton">開啟 LIFF</button>
+  <p>点击下方按钮打开 LIFF 并记录到 Sheet3</p>
+  <button id="openLiffButton">打开 LIFF</button>
   <div id="statusMessage"></div>
-
   <script>
-    // 輔助函數：顯示狀態訊息
     function showStatus(message, isError = false, isSuccess = false) {
       const statusElement = document.getElementById('statusMessage');
       statusElement.textContent = message;
-      statusElement.className = ''; // 清除所有類別
+      statusElement.className = '';
       if (isError) {
         statusElement.classList.add('error');
       } else if (isSuccess) {
@@ -71,107 +69,22 @@
 
     document.getElementById('openLiffButton').addEventListener('click', function() {
       showStatus('正在初始化 LIFF...');
-
-      // 檢查 LIFF SDK 是否已載入
       if (typeof liff === 'undefined') {
-        showStatus('LIFF 套件未載入，請確保網頁已正確載入。', true);
+        showStatus('LIFF SDK 未加载，请确保网页已正确加载。', true);
         return;
       }
-
-      // 初始化 LIFF，明確要求訊息發送權限
       liff.init({
-        liffId: '2007488640-MVdW20Xe', // <-- 使用您提供的 LIFF ID
-        permission: { message: true } // 要求訊息發送權限
+        liffId: '2007488640-MVdW20Xe',
+        permission: { message: true }
       })
       .then(() => {
         showStatus('LIFF 初始化成功');
-
-        // 獲取用戶基本資訊
-        const userId = liff.getUserId();
-        if (!userId) {
-          showStatus('無法取得用戶ID，請確保有讀取個人資料的權限', true);
-          console.error('無法取得用戶ID');
-          return;
-        }
-
-        const displayName = liff.getProfile().then(profile => {
-          return profile.displayName;
-        }).catch(err => {
-          showStatus('無法取得用戶名稱', true);
-          console.error('無法取得用戶名稱:', err);
-          return "未知使用者";
-        });
-
-        // 準備要發送的資料和訊息
-        const eventMessage = "LIFF 開啟";
-        const responseMessage = "LIFF 開啟";
-
-        // 發送訊息到 LINE 對話
-        liff.sendMessages([
-          {
-            type: 'text',
-            text: eventMessage
-          }
-        ])
-        .then(() => {
-          showStatus('訊息已送出！', false, true);
-          console.log('訊息已送出');
-          
-          // 發送 LIFF 事件到後端 Google Apps Script
-          // 等待 displayName promise 完成
-          displayName.then(name => {
-            // 使用您提供的 Web App URL
-            const backendUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec';
-            fetch(backendUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                event: {
-                  userId: userId,
-                  displayName: name,
-                  liffId: liff.getId(),
-                  message: eventMessage,       // 事件訊息
-                  replyMessage: responseMessage // 回覆訊息
-                }
-              })
-            })
-            .then(response => response.json())
-            .then(data => {
-              console.log('後端回覆:', data.message);
-              showStatus(data.message || 'LIFF 事件已記錄到 Sheet3', false, true);
-            })
-            .catch(error => {
-              console.error('發送資料到後端失敗:', error);
-              showStatus('記錄到 Sheet3 失敗', true);
-            });
-          });
-          
-          // 關閉 LIFF 視窗 (如果需要)
-          // liff.closeWindow();
-        })
-        .catch((error) => {
-          console.error('訊息送出失敗:', error);
-          
-          // 檢查是否是權限問題
-          if (error.message.includes('permission')) {
-            showStatus('需要訊息發送權限，請授權後再試', true);
-            // 可以嘗試再次引導授權，或者讓用戶手動授權
-            // 例如: window.location.href = liff.getExternalLinkUrl();
-          } else {
-            showStatus('訊息送出失敗: ' + error.message, true);
-          }
-        });
       })
       .catch((err) => {
-        console.error('LIFF 初始化失敗:', err);
-        showStatus('LIFF 初始化失敗，請確認 LIFF ID 是否正確並已啟用', true);
+        console.error('LIFF 初始化失败:', err);
+        showStatus('LIFF 初始化失败，请确认 LIFF ID 是否正确并已启用', true);
       });
     });
-
-    // 也可以在頁面載入時就初始化，但不強制要求權限
-    // liff.init({liffId: '2007488640-MVdW20Xe'}).catch(err => console.error('初始載入初始化:', err));
   </script>
 </body>
 </html>
