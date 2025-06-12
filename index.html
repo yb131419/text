@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>彥彬 ✍️文案改寫 測試</title>
-   <style>
+  <style>
     body {
       font-family: 'Roboto', sans-serif;
       background: #121212;
@@ -150,6 +150,7 @@
     let lastRewrite = { title: "", content: "" };
     let liffUserId = "";
     let loadingInterval = null;
+    let hasPermission = false;
 
     async function initLIFF() {
       try {
@@ -161,10 +162,35 @@
           const idToken = liff.getDecodedIDToken();
           liffUserId = idToken?.sub || profile?.userId || "";
           console.log("✅ LIFF 使用者 ID：", liffUserId);
+          checkPermission(liffUserId);
         }
       } catch (error) {
         console.error("❌ LIFF 初始化錯誤：", error);
         alert("LIFF 初始化失敗，請確認網路狀態與 LIFF 設定。");
+      }
+    }
+
+    function checkPermission(userId) {
+      const script = document.createElement("script");
+      const params = new URLSearchParams({
+        userId,
+        checkAuth: "1",
+        callback: "handlePermission"
+      });
+      script.src = `${SCRIPT_URL}?${params.toString()}`;
+      script.id = "authScript";
+      document.body.appendChild(script);
+    }
+
+    function handlePermission(response) {
+      const resultDiv = document.getElementById("rewriteResult");
+      if (response?.auth === true) {
+        hasPermission = true;
+        console.log("✅ 使用者具備權限");
+      } else {
+        hasPermission = false;
+        document.getElementById("rewriteBtn").disabled = true;
+        resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
       }
     }
 
@@ -221,6 +247,11 @@
 
       if (!liffUserId) {
         resultDiv.innerHTML = `<div class="error">⚠️ 請先登入 LINE，才能使用改寫功能。</div>`;
+        return;
+      }
+
+      if (!hasPermission) {
+        resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
         return;
       }
 
