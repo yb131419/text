@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>彥彬 ✍️改寫測試</title>
-<style>
+  <title>彥彬 ✍️測試</title>
+  <style>
     body {
       font-family: 'Roboto', sans-serif;
       background: #121212;
@@ -31,7 +31,7 @@
       font-weight: 700;
       font-size: 20px;
     }
-    textarea {
+    textarea, select {
       width: 100%;
       margin-top: 12px;
       padding: 12px 14px;
@@ -41,10 +41,12 @@
       color: #f0f0f0;
       font-size: 15px;
       font-family: 'Roboto', sans-serif;
-      line-height: 1.6;
       box-sizing: border-box;
+    }
+    textarea {
       height: 120px;
       resize: vertical;
+      line-height: 1.6;
     }
     label {
       margin-top: 20px;
@@ -52,18 +54,6 @@
       font-weight: 600;
       font-size: 14px;
       color: #cccccc;
-    }
-    select {
-      width: 100%;
-      margin-top: 12px;
-      padding: 12px 14px;
-      border-radius: 10px;
-      background: #2a2a2a;
-      border: 1px solid #3f3f3f;
-      color: #f0f0f0;
-      font-size: 15px;
-      font-family: 'Roboto', sans-serif;
-      box-sizing: border-box;
     }
     button {
       margin-top: 20px;
@@ -149,8 +139,8 @@
 
     let lastRewrite = { title: "", content: "" };
     let liffUserId = "";
-    let loadingInterval = null;
     let hasPermission = false;
+    let loadingInterval = null;
 
     async function initLIFF() {
       try {
@@ -166,19 +156,22 @@
         }
       } catch (error) {
         console.error("❌ LIFF 初始化錯誤：", error);
-        alert("LIFF 初始化失敗，請確認網路狀態與 LIFF 設定。");
+        alert("LIFF 初始化失敗，請確認網路或設定。");
       }
     }
 
     function checkPermission(userId) {
+      const old = document.getElementById("authScript");
+      if (old) old.remove();
+
       const script = document.createElement("script");
+      script.id = "authScript";
       const params = new URLSearchParams({
         userId,
         checkAuth: "1",
         callback: "handlePermission"
       });
       script.src = `${SCRIPT_URL}?${params.toString()}`;
-      script.id = "authScript";
       document.body.appendChild(script);
     }
 
@@ -186,7 +179,7 @@
       const resultDiv = document.getElementById("rewriteResult");
       if (response?.auth === true) {
         hasPermission = true;
-        console.log("✅ 使用者具備權限，有效期限：", response.expires, `剩餘 ${response.remainingDays} 天`);
+        console.log("✅ 使用者具備權限");
       } else {
         hasPermission = false;
         document.getElementById("rewriteBtn").disabled = true;
@@ -204,32 +197,23 @@
       btn.textContent = "🚀 自動改寫";
 
       if (res.error) {
-        resultDiv.innerHTML = `<div class="error">❌ 發生錯誤：${res.error}</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ 錯誤：${res.error}</div>`;
         shareBtn.style.display = "none";
         lastRewrite = { title: "", content: "" };
         return;
       }
 
+      let content = (res.content || res.rewrite || "").replace(/。/g, "。\n\n");
       let output = "";
-      let content = res.content || res.rewrite || "";
-      content = content.replace(/。/g, "。\n\n");
 
-      if (res.userName && res.remainingDays !== undefined) {
-        output += `👤 使用者：${res.userName}\n⏳ 剩餘天數：${res.remainingDays}\n\n`;
-      }
       if (res.topic) output += `🔖 類別：\n${res.topic}\n\n`;
       if (res.title) output += `📌 推薦標題：\n${res.title}\n\n`;
-      if (content) output += `📝 改寫內容：\n${content}`;
-      else output += JSON.stringify(res, null, 2);
+      output += `📝 改寫內容：\n${content}`;
 
       resultDiv.textContent = output;
+      lastRewrite = { title: res.title || "", content };
 
-      lastRewrite = {
-        title: res.title || "",
-        content
-      };
-
-      if (navigator.share && lastRewrite.content.trim()) {
+      if (navigator.share && content.trim()) {
         shareBtn.style.display = "block";
         shareBtn.disabled = false;
       } else {
@@ -247,12 +231,12 @@
       if (!text || btn.disabled) return;
 
       if (!liffUserId) {
-        resultDiv.innerHTML = `<div class="error">⚠️ 請先登入 LINE，才能使用改寫功能。</div>`;
+        resultDiv.innerHTML = `<div class="error">⚠️ 請先登入 LINE。</div>`;
         return;
       }
 
       if (!hasPermission) {
-        resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
+        resultDiv.innerHTML = `<div class="error">⛔ 您尚未開通使用權限。</div>`;
         return;
       }
 
@@ -281,12 +265,11 @@
       });
 
       script.src = `${SCRIPT_URL}?${params.toString()}`;
-
       script.onerror = () => {
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        resultDiv.innerHTML = `<div class="error">❌ 呼叫失敗，請稍後再試</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ 呼叫失敗，請稍後再試。</div>`;
         shareBtn.style.display = "none";
       };
 
@@ -295,7 +278,7 @@
 
     function nativeShare() {
       if (!navigator.share || !lastRewrite.content.trim()) {
-        alert("無法分享，請確認內容或瀏覽器支援");
+        alert("瀏覽器不支援分享或內容為空");
         return;
       }
 
@@ -312,7 +295,7 @@
       setTimeout(autoRewrite, 200);
     });
 
-    initLIFF();
+    window.onload = initLIFF;
   </script>
 </body>
 </html>
