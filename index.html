@@ -31,10 +31,10 @@
       font-size: 13px;
       margin-bottom: 8px;
       user-select: none;
-      text-align: right;
       font-weight: 500;
       line-height: 1.4;
-      white-space: nowrap; /* 不換行 */
+      white-space: nowrap;
+      text-align: center; /* 置中 */
     }
     h2 {
       margin-bottom: 16px;
@@ -126,7 +126,7 @@
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
     <div id="userInfo" aria-live="polite"></div>
-    <h2>📘 『彥彬』文案改寫<br>✍️ 「貼上」自動改寫 </h2>
+    <h2>📘 『彥彬 文案改寫』<br>✍️ 「貼上 自動改寫」 </h2>
 
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容" autocomplete="off"></textarea>
 
@@ -139,7 +139,7 @@
       <option>財富商機</option>
     </select>
 
-    <button id="rewriteBtn" type="button" onclick="autoRewrite()">🚀 自動改寫</button>
+    <button id="rewriteBtn" type="button" onclick="autoRewrite()" disabled>🚀 自動改寫</button>
     <button id="shareBtn" type="button" onclick="nativeShare()">📤 分享文案</button>
 
     <div id="rewriteResult" aria-live="polite" tabindex="0"></div>
@@ -200,17 +200,24 @@
         let expiryStr = "";
         if (response.expiryDate) {
           const d = new Date(response.expiryDate);
-          expiryStr = isNaN(d.getTime())
-            ? response.expiryDate
-            : `${d.getFullYear()} 年 ${(d.getMonth() + 1).toString().padStart(2, '0')} 月 ${d.getDate().toString().padStart(2, '0')} 日`;
+          if (!isNaN(d.getTime())) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            d.setHours(0, 0, 0, 0);
+            const diffTime = d.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            expiryStr = `${diffDays} 天`;
+          } else {
+            expiryStr = "無法解析日期";
+          }
         }
 
-        infoDiv.textContent = `使用者：${window._userDisplayName}　剩餘日期：${expiryStr}`;
+        infoDiv.textContent = `使用者：${window._userDisplayName}　剩餘天數：${expiryStr}`;
       } else {
         hasPermission = false;
         document.getElementById("rewriteBtn").disabled = true;
         resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
-        infoDiv.textContent = `使用者：${window._userDisplayName}　剩餘日期：無權限`;
+        infoDiv.textContent = `使用者：${window._userDisplayName}　剩餘天數：無權限`;
       }
     }
 
