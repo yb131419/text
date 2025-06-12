@@ -127,6 +127,7 @@
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
     <div id="userInfo" aria-live="polite"></div>
     <h2>📘 『彥彬』文案改寫<br>✍️ 「貼上」自動改寫 </h2>
+
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容" autocomplete="off"></textarea>
 
     <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
@@ -189,7 +190,6 @@
     }
 
     function handlePermission(response) {
-      console.log("權限回應：", response);
       const infoDiv = document.getElementById("userInfo");
       const resultDiv = document.getElementById("rewriteResult");
 
@@ -314,13 +314,6 @@
         });
       }
     }
-
-    document.getElementById("originalText").addEventListener("paste", () => {
-      setTimeout(() => {
-        const val = document.getElementById("originalText").value.trim();
-        if (val.length >= 10) autoRewrite();
-      }, 300);
-    });
 
     window.onload = () => {
       initLIFF();
