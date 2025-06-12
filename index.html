@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#1e1e1e" />
   <title>彥彬 ✍️測試</title>
   <style>
-    /* 你原本的 CSS 不變 */
     body {
       font-family: 'Roboto', sans-serif;
       background: #121212;
@@ -166,7 +165,6 @@
           const idToken = liff.getDecodedIDToken();
           liffUserId = idToken?.sub || profile?.userId || "";
           checkPermission(liffUserId, profile?.displayName || "使用者");
-          // 啟用 textarea 輸入時啟用按鈕
           document.getElementById("originalText").addEventListener("input", () => {
             const val = document.getElementById("originalText").value.trim();
             document.getElementById("rewriteBtn").disabled = !(hasPermission && val.length >= 8);
@@ -179,7 +177,6 @@
     }
 
     function checkPermission(userId, displayName = "使用者") {
-      // 透過 JSONP 請求權限
       const old = document.getElementById("authScript");
       if (old) old.remove();
 
@@ -189,7 +186,8 @@
 
         if (response?.auth === true) {
           hasPermission = true;
-          infoDiv.textContent = `使用者：${displayName}　剩餘天數：${calcDaysLeft(response.expiryDate)}`;
+          const daysLeftText = calcDaysLeft(response.expiryDate);
+          infoDiv.textContent = `使用者：${displayName}　剩餘天數：${daysLeftText}`;
           document.getElementById("rewriteBtn").disabled = false;
         } else {
           hasPermission = false;
@@ -214,14 +212,17 @@
 
     function calcDaysLeft(expiryDate) {
       if (!expiryDate) return "無資料";
-      const d = new Date(expiryDate);
-      if (isNaN(d)) return "無法解析日期";
+      const parts = expiryDate.split(/[-\/]/);
+      if (parts.length !== 3) return "格式錯誤";
+      const [y, m, d] = parts.map(Number);
+      const expiry = new Date(y, m - 1, d);
+      if (isNaN(expiry.getTime())) return "無法解析日期";
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      d.setHours(0, 0, 0, 0);
-      const diff = d.getTime() - today.getTime();
-      const diffDays = Math.ceil(diff / (1000 * 3600 * 24));
-      return diffDays > 0 ? `${diffDays} 天` : "已過期";
+      expiry.setHours(0, 0, 0, 0);
+      const diff = expiry.getTime() - today.getTime();
+      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      return days > 0 ? `${days} 天` : "已過期";
     }
 
     function autoRewrite() {
@@ -269,12 +270,10 @@
 
         resultDiv.textContent = output;
         lastRewrite = { title: res.title || "", content };
-
         shareBtn.style.display = content.trim() ? "block" : "none";
         shareBtn.disabled = !content.trim();
       };
 
-      // JSONP 載入改寫請求
       const oldScript = document.getElementById("jsonpScript");
       if (oldScript) oldScript.remove();
 
