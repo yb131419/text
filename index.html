@@ -26,6 +26,14 @@
       display: flex;
       flex-direction: column;
     }
+    #currentDate {
+      color: #bbbbbb;
+      font-size: 13px;
+      margin-bottom: 8px;
+      user-select: none;
+      text-align: right;
+      font-weight: 500;
+    }
     h2 {
       margin-bottom: 16px;
       color: #ffffff;
@@ -122,6 +130,7 @@
 </head>
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
+    <div id="currentDate" aria-live="polite"></div>
     <h2>📘 『彥彬』文案改寫<br>✍️ 「貼上」自動改寫 </h2>
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容" autocomplete="off"></textarea>
 
@@ -151,6 +160,18 @@
     let liffUserId = "";
     let hasPermission = false;
     let loadingInterval = null;
+
+    // 顯示今天日期，格式 yyyy 年 mm 月 dd 日（繁體中文）
+    function showCurrentDate() {
+      const dateDiv = document.getElementById("currentDate");
+      const today = new Date();
+      const options = { year: 'numeric', month: '2-digit', day: '2-digit', localeMatcher: 'best fit' };
+      // 手動組合繁體中文格式：2025 年 06 月 12 日
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      dateDiv.textContent = `今天日期：${yyyy} 年 ${mm} 月 ${dd} 日`;
+    }
 
     async function initLIFF() {
       try {
@@ -326,7 +347,10 @@
       }, 300);
     });
 
-    window.onload = initLIFF;
+    window.onload = () => {
+      showCurrentDate();
+      initLIFF();
+    };
   </script>
 </body>
 </html>
