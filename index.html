@@ -131,7 +131,7 @@
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
     <div id="currentDate" aria-live="polite"></div>
-    <h2>📘 『彥彬』文案改寫<br>✍️ 「貼上」自動改寫 </h2>
+    <h2>📘 『 彥彬 文案改寫 』<br>✍️ 「 貼上 自動改寫 」</h2>
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容" autocomplete="off"></textarea>
 
     <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
@@ -181,8 +181,7 @@
     }
 
     function checkPermission(userId) {
-      const old = document.getElementById("authScript");
-      if (old) old.remove();
+      removeScriptById("authScript");
 
       const script = document.createElement("script");
       script.id = "authScript";
@@ -214,7 +213,6 @@
           let now = new Date();
 
           if (!isNaN(expiry.getTime())) {
-            // 計算剩餘天數（無條件進位，最少顯示 0 天）
             let diffMs = expiry.getTime() - now.getTime();
             let diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
             if (diffDays < 0) diffDays = 0;
@@ -263,8 +261,7 @@
         resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
       }, 500);
 
-      const oldScript = document.getElementById("jsonpScript");
-      if (oldScript) oldScript.remove();
+      removeScriptById("jsonpScript");
 
       const script = document.createElement("script");
       script.id = "jsonpScript";
@@ -339,6 +336,22 @@
         console.error("分享失敗:", err);
       }
     }
+
+    function removeScriptById(id) {
+      const oldScript = document.getElementById(id);
+      if (oldScript) oldScript.remove();
+    }
+
+    // 啟用改寫按鈕：當textarea有輸入足夠字數時
+    const originalText = document.getElementById("originalText");
+    const rewriteBtn = document.getElementById("rewriteBtn");
+    originalText.addEventListener("input", () => {
+      if (originalText.value.trim().length >= 8 && hasPermission) {
+        rewriteBtn.disabled = false;
+      } else {
+        rewriteBtn.disabled = true;
+      }
+    });
 
     window.onload = () => {
       initLIFF();
