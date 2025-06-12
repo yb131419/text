@@ -3,145 +3,282 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>彥彬 🌿健康美麗</title>
-  <style>
-    :root {
-      --bg: #fffdf7;
-      --text: #333;
-      --subtext: #777;
-      --accent: #d4af37;
-      --shadow: rgba(0, 0, 0, 0.08);
-    }
-
+  <title>彥彬 ✍️文案改寫 測試</title>
+   <style>
     body {
+      font-family: 'Roboto', sans-serif;
+      background: #121212;
+      padding: 16px;
       margin: 0;
-      padding: 24px 16px;
-      font-family: 'Helvetica Neue', 'Segoe UI', sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
+      color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: #1e1e1e;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      width: 100%;
+      max-width: 480px;
+      padding: 20px;
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      align-items: center;
     }
-
-    .container {
+    h2 {
+      margin-bottom: 16px;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 20px;
+    }
+    textarea {
       width: 100%;
-      max-width: 500px;
-      background: white;
-      padding: 20px;
-      border-radius: 18px;
-      box-shadow: 0 8px 30px var(--shadow);
-      text-align: center;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #2a2a2a;
+      border: 1px solid #3f3f3f;
+      color: #f0f0f0;
+      font-size: 15px;
+      font-family: 'Roboto', sans-serif;
+      line-height: 1.6;
+      box-sizing: border-box;
+      height: 120px;
+      resize: vertical;
     }
-
-    h1 {
-      font-size: 1.6em;
-      margin-bottom: 12px;
-    }
-
-    p {
-      font-size: 1em;
-      color: var(--subtext);
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
-
-    .video-wrapper {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 3 / 4;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    label {
       margin-top: 20px;
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+      color: #cccccc;
+    }
+    select {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #2a2a2a;
+      border: 1px solid #3f3f3f;
+      color: #f0f0f0;
+      font-size: 15px;
+      font-family: 'Roboto', sans-serif;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 20px;
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 13px 0;
+      width: 100%;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    #rewriteBtn {
+      background: linear-gradient(135deg, #4dabf7, #2d9cdb);
+    }
+    #rewriteBtn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #339af0, #228be6);
+    }
+    #shareBtn {
+      background: linear-gradient(135deg, #2d3a9c, #1e2a7c);
       display: none;
     }
-
-    .video-wrapper iframe {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 177.78%;
-      height: 100%;
-      transform: translate(-50%, -50%);
-      border: 0;
+    #rewriteResult {
+      margin-top: 24px;
+      background: #232323;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid #373737;
+      color: #e0e0e0;
+      font-size: 14.5px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      flex-grow: 1;
     }
-
-    .footer {
-      text-align: center;
-      font-size: 0.85em;
-      color: #bbb;
-      margin-top: 30px;
+    .error {
+      background: #3c1e1e;
+      border: 1px solid #d93025;
+      padding: 14px;
+      color: #ff6b6b;
+      font-weight: bold;
+      border-radius: 10px;
+      margin-top: 16px;
+      font-size: 14px;
     }
-
-    .btn {
-      background-color: var(--accent);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      font-size: 1em;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transition: background-color 0.2s;
-    }
-
-    .btn:hover {
-      background-color: #bfa332;
+    #bottomSpacer {
+      height: 100px;
+      flex-shrink: 0;
     }
   </style>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>🌿 三癌末病人 真實分享</h1>
-    <p>二十年乳癌、轉肺癌再轉骨癌</p>
+  <div class="card" role="main">
+    <h2>📘 『彥彬』文案改寫<br>✍️ 「貼上」自動改寫 </h2>
+    <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容"></textarea>
 
-    <button class="btn" onclick="handleClick()">👉 進入影片</button>
+    <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
+    <select id="topicSelect" name="topicSelect" aria-label="分類主題選擇">
+      <option value="">AI 自動判斷</option>
+      <option>人生成長</option>
+      <option>情感故事</option>
+      <option>健康養生</option>
+      <option>財富商機</option>
+    </select>
 
-    <div class="video-wrapper" id="videoSection">
-      <iframe 
-        src="https://player.vimeo.com/video/1087548335?h=62123a69c1" 
-        frameborder="0" 
-        allow="autoplay; fullscreen; picture-in-picture" 
-        allowfullscreen>
-      </iframe>
-    </div>
+    <button id="rewriteBtn" onclick="autoRewrite()">🚀 自動改寫</button>
+    <button id="shareBtn" onclick="nativeShare()">📤 分享文案</button>
 
-    <div class="footer">© 2025 彥彬 🌿健康美麗 · 保留所有權利</div>
+    <div id="rewriteResult" aria-live="polite" aria-atomic="true"></div>
+    <div id="bottomSpacer"></div>
   </div>
 
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    const liffId = '2007488640-MVdW20Xe'; // <-- 替換成你的 LIFF ID
-    const gasUrl = 'https://script.google.com/macros/s/AKfycbyUqLr2uf_gAqzjc_SCOK3fFmqqLE4vrhmkjchBgRxomzaAYPME6DhE4tdIxbiMuhafpA/exec'; // <-- 替換成你部署的 Google Apps Script 網址
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRYOIicltP81EO6fQB81bCRfoEczp29qqqSbz5HjdzbsZmRrccQgxR6QmikAWuuNGl/exec";
+    const LIFF_ID = "2007488640-PbB48ELN";
 
-    async function handleClick() {
+    let lastRewrite = { title: "", content: "" };
+    let liffUserId = "";
+    let loadingInterval = null;
+
+    async function initLIFF() {
       try {
-        document.querySelector(".btn").style.display = "none";
-        document.getElementById("videoSection").style.display = "block";
-
-        await liff.init({ liffId });
-
+        await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) {
           liff.login();
-          return;
+        } else {
+          const profile = await liff.getProfile();
+          const idToken = liff.getDecodedIDToken();
+          liffUserId = idToken?.sub || profile?.userId || "";
+          console.log("✅ LIFF 使用者 ID：", liffUserId);
         }
-
-        const profile = await liff.getProfile();
-        const data = {
-          userId: profile.userId || "無法取得",
-          displayName: profile.displayName || "未知使用者",
-          message: "點擊進入影片",
-          replyMessage: "健康/三癌末01"
-        };
-
-        const query = new URLSearchParams(data).toString();
-        await fetch(`${gasUrl}?${query}`);
-        console.log("✅ 已送出資料到 Google Sheet");
       } catch (error) {
-        console.error("❌ 發生錯誤：", error);
+        console.error("❌ LIFF 初始化錯誤：", error);
+        alert("LIFF 初始化失敗，請確認網路狀態與 LIFF 設定。");
       }
     }
+
+    initLIFF();
+
+    function handleResponse(res) {
+      const resultDiv = document.getElementById("rewriteResult");
+      const btn = document.getElementById("rewriteBtn");
+      const shareBtn = document.getElementById("shareBtn");
+
+      clearInterval(loadingInterval);
+      btn.disabled = false;
+      btn.textContent = "🚀 自動改寫";
+
+      if (res.error) {
+        resultDiv.innerHTML = `<div class="error">❌ 發生錯誤：${res.error}</div>`;
+        shareBtn.style.display = "none";
+        lastRewrite = { title: "", content: "" };
+        return;
+      }
+
+      let output = "";
+      let content = res.content || res.rewrite || "";
+      content = content.replace(/。/g, "。\n\n");
+
+      if (res.topic) output += `🔖 類別：\n${res.topic}\n\n`;
+      if (res.title) output += `📌 推薦標題：\n${res.title}\n\n`;
+      if (content) output += `📝 改寫內容：\n${content}`;
+      else output += JSON.stringify(res, null, 2);
+
+      resultDiv.textContent = output;
+
+      lastRewrite = {
+        title: res.title || "",
+        content
+      };
+
+      if (navigator.share && lastRewrite.content.trim()) {
+        shareBtn.style.display = "block";
+        shareBtn.disabled = false;
+      } else {
+        shareBtn.style.display = "none";
+      }
+    }
+
+    function autoRewrite() {
+      const text = document.getElementById("originalText").value.trim();
+      const topic = document.getElementById("topicSelect").value;
+      const resultDiv = document.getElementById("rewriteResult");
+      const btn = document.getElementById("rewriteBtn");
+      const shareBtn = document.getElementById("shareBtn");
+
+      if (!text || btn.disabled) return;
+
+      if (!liffUserId) {
+        resultDiv.innerHTML = `<div class="error">⚠️ 請先登入 LINE，才能使用改寫功能。</div>`;
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "✍️ 改寫中...";
+      shareBtn.style.display = "none";
+
+      let dots = 0;
+      resultDiv.textContent = "⏳ 改寫中";
+      loadingInterval = setInterval(() => {
+        dots = (dots + 1) % 4;
+        resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
+      }, 500);
+
+      const oldScript = document.getElementById("jsonpScript");
+      if (oldScript) oldScript.remove();
+
+      const script = document.createElement("script");
+      script.id = "jsonpScript";
+
+      const params = new URLSearchParams({
+        text,
+        topic,
+        userId: liffUserId,
+        callback: "handleResponse"
+      });
+
+      script.src = `${SCRIPT_URL}?${params.toString()}`;
+
+      script.onerror = () => {
+        clearInterval(loadingInterval);
+        btn.disabled = false;
+        btn.textContent = "🚀 自動改寫";
+        resultDiv.innerHTML = `<div class="error">❌ 呼叫失敗，請稍後再試</div>`;
+        shareBtn.style.display = "none";
+      };
+
+      document.body.appendChild(script);
+    }
+
+    function nativeShare() {
+      if (!navigator.share || !lastRewrite.content.trim()) {
+        alert("無法分享，請確認內容或瀏覽器支援");
+        return;
+      }
+
+      navigator.share({
+        title: lastRewrite.title || "文案改寫分享",
+        text: `${lastRewrite.title ? `📌 推薦標題：\n${lastRewrite.title}\n\n` : ""}📝 改寫內容：\n${lastRewrite.content}`
+      }).catch(err => {
+        console.error("分享失敗:", err);
+        alert("分享失敗，請稍後再試");
+      });
+    }
+
+    document.getElementById("originalText").addEventListener("paste", () => {
+      setTimeout(autoRewrite, 200);
+    });
   </script>
 </body>
 </html>
