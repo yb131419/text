@@ -186,6 +186,8 @@
     }
 
     function handlePermission(response) {
+      console.log("權限回應：", response);  // <== 用來除錯
+
       const expiryLabel = document.getElementById("expiryLabel");
       const expiryDateSpan = document.getElementById("expiryDate");
       const resultDiv = document.getElementById("rewriteResult");
