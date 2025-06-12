@@ -34,7 +34,7 @@
       text-align: right;
       font-weight: 500;
       line-height: 1.4;
-      white-space: pre-line;
+      white-space: nowrap; /* 不換行 */
     }
     h2 {
       margin-bottom: 16px;
@@ -205,12 +205,12 @@
             : `${d.getFullYear()} 年 ${(d.getMonth() + 1).toString().padStart(2, '0')} 月 ${d.getDate().toString().padStart(2, '0')} 日`;
         }
 
-        infoDiv.textContent = `使用者：${window._userDisplayName}\n使用期限：${expiryStr}`;
+        infoDiv.textContent = `使用者：${window._userDisplayName}　剩餘日期：${expiryStr}`;
       } else {
         hasPermission = false;
         document.getElementById("rewriteBtn").disabled = true;
         resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
-        infoDiv.textContent = `使用者：${window._userDisplayName}\n尚未開通使用權限`;
+        infoDiv.textContent = `使用者：${window._userDisplayName}　剩餘日期：無權限`;
       }
     }
 
