@@ -305,7 +305,7 @@
       };
 
       if (navigator.share) {
-        navigator.share(shareData).catch(err => {
+        navigator.share(shareData).catch(() => {
           alert("分享失敗，請稍後再試");
         });
       } else {
