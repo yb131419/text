@@ -110,6 +110,14 @@
       height: 100px;
       flex-shrink: 0;
     }
+    /* 新增使用期限標籤樣式 */
+    #expiryLabel {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #bbbbbb;
+      display: none;
+      user-select: none;
+    }
   </style>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
@@ -126,6 +134,11 @@
       <option>健康養生</option>
       <option>財富商機</option>
     </select>
+
+    <!-- 使用期限顯示 -->
+    <label id="expiryLabel" aria-live="polite" aria-atomic="true">
+      使用期限：<span id="expiryDate"></span>
+    </label>
 
     <button id="rewriteBtn" type="button" onclick="autoRewrite()" aria-live="polite">🚀 自動改寫</button>
     <button id="shareBtn" type="button" onclick="nativeShare()" aria-label="分享文案" style="display:none;">📤 分享文案</button>
@@ -179,17 +192,29 @@
       document.body.appendChild(script);
     }
 
-    // 後端權限檢查回調
+    // 後端權限檢查回調，會顯示使用期限
     function handlePermission(response) {
       const resultDiv = document.getElementById("rewriteResult");
+      const expiryLabel = document.getElementById("expiryLabel");
+      const expiryDateSpan = document.getElementById("expiryDate");
+
       if (response?.auth === true) {
         hasPermission = true;
         console.log("✅ 使用者具備權限");
         document.getElementById("rewriteBtn").disabled = false;
+
+        if (response.expiryDate) {
+          expiryDateSpan.textContent = response.expiryDate;
+          expiryLabel.style.display = "block";
+        } else {
+          expiryLabel.style.display = "none";
+        }
+
       } else {
         hasPermission = false;
         document.getElementById("rewriteBtn").disabled = true;
         resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
+        expiryLabel.style.display = "none";
       }
     }
 
