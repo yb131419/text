@@ -31,10 +31,10 @@
       font-size: 13px;
       margin-bottom: 8px;
       user-select: none;
-      text-align: right;
       font-weight: 500;
       line-height: 1.4;
-      white-space: nowrap; /* 不換行 */
+      white-space: nowrap;
+      text-align: center;
     }
     h2 {
       margin-bottom: 16px;
@@ -126,7 +126,7 @@
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
     <div id="userInfo" aria-live="polite"></div>
-    <h2>📘 『彥彬』文案改寫<br>✍️ 「貼上」自動改寫 </h2>
+    <h2>📘 『彥彬 文案改寫』<br>✍️ 「貼上 自動改寫」 </h2>
 
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容" autocomplete="off"></textarea>
 
@@ -139,7 +139,7 @@
       <option>財富商機</option>
     </select>
 
-    <button id="rewriteBtn" type="button" onclick="autoRewrite()">🚀 自動改寫</button>
+    <button id="rewriteBtn" type="button" onclick="autoRewrite()" disabled>🚀 自動改寫</button>
     <button id="shareBtn" type="button" onclick="nativeShare()">📤 分享文案</button>
 
     <div id="rewriteResult" aria-live="polite" tabindex="0"></div>
@@ -158,12 +158,17 @@
     async function initLIFF() {
       try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) liff.login();
-        else {
+        if (!liff.isLoggedIn()) {
+          liff.login();
+        } else {
           const profile = await liff.getProfile();
           const idToken = liff.getDecodedIDToken();
           liffUserId = idToken?.sub || profile?.userId || "";
           checkPermission(liffUserId, profile?.displayName || "使用者");
+          document.getElementById("originalText").addEventListener("input", () => {
+            const val = document.getElementById("originalText").value.trim();
+            document.getElementById("rewriteBtn").disabled = !(hasPermission && val.length >= 8);
+          });
         }
       } catch (err) {
         alert("LIFF 初始化失敗，請確認網路或設定。");
@@ -175,6 +180,23 @@
       const old = document.getElementById("authScript");
       if (old) old.remove();
 
+      window.handlePermission = function(response) {
+        const infoDiv = document.getElementById("userInfo");
+        const resultDiv = document.getElementById("rewriteResult");
+
+        if (response?.auth === true) {
+          hasPermission = true;
+          const daysLeftText = calcDaysLeft(response.expiryDate);
+          infoDiv.textContent = `使用者：${displayName}　剩餘天數：${daysLeftText}`;
+          document.getElementById("rewriteBtn").disabled = false;
+        } else {
+          hasPermission = false;
+          infoDiv.textContent = `使用者：${displayName}　剩餘天數：無權限`;
+          document.getElementById("rewriteBtn").disabled = true;
+          resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
+        }
+      };
+
       const script = document.createElement("script");
       script.id = "authScript";
 
@@ -184,37 +206,23 @@
         callback: "handlePermission"
       });
 
-      window._userDisplayName = displayName;
       script.src = `${SCRIPT_URL}?${params.toString()}`;
       document.body.appendChild(script);
     }
 
-    function handlePermission(response) {
-      const infoDiv = document.getElementById("userInfo");
-      const resultDiv = document.getElementById("rewriteResult");
-
-      if (response?.auth === true) {
-        hasPermission = true;
-        document.getElementById("rewriteBtn").disabled = false;
-
-        let expiryStr = "";
-        if (response.expiryDate) {
-          const d = new Date(response.expiryDate);
-          expiryStr = isNaN(d.getTime())
-            ? response.expiryDate
-            : `${d.getFullYear()} 年 ${(d.getMonth() + 1).toString().padStart(2, '0')} 月 ${d.getDate().toString().padStart(2, '0')} 日`;
-        }
-
-        const remainingDays = response.remainingDays ?? "未知";
-        console.log("✅ 使用者具備權限，有效期限：", response.expiryDate, `剩餘 ${remainingDays} 天`);
-
-        infoDiv.textContent = `使用者：${window._userDisplayName}　剩餘日期：${expiryStr}　(${remainingDays} 天)`;
-      } else {
-        hasPermission = false;
-        document.getElementById("rewriteBtn").disabled = true;
-        resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
-        infoDiv.textContent = `使用者：${window._userDisplayName}　剩餘日期：無權限`;
-      }
+    function calcDaysLeft(expiryDate) {
+      if (!expiryDate) return "無資料";
+      const parts = expiryDate.split(/[-\/]/);
+      if (parts.length !== 3) return "格式錯誤";
+      const [y, m, d] = parts.map(Number);
+      const expiry = new Date(y, m - 1, d);
+      if (isNaN(expiry.getTime())) return "無法解析日期";
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      expiry.setHours(0, 0, 0, 0);
+      const diff = expiry.getTime() - today.getTime();
+      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      return days > 0 ? `${days} 天` : "已過期";
     }
 
     function autoRewrite() {
@@ -241,6 +249,31 @@
         resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
       }, 500);
 
+      window.handleResponse = function(res) {
+        clearInterval(loadingInterval);
+        btn.disabled = false;
+        btn.textContent = "🚀 自動改寫";
+
+        if (res.error) {
+          resultDiv.innerHTML = `<div class="error">❌ 錯誤：${res.error}</div>`;
+          shareBtn.style.display = "none";
+          lastRewrite = { title: "", content: "" };
+          return;
+        }
+
+        let content = (res.content || res.rewrite || "").replace(/。/g, "。\n\n");
+        let output = "";
+
+        if (res.topic) output += `🔖 類別：\n${res.topic}\n\n`;
+        if (res.title) output += `📌 推薦標題：\n${res.title}\n\n`;
+        output += `📝 改寫內容：\n${content}`;
+
+        resultDiv.textContent = output;
+        lastRewrite = { title: res.title || "", content };
+        shareBtn.style.display = content.trim() ? "block" : "none";
+        shareBtn.disabled = !content.trim();
+      };
+
       const oldScript = document.getElementById("jsonpScript");
       if (oldScript) oldScript.remove();
 
@@ -264,36 +297,6 @@
       };
 
       document.body.appendChild(script);
-    }
-
-    function handleResponse(res) {
-      clearInterval(loadingInterval);
-      const resultDiv = document.getElementById("rewriteResult");
-      const btn = document.getElementById("rewriteBtn");
-      const shareBtn = document.getElementById("shareBtn");
-
-      btn.disabled = false;
-      btn.textContent = "🚀 自動改寫";
-
-      if (res.error) {
-        resultDiv.innerHTML = `<div class="error">❌ 錯誤：${res.error}</div>`;
-        shareBtn.style.display = "none";
-        lastRewrite = { title: "", content: "" };
-        return;
-      }
-
-      let content = (res.content || res.rewrite || "").replace(/。/g, "。\n\n");
-      let output = "";
-
-      if (res.topic) output += `🔖 類別：\n${res.topic}\n\n`;
-      if (res.title) output += `📌 推薦標題：\n${res.title}\n\n`;
-      output += `📝 改寫內容：\n${content}`;
-
-      resultDiv.textContent = output;
-      lastRewrite = { title: res.title || "", content };
-
-      shareBtn.style.display = content.trim() ? "block" : "none";
-      shareBtn.disabled = !content.trim();
     }
 
     function nativeShare() {
