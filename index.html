@@ -114,7 +114,7 @@
       margin-top: 12px;
       font-size: 13px;
       color: #bbbbbb;
-      display: none;
+      display: none;  /* 預設隱藏 */
       user-select: none;
     }
   </style>
@@ -186,7 +186,7 @@
     }
 
     function handlePermission(response) {
-      console.log("權限回應：", response);  // <== 用來除錯
+      console.log("權限回應：", response);  // 除錯用，請開開看瀏覽器控制台
 
       const expiryLabel = document.getElementById("expiryLabel");
       const expiryDateSpan = document.getElementById("expiryDate");
@@ -195,15 +195,26 @@
       if (response?.auth === true) {
         hasPermission = true;
         document.getElementById("rewriteBtn").disabled = false;
+
         if (response.expiryDate) {
-          expiryDateSpan.textContent = response.expiryDate;
+          // 如果後端是 ISO 字串，可以格式化
+          let d = new Date(response.expiryDate);
+          if (!isNaN(d.getTime())) {
+            expiryDateSpan.textContent = d.toLocaleDateString("zh-Hant", { year: 'numeric', month: '2-digit', day: '2-digit' });
+          } else {
+            expiryDateSpan.textContent = response.expiryDate;
+          }
           expiryLabel.style.display = "block";
+        } else {
+          expiryLabel.style.display = "none";
+          expiryDateSpan.textContent = "";
         }
       } else {
         hasPermission = false;
         document.getElementById("rewriteBtn").disabled = true;
         resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
         expiryLabel.style.display = "none";
+        expiryDateSpan.textContent = "";
       }
     }
 
