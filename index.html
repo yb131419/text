@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>彥彬 ✍️文案改寫 測試</title>
-  <style>
+  <title>彥彬 ✍️改寫測試</title>
+<style>
     body {
       font-family: 'Roboto', sans-serif;
       background: #121212;
@@ -186,15 +186,13 @@
       const resultDiv = document.getElementById("rewriteResult");
       if (response?.auth === true) {
         hasPermission = true;
-        console.log("✅ 使用者具備權限");
+        console.log("✅ 使用者具備權限，有效期限：", response.expires, `剩餘 ${response.remainingDays} 天`);
       } else {
         hasPermission = false;
         document.getElementById("rewriteBtn").disabled = true;
         resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
       }
     }
-
-    initLIFF();
 
     function handleResponse(res) {
       const resultDiv = document.getElementById("rewriteResult");
@@ -216,6 +214,9 @@
       let content = res.content || res.rewrite || "";
       content = content.replace(/。/g, "。\n\n");
 
+      if (res.userName && res.remainingDays !== undefined) {
+        output += `👤 使用者：${res.userName}\n⏳ 剩餘天數：${res.remainingDays}\n\n`;
+      }
       if (res.topic) output += `🔖 類別：\n${res.topic}\n\n`;
       if (res.title) output += `📌 推薦標題：\n${res.title}\n\n`;
       if (content) output += `📝 改寫內容：\n${content}`;
@@ -310,6 +311,8 @@
     document.getElementById("originalText").addEventListener("paste", () => {
       setTimeout(autoRewrite, 200);
     });
+
+    initLIFF();
   </script>
 </body>
 </html>
