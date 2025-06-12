@@ -122,7 +122,7 @@
       margin-top: 12px;
       font-size: 13px;
       color: #bbbbbb;
-      display: none;  /* 隱藏 */
+      display: none;
       user-select: none;
     }
   </style>
@@ -182,23 +182,18 @@
 
     function checkPermission(userId) {
       removeScriptById("authScript");
-
       const script = document.createElement("script");
       script.id = "authScript";
-
       const params = new URLSearchParams({
         userId,
         checkAuth: "1",
         callback: "handlePermission"
       });
-
       script.src = `${SCRIPT_URL}?${params.toString()}`;
       document.body.appendChild(script);
     }
 
     function handlePermission(response) {
-      console.log("權限回應：", response);
-
       const expiryLabel = document.getElementById("expiryLabel");
       const expiryDateSpan = document.getElementById("expiryDate");
       const resultDiv = document.getElementById("rewriteResult");
@@ -211,21 +206,11 @@
         if (response.expiryDate) {
           let expiry = new Date(response.expiryDate);
           let now = new Date();
-
-          if (!isNaN(expiry.getTime())) {
-            let diffMs = expiry.getTime() - now.getTime();
-            let diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-            if (diffDays < 0) diffDays = 0;
-
-            currentDateDiv.textContent = `使用者：${liffUserName}  ｜ 使用期限剩餘：${diffDays} 天`;
-            expiryLabel.style.display = "none";
-          } else {
-            currentDateDiv.textContent = `使用者：${liffUserName}  ｜ 使用期限：${response.expiryDate}`;
-            expiryLabel.style.display = "none";
-          }
+          let diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+          diffDays = Math.max(0, diffDays);
+          currentDateDiv.textContent = `使用者：${liffUserName}  ｜ 使用期限剩餘：${diffDays} 天`;
         } else {
           currentDateDiv.textContent = `使用者：${liffUserName}  ｜ 使用期限資訊無法取得`;
-          expiryLabel.style.display = "none";
         }
       } else {
         hasPermission = false;
@@ -262,12 +247,11 @@
       }, 500);
 
       removeScriptById("jsonpScript");
-
       const script = document.createElement("script");
       script.id = "jsonpScript";
 
       const params = new URLSearchParams({
-        text,
+        text: encodeURIComponent(text), // 修正點
         topic,
         userId: liffUserId,
         callback: "handleResponse"
@@ -305,7 +289,6 @@
         const data = res.data[0];
         lastRewrite.title = data.title || "";
         lastRewrite.content = data.content || "";
-
         resultDiv.textContent = lastRewrite.content;
         shareBtn.style.display = "inline-block";
       } else {
@@ -342,15 +325,9 @@
       if (oldScript) oldScript.remove();
     }
 
-    // 啟用改寫按鈕：當textarea有輸入足夠字數時
-    const originalText = document.getElementById("originalText");
-    const rewriteBtn = document.getElementById("rewriteBtn");
-    originalText.addEventListener("input", () => {
-      if (originalText.value.trim().length >= 8 && hasPermission) {
-        rewriteBtn.disabled = false;
-      } else {
-        rewriteBtn.disabled = true;
-      }
+    document.getElementById("originalText").addEventListener("input", () => {
+      const text = document.getElementById("originalText").value.trim();
+      document.getElementById("rewriteBtn").disabled = !(text.length >= 8 && hasPermission);
     });
 
     window.onload = () => {
