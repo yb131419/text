@@ -26,13 +26,15 @@
       display: flex;
       flex-direction: column;
     }
-    #currentDate {
+    #userInfo {
       color: #bbbbbb;
       font-size: 13px;
       margin-bottom: 8px;
       user-select: none;
       text-align: right;
       font-weight: 500;
+      line-height: 1.4;
+      white-space: pre-line;
     }
     h2 {
       margin-bottom: 16px;
@@ -118,23 +120,13 @@
       height: 100px;
       flex-shrink: 0;
     }
-    #userInfo {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #bbbbbb;
-      user-select: none;
-      display: none;
-      font-weight: 500;
-      line-height: 1.6;
-    }
   </style>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
-    <div id="currentDate" aria-live="polite"></div>
+    <div id="userInfo" aria-live="polite"></div>
     <h2>📘 『彥彬』文案改寫<br>✍️ 「貼上」自動改寫 </h2>
-
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容" autocomplete="off"></textarea>
 
     <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
@@ -145,11 +137,6 @@
       <option>健康養生</option>
       <option>財富商機</option>
     </select>
-
-    <div id="userInfo" aria-live="polite">
-      👤 姓名：<span id="userName"></span><br />
-      ⏳ 使用期限：<span id="expiryDate"></span>
-    </div>
 
     <button id="rewriteBtn" type="button" onclick="autoRewrite()">🚀 自動改寫</button>
     <button id="shareBtn" type="button" onclick="nativeShare()">📤 分享文案</button>
@@ -167,15 +154,6 @@
     let hasPermission = false;
     let loadingInterval = null;
 
-    function showCurrentDate() {
-      const dateDiv = document.getElementById("currentDate");
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      dateDiv.textContent = `今天日期：${yyyy} 年 ${mm} 月 ${dd} 日`;
-    }
-
     async function initLIFF() {
       try {
         await liff.init({ liffId: LIFF_ID });
@@ -184,7 +162,7 @@
           const profile = await liff.getProfile();
           const idToken = liff.getDecodedIDToken();
           liffUserId = idToken?.sub || profile?.userId || "";
-          checkPermission(liffUserId);
+          checkPermission(liffUserId, profile?.displayName || "使用者");
         }
       } catch (err) {
         alert("LIFF 初始化失敗，請確認網路或設定。");
@@ -192,7 +170,7 @@
       }
     }
 
-    function checkPermission(userId) {
+    function checkPermission(userId, displayName = "使用者") {
       const old = document.getElementById("authScript");
       if (old) old.remove();
 
@@ -205,35 +183,34 @@
         callback: "handlePermission"
       });
 
+      window._userDisplayName = displayName;
       script.src = `${SCRIPT_URL}?${params.toString()}`;
       document.body.appendChild(script);
     }
 
     function handlePermission(response) {
       console.log("權限回應：", response);
-
-      const rewriteBtn = document.getElementById("rewriteBtn");
+      const infoDiv = document.getElementById("userInfo");
       const resultDiv = document.getElementById("rewriteResult");
-      const userInfo = document.getElementById("userInfo");
-      const expiryDateSpan = document.getElementById("expiryDate");
-      const userNameSpan = document.getElementById("userName");
 
       if (response?.auth === true) {
         hasPermission = true;
-        rewriteBtn.disabled = false;
-        userNameSpan.textContent = response.name || "未提供";
+        document.getElementById("rewriteBtn").disabled = false;
+
+        let expiryStr = "";
         if (response.expiryDate) {
-          let d = new Date(response.expiryDate);
-          expiryDateSpan.textContent = isNaN(d.getTime()) ? response.expiryDate : d.toLocaleDateString("zh-Hant", { year: 'numeric', month: '2-digit', day: '2-digit' });
-        } else {
-          expiryDateSpan.textContent = "未設定";
+          const d = new Date(response.expiryDate);
+          expiryStr = isNaN(d.getTime())
+            ? response.expiryDate
+            : `${d.getFullYear()} 年 ${(d.getMonth() + 1).toString().padStart(2, '0')} 月 ${d.getDate().toString().padStart(2, '0')} 日`;
         }
-        userInfo.style.display = "block";
+
+        infoDiv.textContent = `使用者：${window._userDisplayName}\n使用期限：${expiryStr}`;
       } else {
         hasPermission = false;
-        rewriteBtn.disabled = true;
-        userInfo.style.display = "none";
+        document.getElementById("rewriteBtn").disabled = true;
         resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
+        infoDiv.textContent = `使用者：${window._userDisplayName}\n尚未開通使用權限`;
       }
     }
 
@@ -346,7 +323,6 @@
     });
 
     window.onload = () => {
-      showCurrentDate();
       initLIFF();
     };
   </script>
