@@ -114,7 +114,7 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <div class="card" role="main">
+  <main class="card" role="main" aria-label="彥彬文案改寫工具">
     <h2>📘 『彥彬』文案改寫<br>✍️ 「貼上」自動改寫 </h2>
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容" autocomplete="off"></textarea>
 
@@ -127,12 +127,12 @@
       <option>財富商機</option>
     </select>
 
-    <button id="rewriteBtn" onclick="autoRewrite()">🚀 自動改寫</button>
-    <button id="shareBtn" onclick="nativeShare()">📤 分享文案</button>
+    <button id="rewriteBtn" type="button" onclick="autoRewrite()" aria-live="polite">🚀 自動改寫</button>
+    <button id="shareBtn" type="button" onclick="nativeShare()" aria-label="分享文案" style="display:none;">📤 分享文案</button>
 
-    <div id="rewriteResult" aria-live="polite" aria-atomic="true"></div>
+    <div id="rewriteResult" aria-live="polite" aria-atomic="true" tabindex="0"></div>
     <div id="bottomSpacer"></div>
-  </div>
+  </main>
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRYOIicltP81EO6fQB81bCRfoEczp29qqqSbz5HjdzbsZmRrccQgxR6QmikAWuuNGl/exec";
@@ -161,26 +161,31 @@
       }
     }
 
+    // 透過 JSONP 呼叫後端檢查使用者權限
     function checkPermission(userId) {
       const old = document.getElementById("authScript");
       if (old) old.remove();
 
       const script = document.createElement("script");
       script.id = "authScript";
+
       const params = new URLSearchParams({
         userId,
         checkAuth: "1",
         callback: "handlePermission"
       });
+
       script.src = `${SCRIPT_URL}?${params.toString()}`;
       document.body.appendChild(script);
     }
 
+    // 後端權限檢查回調
     function handlePermission(response) {
       const resultDiv = document.getElementById("rewriteResult");
       if (response?.auth === true) {
         hasPermission = true;
         console.log("✅ 使用者具備權限");
+        document.getElementById("rewriteBtn").disabled = false;
       } else {
         hasPermission = false;
         document.getElementById("rewriteBtn").disabled = true;
@@ -188,6 +193,7 @@
       }
     }
 
+    // 處理改寫結果
     function handleResponse(res) {
       const resultDiv = document.getElementById("rewriteResult");
       const btn = document.getElementById("rewriteBtn");
@@ -204,6 +210,7 @@
         return;
       }
 
+      // 把句號替換成句號加換行，增強可讀性
       let content = (res.content || res.rewrite || "").replace(/。/g, "。\n\n");
       let output = "";
 
@@ -218,6 +225,7 @@
       shareBtn.disabled = !content.trim();
     }
 
+    // 呼叫後端改寫 API
     function autoRewrite() {
       const text = document.getElementById("originalText").value.trim();
       const topic = document.getElementById("topicSelect").value;
@@ -248,9 +256,11 @@
         resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
       }, 500);
 
+      // 移除舊的 JSONP script
       const oldScript = document.getElementById("jsonpScript");
       if (oldScript) oldScript.remove();
 
+      // 新增 JSONP script 呼叫後端
       const script = document.createElement("script");
       script.id = "jsonpScript";
 
@@ -273,6 +283,7 @@
       document.body.appendChild(script);
     }
 
+    // 分享改寫結果
     function nativeShare() {
       if (!lastRewrite.content.trim()) {
         alert("內容為空，無法分享。");
@@ -292,6 +303,7 @@
       }
     }
 
+    // 貼上後自動觸發改寫
     document.getElementById("originalText").addEventListener("paste", () => {
       setTimeout(() => {
         if (document.getElementById("originalText").value.trim()) autoRewrite();
