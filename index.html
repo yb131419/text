@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1e1e1e" />
   <title>彥彬 ✍️測試</title>
   <style>
     body {
@@ -115,7 +116,7 @@
 <body>
   <div class="card" role="main">
     <h2>📘 『彥彬』文案改寫<br>✍️ 「貼上」自動改寫 </h2>
-    <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容"></textarea>
+    <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容" autocomplete="off"></textarea>
 
     <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
     <select id="topicSelect" name="topicSelect" aria-label="分類主題選擇">
@@ -213,12 +214,8 @@
       resultDiv.textContent = output;
       lastRewrite = { title: res.title || "", content };
 
-      if (navigator.share && content.trim()) {
-        shareBtn.style.display = "block";
-        shareBtn.disabled = false;
-      } else {
-        shareBtn.style.display = "none";
-      }
+      shareBtn.style.display = content.trim() ? "block" : "none";
+      shareBtn.disabled = !content.trim();
     }
 
     function autoRewrite() {
@@ -277,22 +274,28 @@
     }
 
     function nativeShare() {
-      if (!navigator.share || !lastRewrite.content.trim()) {
-        alert("瀏覽器不支援分享或內容為空");
+      if (!lastRewrite.content.trim()) {
+        alert("內容為空，無法分享。");
         return;
       }
 
-      navigator.share({
-        title: lastRewrite.title || "文案改寫分享",
-        text: `${lastRewrite.title ? `📌 推薦標題：\n${lastRewrite.title}\n\n` : ""}📝 改寫內容：\n${lastRewrite.content}`
-      }).catch(err => {
-        console.error("分享失敗:", err);
-        alert("分享失敗，請稍後再試");
-      });
+      if (navigator.share) {
+        navigator.share({
+          title: lastRewrite.title || "文案改寫分享",
+          text: `${lastRewrite.title ? `📌 推薦標題：\n${lastRewrite.title}\n\n` : ""}📝 改寫內容：\n${lastRewrite.content}`
+        }).catch(err => {
+          console.error("分享失敗:", err);
+          alert("分享失敗，請稍後再試");
+        });
+      } else {
+        alert("您的瀏覽器不支援原生分享功能。");
+      }
     }
 
     document.getElementById("originalText").addEventListener("paste", () => {
-      setTimeout(autoRewrite, 200);
+      setTimeout(() => {
+        if (document.getElementById("originalText").value.trim()) autoRewrite();
+      }, 250);
     });
 
     window.onload = initLIFF;
