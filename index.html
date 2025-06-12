@@ -145,7 +145,7 @@
 
     <label id="expiryLabel" aria-live="polite">使用期限：<span id="expiryDate"></span></label>
 
-    <button id="rewriteBtn" type="button" onclick="autoRewrite()">🚀 自動改寫</button>
+    <button id="rewriteBtn" type="button" onclick="autoRewrite()" disabled>🚀 自動改寫</button>
     <button id="shareBtn" type="button" onclick="nativeShare()">📤 分享文案</button>
 
     <div id="rewriteResult" aria-live="polite" tabindex="0"></div>
@@ -158,19 +158,20 @@
 
     let lastRewrite = { title: "", content: "" };
     let liffUserId = "";
+    let liffUserName = "";
     let hasPermission = false;
     let loadingInterval = null;
-
-    // 已移除原本 showCurrentDate 函式
 
     async function initLIFF() {
       try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) liff.login();
-        else {
+        if (!liff.isLoggedIn()) {
+          liff.login();
+        } else {
           const profile = await liff.getProfile();
           const idToken = liff.getDecodedIDToken();
           liffUserId = idToken?.sub || profile?.userId || "";
+          liffUserName = profile?.displayName || "";
           checkPermission(liffUserId);
         }
       } catch (err) {
@@ -218,14 +219,14 @@
             let diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
             if (diffDays < 0) diffDays = 0;
 
-            currentDateDiv.textContent = `使用期限剩餘：${diffDays} 天`;
+            currentDateDiv.textContent = `使用者：${liffUserName}  ｜ 使用期限剩餘：${diffDays} 天`;
             expiryLabel.style.display = "none";
           } else {
-            currentDateDiv.textContent = `使用期限：${response.expiryDate}`;
+            currentDateDiv.textContent = `使用者：${liffUserName}  ｜ 使用期限：${response.expiryDate}`;
             expiryLabel.style.display = "none";
           }
         } else {
-          currentDateDiv.textContent = "使用期限資訊無法取得";
+          currentDateDiv.textContent = `使用者：${liffUserName}  ｜ 使用期限資訊無法取得`;
           expiryLabel.style.display = "none";
         }
       } else {
@@ -340,7 +341,6 @@
     }
 
     window.onload = () => {
-      // showCurrentDate(); 已移除改由 handlePermission 顯示使用期限剩餘天數
       initLIFF();
     };
   </script>
