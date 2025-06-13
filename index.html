@@ -218,32 +218,35 @@
       document.body.appendChild(script);
     }
 
-    function calcDaysLeft(expiryDate) {
+
+function calcDaysLeft(expiryDate) {
   if (!expiryDate) return "無資料";
+
   const trimmed = expiryDate.trim();
-  console.log("expiryDate.trim():", `"${trimmed}"`);
-  
-  // 改用 \D 非數字字元做分隔
-  const match = trimmed.match(/^(\d{4})\D(\d{1,2})\D(\d{1,2})$/);
-  if (!match) return "格式錯誤";
-  
-  const y = parseInt(match[1], 10);
-  const m = parseInt(match[2], 10);
-  const d = parseInt(match[3], 10);
-  
-  if (isNaN(y) || isNaN(m) || isNaN(d)) return "無效日期";
-  if (m < 1 || m > 12) return "無效日期";
-  if (d < 1 || d > 31) return "無效日期";
-  
-  const expiry = new Date(Date.UTC(y, m - 1, d));
-  if (isNaN(expiry.getTime())) return "無效日期";
+
+  // 嘗試用 Date 物件解析
+  const expiry = new Date(trimmed);
+  if (isNaN(expiry.getTime())) {
+    return "無效日期";
+  }
+
+  // 取 UTC 年月日 (用 expiryDate 當天的日期)
+  const y = expiry.getUTCFullYear();
+  const m = expiry.getUTCMonth(); // 0-based
+  const d = expiry.getUTCDate();
+
+  // 以 UTC 日期為基準建立新的 Date 物件(0點)
+  const expiryDateUTC = new Date(Date.UTC(y, m, d));
   
   const now = new Date();
-  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-  const diff = expiry - today;
+  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  const diff = expiryDateUTC - todayUTC;
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
   return days > 0 ? `${days} 天` : "已過期";
 }
+
 
 
     function autoRewrite() {
