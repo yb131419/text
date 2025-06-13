@@ -124,14 +124,14 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <main class="card" role="main" aria-label="彥彬文案改寫工具">
-    <div id="userInfo" aria-live="polite"></div>
+  <main class="card" role="main">
+    <div id="userInfo"></div>
     <h2>📘 『彥彬 文案改寫』<br>✍️ 「貼上 自動改寫」 </h2>
 
-    <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="原始文章內容" autocomplete="off"></textarea>
+    <textarea id="originalText" placeholder="請貼上原始文章..."></textarea>
 
     <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
-    <select id="topicSelect" name="topicSelect" aria-label="分類主題選擇">
+    <select id="topicSelect">
       <option value="">AI 自動判斷</option>
       <option>人生成長</option>
       <option>情感故事</option>
@@ -139,10 +139,10 @@
       <option>財富商機</option>
     </select>
 
-    <button id="rewriteBtn" type="button" onclick="autoRewrite()" disabled>🚀 自動改寫</button>
-    <button id="shareBtn" type="button" onclick="nativeShare()">📤 分享文案</button>
+    <button id="rewriteBtn" onclick="autoRewrite()" disabled>🚀 自動改寫</button>
+    <button id="shareBtn" onclick="nativeShare()">📤 分享文案</button>
 
-    <div id="rewriteResult" aria-live="polite" tabindex="0"></div>
+    <div id="rewriteResult"></div>
     <div id="bottomSpacer"></div>
   </main>
 
@@ -150,9 +150,9 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRYOIicltP81EO6fQB81bCRfoEczp29qqqSbz5HjdzbsZmRrccQgxR6QmikAWuuNGl/exec";
     const LIFF_ID = "2007488640-PbB48ELN";
 
-    let lastRewrite = { title: "", content: "" };
     let liffUserId = "";
     let hasPermission = false;
+    let lastRewrite = { title: "", content: "" };
     let loadingInterval = null;
 
     async function initLIFF() {
@@ -171,7 +171,7 @@
           });
         }
       } catch (err) {
-        alert("LIFF 初始化失敗，請確認網路或設定。");
+        alert("LIFF 初始化失敗！");
         console.error(err);
       }
     }
@@ -181,12 +181,21 @@
       if (old) old.remove();
 
       window.handlePermission = function(response) {
+        console.log("[DEBUG] 權限檢查回傳：", response);
         const infoDiv = document.getElementById("userInfo");
         const resultDiv = document.getElementById("rewriteResult");
 
         if (response?.auth === true) {
           hasPermission = true;
-          const daysLeftText = calcDaysLeft(response.expiryDate);
+          let daysLeftText = "無資料";
+          if (response.expiryDate) {
+            daysLeftText = calcDaysLeft(response.expiryDate);
+            if (daysLeftText === "無效日期" || daysLeftText === "格式錯誤") {
+              console.warn("[警告] expiryDate 格式錯誤，原始值：", response.expiryDate);
+            }
+          } else {
+            console.warn("[警告] 回傳中沒有 expiryDate 欄位");
+          }
           infoDiv.textContent = `使用者：${displayName}　剩餘天數：${daysLeftText}`;
           document.getElementById("rewriteBtn").disabled = false;
         } else {
@@ -199,37 +208,24 @@
 
       const script = document.createElement("script");
       script.id = "authScript";
-
-      const params = new URLSearchParams({
-        userId,
-        checkAuth: "1",
-        callback: "handlePermission"
-      });
-
+      const params = new URLSearchParams({ userId, checkAuth: "1", callback: "handlePermission" });
       script.src = `${SCRIPT_URL}?${params.toString()}`;
       document.body.appendChild(script);
     }
 
     function calcDaysLeft(expiryDate) {
-  if (!expiryDate) return "無資料";
-
-  // 確保格式為 YYYY/MM/DD 或 YYYY-MM-DD
-  const parts = expiryDate.trim().split(/[-\/]/);
-  if (parts.length !== 3) return "格式錯誤";
-
-  const [y, m, d] = parts.map(Number);
-  if (!y || !m || !d) return "無效日期";
-
-  const expiry = new Date(Date.UTC(y, m - 1, d));
-  const now = new Date();
-  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-
-  const diff = expiry.getTime() - today.getTime();
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-
-  return days > 0 ? `${days} 天` : "已過期";
-}
-
+      if (!expiryDate) return "無資料";
+      const parts = expiryDate.trim().split(/[-\/]/);
+      if (parts.length !== 3) return "格式錯誤";
+      const [y, m, d] = parts.map(Number);
+      if (!y || !m || !d) return "無效日期";
+      const expiry = new Date(Date.UTC(y, m - 1, d));
+      const now = new Date();
+      const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+      const diff = expiry - today;
+      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      return days > 0 ? `${days} 天` : "已過期";
+    }
 
     function autoRewrite() {
       const text = document.getElementById("originalText").value.trim();
@@ -247,9 +243,9 @@
       btn.disabled = true;
       btn.textContent = "✍️ 改寫中...";
       shareBtn.style.display = "none";
+      resultDiv.textContent = "⏳ 改寫中";
 
       let dots = 0;
-      resultDiv.textContent = "⏳ 改寫中";
       loadingInterval = setInterval(() => {
         dots = (dots + 1) % 4;
         resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
@@ -263,13 +259,11 @@
         if (res.error) {
           resultDiv.innerHTML = `<div class="error">❌ 錯誤：${res.error}</div>`;
           shareBtn.style.display = "none";
-          lastRewrite = { title: "", content: "" };
           return;
         }
 
         let content = (res.content || res.rewrite || "").replace(/。/g, "。\n\n");
         let output = "";
-
         if (res.topic) output += `🔖 類別：\n${res.topic}\n\n`;
         if (res.title) output += `📌 推薦標題：\n${res.title}\n\n`;
         output += `📝 改寫內容：\n${content}`;
@@ -277,7 +271,6 @@
         resultDiv.textContent = output;
         lastRewrite = { title: res.title || "", content };
         shareBtn.style.display = content.trim() ? "block" : "none";
-        shareBtn.disabled = !content.trim();
       };
 
       const oldScript = document.getElementById("jsonpScript");
@@ -285,14 +278,7 @@
 
       const script = document.createElement("script");
       script.id = "jsonpScript";
-
-      const params = new URLSearchParams({
-        text,
-        topic,
-        userId: liffUserId,
-        callback: "handleResponse"
-      });
-
+      const params = new URLSearchParams({ text, topic, userId: liffUserId, callback: "handleResponse" });
       script.src = `${SCRIPT_URL}?${params.toString()}`;
       script.onerror = () => {
         clearInterval(loadingInterval);
@@ -301,7 +287,6 @@
         resultDiv.innerHTML = `<div class="error">❌ 無法取得回應，請稍後再試。</div>`;
         shareBtn.style.display = "none";
       };
-
       document.body.appendChild(script);
     }
 
