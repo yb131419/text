@@ -281,7 +281,7 @@
 
         const pad = (num) => num.toString().padStart(2, "0");
 
-        return `剩餘 ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        return ` ${pad(hours)}時:${pad(minutes)}分:${pad(seconds)}秒`;
       } else {
         return "已過期";
       }
