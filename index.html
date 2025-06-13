@@ -14,6 +14,7 @@
       color: #f0f0f0;
       display: flex;
       justify-content: center;
+      min-height: 100vh;
     }
     .card {
       background: #1e1e1e;
@@ -41,6 +42,7 @@
       color: #ffffff;
       font-weight: 700;
       font-size: 20px;
+      line-height: 1.3;
     }
     textarea, select {
       width: 100%;
@@ -77,6 +79,7 @@
       border-radius: 10px;
       cursor: pointer;
       transition: all 0.3s ease;
+      user-select: none;
     }
     button:disabled {
       opacity: 0.6;
@@ -115,6 +118,7 @@
       border-radius: 10px;
       margin-top: 16px;
       font-size: 14px;
+      white-space: normal;
     }
     #bottomSpacer {
       height: 100px;
@@ -126,7 +130,7 @@
 <body>
   <main class="card" role="main">
     <div id="userInfo"></div>
-    <h2>📘 『彥彬 文案改寫』<br>✍️ 「貼上 自動改寫」 </h2>
+    <h2>📘 『彥彬 文案改寫』<br>✍️ 「貼上 自動改寫」</h2>
 
     <textarea id="originalText" placeholder="請貼上原始文章..."></textarea>
 
@@ -165,10 +169,7 @@
           const idToken = liff.getDecodedIDToken();
           liffUserId = idToken?.sub || profile?.userId || "";
           checkPermission(liffUserId, profile?.displayName || "使用者");
-          document.getElementById("originalText").addEventListener("input", () => {
-            const val = document.getElementById("originalText").value.trim();
-            document.getElementById("rewriteBtn").disabled = !(hasPermission && val.length >= 8);
-          });
+          setupInputListener();
         }
       } catch (err) {
         alert("LIFF 初始化失敗！");
@@ -176,12 +177,19 @@
       }
     }
 
+    function setupInputListener() {
+      const textarea = document.getElementById("originalText");
+      textarea.addEventListener("input", () => {
+        const val = textarea.value.trim();
+        document.getElementById("rewriteBtn").disabled = !(hasPermission && val.length >= 8);
+      });
+    }
+
     function checkPermission(userId, displayName = "使用者") {
       const old = document.getElementById("authScript");
       if (old) old.remove();
 
       window.handlePermission = function(response) {
-        console.log("[DEBUG] 權限檢查回傳：", response);
         const infoDiv = document.getElementById("userInfo");
         const resultDiv = document.getElementById("rewriteResult");
 
@@ -190,14 +198,11 @@
           let daysLeftText = "無資料";
           if (response.expiryDate) {
             daysLeftText = calcDaysLeft(response.expiryDate);
-            if (daysLeftText === "無效日期" || daysLeftText === "格式錯誤") {
-              console.warn("[警告] expiryDate 格式錯誤，原始值：", response.expiryDate);
-            }
-          } else {
-            console.warn("[警告] 回傳中沒有 expiryDate 欄位");
           }
           infoDiv.textContent = `使用者：${displayName}　剩餘天數：${daysLeftText}`;
-          document.getElementById("rewriteBtn").disabled = false;
+          // 啟用改寫按鈕（如果已有文字）
+          const textarea = document.getElementById("originalText");
+          document.getElementById("rewriteBtn").disabled = !(hasPermission && textarea.value.trim().length >= 8);
         } else {
           hasPermission = false;
           infoDiv.textContent = `使用者：${displayName}　剩餘天數：無權限`;
