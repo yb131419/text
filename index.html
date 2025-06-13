@@ -220,8 +220,11 @@
 
     function calcDaysLeft(expiryDate) {
   if (!expiryDate) return "無資料";
-  // 使用正規表達式拆解日期，支援 '-' 或 '/' 兩種分隔符
-  const match = expiryDate.trim().match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+  const trimmed = expiryDate.trim();
+  console.log("expiryDate.trim():", `"${trimmed}"`);
+  
+  // 改用 \D 非數字字元做分隔
+  const match = trimmed.match(/^(\d{4})\D(\d{1,2})\D(\d{1,2})$/);
   if (!match) return "格式錯誤";
   
   const y = parseInt(match[1], 10);
@@ -229,8 +232,6 @@
   const d = parseInt(match[3], 10);
   
   if (isNaN(y) || isNaN(m) || isNaN(d)) return "無效日期";
-  
-  // 確認月份與日期在有效範圍
   if (m < 1 || m > 12) return "無效日期";
   if (d < 1 || d > 31) return "無效日期";
   
@@ -243,6 +244,7 @@
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
   return days > 0 ? `${days} 天` : "已過期";
 }
+
 
     function autoRewrite() {
       const text = document.getElementById("originalText").value.trim();
