@@ -5,20 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#1e1e1e" />
   <title>彥彬 ✍️ 文案改寫工具</title>
-  <style>
-    /* 字體使用 Google Roboto，適合高級感 */
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+  <!-- Google Roboto 字體 -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
-    /* Reset */
-    * { box-sizing: border-box; }
+  <style>
+    /* Reset & 共用設定 */
+    * { box-sizing: border-box; margin:0; padding:0; }
     body {
-      margin: 0;
       padding: 24px;
       font-family: 'Roboto', sans-serif;
       background: linear-gradient(135deg, #1a1a1a, #222222);
       color: #e0e0e0;
       display: flex;
       justify-content: center;
+      align-items: flex-start;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -36,36 +36,33 @@
       flex-direction: column;
       position: relative;
     }
-    /* 使用者名稱樣式 */
+
+    /* 使用者名稱 & 到期日 */
     #userInfo {
       font-weight: 700;
       font-size: 16px;
       background: linear-gradient(90deg, #f5f5f5, #d4af37);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-shadow:
-        0 0 4px rgba(212, 175, 55, 0.8),
-        0 2px 8px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 0 4px rgba(212, 175, 55, 0.8), 0 2px 8px rgba(0, 0, 0, 0.5);
       margin-bottom: 6px;
-      user-select: none;
       text-align: center;
       letter-spacing: 0.05em;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
-    /* 恢復原本簡單樣式的剩餘天數 */
     #userInfo .expiry-days {
       color: #f1c40f;
       font-weight: 700;
       font-size: 13px;
-      /* 移除背景與陰影 */
       background: none;
       box-shadow: none;
       padding: 0;
       border-radius: 0;
       letter-spacing: 0.03em;
+      margin-left: 6px;
     }
     #expiryInfo {
       color: #f1c40f;
@@ -73,22 +70,20 @@
       font-size: 15px;
       margin-bottom: 18px;
       text-align: center;
-      user-select: none;
       letter-spacing: 0.04em;
       text-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
     }
+
+    /* 標題 */
     h2 {
       margin-bottom: 24px;
       color: #fafafa;
       font-weight: 700;
       font-size: 24px;
       line-height: 1.3;
-      user-select: none;
       text-align: center;
       letter-spacing: 0.05em;
-      text-shadow:
-        0 0 8px #4a90e2,
-        0 0 18px #4a90e2;
+      text-shadow: 0 0 8px #4a90e2, 0 0 18px #4a90e2;
     }
     h2 span.emoji {
       font-size: 1.3em;
@@ -96,8 +91,17 @@
       margin-right: 6px;
       filter: drop-shadow(0 0 1px rgba(74, 144, 226, 0.9));
     }
+    h2 small {
+      display: block;
+      font-weight: 400;
+      font-size: 14px;
+      color: #99aabb;
+      margin-top: 4px;
+      line-height: 1.2;
+    }
+
+    /* 輸入區 */
     textarea {
-      font-family: 'Roboto', sans-serif;
       font-size: 16px;
       line-height: 1.5;
       padding: 16px 18px;
@@ -108,20 +112,26 @@
       max-height: 320px;
       background: #222831;
       color: #f5f5f5;
-      box-shadow:
-        inset 0 0 12px #395B64,
-        0 2px 6px rgba(0,0,0,0.5);
+      box-shadow: inset 0 0 12px #395B64, 0 2px 6px rgba(0,0,0,0.5);
       transition: box-shadow 0.3s ease;
       margin-bottom: 20px;
       letter-spacing: 0.03em;
     }
     textarea:focus {
       outline: none;
-      box-shadow:
-        inset 0 0 16px #74b9ff,
-        0 4px 12px rgba(116, 185, 255, 0.7);
+      box-shadow: inset 0 0 16px #74b9ff, 0 4px 12px rgba(116, 185, 255, 0.7);
       background: #1e272e;
       color: #dcdde1;
+    }
+
+    /* 下拉選單 */
+    label {
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: block;
+      letter-spacing: 0.04em;
+      color: #dcdcdc;
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
     }
     select {
       font-size: 16px;
@@ -133,19 +143,17 @@
       margin-bottom: 24px;
       width: 100%;
       cursor: pointer;
-      box-shadow:
-        inset 0 0 12px #395B64,
-        0 2px 6px rgba(0,0,0,0.5);
+      box-shadow: inset 0 0 12px #395B64, 0 2px 6px rgba(0,0,0,0.5);
       transition: box-shadow 0.3s ease;
       letter-spacing: 0.03em;
     }
     select:hover, select:focus {
       outline: none;
-      box-shadow:
-        inset 0 0 16px #74b9ff,
-        0 4px 12px rgba(116, 185, 255, 0.7);
+      box-shadow: inset 0 0 16px #74b9ff, 0 4px 12px rgba(116, 185, 255, 0.7);
       background: #1e272e;
     }
+
+    /* 按鈕 */
     button {
       font-weight: 600;
       font-size: 17px;
@@ -154,39 +162,36 @@
       border: none;
       cursor: pointer;
       transition: background-color 0.3s ease, box-shadow 0.3s ease;
-      box-shadow:
-        0 6px 12px rgba(74, 144, 226, 0.6);
+      box-shadow: 0 6px 12px rgba(74, 144, 226, 0.6);
       letter-spacing: 0.04em;
-      user-select: none;
-      margin-bottom: 14px;
       color: #fff;
       background: linear-gradient(135deg, #4a90e2, #357ABD);
       text-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+      margin-bottom: 14px;
     }
     button:hover:not(:disabled) {
       background: linear-gradient(135deg, #5aa0ff, #4d83e1);
-      box-shadow:
-        0 8px 18px rgba(74, 144, 226, 0.8);
+      box-shadow: 0 8px 18px rgba(74, 144, 226, 0.8);
     }
-    button:disabled, button[aria-disabled="true"] {
+    button:disabled {
       background: #444444;
       cursor: not-allowed;
       opacity: 0.7;
       box-shadow: none;
     }
-    button#shareBtn {
+    #shareBtn {
       background: linear-gradient(135deg, #27ae60, #2ecc71);
-      box-shadow:
-        0 6px 14px rgba(39, 174, 96, 0.7);
+      box-shadow: 0 6px 14px rgba(39, 174, 96, 0.7);
       display: none;
       color: #f0f9f1;
       text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
     }
-    button#shareBtn:hover {
+    #shareBtn:hover {
       background: linear-gradient(135deg, #3acf7d, #47d88d);
-      box-shadow: 
-        0 9px 22px rgba(39, 174, 96, 0.9);
+      box-shadow: 0 9px 22px rgba(39, 174, 96, 0.9);
     }
+
+    /* 結果區 */
     #rewriteResult {
       white-space: pre-wrap;
       font-size: 16px;
@@ -196,38 +201,31 @@
       padding: 20px;
       min-height: 140px;
       color: #ccc;
-      user-select: text;
-      box-shadow:
-        inset 0 0 12px #222222;
+      box-shadow: inset 0 0 12px #222222;
       letter-spacing: 0.03em;
     }
     .error {
       color: #ff6b6b;
       font-weight: 700;
-      text-shadow: 0 0 8px #ff6b6baa;
-    }
-    label {
-      font-weight: 600;
-      margin-bottom: 8px;
-      display: block;
-      user-select: none;
-      letter-spacing: 0.04em;
-      color: #dcdcdc;
-      text-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 0 8px rgba(255,107,107,0.6);
     }
   </style>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
+
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
     <div id="userInfo" aria-live="polite" aria-atomic="true">👤 載入中…</div>
     <div id="expiryInfo" aria-live="polite" aria-atomic="true">⏳ 到期日：載入中…</div>
 
-    <h2><span class="emoji">📘</span>彥彬 文案改寫<br><span style="font-weight:400; font-size:14px; color:#99aabb;">貼上文字，自動改寫</span></h2>
+    <h2>
+      <span class="emoji">📘</span>彥彬 文案改寫
+      <small>貼上文字，自動改寫</small>
+    </h2>
 
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="輸入原始文章"></textarea>
 
-    <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
+    <label for="topicSelect">選擇分類主題（可 AI 自動判斷）：</label>
     <select id="topicSelect" aria-label="選擇分類主題">
       <option value="">AI 自動判斷</option>
       <option>人生成長</option>
@@ -236,8 +234,8 @@
       <option>財富商機</option>
     </select>
 
-    <button id="rewriteBtn" onclick="autoRewrite()" disabled aria-disabled="true">🚀 自動改寫</button>
-    <button id="shareBtn" onclick="nativeShare()" aria-label="分享改寫後文案">📤 分享文案</button>
+    <button id="rewriteBtn" onclick="autoRewrite()" disabled>🚀 自動改寫</button>
+    <button id="shareBtn" onclick="nativeShare()">📤 分享文案</button>
 
     <div id="rewriteResult" role="region" aria-live="polite" aria-atomic="true"></div>
   </main>
@@ -257,8 +255,7 @@
       const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const expDateOnly = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate());
       const diffMs = expDateOnly - nowDateOnly;
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      return diffDays >= 0 ? diffDays : 0;
+      return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
     }
 
     async function initLIFF() {
@@ -271,8 +268,8 @@
         checkPermission(liffUserId, profile?.displayName || "使用者");
         setupInputListener();
       } catch (err) {
-        alert("⚠️ LIFF 初始化失敗！請稍後再試。"); console.error(err);
         document.getElementById("userInfo").textContent = "⚠️ LIFF 初始化失敗！";
+        console.error(err);
       }
     }
 
@@ -282,51 +279,45 @@
         const val = textarea.value.trim();
         const btn = document.getElementById("rewriteBtn");
         const enabled = hasPermission && val.length >= 8;
-        btn.disabled = !enabled; btn.setAttribute('aria-disabled', !enabled);
+        btn.disabled = !enabled;
       });
     }
 
     function checkPermission(userId, displayName = "使用者") {
-      const old = document.getElementById("authScript"); if (old) old.remove();
       window.handlePermission = function(response) {
         const infoDiv = document.getElementById("userInfo");
         const expiryDiv = document.getElementById("expiryInfo");
         const resultDiv = document.getElementById("rewriteResult");
-        if (response?.auth === true) {
+        if (response?.auth) {
           hasPermission = true;
           infoDiv.textContent = `👤 使用者：${displayName}`;
-          const oldDays = infoDiv.querySelector(".expiry-days"); if (oldDays) oldDays.remove();
           if (response.expiryDate) {
             const expiryDateObj = new Date(response.expiryDate);
             const taipeiFmt = new Intl.DateTimeFormat('zh-TW',{year:'numeric',month:'numeric',day:'numeric',timeZone:'Asia/Taipei'});
             const formatted = taipeiFmt.format(expiryDateObj);
             const rem = calcRemainingDays(expiryDateObj);
-            const daysText = rem > 0 ? `剩餘 ${rem} 天` : '已過期';
             const span = document.createElement('span');
-            span.className = 'expiry-days'; span.textContent = daysText;
+            span.className = 'expiry-days';
+            span.textContent = rem > 0 ? `剩餘 ${rem} 天` : '已過期';
             infoDiv.appendChild(span);
             expiryDiv.textContent = `⏳ 到期日：${formatted}`;
           } else {
             expiryDiv.textContent = '⏳ 到期日：無資料';
           }
-          const btn = document.getElementById("rewriteBtn");
-          btn.disabled = !(hasPermission && document.getElementById("originalText").value.trim().length >= 8);
-          resultDiv.innerHTML = "";
         } else {
           hasPermission = false;
-          infoDiv.textContent = `👤 使用者：${displayName}　⛔ 無權限`;
+          infoDiv.textContent = `👤 使用者：${displayName} ⛔ 無權限`;
           expiryDiv.textContent = '';
-          document.getElementById("rewriteBtn").disabled = true;
-          resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
+          resultDiv.innerHTML = `<div class="error">⛔ 您尚未開通使用權限，請聯絡管理者。</div>`;
         }
+        document.getElementById("rewriteBtn").disabled = !hasPermission;
       };
+
       const script = document.createElement("script");
-      script.id = "authScript";
       script.src = `${SCRIPT_URL}?userId=${userId}&checkAuth=1&callback=handlePermission`;
       script.onerror = () => {
-        document.getElementById("userInfo").textContent = `👤 使用者：${displayName}　⚠️ 無法驗證`;
+        document.getElementById("userInfo").textContent = `👤 使用者：${displayName} ⚠️ 驗證失敗`;
         document.getElementById("rewriteBtn").disabled = true;
-        document.getElementById("rewriteBtn").setAttribute('aria-disabled','true');
         document.getElementById("rewriteResult").innerHTML = `<div class="error">❌ 權限驗證失敗，請稍後再試。</div>`;
       };
       document.body.appendChild(script);
@@ -339,26 +330,21 @@
       const btn = document.getElementById("rewriteBtn");
       const shareBtn = document.getElementById("shareBtn");
       if (!text || text.length < 8 || btn.disabled) return;
-      if (!liffUserId || !hasPermission) {
-        resultDiv.innerHTML = `<div class="error">⚠️ 尚未登入或無權限。</div>`;
-        return;
-      }
       btn.disabled = true;
       btn.textContent = "✍️ 改寫中...";
       shareBtn.style.display = "none";
       resultDiv.textContent = "⏳ 改寫中";
       let dots = 0;
       loadingInterval = setInterval(() => {
-        dots = (dots+1)%4;
+        dots = (dots + 1) % 4;
         resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
       }, 500);
 
-      // network error fallback
       const errorTimeout = setTimeout(() => {
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        resultDiv.innerHTML = `<div class=\"error\">❌ 網路錯誤，請稍後再試。</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ 網路錯誤，請稍後再試。</div>`;
       }, 15000);
 
       window.handleResponse = function(res) {
@@ -367,11 +353,11 @@
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
         if (res.error) {
-          resultDiv.innerHTML = `<div class=\"error\">❌ ${res.error}</div>`;
+          resultDiv.innerHTML = `<div class="error">❌ ${res.error}</div>`;
           return;
         }
         if (!res.result.trim()) {
-          resultDiv.innerHTML = `<div class=\"error\">❌ 未取得改寫結果，請稍後再試。</div>`;
+          resultDiv.innerHTML = `<div class="error">❌ 未取得改寫結果，請稍後再試。</div>`;
           return;
         }
         resultDiv.textContent = res.result;
@@ -387,16 +373,14 @@
       url.searchParams.set("topic", topic);
       url.searchParams.set("callback", "handleResponse");
 
-      const oldScript = document.getElementById("rewriteScript"); if (oldScript) oldScript.remove();
       const script = document.createElement("script");
-      script.id = "rewriteScript";
       script.src = url.toString();
       script.onerror = () => {
         clearInterval(loadingInterval);
         clearTimeout(errorTimeout);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        resultDiv.innerHTML = `<div class=\"error\">❌ 網路錯誤，請稍後再試。</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ 網路錯誤，請稍後再試。</div>`;
       };
       document.body.appendChild(script);
     }
@@ -410,7 +394,7 @@
       fetch(url.toString())
         .then(res => res.json())
         .then(data => {
-          if (data.status!="success") console.warn("紀錄失敗", data);
+          if (data.status !== "success") console.warn("紀錄失敗", data);
         })
         .catch(err => console.error("紀錄錯誤", err));
     }
