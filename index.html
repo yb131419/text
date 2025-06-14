@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#1e1e1e" />
-  <title>彥彬 ✍️ 文案改寫工具</title>
+  <title>彥彬 ✍️ 文案改寫</title>
   <style>
     /* 字體使用 Google Roboto，適合高級感 */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
@@ -29,7 +29,7 @@
       border-radius: 20px;
       box-shadow:
         0 8px 16px rgba(0, 0, 0, 0.9),
-        inset 0 0 60px rgba(255, 255, 255, 0.05);
+        inset 0 0 40px rgba(255, 255, 255, 0.03);
       max-width: 500px;
       width: 100%;
       padding: 28px 32px;
@@ -46,7 +46,8 @@
       text-align: center;
       letter-spacing: 0.03em;
       font-style: italic;
-      text-shadow: 0 0 8px rgba(255 255 255 / 0.1);
+      /* 微弱光暈 */
+      text-shadow: 0 0 4px rgba(255, 255, 255, 0.05);
     }
     #expiryInfo {
       color: #f1c40f;
@@ -56,7 +57,8 @@
       text-align: center;
       user-select: none;
       letter-spacing: 0.04em;
-      text-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
+      /* 微弱光暈 */
+      text-shadow: 0 0 6px rgba(241, 196, 15, 0.4);
     }
     h2 {
       margin-bottom: 24px;
@@ -67,15 +69,14 @@
       user-select: none;
       text-align: center;
       letter-spacing: 0.05em;
-      text-shadow:
-        0 0 8px #4a90e2,
-        0 0 18px #4a90e2;
+      /* 微弱光暈 */
+      text-shadow: 0 0 4px #4a90e2;
     }
     h2 span.emoji {
       font-size: 1.3em;
       vertical-align: middle;
       margin-right: 6px;
-      filter: drop-shadow(0 0 1px rgba(74, 144, 226, 0.9));
+      filter: drop-shadow(0 0 1px rgba(74, 144, 226, 0.5));
     }
     textarea {
       font-family: 'Roboto', sans-serif;
@@ -162,7 +163,7 @@
         0 6px 14px rgba(39, 174, 96, 0.7);
       display: none;
       color: #f0f9f1;
-      text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
     }
     button#shareBtn:hover {
       background: linear-gradient(135deg, #3acf7d, #47d88d);
@@ -186,7 +187,7 @@
     .error {
       color: #ff6b6b;
       font-weight: 700;
-      text-shadow: 0 0 8px #ff6b6baa;
+      text-shadow: 0 0 4px #ff6b6baa;
     }
     label {
       font-weight: 600;
@@ -195,7 +196,7 @@
       user-select: none;
       letter-spacing: 0.04em;
       color: #dcdcdc;
-      text-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
     }
   </style>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -203,7 +204,7 @@
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
     <div id="userInfo" aria-live="polite" aria-atomic="true">👤 載入中…</div>
-    <div id="expiryInfo" aria-live="polite" aria-atomic="true">⏳ <strong>到期日：</strong> 2025年6月16日</div>
+    <div id="expiryInfo" aria-live="polite" aria-atomic="true">⏳ <strong>到期日：</strong> -</div>
     <h2><span class="emoji">📘</span>彥彬 文案改寫<br><span style="font-weight:400; font-size:14px; color:#99aabb;">貼上文字，自動改寫</span></h2>
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="輸入原始文章"></textarea>
     <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
@@ -262,23 +263,29 @@
       if (old) old.remove();
       window.handlePermission = function(response) {
         const infoDiv = document.getElementById("userInfo");
+        const expiryDiv = document.getElementById("expiryInfo");
         const resultDiv = document.getElementById("rewriteResult");
         if (response?.auth === true) {
           hasPermission = true;
           let daysLeftText = "無資料";
+          let expiryDateText = "-";
           if (response.expiryDate) {
             daysLeftText = calcDaysLeft(response.expiryDate);
+            expiryDateText = response.expiryDate;
           }
-          infoDiv.textContent = `👤 使用者：${displayName}　\n🕒 剩餘天數：${daysLeftText}`;
+          // 使用 innerHTML 以支援換行
+          infoDiv.innerHTML = `👤 使用者：${displayName}<br>🕒 剩餘天數：${daysLeftText}`;
+          expiryDiv.innerHTML = `⏳ <strong>到期日：</strong> ${expiryDateText}`;
           const textarea = document.getElementById("originalText");
           const enabled = hasPermission && textarea.value.trim().length >= 8;
           const btn = document.getElementById("rewriteBtn");
-          btn.disabled = !enabled ? true : false;
+          btn.disabled = !enabled;
           btn.setAttribute('aria-disabled', !enabled ? "true" : "false");
           resultDiv.innerHTML = "";
         } else {
           hasPermission = false;
-          infoDiv.textContent = `👤 使用者：${displayName}　⛔ 無權限`;
+          infoDiv.innerHTML = `👤 使用者：${displayName}　⛔ 無權限`;
+          expiryDiv.innerHTML = `⏳ <strong>到期日：</strong> -`;
           const btn = document.getElementById("rewriteBtn");
           btn.disabled = true;
           btn.setAttribute('aria-disabled', 'true');
@@ -296,6 +303,7 @@
         infoDiv.textContent = `👤 使用者：${displayName}　⚠️ 無法驗證`;
         document.getElementById("rewriteBtn").disabled = true;
         document.getElementById("rewriteBtn").setAttribute('aria-disabled', 'true');
+        expiryDiv.innerHTML = `⏳ <strong>到期日：</strong> -`;
         resultDiv.innerHTML = `<div class="error">❌ 權限驗證失敗，請稍後再試。</div>`;
       };
       document.body.appendChild(script);
@@ -373,8 +381,8 @@
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
         btn.setAttribute('aria-disabled', 'false');
-        resultDiv.innerHTML = `<div class="error">❌ 請求失敗，請稍後再試。</div>`;
-        shareBtn.style = "none";
+        resultDiv.innerHTML = `<div class="error">❌ 請求失敗，請稍後試。</div>`;
+        shareBtn.style.display = "none";
       };
       document.body.appendChild(script);
     }
