@@ -48,6 +48,21 @@
       letter-spacing: 0.03em;
       font-style: italic;
       text-shadow: 0 0 8px rgba(255 255 255 / 0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    #userInfo .expiry-days {
+      color: #f1c40f;
+      font-weight: 700;
+      font-size: 13px;
+      background: #2c2c2c;
+      padding: 2px 8px;
+      border-radius: 12px;
+      box-shadow: 0 0 8px rgba(241, 196, 15, 0.9);
+      user-select: none;
+      letter-spacing: 0.03em;
     }
     #expiryInfo {
       color: #f1c40f;
@@ -203,7 +218,9 @@
 </head>
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
-    <div id="userInfo" aria-live="polite" aria-atomic="true">👤 載入中…</div>
+    <div id="userInfo" aria-live="polite" aria-atomic="true">
+      👤 載入中…
+    </div>
     <div id="expiryInfo" aria-live="polite" aria-atomic="true">⏳ 到期日：載入中…</div>
 
     <h2><span class="emoji">📘</span>彥彬 文案改寫<br><span style="font-weight:400; font-size:14px; color:#99aabb;">貼上文字，自動改寫</span></h2>
@@ -237,6 +254,18 @@
     let hasPermission = false;
     let lastRewrite = { title: "", content: "" };
     let loadingInterval = null;
+
+    // 計算剩餘天數（不含時分秒）
+    function calcRemainingDays(expiryDate) {
+      const now = new Date();
+      const exp = new Date(expiryDate);
+      // 將時間歸零，避免時間差影響天數
+      const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const expDateOnly = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate());
+      const diffMs = expDateOnly - nowDateOnly;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 ? diffDays : 0;
+    }
 
     async function initLIFF() {
       try {
@@ -276,22 +305,40 @@
         const infoDiv = document.getElementById("userInfo");
         const expiryDiv = document.getElementById("expiryInfo");
         const resultDiv = document.getElementById("rewriteResult");
+
         if (response?.auth === true) {
           hasPermission = true;
-          // 顯示使用者資訊
+
+          // 顯示使用者名稱
           infoDiv.textContent = `👤 使用者：${displayName}`;
-          // 處理到期日格式 (台北時區)
+
+          // 移除舊的剩餘天數元素
+          const oldDaysElem = infoDiv.querySelector(".expiry-days");
+          if (oldDaysElem) oldDaysElem.remove();
+
+          // 如果有到期日，格式化日期並計算剩餘天數
           if (response.expiryDate) {
-            const d = new Date(response.expiryDate);
-            const taipei = new Intl.DateTimeFormat('zh-TW', {
+            const expiryDateObj = new Date(response.expiryDate);
+            const taipeiFormatter = new Intl.DateTimeFormat('zh-TW', {
               year: 'numeric', month: 'numeric', day: 'numeric',
-              hour: '2-digit', minute: '2-digit', hour12: false,
               timeZone: 'Asia/Taipei'
-            }).format(d);
-            expiryDiv.textContent = `⏳ 到期日：${taipei}`;
+            });
+            const formattedDate = taipeiFormatter.format(expiryDateObj);
+
+            const remainingDays = calcRemainingDays(expiryDateObj);
+            const daysText = remainingDays > 0 ? `剩餘 ${remainingDays} 天` : '已過期';
+
+            // 顯示剩餘天數在使用者名稱旁
+            const daysSpan = document.createElement("span");
+            daysSpan.className = "expiry-days";
+            daysSpan.textContent = daysText;
+            infoDiv.appendChild(daysSpan);
+
+            expiryDiv.textContent = `⏳ 到期日：${formattedDate}`;
           } else {
             expiryDiv.textContent = '⏳ 到期日：無資料';
           }
+
           // 啟用改寫按鈕
           const textarea = document.getElementById("originalText");
           const enabled = hasPermission && textarea.value.trim().length >= 8;
@@ -364,54 +411,83 @@
           shareBtn.style.display = "none";
           return;
         }
+        if (!res.result || res.result.trim() === "") {
+          resultDiv.innerHTML = `<div class="error">❌ 未取得改寫結果，請稍後再試。</div>`;
+          shareBtn.style.display = "none";
+          return;
+        }
 
-        let content = (res.content || res.rewrite || "").replace(/。/g, "。\n\n");
-        let output = "";
-        if (res.topic) output += `🔖 類別：\n${res.topic}\n\n`;
-        if (res.title) output += `📌 推薦標題：\n${res.title}\n\n`;
-        output += `📝 改寫內容：\n${content}`;
+        resultDiv.textContent = res.result;
+        shareBtn.style.display = "inline-block";
 
-        resultDiv.textContent = output;
-        lastRewrite = { title: res.title || "", content };
-        shareBtn.style.display = content.trim() ? "block" : "none";
+        // 記錄最後結果
+        lastRewrite.title = topic || "(未分類)";
+        lastRewrite.content = res.result;
+
+        // 將紀錄寫入 Google Sheet
+        sendLogToSheet(liffUserId, text, lastRewrite.content, lastRewrite.title);
       };
 
-      const oldScript = document.getElementById("jsonpScript");
+      const url = new URL(SCRIPT_URL);
+      url.searchParams.set("userId", liffUserId);
+      url.searchParams.set("originalText", text);
+      url.searchParams.set("topic", topic);
+      url.searchParams.set("callback", "handleResponse");
+
+      // 動態載入 script 呼叫後端 JSONP
+      const oldScript = document.getElementById("rewriteScript");
       if (oldScript) oldScript.remove();
 
       const script = document.createElement("script");
-      script.id = "jsonpScript";
-      const params = new URLSearchParams({ text, topic, userId: liffUserId, callback: "handleResponse" });
-      script.src = `${SCRIPT_URL}?${params.toString()}`;
+      script.id = "rewriteScript";
+      script.src = url.toString();
       script.onerror = () => {
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
         btn.setAttribute('aria-disabled', 'false');
-        resultDiv.innerHTML = `<div class="error">❌ 請求失敗，請稍後再試。</div>`;
-        shareBtn.style.display = "none";
+        resultDiv.innerHTML = `<div class="error">❌ 網路錯誤，請稍後再試。</div>`;
       };
       document.body.appendChild(script);
     }
 
+    function sendLogToSheet(userId, originalText, rewrittenText, topic) {
+      const url = new URL(SCRIPT_URL);
+      url.searchParams.set("logUserId", userId);
+      url.searchParams.set("logOriginal", originalText);
+      url.searchParams.set("logRewrite", rewrittenText);
+      url.searchParams.set("logTopic", topic);
+      // 這裡不需要 callback，非 JSONP 呼叫，使用 fetch
+
+      fetch(url.toString())
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success") {
+            console.log("紀錄成功");
+          } else {
+            console.warn("紀錄失敗", data);
+          }
+        }).catch(err => {
+          console.error("紀錄錯誤", err);
+        });
+    }
+
     function nativeShare() {
-      if (!lastRewrite.content.trim()) {
-        alert("❌ 沒有可分享的內容！");
-        return;
-      }
+      if (!lastRewrite.content) return;
+
       if (navigator.share) {
         navigator.share({
-          title: lastRewrite.title || "彥彬文案改寫",
-          text: lastRewrite.content
-        }).catch(err => {
-          alert("❌ 分享失敗：" + err);
-        });
+          title: "彥彬文案改寫",
+          text: lastRewrite.content,
+        }).catch(console.error);
       } else {
-        alert("⚠️ 目前瀏覽器不支援原生分享功能。");
+        alert("您的瀏覽器不支援分享功能，請手動複製。");
       }
     }
 
-    window.onload = initLIFF;
+    window.onload = () => {
+      initLIFF();
+    };
   </script>
 </body>
 </html>
