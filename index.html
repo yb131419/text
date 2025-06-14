@@ -6,15 +6,14 @@
   <meta name="theme-color" content="#1e1e1e" />
   <title>彥彬 ✍️測試</title>
   <style>
-    /* 進階高級感版面設計 */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
     body {
       font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #0f111b, #1a1c2b);
-      padding: 24px 16px;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      padding: 16px;
       margin: 0;
-      color: #e0e6f3;
+      color: #f0f0f0;
       display: flex;
       justify-content: center;
       min-height: 100vh;
@@ -22,164 +21,165 @@
       -moz-osx-font-smoothing: grayscale;
     }
     .card {
-      background: linear-gradient(145deg, #202538, #151a3a);
-      border-radius: 20px;
+      background: rgba(30, 30, 30, 0.85);
+      border-radius: 24px;
       box-shadow:
-        0 4px 10px rgba(0,0,0,0.6),
-        inset 0 0 15px #3a3f7d88,
-        inset 0 -4px 20px #1f234a88;
+        0 0 10px 2px rgba(77, 171, 247, 0.7),
+        0 4px 30px rgba(77, 171, 247, 0.4);
       width: 100%;
       max-width: 480px;
-      padding: 28px 32px 36px;
+      padding: 28px 32px 32px 32px;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
     }
     #userInfo {
-      text-align: center;
-      user-select: none;
-      font-weight: 600;
-      line-height: 1.3;
+      font-weight: 700;
       font-size: 15px;
+      color: #4dabf7;
+      user-select: none;
+      text-align: center;
+      line-height: 1.3;
       margin-bottom: 8px;
-      color: #a1caff;
       text-shadow:
-        0 0 6px #5ba1ffcc,
-        0 0 10px #4a8cffbb,
-        0 0 18px #3d77ffaa;
+        0 0 5px #4dabf7,
+        0 0 10px #4dabf7,
+        0 0 15px #4dabf7;
     }
     #userInfo .daysLeft {
       display: block;
-      font-weight: 700;
-      font-size: 17px;
+      font-weight: 500;
+      font-size: 13px;
       margin-top: 4px;
-      color: #ffd966;
+      color: #a0cfff;
       text-shadow:
-        0 0 8px #ffec8bcc,
-        0 0 12px #ffe25dff,
-        0 0 20px #f3d500ff;
+        0 0 3px #a0cfff,
+        0 0 6px #a0cfff;
     }
     #userInfo .expiryDate {
       display: block;
-      margin-top: 2px;
       font-weight: 400;
       font-size: 13px;
-      color: #9fc9ff;
-      text-shadow: 0 0 6px #4169e188;
+      margin-top: 2px;
+      color: #8fb8d8;
+      font-style: italic;
+      text-shadow:
+        0 0 2px #8fb8d8;
     }
     h2 {
-      margin-bottom: 20px;
-      color: #f0f4ff;
-      font-weight: 800;
-      font-size: 24px;
-      line-height: 1.2;
-      text-align: center;
+      margin-bottom: 16px;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 1.3;
       user-select: none;
+      text-align: center;
       text-shadow:
-        0 0 8px #5ba1ffdd,
-        0 0 15px #3d77ffdd;
+        0 0 5px #4dabf7,
+        0 0 10px #2d9cdb;
     }
     textarea, select {
       width: 100%;
-      margin-top: 14px;
-      padding: 14px 18px;
+      margin-top: 12px;
+      padding: 14px 16px;
       border-radius: 14px;
-      background: #2c3250;
-      border: 1.8px solid #5566cc;
-      color: #e1e8ff;
-      font-size: 16px;
+      background: #1f2937;
+      border: 1.5px solid #3f3f3f;
+      color: #e0e0e0;
+      font-size: 15px;
       font-family: 'Roboto', sans-serif;
       box-sizing: border-box;
       transition: border-color 0.3s ease, box-shadow 0.3s ease;
-      box-shadow: inset 0 0 8px #4159b9cc;
-      resize: vertical;
-      line-height: 1.6;
+      box-shadow: inset 0 0 5px #000000;
     }
     textarea:focus, select:focus {
-      border-color: #7fa8ff;
+      border-color: #4dabf7;
       outline: none;
-      background: #39477e;
-      box-shadow: 0 0 15px #7fa8ffcc;
-      color: #f0f4ff;
+      background: #2c3a50;
+      box-shadow:
+        0 0 8px 2px #4dabf7;
+      color: #fff;
+    }
+    textarea {
+      height: 130px;
+      resize: vertical;
+      line-height: 1.6;
+      font-weight: 400;
     }
     label {
-      margin-top: 26px;
+      margin-top: 24px;
       display: block;
       font-weight: 600;
       font-size: 15px;
-      color: #9fb6ffcc;
+      color: #a0b9d1;
       user-select: none;
-      text-shadow: 0 0 6px #2a3a8e88;
+      text-shadow:
+        0 0 2px #375a82;
     }
     button {
-      margin-top: 28px;
+      margin-top: 24px;
       border: none;
       color: white;
       font-weight: 700;
-      font-size: 17px;
-      padding: 15px 0;
+      font-size: 16.5px;
+      padding: 14px 0;
       width: 100%;
       border-radius: 14px;
       cursor: pointer;
       transition: all 0.3s ease;
       user-select: none;
       box-shadow:
-        0 5px 15px rgba(53, 94, 217, 0.6),
-        inset 0 -3px 5px rgba(18, 38, 100, 0.8);
-      background: linear-gradient(135deg, #5579ff, #3048d4);
-      text-shadow: 0 0 8px #a2b9ffcc;
+        0 6px 12px rgba(77, 171, 247, 0.6);
+      letter-spacing: 0.04em;
     }
     button:disabled {
-      opacity: 0.45;
+      opacity: 0.55;
       cursor: not-allowed;
       pointer-events: none;
       box-shadow: none;
-      background: linear-gradient(135deg, #3959a3, #24346b);
-      text-shadow: none;
     }
-    button#rewriteBtn:hover:not(:disabled) {
-      background: linear-gradient(135deg, #7aa2ff, #496edc);
+    #rewriteBtn {
+      background: linear-gradient(135deg, #4dabf7, #2d9cdb);
+      text-shadow:
+        0 0 8px #4dabf7;
+    }
+    #rewriteBtn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #339af0, #228be6);
       box-shadow:
-        0 6px 20px rgba(102, 142, 255, 0.9),
-        inset 0 -4px 8px rgba(30, 54, 125, 0.9);
-      text-shadow: 0 0 12px #b1c6ffdd;
+        0 0 12px 3px #339af0;
     }
-    button#shareBtn {
-      background: linear-gradient(135deg, #404ea6, #2a386f);
+    #shareBtn {
+      background: linear-gradient(135deg, #2d3a9c, #1e2a7c);
       display: none;
-      box-shadow:
-        0 5px 16px rgba(59, 67, 139, 0.85),
-        inset 0 -3px 8px rgba(15, 22, 67, 0.8);
-      text-shadow: 0 0 6px #879fffcc;
-      margin-top: 12px;
+      text-shadow:
+        0 0 6px #a0b9d1;
     }
-    button#shareBtn:hover {
-      background: linear-gradient(135deg, #2b347d, #17214a);
+    #shareBtn:hover {
+      background: linear-gradient(135deg, #1e2a7c, #0f1a4f);
       box-shadow:
-        0 7px 22px rgba(34, 39, 88, 0.9),
-        inset 0 -4px 10px rgba(8, 14, 38, 0.9);
-      text-shadow: 0 0 8px #9aa9ffdd;
+        0 0 10px 3px #1e2a7c;
     }
     #rewriteResult {
-      margin-top: 32px;
-      background: linear-gradient(145deg, #22294f, #1a1f3e);
-      padding: 20px;
+      margin-top: 28px;
+      background: #232b3a;
+      padding: 18px 20px;
       border-radius: 14px;
-      border: 1.5px solid #3f4eb8;
-      color: #d9e2ff;
+      border: 1.5px solid #375a82;
+      color: #d8e6ff;
       font-size: 15px;
-      max-height: 440px;
+      max-height: 420px;
       overflow-y: auto;
       white-space: pre-wrap;
       flex-grow: 1;
       user-select: text;
-      box-shadow: inset 0 0 15px #4f63e0cc;
+      box-shadow:
+        inset 0 0 8px 1px #375a82;
     }
     .error {
       background: #4b1e1e;
-      border: 1.5px solid #ff4c4c;
-      padding: 18px;
-      color: #ff8a8a;
+      border: 1.5px solid #d93025;
+      padding: 16px 18px;
+      color: #ff6b6b;
       font-weight: 700;
       border-radius: 14px;
       margin-top: 20px;
@@ -187,8 +187,7 @@
       white-space: normal;
       user-select: text;
       box-shadow:
-        0 0 10px #ff5959aa,
-        inset 0 0 6px #ff2a2a99;
+        0 0 8px #d93025;
     }
     #bottomSpacer {
       height: 100px;
@@ -199,9 +198,8 @@
 </head>
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
-    <div id="userInfo" aria-live="polite" aria-atomic="true">
-      <!-- 使用者名稱 與 剩餘天數 + 到期日 會動態插入 -->
-    </div>
+    <div id="userInfo" aria-live="polite" aria-atomic="true"></div>
+
     <h2>📘 『彥彬 文案改寫』<br>✍️ 「貼上 自動改寫」</h2>
 
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="輸入原始文章"></textarea>
@@ -223,62 +221,67 @@
   </main>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRYOIicltP81EO6fQB81bCRfoEczp29qqqSbz5HjdzbsZmRrccQgxR6QmikAWuuNGl/exec";
-    const LIFF_ID = "2007488640-PbB48ELN";
-
-    let liffUserId = "";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0HLt6DpR-Y7yc9KOfhcbXYiIilLjDF6KNZPRA6xV4Hf0TzYxK03uDqNZK7q_VLcn4/exec";
     let hasPermission = false;
-    let lastRewrite = { title: "", content: "" };
-    let loadingInterval = null;
+    let liffUserId = "";
+    let liffDisplayName = "";
 
-    async function initLIFF() {
+    async function initializeLiff() {
       try {
-        await liff.init({ liffId: LIFF_ID });
+        await liff.init({ liffId: "YOUR_LIFF_ID_HERE" });
         if (!liff.isLoggedIn()) {
           liff.login();
         } else {
           const profile = await liff.getProfile();
-          const idToken = liff.getDecodedIDToken();
-          liffUserId = idToken?.sub || profile?.userId || "";
-          checkPermission(liffUserId, profile?.displayName || "使用者");
-          setupInputListener();
+          liffUserId = profile.userId;
+          liffDisplayName = profile.displayName || "使用者";
+          checkPermission(liffUserId, liffDisplayName);
         }
-      } catch (err) {
-        alert("LIFF 初始化失敗！");
-        console.error(err);
+      } catch (e) {
+        document.getElementById("userInfo").textContent = "LIFF 初始化失敗，請重新整理頁面";
+        console.error(e);
       }
     }
 
-    function setupInputListener() {
-      const textarea = document.getElementById("originalText");
-      textarea.addEventListener("input", () => {
-        const val = textarea.value.trim();
-        const btn = document.getElementById("rewriteBtn");
-        const enabled = hasPermission && val.length >= 8;
-        btn.disabled = !enabled;
-        btn.setAttribute('aria-disabled', !enabled);
-      });
+    // 計算剩餘天數
+    function calcDaysLeft(expiry) {
+      try {
+        const now = new Date();
+        const expiryDate = new Date(expiry);
+        const diffTime = expiryDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays >= 0 ? diffDays + " 天" : "已過期";
+      } catch {
+        return "無效日期";
+      }
     }
 
     function checkPermission(userId, displayName = "使用者") {
-      // 移除舊的授權驗證 script
       const old = document.getElementById("authScript");
       if (old) old.remove();
 
       window.handlePermission = function(response) {
         const infoDiv = document.getElementById("userInfo");
         const resultDiv = document.getElementById("rewriteResult");
+
         if (response?.auth === true) {
           hasPermission = true;
           let daysLeftText = "無資料";
+          let expiryDateText = "";
           if (response.expiryDate) {
             daysLeftText = calcDaysLeft(response.expiryDate);
+            const d = new Date(response.expiryDate);
+            const tzOffset = 8 * 60;
+            const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+            const taipeiDate = new Date(utc + (tzOffset * 60000));
+            const yyyy = taipeiDate.getFullYear();
+            const mm = (taipeiDate.getMonth() + 1).toString().padStart(2, "0");
+            const dd = taipeiDate.getDate().toString().padStart(2, "0");
+            expiryDateText = `${yyyy}/${mm}/${dd}`;
           }
-          infoDiv.innerHTML = 
-            `使用者：<strong>${displayName}</strong>` +
-            `<span class="daysLeft">剩餘天數：${daysLeftText}</span>` +
-            (response.expiryDate ? `<span class="expiryDate">到期日：${formatTaipeiDate(response.expiryDate)}</span>` : "");
-          // 啟用改寫按鈕（若已有文字）
+
+          infoDiv.innerHTML = `使用者：<strong>${displayName}</strong>　剩餘天數：<span class="daysLeft">${daysLeftText}</span><span class="expiryDate">到期日：${expiryDateText}</span>`;
+
           const textarea = document.getElementById("originalText");
           const enabled = hasPermission && textarea.value.trim().length >= 8;
           const btn = document.getElementById("rewriteBtn");
@@ -287,9 +290,7 @@
           resultDiv.innerHTML = "";
         } else {
           hasPermission = false;
-          infoDiv.innerHTML = 
-            `使用者：<strong>${displayName}</strong>` +
-            `<span class="daysLeft" style="color:#ff7070;">無權限</span>`;
+          infoDiv.innerHTML = `使用者：<strong>${displayName}</strong>　剩餘天數：<span class="daysLeft">無權限</span>`;
           const btn = document.getElementById("rewriteBtn");
           btn.disabled = true;
           btn.setAttribute('aria-disabled', 'true');
@@ -305,7 +306,7 @@
         const infoDiv = document.getElementById("userInfo");
         const resultDiv = document.getElementById("rewriteResult");
         hasPermission = false;
-        infoDiv.innerHTML = `使用者：<strong>${displayName}</strong><span class="daysLeft" style="color:#ff7070;">無法驗證</span>`;
+        infoDiv.innerHTML = `使用者：<strong>${displayName}</strong>　剩餘天數：<span class="daysLeft">無法驗證</span>`;
         document.getElementById("rewriteBtn").disabled = true;
         document.getElementById("rewriteBtn").setAttribute('aria-disabled', 'true');
         resultDiv.innerHTML = `<div class="error">❌ 權限驗證失敗，請稍後再試。</div>`;
@@ -313,149 +314,75 @@
       document.body.appendChild(script);
     }
 
-    function calcDaysLeft(expiryDate) {
-      if (!expiryDate) return "無資料";
-
-      const expiry = new Date(expiryDate.trim());
-      if (isNaN(expiry.getTime())) return "無效日期";
-
-      const now = new Date();
-
-      // 使用 UTC 只比日期部分
-      const expiryDateUTC = new Date(Date.UTC(expiry.getUTCFullYear(), expiry.getUTCMonth(), expiry.getUTCDate()));
-      const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
-      const diffDays = Math.floor((expiryDateUTC - todayUTC) / (1000 * 60 * 60 * 24));
-
-      if (diffDays > 0) {
-        return `${diffDays} 天`;
-      } else if (diffDays === 0) {
-        // 同一天，顯示時/分/秒倒數
-        const diffMs = expiry.getTime() - now.getTime();
-
-        if (diffMs <= 0) return "已過期";
-
-        const hours = Math.floor(diffMs / (1000 * 60 * 60));
-        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        // const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-
-        const pad = (num) => num.toString().padStart(2, "0");
-
-        return `${pad(hours)} 時 ${pad(minutes)} 分`;
-      } else {
-        return "已過期";
-      }
-    }
-
-    function formatTaipeiDate(dateString) {
-      // 將日期字串轉成 台北時區 年月日格式
-      try {
-        const d = new Date(dateString);
-        if (isNaN(d.getTime())) return "無效日期";
-        // 轉換成台北時間（UTC+8）
-        const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-        const taipeiTime = new Date(utc + 8 * 3600000);
-        const y = taipeiTime.getFullYear();
-        const m = (taipeiTime.getMonth() + 1).toString().padStart(2, "0");
-        const day = taipeiTime.getDate().toString().padStart(2, "0");
-        return `${y} 年 ${m} 月 ${day} 日`;
-      } catch {
-        return "無效日期";
-      }
-    }
-
-    function autoRewrite() {
-      const text = document.getElementById("originalText").value.trim();
-      const topic = document.getElementById("topicSelect").value;
-      const resultDiv = document.getElementById("rewriteResult");
+    // 監聽 textarea 內容變化，控制按鈕可用狀態
+    document.getElementById("originalText").addEventListener("input", () => {
+      const textarea = document.getElementById("originalText");
       const btn = document.getElementById("rewriteBtn");
-      const shareBtn = document.getElementById("shareBtn");
+      const enabled = hasPermission && textarea.value.trim().length >= 8;
+      btn.disabled = !enabled;
+      btn.setAttribute('aria-disabled', !enabled);
+    });
 
-      if (!text || text.length < 8 || btn.disabled) return;
-      if (!liffUserId || !hasPermission) {
-        resultDiv.innerHTML = `<div class="error">⚠️ 尚未登入或無權限。</div>`;
+    async function autoRewrite() {
+      if (!hasPermission) {
+        alert("您尚未獲得使用權限，請聯絡管理者。");
+        return;
+      }
+      const originalText = document.getElementById("originalText").value.trim();
+      if (originalText.length < 8) {
+        alert("請輸入至少8個字的原始文章。");
         return;
       }
 
-      btn.disabled = true;
-      btn.textContent = "✍️ 改寫中...";
-      btn.setAttribute('aria-disabled', 'true');
-      shareBtn.style.display = "none";
-      resultDiv.textContent = "⏳ 改寫中";
+      const topic = document.getElementById("topicSelect").value.trim();
 
-      let dots = 0;
-      loadingInterval = setInterval(() => {
-        dots = (dots + 1) % 4;
-        resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
-      }, 500);
+      const rewriteResult = document.getElementById("rewriteResult");
+      rewriteResult.textContent = "AI 正在思考中，請稍候...";
 
-      window.handleResponse = function(res) {
-        clearInterval(loadingInterval);
-        btn.disabled = false;
-        btn.textContent = "🚀 自動改寫";
-        btn.setAttribute('aria-disabled', 'false');
+      try {
+        // 這邊呼叫你的後端 API 或 OpenAI API
+        // 範例簡易模擬回應：
+        const simulatedResponse = await new Promise(resolve => {
+          setTimeout(() => {
+            let topicText = topic ? `主題：${topic}\n` : "";
+            resolve(`${topicText}改寫後的內容範例：\n${originalText.slice(0, 200)}...`);
+          }, 1500);
+        });
 
-        if (res.error) {
-          resultDiv.innerHTML = `<div class="error">❌ 錯誤：${res.error}</div>`;
-          shareBtn.style.display = "none";
-          return;
-        }
+        rewriteResult.textContent = simulatedResponse;
 
-        let content = (res.content || res.rewrite || "").replace(/。/g, "。\n\n").trim();
-        if (!content) {
-          resultDiv.innerHTML = `<div class="error">⚠️ 伺服器未回傳改寫結果。</div>`;
-          shareBtn.style.display = "none";
-          return;
-        }
-
-        lastRewrite.title = topic || "AI 自動判斷";
-        lastRewrite.content = content;
-
-        resultDiv.textContent = content;
-        shareBtn.style.display = "inline-block";
-        shareBtn.focus();
-      };
-
-      const params = new URLSearchParams({
-        userId: liffUserId,
-        content: text,
-        topic: topic,
-        callback: "handleResponse"
-      });
-
-      const script = document.createElement("script");
-      script.src = `${SCRIPT_URL}?${params.toString()}`;
-      script.onerror = () => {
-        clearInterval(loadingInterval);
-        btn.disabled = false;
-        btn.textContent = "🚀 自動改寫";
-        btn.setAttribute('aria-disabled', 'false');
-        resultDiv.innerHTML = `<div class="error">❌ 請求失敗，請稍後重試。</div>`;
-        shareBtn.style.display = "none";
-      };
-      document.body.appendChild(script);
+        // 顯示分享按鈕
+        document.getElementById("shareBtn").style.display = "block";
+      } catch (e) {
+        rewriteResult.innerHTML = `<div class="error">❌ 伺服器錯誤，請稍後再試。</div>`;
+        console.error(e);
+      }
     }
 
     async function nativeShare() {
-      if (!lastRewrite.content) return alert("請先完成改寫，才能分享。");
-      if (!navigator.share) {
-        alert("抱歉，您的瀏覽器不支援原生分享功能。");
+      const text = document.getElementById("rewriteResult").textContent.trim();
+      if (!text) {
+        alert("沒有可分享的內容。");
         return;
       }
-      try {
-        await navigator.share({
-          title: `彥彬文案改寫工具 - ${lastRewrite.title}`,
-          text: lastRewrite.content,
-          url: window.location.href,
-        });
-      } catch (err) {
-        console.log("分享取消或失敗：", err);
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "彥彬 文案改寫工具 分享",
+            text: text,
+          });
+        } catch (e) {
+          alert("分享失敗或已取消。");
+        }
+      } else {
+        alert("您的瀏覽器不支援原生分享功能。");
       }
     }
 
-    window.addEventListener("load", () => {
-      initLIFF();
-    });
+    // 啟動 LIFF 初始化
+    window.onload = () => {
+      initializeLiff();
+    };
   </script>
 </body>
 </html>
