@@ -53,16 +53,28 @@
       align-items: center;
       gap: 8px;
     }
+    /* 千萬質感：背景漸層、圓角、呼吸光暈 */
     #userInfo .expiry-days {
-      color: #f1c40f;
+      display: inline-block;
+      background: linear-gradient(90deg, rgba(212,175,55,0.2), rgba(212,175,55,0.4));
+      padding: 2px 10px;
+      border-radius: 12px;
       font-weight: 700;
       font-size: 13px;
-      background: none;
-      box-shadow: none;
-      padding: 0;
-      border-radius: 0;
+      color: #fdf6e3;
       letter-spacing: 0.03em;
       margin-left: 6px;
+      box-shadow: 0 0 8px rgba(212,175,55,0.7), 0 0 12px rgba(212,175,55,0.5);
+      animation: glow 2.5s infinite alternate;
+      backdrop-filter: blur(4px);
+    }
+    @keyframes glow {
+      from {
+        box-shadow: 0 0 8px rgba(212,175,55,0.7), 0 0 12px rgba(212,175,55,0.5);
+      }
+      to {
+        box-shadow: 0 0 16px rgba(212,175,55,1), 0 0 24px rgba(212,175,55,0.8);
+      }
     }
     #expiryInfo {
       color: #f1c40f;
@@ -241,6 +253,7 @@
   </main>
 
   <script>
+    // 您的後端 Web App URL (Google Apps Script)
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRYOIicltP81EO6fQB81bCRfoEczp29qqqSbz5HjdzbsZmRrccQgxR6QmikAWuuNGl/exec";
     const LIFF_ID = "2007488640-PbB48ELN";
 
@@ -261,11 +274,15 @@
     async function initLIFF() {
       try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
         const profile = await liff.getProfile();
         const idToken = liff.getDecodedIDToken();
         liffUserId = idToken?.sub || profile?.userId || "";
-        checkPermission(liffUserId, profile?.displayName || "使用者");
+        // 權限檢查：這裡示範用 fetch GET，也可改成 POST，後端需配合
+        checkPermissionFetch(liffUserId, profile?.displayName || "使用者");
         setupInputListener();
       } catch (err) {
         document.getElementById("userInfo").textContent = "⚠️ LIFF 初始化失敗！";
@@ -283,17 +300,37 @@
       });
     }
 
-    function checkPermission(userId, displayName = "使用者") {
-      window.handlePermission = function(response) {
-        const infoDiv = document.getElementById("userInfo");
-        const expiryDiv = document.getElementById("expiryInfo");
-        const resultDiv = document.getElementById("rewriteResult");
-        if (response?.auth) {
+    // 權限檢查：示範 fetch 方式
+    function checkPermissionFetch(userId, displayName = "使用者") {
+      const infoDiv = document.getElementById("userInfo");
+      const expiryDiv = document.getElementById("expiryInfo");
+      const resultDiv = document.getElementById("rewriteResult");
+
+      // 假設後端支援 GET ?userId=...&checkAuth=1，並回傳 JSON { auth: true/false, expiryDate: "YYYY-MM-DD" }
+      const url = new URL(SCRIPT_URL);
+      url.searchParams.set("userId", userId);
+      url.searchParams.set("checkAuth", "1");
+      fetch(url.toString(), {
+        method: 'GET',
+        // 若需要 POST，改為：
+        // method: 'POST',
+        // headers: { 'Content-Type': 'application/json' },
+        // body: JSON.stringify({ userId, checkAuth: 1 })
+      })
+      .then(async res => {
+        if (!res.ok) throw new Error(`Network response was not ok: ${res.status}`);
+        // 若後端回傳 JSONP 字串，需改後端回傳純 JSON 才能用此方式
+        const data = await res.json();
+        if (data.auth) {
           hasPermission = true;
           infoDiv.textContent = `👤 使用者：${displayName}`;
-          if (response.expiryDate) {
-            const expiryDateObj = new Date(response.expiryDate);
-            const taipeiFmt = new Intl.DateTimeFormat('zh-TW',{year:'numeric',month:'numeric',day:'numeric',timeZone:'Asia/Taipei'});
+          // 清除舊的 expiry-days
+          const oldSpan = infoDiv.querySelector('.expiry-days');
+          if (oldSpan) oldSpan.remove();
+
+          if (data.expiryDate) {
+            const expiryDateObj = new Date(data.expiryDate);
+            const taipeiFmt = new Intl.DateTimeFormat('zh-TW', { year:'numeric', month:'numeric', day:'numeric', timeZone:'Asia/Taipei' });
             const formatted = taipeiFmt.format(expiryDateObj);
             const rem = calcRemainingDays(expiryDateObj);
             const span = document.createElement('span');
@@ -311,25 +348,26 @@
           resultDiv.innerHTML = `<div class="error">⛔ 您尚未開通使用權限，請聯絡管理者。</div>`;
         }
         document.getElementById("rewriteBtn").disabled = !hasPermission;
-      };
-
-      const script = document.createElement("script");
-      script.src = `${SCRIPT_URL}?userId=${userId}&checkAuth=1&callback=handlePermission`;
-      script.onerror = () => {
-        document.getElementById("userInfo").textContent = `👤 使用者：${displayName} ⚠️ 驗證失敗`;
+      })
+      .catch(err => {
+        console.error("權限驗證錯誤", err);
+        infoDiv.textContent = `👤 使用者：${displayName} ⚠️ 驗證失敗`;
         document.getElementById("rewriteBtn").disabled = true;
-        document.getElementById("rewriteResult").innerHTML = `<div class="error">❌ 權限驗證失敗，請稍後再試。</div>`;
-      };
-      document.body.appendChild(script);
+        resultDiv.innerHTML = `<div class="error">❌ 權限驗證失敗，請稍後再試。</div>`;
+      });
     }
 
-    function autoRewrite() {
-      const text = document.getElementById("originalText").value.trim();
+    // 自動改寫：改用 fetch 向後端請求 AI 服務
+    async function autoRewrite() {
+      const textEl = document.getElementById("originalText");
+      const text = textEl.value.trim();
       const topic = document.getElementById("topicSelect").value;
       const resultDiv = document.getElementById("rewriteResult");
       const btn = document.getElementById("rewriteBtn");
       const shareBtn = document.getElementById("shareBtn");
       if (!text || text.length < 8 || btn.disabled) return;
+
+      // 開始 loading 狀態
       btn.disabled = true;
       btn.textContent = "✍️ 改寫中...";
       shareBtn.style.display = "none";
@@ -340,65 +378,90 @@
         resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
       }, 500);
 
+      // network error fallback
       const errorTimeout = setTimeout(() => {
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
         resultDiv.innerHTML = `<div class="error">❌ 網路錯誤，請稍後再試。</div>`;
-      }, 15000);
+      }, 20000);
 
-      window.handleResponse = function(res) {
-        clearInterval(loadingInterval);
+      try {
+        // 假設後端支援 POST JSON，回傳 { result: "改寫後文字", error: null }
+        const payload = {
+          userId: liffUserId,
+          originalText: text,
+          topic: topic,
+          action: "rewrite"  // 可讓後端識別動作
+        };
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(`Network response was not ok: ${res.status}`);
+        const data = await res.json();
         clearTimeout(errorTimeout);
+        clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        if (res.error) {
-          resultDiv.innerHTML = `<div class="error">❌ ${res.error}</div>`;
+
+        if (data.error) {
+          resultDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
           return;
         }
-        if (!res.result.trim()) {
+        if (!data.result || !data.result.trim()) {
           resultDiv.innerHTML = `<div class="error">❌ 未取得改寫結果，請稍後再試。</div>`;
           return;
         }
-        resultDiv.textContent = res.result;
+        // 成功取得改寫結果
+        resultDiv.textContent = data.result;
         shareBtn.style.display = "inline-block";
         lastRewrite.title = topic || "(未分類)";
-        lastRewrite.content = res.result;
-        sendLogToSheet(liffUserId, text, res.result, lastRewrite.title);
-      };
+        lastRewrite.content = data.result;
 
-      const url = new URL(SCRIPT_URL);
-      url.searchParams.set("userId", liffUserId);
-      url.searchParams.set("originalText", text);
-      url.searchParams.set("topic", topic);
-      url.searchParams.set("callback", "handleResponse");
-
-      const script = document.createElement("script");
-      script.src = url.toString();
-      script.onerror = () => {
-        clearInterval(loadingInterval);
+        // 送出紀錄到工作表
+        sendLogToSheet(text, data.result, lastRewrite.title);
+      } catch (err) {
+        console.error("autoRewrite 錯誤", err);
         clearTimeout(errorTimeout);
+        clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        resultDiv.innerHTML = `<div class="error">❌ 網路錯誤，請稍後再試。</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ ${err.message || "改寫失敗"}，請稍後再試。</div>`;
+      }
+    }
+
+    // 寫入工作表：改用 fetch POST
+    async function sendLogToSheet(originalText, rewrittenText, topic) {
+      // 假設後端同一個 SCRIPT_URL，透過 action 區分
+      const payload = {
+        userId: liffUserId,
+        logOriginal: originalText,
+        logRewrite: rewrittenText,
+        logTopic: topic,
+        action: "log"  // 讓後端知道要寫入日誌
       };
-      document.body.appendChild(script);
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          console.warn("紀錄失敗 HTTP:", res.status);
+          return;
+        }
+        const data = await res.json();
+        if (data.status !== "success") {
+          console.warn("紀錄失敗，後端回傳：", data);
+        }
+      } catch (err) {
+        console.error("sendLogToSheet 錯誤", err);
+      }
     }
 
-    function sendLogToSheet(userId, originalText, rewrittenText, topic) {
-      const url = new URL(SCRIPT_URL);
-      url.searchParams.set("logUserId", userId);
-      url.searchParams.set("logOriginal", originalText);
-      url.searchParams.set("logRewrite", rewrittenText);
-      url.searchParams.set("logTopic", topic);
-      fetch(url.toString())
-        .then(res => res.json())
-        .then(data => {
-          if (data.status !== "success") console.warn("紀錄失敗", data);
-        })
-        .catch(err => console.error("紀錄錯誤", err));
-    }
-
+    // 分享功能保留不變
     function nativeShare() {
       if (!lastRewrite.content) return;
       if (navigator.share) {
