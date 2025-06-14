@@ -253,7 +253,6 @@
   </main>
 
   <script>
-    // 您的後端 Web App URL (Google Apps Script)
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRYOIicltP81EO6fQB81bCRfoEczp29qqqSbz5HjdzbsZmRrccQgxR6QmikAWuuNGl/exec";
     const LIFF_ID = "2007488640-PbB48ELN";
 
@@ -274,15 +273,12 @@
     async function initLIFF() {
       try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
+        if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         const idToken = liff.getDecodedIDToken();
         liffUserId = idToken?.sub || profile?.userId || "";
-        // 權限檢查：這裡示範用 fetch GET，也可改成 POST，後端需配合
-        checkPermissionFetch(liffUserId, profile?.displayName || "使用者");
+        // 改回 JSONP 權限檢查
+        checkPermission(liffUserId, profile.displayName);
         setupInputListener();
       } catch (err) {
         document.getElementById("userInfo").textContent = "⚠️ LIFF 初始化失敗！";
@@ -291,83 +287,75 @@
     }
 
     function setupInputListener() {
-      const textarea = document.getElementById("originalText");
-      textarea.addEventListener("input", () => {
-        const val = textarea.value.trim();
+      const ta = document.getElementById("originalText");
+      ta.addEventListener("input", () => {
         const btn = document.getElementById("rewriteBtn");
-        const enabled = hasPermission && val.length >= 8;
-        btn.disabled = !enabled;
+        btn.disabled = !(hasPermission && ta.value.trim().length >= 8);
       });
     }
 
-    // 權限檢查：示範 fetch 方式
-    function checkPermissionFetch(userId, displayName = "使用者") {
-      const infoDiv = document.getElementById("userInfo");
-      const expiryDiv = document.getElementById("expiryInfo");
-      const resultDiv = document.getElementById("rewriteResult");
+    function checkPermission(userId, displayName = "使用者") {
+      window.handlePermission = function(response) {
+        const infoDiv = document.getElementById("userInfo");
+        const expiryDiv = document.getElementById("expiryInfo");
+        const resultDiv = document.getElementById("rewriteResult");
+        // 清除舊 JSONP script
+        const old = document.getElementById("authScript");
+        if (old) old.remove();
 
-      // 假設後端支援 GET ?userId=...&checkAuth=1，並回傳 JSON { auth: true/false, expiryDate: "YYYY-MM-DD" }
-      const url = new URL(SCRIPT_URL);
-      url.searchParams.set("userId", userId);
-      url.searchParams.set("checkAuth", "1");
-      fetch(url.toString(), {
-        method: 'GET',
-        // 若需要 POST，改為：
-        // method: 'POST',
-        // headers: { 'Content-Type': 'application/json' },
-        // body: JSON.stringify({ userId, checkAuth: 1 })
-      })
-      .then(async res => {
-        if (!res.ok) throw new Error(`Network response was not ok: ${res.status}`);
-        // 若後端回傳 JSONP 字串，需改後端回傳純 JSON 才能用此方式
-        const data = await res.json();
-        if (data.auth) {
+        if (response?.auth) {
           hasPermission = true;
           infoDiv.textContent = `👤 使用者：${displayName}`;
-          // 清除舊的 expiry-days
-          const oldSpan = infoDiv.querySelector('.expiry-days');
-          if (oldSpan) oldSpan.remove();
+          // 移除舊的 badge
+          const oldBadge = infoDiv.querySelector(".expiry-days");
+          if (oldBadge) oldBadge.remove();
 
-          if (data.expiryDate) {
-            const expiryDateObj = new Date(data.expiryDate);
-            const taipeiFmt = new Intl.DateTimeFormat('zh-TW', { year:'numeric', month:'numeric', day:'numeric', timeZone:'Asia/Taipei' });
-            const formatted = taipeiFmt.format(expiryDateObj);
-            const rem = calcRemainingDays(expiryDateObj);
-            const span = document.createElement('span');
-            span.className = 'expiry-days';
-            span.textContent = rem > 0 ? `剩餘 ${rem} 天` : '已過期';
+          if (response.expiryDate) {
+            const expObj = new Date(response.expiryDate);
+            // 轉換台北時間顯示
+            const taipeiFmt = new Intl.DateTimeFormat('zh-TW', {
+              year:'numeric', month:'numeric', day:'numeric', timeZone:'Asia/Taipei'
+            });
+            const formatted = taipeiFmt.format(expObj);
+            const rem = calcRemainingDays(expObj);
+            // 新增 badge
+            const span = document.createElement("span");
+            span.className = "expiry-days";
+            span.textContent = rem > 0 ? `剩餘 ${rem} 天` : "已過期";
             infoDiv.appendChild(span);
             expiryDiv.textContent = `⏳ 到期日：${formatted}`;
           } else {
-            expiryDiv.textContent = '⏳ 到期日：無資料';
+            expiryDiv.textContent = "⏳ 到期日：無資料";
           }
         } else {
           hasPermission = false;
-          infoDiv.textContent = `👤 使用者：${displayName} ⛔ 無權限`;
-          expiryDiv.textContent = '';
+          infoDiv.textContent = `👤 使用者：${displayName}　⛔ 無權限`;
+          expiryDiv.textContent = "";
           resultDiv.innerHTML = `<div class="error">⛔ 您尚未開通使用權限，請聯絡管理者。</div>`;
         }
         document.getElementById("rewriteBtn").disabled = !hasPermission;
-      })
-      .catch(err => {
-        console.error("權限驗證錯誤", err);
-        infoDiv.textContent = `👤 使用者：${displayName} ⚠️ 驗證失敗`;
+      };
+
+      const script = document.createElement("script");
+      script.id = "authScript";
+      script.src = `${SCRIPT_URL}?userId=${userId}&checkAuth=1&callback=handlePermission`;
+      script.onerror = () => {
+        document.getElementById("userInfo").textContent = `👤 使用者：${displayName}　⚠️ 驗證失敗`;
         document.getElementById("rewriteBtn").disabled = true;
-        resultDiv.innerHTML = `<div class="error">❌ 權限驗證失敗，請稍後再試。</div>`;
-      });
+        document.getElementById("rewriteResult").innerHTML = `<div class="error">❌ 權限驗證失敗，請稍後再試。</div>`;
+      };
+      document.body.appendChild(script);
     }
 
-    // 自動改寫：改用 fetch 向後端請求 AI 服務
+    // 以下保持原本 fetch 改寫與紀錄邏輯，不影響權限顯示
     async function autoRewrite() {
-      const textEl = document.getElementById("originalText");
-      const text = textEl.value.trim();
+      const text = document.getElementById("originalText").value.trim();
       const topic = document.getElementById("topicSelect").value;
       const resultDiv = document.getElementById("rewriteResult");
       const btn = document.getElementById("rewriteBtn");
       const shareBtn = document.getElementById("shareBtn");
       if (!text || text.length < 8 || btn.disabled) return;
 
-      // 開始 loading 狀態
       btn.disabled = true;
       btn.textContent = "✍️ 改寫中...";
       shareBtn.style.display = "none";
@@ -378,7 +366,6 @@
         resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
       }, 500);
 
-      // network error fallback
       const errorTimeout = setTimeout(() => {
         clearInterval(loadingInterval);
         btn.disabled = false;
@@ -387,19 +374,13 @@
       }, 20000);
 
       try {
-        // 假設後端支援 POST JSON，回傳 { result: "改寫後文字", error: null }
-        const payload = {
-          userId: liffUserId,
-          originalText: text,
-          topic: topic,
-          action: "rewrite"  // 可讓後端識別動作
-        };
+        const payload = { userId: liffUserId, originalText: text, topic, action: "rewrite" };
         const res = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error(`Network response was not ok: ${res.status}`);
+        if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
         clearTimeout(errorTimeout);
         clearInterval(loadingInterval);
@@ -408,60 +389,39 @@
 
         if (data.error) {
           resultDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
-          return;
-        }
-        if (!data.result || !data.result.trim()) {
+        } else if (!data.result.trim()) {
           resultDiv.innerHTML = `<div class="error">❌ 未取得改寫結果，請稍後再試。</div>`;
-          return;
+        } else {
+          resultDiv.textContent = data.result;
+          shareBtn.style.display = "inline-block";
+          lastRewrite = { title: topic || "(未分類)", content: data.result };
+          sendLogToSheet(text, data.result, lastRewrite.title);
         }
-        // 成功取得改寫結果
-        resultDiv.textContent = data.result;
-        shareBtn.style.display = "inline-block";
-        lastRewrite.title = topic || "(未分類)";
-        lastRewrite.content = data.result;
-
-        // 送出紀錄到工作表
-        sendLogToSheet(text, data.result, lastRewrite.title);
-      } catch (err) {
-        console.error("autoRewrite 錯誤", err);
+      } catch (e) {
+        console.error(e);
         clearTimeout(errorTimeout);
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        resultDiv.innerHTML = `<div class="error">❌ ${err.message || "改寫失敗"}，請稍後再試。</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ ${e.message}，請稍後再試。</div>`;
       }
     }
 
-    // 寫入工作表：改用 fetch POST
     async function sendLogToSheet(originalText, rewrittenText, topic) {
-      // 假設後端同一個 SCRIPT_URL，透過 action 區分
-      const payload = {
-        userId: liffUserId,
-        logOriginal: originalText,
-        logRewrite: rewrittenText,
-        logTopic: topic,
-        action: "log"  // 讓後端知道要寫入日誌
-      };
       try {
+        const payload = { userId: liffUserId, logOriginal: originalText, logRewrite: rewrittenText, logTopic: topic, action: "log" };
         const res = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        if (!res.ok) {
-          console.warn("紀錄失敗 HTTP:", res.status);
-          return;
-        }
         const data = await res.json();
-        if (data.status !== "success") {
-          console.warn("紀錄失敗，後端回傳：", data);
-        }
-      } catch (err) {
-        console.error("sendLogToSheet 錯誤", err);
+        if (data.status !== "success") console.warn("紀錄失敗", data);
+      } catch (e) {
+        console.error("sendLogToSheet 錯誤", e);
       }
     }
 
-    // 分享功能保留不變
     function nativeShare() {
       if (!lastRewrite.content) return;
       if (navigator.share) {
