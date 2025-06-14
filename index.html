@@ -32,187 +32,157 @@
       flex-direction: column;
       position: relative;
     }
-
-    #userInfo {
-      margin-bottom: 18px;
-      text-align: center;
+    /* 多語系切換按鈕 */
+    #langSelect {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      font-size: 14px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: #333;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(255,255,255,0.1);
     }
+    #langSelect:hover { background: #444; }
+
+    #userInfo { margin-bottom: 18px; text-align: center; }
     #userInfo .name {
-      font-size: 24px;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 8px;
-      text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(255, 255, 255, 0.4);
+      font-size: 24px; font-weight: 800; color: #ffffff; margin-bottom: 8px;
+      text-shadow: 0 0 12px rgba(255,255,255,0.8), 0 0 24px rgba(255,255,255,0.4);
     }
     .daysWrapper {
-      display: inline-block;
-      padding: 8px 20px;
-      border-radius: 20px;
-      box-shadow: 0 0 14px rgba(255, 255, 255, 0.9), inset 0 0 10px rgba(0,0,0,0.1);
+      display: inline-block; padding: 8px 20px; border-radius: 20px;
+      box-shadow: 0 0 14px rgba(255,255,255,0.9), inset 0 0 10px rgba(0,0,0,0.1);
       background: linear-gradient(135deg, #ffffff, #e0e0e0);
-      color: #111;
-      font-size: 22px;
-      font-weight: 700;
+      color: #111; font-size: 22px; font-weight: 700;
     }
-  .daysWrapper.danger {
-  background: linear-gradient(135deg, #ffb6b9, #ff6f61);
-  color: #fff0f0;
-  text-shadow: 0 0 6px rgba(255, 182, 193, 0.6);
-  box-shadow:
-    0 0 14px rgba(255, 182, 193, 0.6),
-    inset 0 0 12px rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 192, 203, 0.4);
-}
+    .daysWrapper.danger {
+      background: linear-gradient(135deg, #ffb6b9, #ff6f61);
+      color: #fff0f0;
+      text-shadow: 0 0 6px rgba(255,182,193,0.6);
+      box-shadow:
+        0 0 14px rgba(255,182,193,0.6),
+        inset 0 0 12px rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,192,203,0.4);
+    }
     #userInfo .expiry {
-      font-size: 15px;
-      color: #dddddd;
-      margin-top: 6px;
-      display: block;
-      letter-spacing: 0.04em;
-      text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+      font-size: 15px; color: #dddddd; margin-top: 6px;
+      display: block; letter-spacing: 0.04em;
+      text-shadow: 0 0 6px rgba(255,255,255,0.3);
     }
-
     h2 {
-      margin-bottom: 24px;
-      color: #fafafa;
-      font-weight: 700;
-      font-size: 24px;
-      line-height: 1.3;
-      text-align: center;
-      letter-spacing: 0.05em;
+      margin-bottom: 24px; color: #fafafa; font-weight: 700;
+      font-size: 24px; line-height: 1.3;
+      text-align: center; letter-spacing: 0.05em;
       text-shadow: 0 0 8px #4a90e2, 0 0 18px #4a90e2;
     }
     h2 small {
-      display: block;
-      font-weight: 400;
-      font-size: 14px;
-      color: #99aabb;
-      margin-top: 4px;
-      line-height: 1.2;
+      display: block; font-weight: 400; font-size: 14px;
+      color: #99aabb; margin-top: 4px; line-height: 1.2;
     }
-
     textarea {
-      font-size: 16px;
-      line-height: 1.5;
-      padding: 16px 18px;
-      border-radius: 12px;
-      border: none;
-      resize: vertical;
-      min-height: 140px;
-      background: #222831;
-      color: #f5f5f5;
+      font-size: 16px; line-height: 1.5; padding: 16px 18px;
+      border-radius: 12px; border: none; resize: vertical;
+      min-height: 140px; background: #222831; color: #f5f5f5;
       box-shadow: inset 0 0 12px #395B64, 0 2px 6px rgba(0,0,0,0.5);
-      transition: box-shadow 0.3s ease;
-      margin-bottom: 20px;
+      transition: box-shadow 0.3s ease; margin-bottom: 20px;
       letter-spacing: 0.03em;
     }
     textarea:focus {
       outline: none;
-      box-shadow: inset 0 0 16px #74b9ff, 0 4px 12px rgba(116, 185, 255, 0.7);
-      background: #1e272e;
-      color: #dcdde1;
+      box-shadow: inset 0 0 16px #74b9ff, 0 4px 12px rgba(116,185,255,0.7);
+      background: #1e272e; color: #dcdde1;
     }
-
     label {
-      font-weight: 600;
-      margin-bottom: 8px;
-      display: block;
-      letter-spacing: 0.04em;
-      color: #dcdcdc;
-      text-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+      font-weight: 600; margin-bottom: 8px; display: block;
+      letter-spacing: 0.04em; color: #dcdcdc;
+      text-shadow: 0 0 4px rgba(0,0,0,0.3);
     }
-    select {
+    select, button {
       font-size: 16px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: none;
-      background: #222831;
-      color: #f0f0f0;
+      padding: 12px;
+      border-radius: 12px; border: none;
       margin-bottom: 24px;
       width: 100%;
+      letter-spacing: 0.03em;
+    }
+    select {
+      background: #222831; color: #f0f0f0;
       cursor: pointer;
       box-shadow: inset 0 0 12px #395B64, 0 2px 6px rgba(0,0,0,0.5);
       transition: box-shadow 0.3s ease;
-      letter-spacing: 0.03em;
     }
     select:hover, select:focus {
       outline: none;
-      box-shadow: inset 0 0 16px #74b9ff, 0 4px 12px rgba(116, 185, 255, 0.7);
+      box-shadow: inset 0 0 16px #74b9ff, 0 4px 12px rgba(116,185,255,0.7);
       background: #1e272e;
     }
-
     button {
-      font-weight: 600;
-      font-size: 17px;
-      padding: 14px 26px;
-      border-radius: 14px;
-      border: none;
-      cursor: pointer;
+      font-weight: 600; font-size: 17px;
+      padding: 14px 26px; cursor: pointer;
       transition: background-color 0.3s ease, box-shadow 0.3s ease;
-      box-shadow: 0 6px 12px rgba(74, 144, 226, 0.6);
-      letter-spacing: 0.04em;
+      box-shadow: 0 6px 12px rgba(74,144,226,0.6);
       color: #fff;
       background: linear-gradient(135deg, #4a90e2, #357ABD);
-      text-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+      text-shadow: 0 0 4px rgba(0,0,0,0.4);
       margin-bottom: 14px;
     }
     button:hover:not(:disabled) {
       background: linear-gradient(135deg, #5aa0ff, #4d83e1);
-      box-shadow: 0 8px 18px rgba(74, 144, 226, 0.8);
+      box-shadow: 0 8px 18px rgba(74,144,226,0.8);
     }
     button:disabled {
-      background: #444444;
-      cursor: not-allowed;
-      opacity: 0.7;
-      box-shadow: none;
+      background: #444444; cursor: not-allowed; opacity: 0.7; box-shadow: none;
     }
     #shareBtn {
       background: linear-gradient(135deg, #27ae60, #2ecc71);
-      box-shadow: 0 6px 14px rgba(39, 174, 96, 0.7);
+      box-shadow: 0 6px 14px rgba(39,174,96,0.7);
       display: none;
       color: #f0f9f1;
-      text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 0 5px rgba(0,0,0,0.5);
     }
     #shareBtn:hover {
       background: linear-gradient(135deg, #3acf7d, #47d88d);
-      box-shadow: 0 9px 22px rgba(39, 174, 96, 0.9);
+      box-shadow: 0 9px 22px rgba(39,174,96,0.9);
     }
-
     #rewriteResult {
-      white-space: pre-wrap;
-      font-size: 16px;
-      line-height: 1.6;
-      background: #181818;
-      border-radius: 14px;
-      padding: 20px;
-      min-height: 140px;
-      color: #ccc;
+      white-space: pre-wrap; font-size: 16px; line-height: 1.6;
+      background: #181818; border-radius: 14px; padding: 20px;
+      min-height: 140px; color: #ccc;
       box-shadow: inset 0 0 12px #222222;
       letter-spacing: 0.03em;
     }
     .error {
-      color: #ff6b6b;
-      font-weight: 700;
+      color: #ff6b6b; font-weight: 700;
       text-shadow: 0 0 8px rgba(255,107,107,0.6);
     }
   </style>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
   <main class="card">
+    <select id="langSelect" onchange="changeLang()">
+      <option value="zh-Hant">繁體中文</option>
+      <option value="zh-Hans">简体中文</option>
+      <option value="en">English</option>
+      <option value="vi">Tiếng Việt</option>
+    </select>
+
     <div id="userInfo"></div>
 
-    <h2>📘 『彥彬 文案改寫』<br><small>✍️ 貼上 自動改寫</small></h2>
+    <h2 id="headerTitle">📘 『彥彬 文案改寫』<br><small>✍️ 貼上 自動改寫</small></h2>
 
     <textarea id="originalText" placeholder="請貼上原始文章..."></textarea>
 
-    <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
+    <label for="topicSelect" id="labelTopic">選擇分類主題（可AI自動判斷）：</label>
     <select id="topicSelect">
       <option value="">AI 自動判斷</option>
-      <option>人生成長</option>
-      <option>情感故事</option>
-      <option>健康養生</option>
-      <option>財富商機</option>
+      <option value="人生成長">人生成長</option>
+      <option value="情感故事">情感故事</option>
+      <option value="健康養生">健康養生</option>
+      <option value="財富商機">財富商機</option>
     </select>
 
     <button id="rewriteBtn" onclick="autoRewrite()" disabled>🚀 自動改寫</button>
@@ -222,7 +192,54 @@
     <div id="bottomSpacer" style="height:60px;"></div>
   </main>
 
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
+    const langMap = {
+      "zh-Hant": {
+        title: "📘 『彥彬 文案改寫』",
+        subtitle: "✍️ 貼上 自動改寫",
+        placeholder: "請貼上原始文章...",
+        label: "選擇分類主題（可AI自動判斷）：",
+        rewriteBtn: "🚀 自動改寫",
+        shareBtn: "📤 分享文案"
+      },
+      "zh-Hans": {
+        title: "📘 『彦彬 文案改写』",
+        subtitle: "✍️ 粘贴 自动改写",
+        placeholder: "请粘贴原始文章...",
+        label: "选择分类主题（可AI自动判断）：",
+        rewriteBtn: "🚀 自动改写",
+        shareBtn: "📤 分享文案"
+      },
+      "en": {
+        title: "📘 'Yanbin Copy Rewriter'",
+        subtitle: "✍️ Paste to rewrite automatically",
+        placeholder: "Paste your original text here...",
+        label: "Choose topic category (or let AI decide):",
+        rewriteBtn: "🚀 Rewrite Automatically",
+        shareBtn: "📤 Share Copy"
+      },
+      "vi": {
+        title: "📘 'Yanbin Viết lại văn bản'",
+        subtitle: "✍️ Dán để viết lại tự động",
+        placeholder: "Vui lòng dán văn bản gốc...",
+        label: "Chọn chủ đề (hoặc để AI tự động):",
+        rewriteBtn: "🚀 Viết lại",
+        shareBtn: "📤 Chia sẻ nội dung"
+      }
+    };
+
+    function changeLang() {
+      const lang = document.getElementById('langSelect').value;
+      const map = langMap[lang] || langMap['zh-Hant'];
+      document.querySelector('#headerTitle').innerHTML = `${map.title}<br><small>${map.subtitle}</small>`;
+      document.querySelector('#originalText').placeholder = map.placeholder;
+      document.querySelector('#labelTopic').textContent = map.label;
+      document.querySelector('#rewriteBtn').textContent = map.rewriteBtn;
+      document.querySelector('#shareBtn').textContent = map.shareBtn;
+    }
+
+    // LIFF & 改寫邏輯整合
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRYOIicltP81EO6fQB81bCRfoEczp29qqqSbz5HjdzbsZmRrccQgxR6QmikAWuuNGl/exec";
     const LIFF_ID = "2007475335-Vb5Nrpg2";
     let liffUserId = "", hasPermission = false, lastRewrite = {}, loadingInterval = null;
@@ -253,7 +270,7 @@
             <div class="expiry"> 到期日：${formatTaipeiDate(res.expiryDate)}</div>
           `;
           resultDiv.innerHTML = "";
-          rewriteBtn.disabled = false;
+          document.getElementById("rewriteBtn").disabled = false;
         } else {
           infoDiv.innerHTML = `<div class="name">👑 使用者：${displayName}</div><div class="daysWrapper">無權限</div>`;
           resultDiv.innerHTML = `<div class="error">⛔ 尚未開通使用權限</div>`;
@@ -276,7 +293,7 @@
       return isNaN(d.getTime()) ? "無效日期" : d.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Taipei' });
     }
 
- function autoRewrite() {
+    function autoRewrite() {
       const text = document.getElementById("originalText").value.trim();
       const topic = document.getElementById("topicSelect").value;
       const resultDiv = document.getElementById("rewriteResult");
@@ -290,10 +307,9 @@
       }
 
       btn.disabled = true;
-      btn.textContent = "✍️ 改寫中...";
+      btn.textContent = langMap[document.getElementById('langSelect').value].rewriteBtn + "...";
       shareBtn.style.display = "none";
       resultDiv.textContent = "⏳ 改寫中";
-
       let dots = 0;
       loadingInterval = setInterval(() => {
         dots = (dots + 1) % 4;
@@ -303,7 +319,7 @@
       window.handleResponse = function(res) {
         clearInterval(loadingInterval);
         btn.disabled = false;
-        btn.textContent = "🚀 自動改寫";
+        btn.textContent = langMap[document.getElementById('langSelect').value].rewriteBtn;
 
         if (res.error) {
           resultDiv.innerHTML = `<div class="error">❌ 錯誤：${res.error}</div>`;
@@ -331,7 +347,7 @@
       script.onerror = () => {
         clearInterval(loadingInterval);
         btn.disabled = false;
-        btn.textContent = "🚀 自動改寫";
+        btn.textContent = langMap[document.getElementById('langSelect').value].rewriteBtn;
         resultDiv.innerHTML = `<div class="error">❌ 無法取得回應，請稍後再試。</div>`;
       };
       document.body.appendChild(script);
@@ -349,9 +365,6 @@
       if (navigator.share) navigator.share(shareData).catch(() => alert("分享失敗"));
       else navigator.clipboard.writeText(shareData.text).then(() => alert("已複製到剪貼簿"));
     }
-
-    window.onload = initLIFF;
-
   </script>
 </body>
 </html>
