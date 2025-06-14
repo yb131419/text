@@ -181,13 +181,13 @@
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) {
           liff.login();
-        } else {
-          const profile = await liff.getProfile();
-          const idToken = liff.getDecodedIDToken();
-          liffUserId = idToken?.sub || profile?.userId || "";
-          checkPermission(liffUserId, profile?.displayName || "使用者");
-          setupInputListener();
+          return;
         }
+        const profile = await liff.getProfile();
+        const idToken = liff.getDecodedIDToken();
+        liffUserId = idToken?.sub || profile?.userId || "";
+        checkPermission(liffUserId, profile?.displayName || "使用者");
+        setupInputListener();
       } catch (err) {
         alert("LIFF 初始化失敗！");
         console.error(err);
@@ -270,15 +270,13 @@
       if (diffDays > 0) {
         return `${diffDays} 天`;
       } else if (diffDays === 0) {
-        // 同一天，顯示時/分/秒倒數
+        // 同一天，顯示時/分倒數
         const diffMs = expiry.getTime() - now.getTime();
 
         if (diffMs <= 0) return "已過期";
 
         const hours = Math.floor(diffMs / (1000 * 60 * 60));
         const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-
         const pad = (num) => num.toString().padStart(2, "0");
 
         return `${pad(hours)} 時 ${pad(minutes)} 分`;
