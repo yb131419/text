@@ -8,7 +8,6 @@
   <style>
     /* 字體使用 Google Roboto，適合高級感 */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-
     /* Reset */
     * {
       box-sizing: border-box;
@@ -205,11 +204,8 @@
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
     <div id="userInfo" aria-live="polite" aria-atomic="true">👤 載入中…</div>
     <div id="expiryInfo" aria-live="polite" aria-atomic="true">⏳ <strong>到期日：</strong> 2025年6月16日</div>
-
     <h2><span class="emoji">📘</span>彥彬 文案改寫<br><span style="font-weight:400; font-size:14px; color:#99aabb;">貼上文字，自動改寫</span></h2>
-
     <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="輸入原始文章"></textarea>
-
     <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
     <select id="topicSelect" aria-label="選擇分類主題">
       <option value="">AI 自動判斷</option>
@@ -218,26 +214,21 @@
       <option>健康養生</option>
       <option>財富商機</option>
     </select>
-
     <button id="rewriteBtn" onclick="autoRewrite()" disabled aria-disabled="true" aria-live="polite" aria-atomic="true">
       🚀 自動改寫
     </button>
     <button id="shareBtn" onclick="nativeShare()" aria-label="分享改寫後文案">
       📤 分享文案
     </button>
-
     <div id="rewriteResult" role="region" aria-live="polite" aria-atomic="true"></div>
   </main>
-
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRYOIicltP81EO6fQB81bCRfoEczp29qqqSbz5HjdzbsZmRrccQgxR6QmikAWuuNGl/exec";
     const LIFF_ID = "2007488640-PbB48ELN";
-
     let liffUserId = "";
     let hasPermission = false;
     let lastRewrite = { title: "", content: "" };
     let loadingInterval = null;
-
     async function initLIFF() {
       try {
         await liff.init({ liffId: LIFF_ID });
@@ -256,7 +247,6 @@
         document.getElementById("userInfo").textContent = "⚠️ LIFF 初始化失敗！";
       }
     }
-
     function setupInputListener() {
       const textarea = document.getElementById("originalText");
       textarea.addEventListener("input", () => {
@@ -267,11 +257,9 @@
         btn.setAttribute('aria-disabled', !enabled);
       });
     }
-
     function checkPermission(userId, displayName = "使用者") {
       const old = document.getElementById("authScript");
       if (old) old.remove();
-
       window.handlePermission = function(response) {
         const infoDiv = document.getElementById("userInfo");
         const resultDiv = document.getElementById("rewriteResult");
@@ -281,7 +269,7 @@
           if (response.expiryDate) {
             daysLeftText = calcDaysLeft(response.expiryDate);
           }
-          infoDiv.textContent = `👤 使用者：${displayName}　🕒 剩餘天數：${daysLeftText}`;
+          infoDiv.textContent = `👤 使用者：${displayName}　\n🕒 剩餘天數：${daysLeftText}`;
           const textarea = document.getElementById("originalText");
           const enabled = hasPermission && textarea.value.trim().length >= 8;
           const btn = document.getElementById("rewriteBtn");
@@ -297,7 +285,6 @@
           resultDiv.innerHTML = `<div class="error">⛔ 抱歉，您尚未開通使用權限，請聯絡管理者。</div>`;
         }
       };
-
       const script = document.createElement("script");
       script.id = "authScript";
       const params = new URLSearchParams({ userId, checkAuth: "1", callback: "handlePermission" });
@@ -313,89 +300,70 @@
       };
       document.body.appendChild(script);
     }
-
     function calcDaysLeft(expiryDate) {
       if (!expiryDate) return "無資料";
-
       const expiry = new Date(expiryDate.trim());
       if (isNaN(expiry.getTime())) return "無效日期";
-
       const now = new Date();
-
       // 用 UTC 日期比較避免時區誤差
       const expiryDateUTC = new Date(Date.UTC(expiry.getUTCFullYear(), expiry.getUTCMonth(), expiry.getUTCDate()));
       const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
       const diffDays = Math.floor((expiryDateUTC - todayUTC) / (1000 * 60 * 60 * 24));
-
       if (diffDays > 0) {
         return `${diffDays} 天`;
       } else if (diffDays === 0) {
         const diffMs = expiry.getTime() - now.getTime();
-
         if (diffMs <= 0) return "已過期";
-
         const hours = Math.floor(diffMs / (1000 * 60 * 60));
         const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
         const pad = (num) => num.toString().padStart(2, "0");
-
         return `${pad(hours)} 時 ${pad(minutes)} 分`;
       } else {
         return "已過期";
       }
     }
-
     function autoRewrite() {
       const text = document.getElementById("originalText").value.trim();
       const topic = document.getElementById("topicSelect").value;
       const resultDiv = document.getElementById("rewriteResult");
       const btn = document.getElementById("rewriteBtn");
       const shareBtn = document.getElementById("shareBtn");
-
       if (!text || text.length < 8 || btn.disabled) return;
       if (!liffUserId || !hasPermission) {
         resultDiv.innerHTML = `<div class="error">⚠️ 尚未登入或無權限。</div>`;
         return;
       }
-
       btn.disabled = true;
       btn.textContent = "✍️ 改寫中...";
       btn.setAttribute('aria-disabled', 'true');
       shareBtn.style.display = "none";
       resultDiv.textContent = "⏳ 改寫中";
-
       let dots = 0;
       loadingInterval = setInterval(() => {
         dots = (dots + 1) % 4;
         resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
       }, 500);
-
       window.handleResponse = function(res) {
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
         btn.setAttribute('aria-disabled', 'false');
-
         if (res.error) {
           resultDiv.innerHTML = `<div class="error">❌ 錯誤：${res.error}</div>`;
           shareBtn.style.display = "none";
           return;
         }
-
         let content = (res.content || res.rewrite || "").replace(/。/g, "。\n\n");
         let output = "";
         if (res.topic) output += `🔖 類別：\n${res.topic}\n\n`;
         if (res.title) output += `📌 推薦標題：\n${res.title}\n\n`;
         output += `📝 改寫內容：\n${content}`;
-
         resultDiv.textContent = output;
         lastRewrite = { title: res.title || "", content };
         shareBtn.style.display = content.trim() ? "block" : "none";
       };
-
       const oldScript = document.getElementById("jsonpScript");
       if (oldScript) oldScript.remove();
-
       const script = document.createElement("script");
       script.id = "jsonpScript";
       const params = new URLSearchParams({ text, topic, userId: liffUserId, callback: "handleResponse" });
@@ -405,12 +373,11 @@
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
         btn.setAttribute('aria-disabled', 'false');
-        resultDiv.innerHTML = `<div class="error">❌ 請求失敗，請稍後再試。</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ 請求失敗，請稍後試。</div>`;
         shareBtn.style.display = "none";
       };
       document.body.appendChild(script);
     }
-
     function nativeShare() {
       if (!lastRewrite.content.trim()) {
         alert("❌ 沒有可分享的內容！");
@@ -427,7 +394,6 @@
         alert("⚠️ 目前瀏覽器不支援原生分享功能。");
       }
     }
-
     window.onload = initLIFF;
   </script>
 </body>
