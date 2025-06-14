@@ -4,150 +4,223 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#1e1e1e" />
-  <title>彥彬 ✍️測試</title>
+  <title>彥彬 ✍️ 文案改寫工具</title>
   <style>
+    /* 字體使用 Google Roboto，適合高級感 */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+    /* Reset */
+    * {
+      box-sizing: border-box;
+    }
     body {
-      font-family: 'Roboto', sans-serif;
-      background: #121212;
-      padding: 16px;
       margin: 0;
-      color: #f0f0f0;
+      padding: 24px;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #222222);
+      color: #e0e0e0;
       display: flex;
       justify-content: center;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
-    .card {
-      background: #1e1e1e;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    main.card {
+      background: rgba(30, 30, 30, 0.9);
+      border-radius: 20px;
+      box-shadow:
+        0 8px 16px rgba(0, 0, 0, 0.9),
+        inset 0 0 60px rgba(255, 255, 255, 0.05);
+      max-width: 500px;
       width: 100%;
-      max-width: 480px;
-      padding: 20px;
-      box-sizing: border-box;
+      padding: 28px 32px;
       display: flex;
       flex-direction: column;
       position: relative;
     }
     #userInfo {
-      color: #bbbbbb;
-      font-size: 13px;
-      margin-bottom: 8px;
-      user-select: none;
       font-weight: 500;
-      line-height: 1.4;
-      white-space: nowrap;
+      font-size: 14px;
+      color: #bbbbbb;
+      margin-bottom: 6px;
+      user-select: none;
       text-align: center;
+      letter-spacing: 0.03em;
+      font-style: italic;
+      text-shadow: 0 0 8px rgba(255 255 255 / 0.1);
     }
     #expiryInfo {
-      color: #ffcc00;
+      color: #f1c40f;
       font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 16px;
+      font-size: 15px;
+      margin-bottom: 18px;
       text-align: center;
       user-select: none;
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
     }
     h2 {
-      margin-bottom: 16px;
-      color: #ffffff;
+      margin-bottom: 24px;
+      color: #fafafa;
       font-weight: 700;
-      font-size: 22px;
+      font-size: 24px;
       line-height: 1.3;
       user-select: none;
       text-align: center;
+      letter-spacing: 0.05em;
+      text-shadow:
+        0 0 8px #4a90e2,
+        0 0 18px #4a90e2;
+    }
+    h2 span.emoji {
+      font-size: 1.3em;
+      vertical-align: middle;
+      margin-right: 6px;
+      filter: drop-shadow(0 0 1px rgba(74, 144, 226, 0.9));
     }
     textarea {
       font-family: 'Roboto', sans-serif;
-      font-size: 15px;
-      line-height: 1.4;
-      padding: 10px;
-      border-radius: 8px;
+      font-size: 16px;
+      line-height: 1.5;
+      padding: 16px 18px;
+      border-radius: 12px;
       border: none;
       resize: vertical;
-      min-height: 120px;
-      max-height: 300px;
-      background: #2a2a2a;
-      color: #f0f0f0;
-      margin-bottom: 12px;
+      min-height: 140px;
+      max-height: 320px;
+      background: #222831;
+      color: #f5f5f5;
+      box-shadow:
+        inset 0 0 12px #395B64,
+        0 2px 6px rgba(0,0,0,0.5);
+      transition: box-shadow 0.3s ease;
+      margin-bottom: 20px;
+      letter-spacing: 0.03em;
+    }
+    textarea:focus {
+      outline: none;
+      box-shadow:
+        inset 0 0 16px #74b9ff,
+        0 4px 12px rgba(116, 185, 255, 0.7);
+      background: #1e272e;
+      color: #dcdde1;
     }
     select {
-      font-size: 15px;
-      padding: 8px 10px;
-      border-radius: 8px;
+      font-size: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
       border: none;
-      background: #2a2a2a;
+      background: #222831;
       color: #f0f0f0;
-      margin-bottom: 16px;
+      margin-bottom: 24px;
       width: 100%;
       box-sizing: border-box;
       cursor: pointer;
+      box-shadow:
+        inset 0 0 12px #395B64,
+        0 2px 6px rgba(0,0,0,0.5);
+      transition: box-shadow 0.3s ease;
+      letter-spacing: 0.03em;
+    }
+    select:hover, select:focus {
+      outline: none;
+      box-shadow:
+        inset 0 0 16px #74b9ff,
+        0 4px 12px rgba(116, 185, 255, 0.7);
+      background: #1e272e;
     }
     button {
-      background: #4a90e2;
-      color: white;
       font-weight: 600;
-      font-size: 16px;
-      padding: 12px 20px;
+      font-size: 17px;
+      padding: 14px 26px;
+      border-radius: 14px;
       border: none;
-      border-radius: 12px;
       cursor: pointer;
-      transition: background-color 0.3s ease;
-      margin-bottom: 12px;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      box-shadow:
+        0 6px 12px rgba(74, 144, 226, 0.6);
+      letter-spacing: 0.04em;
+      user-select: none;
+      margin-bottom: 14px;
+      color: #fff;
+      background: linear-gradient(135deg, #4a90e2, #357ABD);
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+    }
+    button:hover:not(:disabled) {
+      background: linear-gradient(135deg, #5aa0ff, #4d83e1);
+      box-shadow:
+        0 8px 18px rgba(74, 144, 226, 0.8);
     }
     button:disabled, button[aria-disabled="true"] {
-      background: #555555;
+      background: #444444;
       cursor: not-allowed;
       opacity: 0.7;
+      box-shadow: none;
     }
     button#shareBtn {
-      background: #2ecc71;
+      background: linear-gradient(135deg, #27ae60, #2ecc71);
+      box-shadow:
+        0 6px 14px rgba(39, 174, 96, 0.7);
       display: none;
+      color: #f0f9f1;
+      text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    }
+    button#shareBtn:hover {
+      background: linear-gradient(135deg, #3acf7d, #47d88d);
+      box-shadow:
+        0 9px 22px rgba(39, 174, 96, 0.9);
     }
     #rewriteResult {
       white-space: pre-wrap;
-      font-size: 15px;
-      line-height: 1.5;
-      background: #222222;
-      border-radius: 8px;
-      padding: 12px;
-      min-height: 120px;
-      color: #ddd;
+      font-size: 16px;
+      line-height: 1.6;
+      background: #181818;
+      border-radius: 14px;
+      padding: 20px;
+      min-height: 140px;
+      color: #ccc;
       user-select: text;
+      box-shadow:
+        inset 0 0 12px #222222;
+      letter-spacing: 0.03em;
     }
     .error {
-      color: #ff5555;
-      font-weight: 600;
+      color: #ff6b6b;
+      font-weight: 700;
+      text-shadow: 0 0 8px #ff6b6baa;
     }
     label {
       font-weight: 600;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
       display: block;
       user-select: none;
+      letter-spacing: 0.04em;
+      color: #dcdcdc;
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
     }
   </style>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
   <main class="card" role="main" aria-label="彥彬文案改寫工具">
-    <div id="userInfo" aria-live="polite" aria-atomic="true">👤 正在載入使用者資訊...</div>
-    <div id="expiryInfo" aria-live="polite" aria-atomic="true">⏳ <strong>到期日期：</strong> 2025年6月16日 📅</div>
+    <div id="userInfo" aria-live="polite" aria-atomic="true">👤 載入中…</div>
+    <div id="expiryInfo" aria-live="polite" aria-atomic="true">⏳ <strong>到期日：</strong> 2025年6月16日</div>
 
-    <h2>📘 『彥彬 文案改寫』<br>✍️ 「貼上 自動改寫」✨</h2>
+    <h2><span class="emoji">📘</span>彥彬 文案改寫<br><span style="font-weight:400; font-size:14px; color:#99aabb;">貼上文字，自動改寫</span></h2>
 
-    <textarea id="originalText" placeholder="📝 請貼上原始文章..." aria-label="輸入原始文章"></textarea>
+    <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="輸入原始文章"></textarea>
 
-    <label for="topicSelect">🔍 選擇分類主題（可AI自動判斷）：</label>
+    <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
     <select id="topicSelect" aria-label="選擇分類主題">
-      <option value="">🤖 AI 自動判斷</option>
-      <option>🌱 人生成長</option>
-      <option>💖 情感故事</option>
-      <option>🍀 健康養生</option>
-      <option>💰 財富商機</option>
+      <option value="">AI 自動判斷</option>
+      <option>人生成長</option>
+      <option>情感故事</option>
+      <option>健康養生</option>
+      <option>財富商機</option>
     </select>
 
     <button id="rewriteBtn" onclick="autoRewrite()" disabled aria-disabled="true" aria-live="polite" aria-atomic="true">
-      🚀 自動改寫 ✍️
+      🚀 自動改寫
     </button>
     <button id="shareBtn" onclick="nativeShare()" aria-label="分享改寫後文案">
       📤 分享文案
@@ -300,7 +373,7 @@
       window.handleResponse = function(res) {
         clearInterval(loadingInterval);
         btn.disabled = false;
-        btn.textContent = "🚀 自動改寫 ✍️";
+        btn.textContent = "🚀 自動改寫";
         btn.setAttribute('aria-disabled', 'false');
 
         if (res.error) {
@@ -330,9 +403,9 @@
       script.onerror = () => {
         clearInterval(loadingInterval);
         btn.disabled = false;
-        btn.textContent = "🚀 自動改寫 ✍️";
+        btn.textContent = "🚀 自動改寫";
         btn.setAttribute('aria-disabled', 'false');
-        resultDiv.innerHTML = `<div class="error">❌ 無法取得回應，請稍後再試。</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ 請求失敗，請稍後再試。</div>`;
         shareBtn.style.display = "none";
       };
       document.body.appendChild(script);
@@ -340,31 +413,22 @@
 
     function nativeShare() {
       if (!lastRewrite.content.trim()) {
-        alert("⚠️ 內容為空，無法分享。");
+        alert("❌ 沒有可分享的內容！");
         return;
       }
-
-      const shareData = {
-        title: lastRewrite.title || "文案改寫分享",
-        text: `${lastRewrite.title ? `📌 推薦標題：\n${lastRewrite.title}\n\n` : ""}📝 改寫內容：\n${lastRewrite.content}`
-      };
-
       if (navigator.share) {
-        navigator.share(shareData).catch(() => {
-          alert("分享失敗，請稍後再試");
+        navigator.share({
+          title: lastRewrite.title || "彥彬文案改寫",
+          text: lastRewrite.content
+        }).catch(err => {
+          alert("❌ 分享失敗：" + err);
         });
       } else {
-        navigator.clipboard.writeText(shareData.text).then(() => {
-          alert("✅ 已複製到剪貼簿，可手動貼上分享");
-        }).catch(() => {
-          alert("❌ 複製失敗，請手動選取並複製文字");
-        });
+        alert("⚠️ 目前瀏覽器不支援原生分享功能。");
       }
     }
 
-    window.onload = () => {
-      initLIFF();
-    };
+    window.onload = initLIFF;
   </script>
 </body>
 </html>
