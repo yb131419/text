@@ -34,35 +34,37 @@
       position: relative;
     }
 
-    /* 使用者名稱 & 到期日 */
-    #userInfo {
-      margin-bottom: 18px;
-      text-align: center;
-    }
-    #userInfo .name {
-      font-size: 22px;
-      font-weight: 700;
-      color: #ffffff;
-      margin-bottom: 6px;
-      text-shadow: 0 0 8px rgba(255,255,255,0.4);
-    }
-    #userInfo .days {
-      font-size: 20px;
-      font-weight: 600;
-      color: #ffffff;
-      background: rgba(255,255,255,0.1);
-      display: inline-block;
-      padding: 6px 14px;
-      border-radius: 14px;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3);
-    }
-    #userInfo .expiry {
-      font-size: 14px;
-      color: #ccc;
-      margin-top: 6px;
-      display: block;
-      letter-spacing: 0.02em;
-    }
+    /* 使用者名稱、剩餘日、到期日 */
+#userInfo {
+  margin-bottom: 18px;
+  text-align: center;
+}
+#userInfo .name {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 8px;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(255, 255, 255, 0.4);
+}
+#userInfo .days {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111;
+  background: linear-gradient(135deg, #ffffff, #e0e0e0);
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 20px;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.9), inset 0 0 10px rgba(0,0,0,0.1);
+}
+#userInfo .expiry {
+  font-size: 15px;
+  color: #dddddd;
+  margin-top: 6px;
+  display: block;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
 
     /* 標題 */
     h2 {
