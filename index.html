@@ -53,20 +53,20 @@
       align-items: center;
       gap: 8px;
     }
-    /* 千萬質感：背景漸層、圓角、呼吸光暈 */
+    /* 千萬質感：有框線徽章 */
     #userInfo .expiry-days {
       display: inline-block;
-      background: linear-gradient(90deg, rgba(212,175,55,0.2), rgba(212,175,55,0.4));
-      padding: 2px 10px;
-      border-radius: 12px;
+      background: rgba(30, 30, 30, 0.7);
+      padding: 4px 12px;
+      border: 1px solid #d4af37;
+      border-radius: 8px;
       font-weight: 700;
       font-size: 13px;
       color: #fdf6e3;
       letter-spacing: 0.03em;
       margin-left: 6px;
-      box-shadow: 0 0 8px rgba(212,175,55,0.7), 0 0 12px rgba(212,175,55,0.5);
+      box-shadow: 0 0 8px rgba(212,175,55,0.7);
       animation: glow 2.5s infinite alternate;
-      backdrop-filter: blur(4px);
     }
     @keyframes glow {
       from {
@@ -277,7 +277,6 @@
         const profile = await liff.getProfile();
         const idToken = liff.getDecodedIDToken();
         liffUserId = idToken?.sub || profile?.userId || "";
-        // 改回 JSONP 權限檢查
         checkPermission(liffUserId, profile.displayName);
         setupInputListener();
       } catch (err) {
@@ -299,26 +298,22 @@
         const infoDiv = document.getElementById("userInfo");
         const expiryDiv = document.getElementById("expiryInfo");
         const resultDiv = document.getElementById("rewriteResult");
-        // 清除舊 JSONP script
         const old = document.getElementById("authScript");
         if (old) old.remove();
 
         if (response?.auth) {
           hasPermission = true;
           infoDiv.textContent = `👤 使用者：${displayName}`;
-          // 移除舊的 badge
           const oldBadge = infoDiv.querySelector(".expiry-days");
           if (oldBadge) oldBadge.remove();
 
           if (response.expiryDate) {
             const expObj = new Date(response.expiryDate);
-            // 轉換台北時間顯示
             const taipeiFmt = new Intl.DateTimeFormat('zh-TW', {
               year:'numeric', month:'numeric', day:'numeric', timeZone:'Asia/Taipei'
             });
             const formatted = taipeiFmt.format(expObj);
             const rem = calcRemainingDays(expObj);
-            // 新增 badge
             const span = document.createElement("span");
             span.className = "expiry-days";
             span.textContent = rem > 0 ? `剩餘 ${rem} 天` : "已過期";
@@ -347,7 +342,6 @@
       document.body.appendChild(script);
     }
 
-    // 以下保持原本 fetch 改寫與紀錄邏輯，不影響權限顯示
     async function autoRewrite() {
       const text = document.getElementById("originalText").value.trim();
       const topic = document.getElementById("topicSelect").value;
@@ -370,7 +364,7 @@
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        resultDiv.innerHTML = `<div class="error">❌ 網路錯誤，請稍後再試。</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ Failed to fetch，請稍後再試。</div>`;
       }, 20000);
 
       try {
@@ -403,7 +397,10 @@
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        resultDiv.innerHTML = `<div class="error">❌ ${e.message}，請稍後再試。</div>`;
+        const msg = e.message === "Failed to fetch"
+          ? "❌ Failed to fetch，請稍後再試。"
+          : `❌ ${e.message}，請稍後再試。`;
+        resultDiv.innerHTML = `<div class="error">${msg}</div>`;
       }
     }
 
