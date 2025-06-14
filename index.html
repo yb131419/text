@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#1e1e1e" />
   <title>彥彬 ✍️ 文案改寫工具</title>
-  <!-- Google Roboto 字體 -->
+  <!-- Google Roboto 字体 -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
@@ -53,28 +53,19 @@
       align-items: center;
       gap: 8px;
     }
-    /* 千萬質感：有框線徽章 */
+    /* 剩余天数：金属边框 + 亮色字体 */
     #userInfo .expiry-days {
       display: inline-block;
-      background: rgba(30, 30, 30, 0.7);
       padding: 4px 12px;
-      border: 1px solid #d4af37;
-      border-radius: 8px;
+      border: 2px solid #D4AF37;
+      border-radius: 14px;
       font-weight: 700;
       font-size: 13px;
-      color: #fdf6e3;
+      color: #FFD700;
       letter-spacing: 0.03em;
       margin-left: 6px;
-      box-shadow: 0 0 8px rgba(212,175,55,0.7);
-      animation: glow 2.5s infinite alternate;
-    }
-    @keyframes glow {
-      from {
-        box-shadow: 0 0 8px rgba(212,175,55,0.7), 0 0 12px rgba(212,175,55,0.5);
-      }
-      to {
-        box-shadow: 0 0 16px rgba(212,175,55,1), 0 0 24px rgba(212,175,55,0.8);
-      }
+      box-shadow: 0 0 8px rgba(212,175,55,0.8);
+      background: rgba(212,175,55,0.1);
     }
     #expiryInfo {
       color: #f1c40f;
@@ -86,7 +77,7 @@
       text-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
     }
 
-    /* 標題 */
+    /* 标题 */
     h2 {
       margin-bottom: 24px;
       color: #fafafa;
@@ -112,7 +103,7 @@
       line-height: 1.2;
     }
 
-    /* 輸入區 */
+    /* 输入区 */
     textarea {
       font-size: 16px;
       line-height: 1.5;
@@ -136,7 +127,7 @@
       color: #dcdde1;
     }
 
-    /* 下拉選單 */
+    /* 下拉选单 */
     label {
       font-weight: 600;
       margin-bottom: 8px;
@@ -165,7 +156,7 @@
       background: #1e272e;
     }
 
-    /* 按鈕 */
+    /* 按钮 */
     button {
       font-weight: 600;
       font-size: 17px;
@@ -203,7 +194,7 @@
       box-shadow: 0 9px 22px rgba(39, 174, 96, 0.9);
     }
 
-    /* 結果區 */
+    /* 结果区 */
     #rewriteResult {
       white-space: pre-wrap;
       font-size: 16px;
@@ -374,7 +365,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error(res.statusText);
+        if (!res.ok) throw new Error();
         const data = await res.json();
         clearTimeout(errorTimeout);
         clearInterval(loadingInterval);
@@ -397,10 +388,7 @@
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        const msg = e.message === "Failed to fetch"
-          ? "❌ Failed to fetch，請稍後再試。"
-          : `❌ ${e.message}，請稍後再試。`;
-        resultDiv.innerHTML = `<div class="error">${msg}</div>`;
+        resultDiv.innerHTML = `<div class="error">❌ Failed to fetch，請稍後再試。</div>`;
       }
     }
 
