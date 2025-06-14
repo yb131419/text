@@ -36,7 +36,7 @@
       flex-direction: column;
       position: relative;
     }
-    /* 升級使用者名稱樣式，增添高級感 */
+    /* 使用者名稱樣式 */
     #userInfo {
       font-weight: 700;
       font-size: 16px;
@@ -55,14 +55,16 @@
       align-items: center;
       gap: 10px;
     }
+    /* 恢復原本簡單樣式的剩餘天數 */
     #userInfo .expiry-days {
       color: #f1c40f;
       font-weight: 700;
       font-size: 13px;
-      background: #2c2c2c;
-      padding: 2px 8px;
-      border-radius: 12px;
-      box-shadow: 0 0 8px rgba(241, 196, 15, 0.9);
+      /* 移除背景與陰影 */
+      background: none;
+      box-shadow: none;
+      padding: 0;
+      border-radius: 0;
       letter-spacing: 0.03em;
     }
     #expiryInfo {
@@ -351,16 +353,25 @@
         resultDiv.textContent = "⏳ 改寫中" + ".".repeat(dots);
       }, 500);
 
-      window.handleResponse = function(res) {
+      // network error fallback
+      const errorTimeout = setTimeout(() => {
         clearInterval(loadingInterval);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
+        resultDiv.innerHTML = `<div class=\"error\">❌ 網路錯誤，請稍後再試。</div>`;
+      }, 15000);
+
+      window.handleResponse = function(res) {
+        clearInterval(loadingInterval);
+        clearTimeout(errorTimeout);
+        btn.disabled = false;
+        btn.textContent = "🚀 自動改寫";
         if (res.error) {
-          resultDiv.innerHTML = `<div class="error">❌ ${res.error}</div>`;
+          resultDiv.innerHTML = `<div class=\"error\">❌ ${res.error}</div>`;
           return;
         }
         if (!res.result.trim()) {
-          resultDiv.innerHTML = `<div class="error">❌ 未取得改寫結果，請稍後再試。</div>`;
+          resultDiv.innerHTML = `<div class=\"error\">❌ 未取得改寫結果，請稍後再試。</div>`;
           return;
         }
         resultDiv.textContent = res.result;
@@ -382,9 +393,10 @@
       script.src = url.toString();
       script.onerror = () => {
         clearInterval(loadingInterval);
+        clearTimeout(errorTimeout);
         btn.disabled = false;
         btn.textContent = "🚀 自動改寫";
-        resultDiv.innerHTML = `<div class="error">❌ 網路錯誤，請稍後再試。</div>`;
+        resultDiv.innerHTML = `<div class=\"error\">❌ 網路錯誤，請稍後再試。</div>`;
       };
       document.body.appendChild(script);
     }
