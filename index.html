@@ -4,9 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#1e1e1e" />
-  <title>彥彬 ✍️測試</title>
+  <title>彥彬 ✍️文案改寫</title>
   <style>
-    /* Reset & 共用設定 */
     * { box-sizing: border-box; margin:0; padding:0; }
     body {
       padding: 24px;
@@ -34,39 +33,45 @@
       position: relative;
     }
 
-    /* 使用者名稱、剩餘日、到期日 */
-#userInfo {
-  margin-bottom: 18px;
-  text-align: center;
+    #userInfo {
+      margin-bottom: 18px;
+      text-align: center;
+    }
+    #userInfo .name {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 8px;
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(255, 255, 255, 0.4);
+    }
+    .daysWrapper {
+      display: inline-block;
+      padding: 8px 20px;
+      border-radius: 20px;
+      box-shadow: 0 0 14px rgba(255, 255, 255, 0.9), inset 0 0 10px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, #ffffff, #e0e0e0);
+      color: #111;
+      font-size: 22px;
+      font-weight: 700;
+    }
+  .daysWrapper.danger {
+  background: linear-gradient(135deg, #ffb6b9, #ff6f61);
+  color: #fff0f0;
+  text-shadow: 0 0 6px rgba(255, 182, 193, 0.6);
+  box-shadow:
+    0 0 14px rgba(255, 182, 193, 0.6),
+    inset 0 0 12px rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 192, 203, 0.4);
 }
-#userInfo .name {
-  font-size: 24px;
-  font-weight: 800;
-  color: #ffffff;
-  margin-bottom: 8px;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(255, 255, 255, 0.4);
-}
-#userInfo .days {
-  font-size: 22px;
-  font-weight: 700;
-  color: #111;
-  background: linear-gradient(135deg, #ffffff, #e0e0e0);
-  display: inline-block;
-  padding: 8px 20px;
-  border-radius: 20px;
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.9), inset 0 0 10px rgba(0,0,0,0.1);
-}
-#userInfo .expiry {
-  font-size: 15px;
-  color: #dddddd;
-  margin-top: 6px;
-  display: block;
-  letter-spacing: 0.04em;
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
-}
+    #userInfo .expiry {
+      font-size: 15px;
+      color: #dddddd;
+      margin-top: 6px;
+      display: block;
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+    }
 
-
-    /* 標題 */
     h2 {
       margin-bottom: 24px;
       color: #fafafa;
@@ -86,7 +91,6 @@
       line-height: 1.2;
     }
 
-    /* 輸入區 */
     textarea {
       font-size: 16px;
       line-height: 1.5;
@@ -109,7 +113,6 @@
       color: #dcdde1;
     }
 
-    /* 下拉選單 */
     label {
       font-weight: 600;
       margin-bottom: 8px;
@@ -138,7 +141,6 @@
       background: #1e272e;
     }
 
-    /* 按鈕 */
     button {
       font-weight: 600;
       font-size: 17px;
@@ -176,7 +178,6 @@
       box-shadow: 0 9px 22px rgba(39, 174, 96, 0.9);
     }
 
-    /* 結果區 */
     #rewriteResult {
       white-space: pre-wrap;
       font-size: 16px;
@@ -198,17 +199,15 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <main class="card" role="main" aria-label="彥彬文案改寫工具">
-    <div id="userInfo" aria-live="polite" aria-atomic="true">
-      <!-- 由 checkPermission 填充 -->
-    </div>
+  <main class="card">
+    <div id="userInfo"></div>
 
     <h2>📘 『彥彬 文案改寫』<br><small>✍️ 貼上 自動改寫</small></h2>
 
-    <textarea id="originalText" placeholder="請貼上原始文章..." aria-label="輸入原始文章"></textarea>
+    <textarea id="originalText" placeholder="請貼上原始文章..."></textarea>
 
     <label for="topicSelect">選擇分類主題（可AI自動判斷）：</label>
-    <select id="topicSelect" aria-label="選擇分類主題">
+    <select id="topicSelect">
       <option value="">AI 自動判斷</option>
       <option>人生成長</option>
       <option>情感故事</option>
@@ -219,114 +218,65 @@
     <button id="rewriteBtn" onclick="autoRewrite()" disabled>🚀 自動改寫</button>
     <button id="shareBtn" onclick="nativeShare()">📤 分享文案</button>
 
-    <div id="rewriteResult" role="region" aria-live="polite" aria-atomic="true"></div>
+    <div id="rewriteResult"></div>
     <div id="bottomSpacer" style="height:60px;"></div>
   </main>
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRYOIicltP81EO6fQB81bCRfoEczp29qqqSbz5HjdzbsZmRrccQgxR6QmikAWuuNGl/exec";
     const LIFF_ID = "2007475335-Vb5Nrpg2";
+    let liffUserId = "", hasPermission = false, lastRewrite = {}, loadingInterval = null;
 
-    let liffUserId = "";
-    let hasPermission = false;
-    let lastRewrite = { title: "", content: "" };
-    let loadingInterval = null;
-
-    async function initLIFF() {
-      try {
-        await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {
-          liff.login();
-        } else {
-          const profile = await liff.getProfile();
-          const idToken = liff.getDecodedIDToken();
-          liffUserId = idToken?.sub || profile?.userId || "";
-          checkPermission(liffUserId, profile?.displayName || "使用者");
-          setupInputListener();
-        }
-      } catch (err) {
-        alert("LIFF 初始化失敗！");
-        console.error(err);
-      }
-    }
-
-    function setupInputListener() {
-      const textarea = document.getElementById("originalText");
-      textarea.addEventListener("input", () => {
-        const btn = document.getElementById("rewriteBtn");
-        btn.disabled = !(hasPermission && textarea.value.trim().length >= 8);
+    window.onload = async () => {
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) return liff.login();
+      const profile = await liff.getProfile();
+      const idToken = liff.getDecodedIDToken();
+      liffUserId = idToken?.sub || profile?.userId || "";
+      checkPermission(liffUserId, profile?.displayName || "使用者");
+      document.getElementById("originalText").addEventListener("input", () => {
+        document.getElementById("rewriteBtn").disabled = !(hasPermission && originalText.value.trim().length >= 8);
       });
-    }
+    };
 
     function checkPermission(userId, displayName = "使用者") {
-      const old = document.getElementById("authScript");
-      if (old) old.remove();
-
-      window.handlePermission = function(response) {
+      window.handlePermission = function (res) {
         const infoDiv = document.getElementById("userInfo");
         const resultDiv = document.getElementById("rewriteResult");
-        if (response?.auth === true) {
+        if (res?.auth) {
           hasPermission = true;
-          const expiryText = formatTaipeiDate(response.expiryDate);
-          const daysLeftText = calcDaysLeft(response.expiryDate);
+          const days = calcDaysLeft(res.expiryDate);
+          const isDanger = typeof days === "number" && days <= 3;
           infoDiv.innerHTML = `
-            <div class="name">使用者：${displayName}</div>
-            <div class="days">剩餘日：${daysLeftText}</div>
-            <div class="expiry">到期日：${expiryText}</div>
+            <div class="name"> 使用者：${displayName}</div>
+            <div class="daysWrapper ${isDanger ? "danger" : ""}"> 剩餘日：${typeof days === "number" ? days + " 天" : days}</div>
+            <div class="expiry"> 到期日：${formatTaipeiDate(res.expiryDate)}</div>
           `;
           resultDiv.innerHTML = "";
-          document.getElementById("rewriteBtn").disabled = false;
+          rewriteBtn.disabled = false;
         } else {
-          hasPermission = false;
-          infoDiv.innerHTML = `
-            <div class="name">使用者：${displayName}</div>
-            <div class="days">無權限</div>
-          `;
+          infoDiv.innerHTML = `<div class="name">👑 使用者：${displayName}</div><div class="daysWrapper">無權限</div>`;
           resultDiv.innerHTML = `<div class="error">⛔ 尚未開通使用權限</div>`;
         }
       };
-
-      const script = document.createElement("script");
-      script.id = "authScript";
-      const params = new URLSearchParams({ userId, checkAuth: "1", callback: "handlePermission" });
-      script.src = `${SCRIPT_URL}?${params.toString()}`;
-      script.onerror = () => {
-        const infoDiv = document.getElementById("userInfo");
-        const resultDiv = document.getElementById("rewriteResult");
-        hasPermission = false;
-        infoDiv.innerHTML = `
-          <div class="name">使用者：${displayName}</div>
-          <div class="days">驗證失敗</div>
-        `;
-        resultDiv.innerHTML = `<div class="error">❌ 權限驗證失敗</div>`;
-      };
-      document.body.appendChild(script);
+      const s = document.createElement("script");
+      s.src = `${SCRIPT_URL}?userId=${userId}&checkAuth=1&callback=handlePermission`;
+      s.onerror = () => document.getElementById("rewriteResult").innerHTML = `<div class="error">❌ 權限驗證失敗</div>`;
+      document.body.appendChild(s);
     }
 
-    function calcDaysLeft(expiryDate) {
-      const expiry = new Date(expiryDate.trim());
-      if (isNaN(expiry.getTime())) return "無效日期";
-      const now = new Date();
-      const diffMs = expiry.getTime() - now.getTime();
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      if (diffDays > 0) return `${diffDays} 天`;
-      if (diffDays === 0) return "今天";
-      return "已過期";
+    function calcDaysLeft(dateStr) {
+      const d = new Date(dateStr.trim()), now = new Date();
+      const diff = Math.floor((d - now) / (1000 * 60 * 60 * 24));
+      return isNaN(diff) ? "無效日期" : diff < 0 ? "已過期" : diff === 0 ? 0 : diff;
     }
 
     function formatTaipeiDate(dateStr) {
-      if (!dateStr) return "無資料";
-      const date = new Date(dateStr.trim());
-      if (isNaN(date.getTime())) return "無效日期";
-      return date.toLocaleDateString('zh-TW', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        timeZone: 'Asia/Taipei'
-      });
+      const d = new Date(dateStr.trim());
+      return isNaN(d.getTime()) ? "無效日期" : d.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Taipei' });
     }
 
-    function autoRewrite() {
+ function autoRewrite() {
       const text = document.getElementById("originalText").value.trim();
       const topic = document.getElementById("topicSelect").value;
       const resultDiv = document.getElementById("rewriteResult");
@@ -401,6 +351,7 @@
     }
 
     window.onload = initLIFF;
+
   </script>
 </body>
 </html>
