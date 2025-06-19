@@ -353,6 +353,28 @@
     .summaryBox {
       color: #000 !important;
     }
+    .payment-options {
+  float: right;
+  font-size: 0.9rem;
+  color: red;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.payment-options label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.payment-options input[type="checkbox"] {
+  accent-color: red; /* 讓勾選框顏色也變紅 */
+  width: 16px;
+  height: 16px;
+}
+
   }
 </style>
 
@@ -361,7 +383,13 @@
 </head>
 <body>
   <div id="captureArea">
-    <h2>🌿 康園試算報表</h2>
+<h2>
+  🌿 康園試算報表
+  <span class="payment-options">
+    <label><input type="checkbox" id="cashOption"> 現金</label>
+    <label><input type="checkbox" id="cardOption"> 刷卡</label>
+  </span>
+</h2>
     <div class="userInputs">
       <div class="row">
         <label>購買者：
