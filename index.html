@@ -137,18 +137,24 @@
     transform: scale(1.01);
   }
 
-.deleteBtn {
-  background: transparent;
-  border: none;
-  color: #aaa;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-}
-.deleteBtn:hover {
-  color: #fff;
-  transform: scale(1.2);
-}
+  .deleteBtn {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    background-color: var(--error);
+    border: none;
+    color: white;
+    border-radius: 4px;
+    padding: 2px;
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-block;
+    height: auto;
+    width: auto;
+  }
+
+  .deleteBtn:hover {
+    background-color: #c62828;
+  }
 
 
   .summaryBox {
@@ -485,7 +491,7 @@
           <td>${item.pv}</td>
           <td>${subtotalPrice}</td>
           <td>${subtotalPv}</td>
-          <td><button class="deleteBtn" data-index="${idx}">🗑️</button></td>
+          <td><button class="deleteBtn" data-index="${idx}">刪</button></td>
         `;
         reportBody.appendChild(tr);
       });
