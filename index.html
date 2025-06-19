@@ -135,24 +135,23 @@
     transform: scale(1.01);
   }
 
-  .deleteBtn {
-    writing-mode: vertical-rl;
-    text-orientation: upright;
-    background-color: var(--error);
-    border: none;
-    color: white;
-    border-radius: 4px;
-    padding: 2px;
-    cursor: pointer;
-    font-size: 12px;
-    display: inline-block;
-    height: auto;
-    width: auto;
-  }
-
-  .deleteBtn:hover {
-    background-color: #c62828;
-  }
+.deleteBtn {
+  background-color: var(--error);
+  border: none;
+  color: white;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+  display: inline-block;
+  height: 32px;
+  width: auto;
+  line-height: 1;
+  
+  /* 取代 writing-mode，用旋轉文字 */
+  transform: rotate(-90deg);
+  transform-origin: center center;
+}
 
   .summaryBox {
     text-align: center;
