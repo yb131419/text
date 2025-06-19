@@ -354,12 +354,19 @@
       color: #000 !important;
     }
     
-.payment-options input[type="checkbox"] + span {
-  color: white;
+.payment-options {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 0.95rem;
 }
 
 .payment-options label {
-  color: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: white;        /* ✅ 把字體顏色設為白色 */
   font-weight: 500;
 }
 
@@ -375,8 +382,8 @@
   🌿 康園試算報表
   <br />
 <span class="payment-options">
-  <label><input type="checkbox" id="cashOption" /><span> 現金</span></label>
-  <label><input type="checkbox" id="cardOption" /><span> 刷卡</span></label>
+  <label><input type="checkbox" id="cashOption" /> 現金</label>
+  <label><input type="checkbox" id="cardOption" /> 刷卡</label>
 </span>
 </h2>
     <div class="userInputs">
