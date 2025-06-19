@@ -135,24 +135,21 @@
     transform: scale(1.01);
   }
 
-.deleteBtn {
-  background-color: var(--error);
-  border: none;
-  color: white;
-  border-radius: 4px;
-  padding: 4px 6px;
-  cursor: pointer;
-  font-size: 12px;
-  display: inline-block;
-  width: 20px;       /* 固定寬度 */
-  height: 60px;      /* 固定高度 */
-  line-height: 1;
-  text-align: center;
-  
-  transform: rotate(-90deg);
-  transform-origin: center center;
-  white-space: nowrap;
-}
+  .deleteBtn {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    background-color: var(--error);
+    border: none;
+    color: white;
+    border-radius: 4px;
+    padding: 2px;
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-block;
+    height: auto;
+    width: auto;
+  }
+
 
   .summaryBox {
     text-align: center;
