@@ -356,11 +356,16 @@
     
 .payment-options {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: column;  /* 垂直排列 */
+  align-items: center;     /* 置中對齊（你也可以改成 flex-start 靠左） */
   margin-top: 10px;
   color: white;
   font-size: 0.95rem;
+}
+.payment-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
   }
