@@ -6,273 +6,342 @@
   <title>彥彬🌿試算系統</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-    :root {
-      --bg-color: #f0f4f8;
-      --panel-bg: #ffffff;
-      --text-color: #1e3a8a;
-      --accent: #3b82f6;
-      --highlight: #60a5fa;
-      --error: #ef4444;
-      --button-blue: #3b82f6;
-      --button-grey: #94a3b8;
-    }
+  :root {
+    --bg-color: #121212;
+    --panel-bg: #1e1e1e;
+    --text-color: #e0e0e0;
+    --accent: #00bfa5;
+    --highlight: #29b6f6;
+    --error: #ef5350;
+    --button-green: #00bfa5;
+    --button-grey: #424242;
+  }
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: 'Arial', sans-serif;
-      margin: 0;
-      padding: 15px;
-    }
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 20px;
+  }
 
-    #captureArea {
-      background: var(--panel-bg);
-      color: var(--text-color);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(30, 64, 175, 0.1);
-      margin-bottom: 20px;
-    }
+  #captureArea {
+    background: var(--panel-bg);
+    color: var(--text-color);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+  }
 
-    #captureArea h2 {
-      text-align: center;
-      font-size: 1.4rem;
-      margin-bottom: 15px;
-      color: var(--accent);
-    }
+  #captureArea h2 {
+    text-align: center;
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+  }
 
-    .userInputs {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
+  .userInputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
 
-    .userInputs .row {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
+  .userInputs .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
 
-    .userInputs label {
-      flex: 0 0 130px;
-      display: flex;
-      flex-direction: column;
-      font-size: 15px;
-      color: #475569;
-    }
+  .userInputs label {
+    flex: 0 0 150px;
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    color: #bbb;
+  }
 
-    .userInputs input {
-      padding: 8px;
-      font-size: 16px;
-      background: #e2e8f0;
-      color: var(--text-color);
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      margin-top: 4px;
-      width: 120px;
-      box-sizing: border-box;
-    }
+  .userInputs input {
+    padding: 8px;
+    font-size: 18px;
+    background: #333;
+    color: var(--text-color);
+    border: none;
+    border-radius: 6px;
+    margin-top: 4px;
+    width: 150px;
+    box-sizing: border-box;
+  }
 
-    #reportTable {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-      table-layout: fixed;
-      background-color: #f9fafb;
-      color: #1e293b;
-    }
+  /* 表格交叉配色 淡深色系 */
+  #reportTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    table-layout: fixed;
+    background-color: #f9fafb; /* 淺灰白底 */
+    color: #374151; /* 深灰文字 */
+  }
 
-    #reportTable th,
-    #reportTable td {
-      border: 1px solid #d1d5db;
-      padding: 6px;
-      text-align: center;
-      white-space: nowrap;
-    }
+  #reportTable th:nth-child(1),
+  #reportTable td:nth-child(1) {
+    width: 22%;
+  }
+  #reportTable th:nth-child(2),
+  #reportTable td:nth-child(2) {
+    width: 8%;
+  }
 
-    #reportTable thead {
-      background: linear-gradient(90deg, #3b82f6, #60a5fa);
-      color: white;
-      font-weight: bold;
-    }
+  #reportTable th,
+  #reportTable td {
+    border: 1px solid #d1d5db; /* 淺灰邊框 */
+    padding: 5px;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color 0.3s ease, font-weight 0.3s ease;
+  }
 
-    #reportTable tbody tr:nth-child(odd) {
-      background-color: #f1f5f9;
-    }
+  #reportTable thead {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa); /* 藍色漸層 */
+    color: #f9fafb;
+    font-weight: 600;
+  }
 
-    #reportTable tbody tr:nth-child(even) {
-      background-color: #e2e8f0;
-    }
+  #reportTable tbody tr:nth-child(odd) {
+    background-color: #f3f4f6; /* 超淺灰 */
+  }
 
-    #reportTable tbody tr:hover {
-      background-color: #bfdbfe;
-      font-weight: 600;
-    }
+  #reportTable tbody tr:nth-child(even) {
+    background-color: #e5e7eb; /* 淺灰 */
+  }
 
-    .deleteBtn {
-      background-color: var(--error);
-      border: none;
-      color: white;
-      border-radius: 5px;
-      padding: 4px 8px;
-      cursor: pointer;
-      font-size: 12px;
-    }
+  #reportTable tbody tr:hover {
+    background-color: #bfdbfe; /* 明亮淺藍 */
+    font-weight: 600;
+  }
 
-    .summaryBox {
-      text-align: center;
-      margin-top: 13px;
-      font-size: 1rem;
-      font-weight: bold;
-      color: var(--highlight);
-    }
+  .deleteBtn {
+    background-color: var(--error);
+    border: none;
+    color: white;
+    border-radius: 5px;
+    padding: 3px 7px;
+    cursor: pointer;
+    font-size: 12px;
+  }
 
-    .summaryBox .extra {
-      display: block;
-      font-size: 0.95rem;
-      color: var(--accent);
-      margin-top: 6px;
-    }
+  .deleteBtn:hover {
+    background-color: #c62828;
+  }
 
-    .summaryBox .done {
-      color: #16a34a;
-    }
+  .summaryBox {
+    text-align: center;
+    margin-top: 13px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--highlight);
+  }
 
+  .summaryBox .extra {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--accent);
+    margin-top: 6px;
+  }
+
+  .summaryBox .done {
+    color: #4caf50;
+    font-weight: bold;
+  }
+
+  #inputArea {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  #nameInput,
+  #qtyInput,
+  #addBtn {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+  }
+
+  #nameInput,
+  #qtyInput {
+    background-color: #2c2c2c;
+    color: var(--text-color);
+  }
+
+  #addBtn {
+    background-color: var(--button-green);
+    color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  #addBtn:hover {
+    background-color: #009e8a;
+  }
+
+  #exportBtn,
+  #shareToLineBtn,
+  #nativeShareBtn,
+  #clearImageBtn {
+    margin: 10px auto;
+    display: block;
+    padding: 10px 0;
+    width: 30%;
+    font-size: 16px;
+    background: var(--button-green);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease;
+  }
+
+  #exportBtn:hover,
+  #shareToLineBtn:hover,
+  #nativeShareBtn:hover {
+    background: #009e8a;
+  }
+
+  #clearImageBtn {
+    background: var(--button-grey);
+  }
+
+  #clearImageBtn:hover {
+    background: #424242;
+  }
+
+  #previewImage {
+    display: none;
+    max-width: 100%;
+    border: 2px solid #888;
+    border-radius: 10px;
+    margin: 20px auto;
+  }
+
+  #shareToLineBtn,
+  #nativeShareBtn,
+  #clearImageBtn {
+    display: none;
+  }
+
+  @media (min-width: 600px) {
     #inputArea {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    #nameInput,
-    #qtyInput,
-    #addBtn {
-      padding: 10px;
-      font-size: 15px;
-      border-radius: 6px;
-      border: none;
+      flex-direction: row;
+      align-items: center;
     }
 
     #nameInput,
     #qtyInput {
-      background-color: #e2e8f0;
-      color: var(--text-color);
+      flex: 1;
     }
 
     #addBtn {
-      background-color: var(--button-blue);
-      color: white;
-      cursor: pointer;
+      width: 120px;
+    }
+  }
+
+  @media print {
+    body {
+      background: #fff;
+      color: #000;
     }
 
+    #inputArea,
+    #addBtn,
     #exportBtn,
     #shareToLineBtn,
-    #nativeShareBtn,
-    #clearImageBtn {
-      margin: 10px auto;
-      display: block;
-      padding: 10px 0;
-      width: 85%;
-      font-size: 15px;
-      background: var(--button-blue);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
+    #clearImageBtn,
+    #nativeShareBtn {
+      display: none !important;
     }
 
-    #clearImageBtn {
-      background: var(--button-grey);
+    #captureArea {
+      box-shadow: none;
+      background: #fff;
+      color: #000;
     }
 
-    #previewImage {
-      display: none;
-      max-width: 100%;
-      border: 2px solid #94a3b8;
-      border-radius: 10px;
-      margin: 20px auto;
+    #reportTable th {
+      background: #ccc !important;
+      color: #000 !important;
     }
 
-    #shareToLineBtn,
-    #nativeShareBtn,
-    #clearImageBtn {
-      display: none;
+    .deleteBtn {
+      display: none !important;
     }
 
-    @media (max-width: 420px) {
-      body {
-        padding: 12px;
-        font-size: 14px;
-      }
-
-      .userInputs label {
-        font-size: 14px;
-      }
-
-      .userInputs input {
-        font-size: 15px;
-        width: 100px;
-      }
-
-      #reportTable {
-        font-size: 10px;
-      }
-
-      #nameInput,
-      #qtyInput,
-      #addBtn {
-        width: 100%;
-      }
-
-      #inputArea {
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      #exportBtn,
-      #shareToLineBtn,
-      #nativeShareBtn,
-      #clearImageBtn {
-        width: 100%;
-        font-size: 14px;
-      }
-
-      .summaryBox {
-        font-size: 0.95rem;
-      }
+    .summaryBox {
+      color: #000 !important;
     }
+  }
+  #buyerInput,
+#calculatorInput {
+  background-color: #f9fafb;      /* 超淺灰白 */
+  border: 1.5px solid #d1d5db;   /* 淡灰邊框 */
+  color: #374151;                 /* 深灰文字 */
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  font-weight: 500;
+  font-family: 'Arial', sans-serif;
+}
 
-    #uploadSuccessMessage {
-      color: #16a34a;
-      text-align: center;
-      margin-top: 10px;
-      display: none;
-      font-weight: bold;
-    }
+/* 聚焦時邊框和陰影 */
+#buyerInput:focus,
+#calculatorInput:focus {
+  border-color: #2563eb; /* 主藍色強調 */
+  box-shadow: 0 0 8px 2px rgba(37, 99, 235, 0.3);
+  outline: none;
+  background-color: #ffffff; /* 白色背景提升對比 */
+}
 
-    .toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #3b82f6;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 6px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      opacity: 0;
-      transition: opacity 0.5s ease, transform 0.5s ease;
-      z-index: 1000;
-    }
+/* placeholder 淡色文字 */
+#buyerInput::placeholder,
+#calculatorInput::placeholder {
+  color: #9ca3af; /* 中灰 */
+  font-weight: 400;
+}
 
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(-10px);
-    }
-  </style>
+  #uploadSuccessMessage {
+    color: #4caf50;
+    text-align: center;
+    margin-top: 10px;
+    display: none;
+    font-weight: bold;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #4caf50;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    z-index: 1000;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-10px);
+  }
+</style>
 
 
 </head>
