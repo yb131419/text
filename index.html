@@ -3,428 +3,569 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#1e1e1e" />
-  <title>彥彬 ✍️文案改寫</title>
-  <style>
-    /* Reset & 基本樣式 */
-    * { box-sizing: border-box; margin:0; padding:0; }
-    body {
-      padding: 24px;
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #1a1a1a, #222222);
-      color: #e0e0e0;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+  <title>彥彬🌿試算系統</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+    :root {
+      --bg-color: #f0f4f8;
+      --panel-bg: #ffffff;
+      --text-color: #1e3a8a;
+      --accent: #3b82f6;
+      --highlight: #60a5fa;
+      --error: #ef4444;
+      --button-blue: #3b82f6;
+      --button-grey: #94a3b8;
     }
-    main.card {
-      background: rgba(30, 30, 30, 0.9);
-      border-radius: 20px;
-      box-shadow:
-        0 8px 16px rgba(0, 0, 0, 0.9),
-        inset 0 0 60px rgba(255, 255, 255, 0.05);
-      max-width: 500px;
-      width: 100%;
-      padding: 28px 32px;
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 15px;
+    }
+
+    #captureArea {
+      background: var(--panel-bg);
+      color: var(--text-color);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(30, 64, 175, 0.1);
+      margin-bottom: 20px;
+    }
+
+    #captureArea h2 {
+      text-align: center;
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      color: var(--accent);
+    }
+
+    .userInputs {
       display: flex;
       flex-direction: column;
-      position: relative;
+      gap: 10px;
+      margin-bottom: 15px;
     }
-    /* 語言切換按鈕 */
-    #langSelect {
-      position: absolute;
-      top: 24px;
-      right: 32px;
-      font-size: 14px;
-      padding: 6px 12px;
-      border-radius: 10px;
-      background: #333;
-      color: #fff;
+
+    .userInputs .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .userInputs label {
+      flex: 0 0 130px;
+      display: flex;
+      flex-direction: column;
+      font-size: 15px;
+      color: #475569;
+    }
+
+    .userInputs input {
+      padding: 8px;
+      font-size: 16px;
+      background: #e2e8f0;
+      color: var(--text-color);
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      margin-top: 4px;
+      width: 120px;
+      box-sizing: border-box;
+    }
+
+    #reportTable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      table-layout: fixed;
+      background-color: #f9fafb;
+      color: #1e293b;
+    }
+
+    #reportTable th,
+    #reportTable td {
+      border: 1px solid #d1d5db;
+      padding: 6px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    #reportTable thead {
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      color: white;
+      font-weight: bold;
+    }
+
+    #reportTable tbody tr:nth-child(odd) {
+      background-color: #f1f5f9;
+    }
+
+    #reportTable tbody tr:nth-child(even) {
+      background-color: #e2e8f0;
+    }
+
+    #reportTable tbody tr:hover {
+      background-color: #bfdbfe;
+      font-weight: 600;
+    }
+
+    .deleteBtn {
+      background-color: var(--error);
       border: none;
+      color: white;
+      border-radius: 5px;
+      padding: 4px 8px;
       cursor: pointer;
-      box-shadow: 0 0 8px rgba(255,255,255,0.1);
+      font-size: 12px;
+    }
+
+    .summaryBox {
+      text-align: center;
+      margin-top: 13px;
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--highlight);
+    }
+
+    .summaryBox .extra {
+      display: block;
+      font-size: 0.95rem;
+      color: var(--accent);
+      margin-top: 6px;
+    }
+
+    .summaryBox .done {
+      color: #16a34a;
+    }
+
+    #inputArea {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    #nameInput,
+    #qtyInput,
+    #addBtn {
+      padding: 10px;
+      font-size: 15px;
+      border-radius: 6px;
+      border: none;
+    }
+
+    #nameInput,
+    #qtyInput {
+      background-color: #e2e8f0;
+      color: var(--text-color);
+    }
+
+    #addBtn {
+      background-color: var(--button-blue);
+      color: white;
+      cursor: pointer;
+    }
+
+    #exportBtn,
+    #shareToLineBtn,
+    #nativeShareBtn,
+    #clearImageBtn {
+      margin: 10px auto;
+      display: block;
+      padding: 10px 0;
+      width: 85%;
+      font-size: 15px;
+      background: var(--button-blue);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
       transition: background-color 0.3s ease;
     }
-    #langSelect:hover { background: #444; }
 
-    #userInfo {
-      margin-bottom: 18px;
-      text-align: center;
-      user-select: none;
-    }
-    #userInfo .name {
-      font-size: 24px;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 8px;
-      text-shadow: 0 0 12px rgba(255,255,255,0.8), 0 0 24px rgba(255,255,255,0.4);
-    }
-    .daysWrapper {
-      display: inline-block;
-      padding: 8px 20px;
-      border-radius: 20px;
-      box-shadow: 0 0 14px rgba(255,255,255,0.9), inset 0 0 10px rgba(0,0,0,0.1);
-      background: linear-gradient(135deg, #ffffff, #e0e0e0);
-      color: #111;
-      font-size: 22px;
-      font-weight: 700;
-      user-select: none;
-    }
-    .daysWrapper.danger {
-      background: linear-gradient(135deg, #ffb6b9, #ff6f61);
-      color: #fff0f0;
-      text-shadow: 0 0 6px rgba(255,182,193,0.6);
-      box-shadow:
-        0 0 14px rgba(255,182,193,0.6),
-        inset 0 0 12px rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,192,203,0.4);
-    }
-    #userInfo .expiry {
-      font-size: 15px;
-      color: #dddddd;
-      margin-top: 6px;
-      display: block;
-      letter-spacing: 0.04em;
-      text-shadow: 0 0 6px rgba(255,255,255,0.3);
-      user-select: none;
+    #clearImageBtn {
+      background: var(--button-grey);
     }
 
-    h2 {
-      margin-bottom: 24px;
-      color: #fafafa;
-      font-weight: 700;
-      font-size: 24px;
-      line-height: 1.3;
-      text-align: center;
-      letter-spacing: 0.05em;
-      text-shadow: 0 0 8px #4a90e2, 0 0 18px #4a90e2;
-      user-select: none;
-    }
-    h2 small {
-      display: block;
-      font-weight: 400;
-      font-size: 14px;
-      color: #99aabb;
-      margin-top: 4px;
-      line-height: 1.2;
-    }
-
-    textarea {
-      font-size: 16px;
-      line-height: 1.5;
-      padding: 16px 18px;
-      border-radius: 12px;
-      border: none;
-      resize: vertical;
-      min-height: 140px;
-      background: #222831;
-      color: #f5f5f5;
-      box-shadow: inset 0 0 12px #395B64, 0 2px 6px rgba(0,0,0,0.5);
-      transition: box-shadow 0.3s ease;
-      margin-bottom: 20px;
-      letter-spacing: 0.03em;
-    }
-    textarea:focus {
-      outline: none;
-      box-shadow: inset 0 0 16px #74b9ff, 0 4px 12px rgba(116,185,255,0.7);
-      background: #1e272e;
-      color: #dcdde1;
-    }
-
-    label {
-      font-weight: 600;
-      margin-bottom: 8px;
-      display: block;
-      letter-spacing: 0.04em;
-      color: #dcdcdc;
-      text-shadow: 0 0 4px rgba(0,0,0,0.3);
-      user-select: none;
-    }
-
-    select, button {
-      font-size: 16px;
-      padding: 12px;
-      border-radius: 12px;
-      border: none;
-      margin-bottom: 24px;
-      width: 100%;
-      letter-spacing: 0.03em;
-    }
-    select {
-      background: #222831;
-      color: #f0f0f0;
-      cursor: pointer;
-      box-shadow: inset 0 0 12px #395B64, 0 2px 6px rgba(0,0,0,0.5);
-      transition: box-shadow 0.3s ease;
-    }
-    select:hover, select:focus {
-      outline: none;
-      box-shadow: inset 0 0 16px #74b9ff, 0 4px 12px rgba(116,185,255,0.7);
-      background: #1e272e;
-    }
-
-    button {
-      font-weight: 600;
-      font-size: 17px;
-      padding: 14px 26px;
-      cursor: pointer;
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
-      box-shadow: 0 6px 12px rgba(74,144,226,0.6);
-      color: #fff;
-      background: linear-gradient(135deg, #4a90e2, #357ABD);
-      text-shadow: 0 0 4px rgba(0,0,0,0.4);
-      margin-bottom: 14px;
-      user-select: none;
-    }
-    button:hover:not(:disabled) {
-      background: linear-gradient(135deg, #5aa0ff, #4d83e1);
-      box-shadow: 0 8px 18px rgba(74,144,226,0.8);
-    }
-    button:disabled {
-      background: #444444;
-      cursor: not-allowed;
-      opacity: 0.7;
-      box-shadow: none;
-    }
-
-    #shareBtn {
-      background: linear-gradient(135deg, #27ae60, #2ecc71);
-      box-shadow: 0 6px 14px rgba(39,174,96,0.7);
+    #previewImage {
       display: none;
-      color: #f0f9f1;
-      text-shadow: 0 0 5px rgba(0,0,0,0.5);
-    }
-    #shareBtn:hover {
-      background: linear-gradient(135deg, #3acf7d, #47d88d);
-      box-shadow: 0 9px 22px rgba(39,174,96,0.9);
+      max-width: 100%;
+      border: 2px solid #94a3b8;
+      border-radius: 10px;
+      margin: 20px auto;
     }
 
-    #rewriteResult {
-      white-space: pre-wrap;
-      font-size: 16px;
-      line-height: 1.6;
-      background: #181818;
-      border-radius: 14px;
-      padding: 20px;
-      min-height: 140px;
-      color: #ccc;
-      box-shadow: inset 0 0 12px #222222;
-      letter-spacing: 0.03em;
-      user-select: text;
+    #shareToLineBtn,
+    #nativeShareBtn,
+    #clearImageBtn {
+      display: none;
     }
 
-    .error {
-      color: #ff6b6b;
-      font-weight: 700;
-      text-shadow: 0 0 8px rgba(255,107,107,0.6);
-      user-select: none;
+    @media (max-width: 420px) {
+      body {
+        padding: 12px;
+        font-size: 14px;
+      }
+
+      .userInputs label {
+        font-size: 14px;
+      }
+
+      .userInputs input {
+        font-size: 15px;
+        width: 100px;
+      }
+
+      #reportTable {
+        font-size: 10px;
+      }
+
+      #nameInput,
+      #qtyInput,
+      #addBtn {
+        width: 100%;
+      }
+
+      #inputArea {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      #exportBtn,
+      #shareToLineBtn,
+      #nativeShareBtn,
+      #clearImageBtn {
+        width: 100%;
+        font-size: 14px;
+      }
+
+      .summaryBox {
+        font-size: 0.95rem;
+      }
+    }
+
+    #uploadSuccessMessage {
+      color: #16a34a;
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+      font-weight: bold;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #3b82f6;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-10px);
     }
   </style>
+
+
 </head>
 <body>
-  <main class="card">
-    <select id="langSelect" onchange="changeLang()">
-      <option value="zh-Hant">繁體中文</option>
-      <option value="zh-Hans">简体中文</option>
-      <option value="en">English</option>
-      <option value="vi">Tiếng Việt</option>
-    </select>
+  <div id="captureArea">
+    <h2>🧾 康園試算報表</h2>
+    <div class="userInputs">
+      <div class="row">
+        <label>購買者：
+          <input type="text" placeholder="輸入購買者" id="buyerInput" />
+        </label>
+        <label>試算者：
+          <input type="text" placeholder="輸入試算者" id="calculatorInput" />
+        </label>
+      </div>
+    </div>
 
-    <div id="userInfo"></div>
+    <table id="reportTable" aria-label="試算報表">
+      <thead>
+        <tr>
+          <th>品項<br>名稱</th>
+          <th>數<br>量</th>
+          <th>單<br>價</th>
+          <th>PV</th>
+          <th>小計<br>金額</th>
+          <th>小計<br>PV</th>
+          <th>操<br>作</th>
+        </tr>
+      </thead>
+      <tbody id="reportBody"></tbody>
+    </table>
 
-    <h2 id="headerTitle">📘 『彥彬 文案改寫』<br><small>✍️ 貼上 自動改寫</small></h2>
+    <div class="summaryBox" aria-live="polite">
+      總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
+      <span class="extra">距 11.2萬 PV ：<span id="pvDiff">112000</span> <span id="pvMessage1"></span></span>
+      <span class="extra">距 22.0萬 PV ：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
+    </div>
+  </div>
 
-    <textarea id="originalText" placeholder="請貼上原始文章..."></textarea>
+  <img id="previewImage" alt="預覽匯出圖片" />
+  <button id="shareToLineBtn">📩 上傳備份</button>
+  <button id="clearImageBtn">❌ 清除圖片</button>
+  <button id="nativeShareBtn">📱 分享圖片</button>
+  
 
-    <label for="topicSelect" id="labelTopic">選擇分類主題（可AI自動判斷）：</label>
-    <select id="topicSelect">
-      <option value="">AI 自動判斷</option>
-      <option value="人生成長">人生成長</option>
-      <option value="情感故事">情感故事</option>
-      <option value="健康養生">健康養生</option>
-      <option value="財富商機">財富商機</option>
-    </select>
+  <!-- ✅ 浮窗提示 -->
+  <div id="toast" class="toast">✅ 圖片已上傳備份</div>
 
-    <button id="rewriteBtn" onclick="autoRewrite()" disabled>🚀 自動改寫</button>
-    <button id="shareBtn" onclick="nativeShare()">📤 分享文案</button>
+  <div id="inputArea">
+    <select id="nameInput"></select>
+    <select id="qtyInput"></select>
+    <button id="addBtn">➕ 新增品項</button>
+  </div>
 
-    <div id="rewriteResult"></div>
-    <div id="bottomSpacer" style="height:60px;"></div>
-  </main>
+   <button id="exportBtn">📤 報表轉圖片</button>
 
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+ <!-- 新增這段留白用的區塊 -->
+  <div style="height: 100px;"></div>
+
   <script>
-    // 多語系對應字串
-    const langMap = {
-      "zh-Hant": {
-        title: "📘 『彥彬 文案改寫』",
-        subtitle: "✍️ 貼上 自動改寫",
-        placeholder: "請貼上原始文章...",
-        label: "選擇分類主題（可AI自動判斷）：",
-        rewriteBtn: "🚀 自動改寫",
-        shareBtn: "📤 分享文案"
-      },
-      "zh-Hans": {
-        title: "📘 『彦彬 文案改写』",
-        subtitle: "✍️ 粘贴 自动改写",
-        placeholder: "请粘贴原始文章...",
-        label: "选择分类主题（可AI自动判断）：",
-        rewriteBtn: "🚀 自动改写",
-        shareBtn: "📤 分享文案"
-      },
-      "en": {
-        title: "📘 'Yanbin Copy Rewriter'",
-        subtitle: "✍️ Paste & Auto Rewrite",
-        placeholder: "Please paste original text...",
-        label: "Select topic category (AI auto-detect available):",
-        rewriteBtn: "🚀 Auto Rewrite",
-        shareBtn: "📤 Share Text"
-      },
-      "vi": {
-        title: "📘 'Yanbin Viết lại bản sao'",
-        subtitle: "✍️ Dán & Tự động viết lại",
-        placeholder: "Vui lòng dán văn bản gốc...",
-        label: "Chọn chủ đề (AI tự động nhận dạng):",
-        rewriteBtn: "🚀 Viết lại tự động",
-        shareBtn: "📤 Chia sẻ văn bản"
-      }
-    };
+    const API_URL = "https://script.google.com/macros/s/AKfycbxMK8aSmldCGKmXffbL5XU6IGuLbaKS1VABe9LuWXSF6hg2NtGLGZxS8fT-jqiFKy8_/exec";
+    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
 
-    // 取得參數
-    const liffId = "1657881718-xXDbLpzM";
-    let currentLang = "zh-Hant";
+    let allProducts = [];
+    let selectedProducts = [];
 
-    // 初始化
-    window.onload = async () => {
-      initLang();
-      await initLiffApp();
-      updateRewriteButton();
-      bindInputEvents();
-    };
+    const nameInput = document.getElementById("nameInput");
+    const qtyInput = document.getElementById("qtyInput");
+    const addBtn = document.getElementById("addBtn");
+    const reportBody = document.getElementById("reportBody");
+    const totalPriceCellDup = document.getElementById("totalPriceCellDup");
+    const totalPvCellDup = document.getElementById("totalPvCellDup");
+    const pvDiff = document.getElementById("pvDiff");
+    const pvDiff2 = document.getElementById("pvDiff2");
+    const pvMessage1 = document.getElementById("pvMessage1");
+    const pvMessage2 = document.getElementById("pvMessage2");
 
-    // 初始化語言
-    function initLang() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const langParam = urlParams.get("lang");
-      if (langParam && langMap[langParam]) {
-        currentLang = langParam;
-        document.getElementById("langSelect").value = currentLang;
-      }
-      applyLang();
+    const exportBtn = document.getElementById("exportBtn");
+    const previewImage = document.getElementById("previewImage");
+    const shareToLineBtn = document.getElementById("shareToLineBtn");
+    const nativeShareBtn = document.getElementById("nativeShareBtn");
+    const clearImageBtn = document.getElementById("clearImageBtn");
+    const buyerInput = document.getElementById("buyerInput");
+    const calculatorInput = document.getElementById("calculatorInput");
+    const toast = document.getElementById("toast");
+
+    for (let i = 1; i <= 10; i++) {
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent = i;
+      qtyInput.appendChild(option);
     }
 
-    // 語言切換事件
-    function changeLang() {
-      const sel = document.getElementById("langSelect");
-      currentLang = sel.value;
-      applyLang();
-    }
-
-    // 將多語系字串套用到介面
-    function applyLang() {
-      const lang = langMap[currentLang];
-      document.getElementById("headerTitle").innerHTML = `${lang.title}<br><small>${lang.subtitle}</small>`;
-      document.getElementById("originalText").placeholder = lang.placeholder;
-      document.getElementById("labelTopic").textContent = lang.label;
-      document.getElementById("rewriteBtn").textContent = lang.rewriteBtn;
-      document.getElementById("shareBtn").textContent = lang.shareBtn;
-    }
-
-    // 綁定輸入事件判斷是否可啟用改寫按鈕
-    function bindInputEvents() {
-      const txt = document.getElementById("originalText");
-      txt.addEventListener("input", updateRewriteButton);
-    }
-    function updateRewriteButton() {
-      const val = document.getElementById("originalText").value.trim();
-      document.getElementById("rewriteBtn").disabled = val.length === 0;
-    }
-
-    // LIFF 初始化並取得使用者資料
-    async function initLiffApp() {
+    async function loadProducts() {
       try {
-        await liff.init({ liffId });
-        if (!liff.isLoggedIn()) {
-          liff.login();
-        } else {
-          const profile = await liff.getProfile();
-          showUserInfo(profile);
-        }
+        const res = await fetch(API_URL + "?action=all");
+        const data = await res.json();
+        allProducts = data;
+        nameInput.innerHTML = "";
+        data.forEach(item => {
+          const opt = document.createElement("option");
+          opt.value = item.name;
+          opt.textContent = item.name;
+          nameInput.appendChild(opt);
+        });
       } catch (error) {
-        console.error("LIFF init error:", error);
-        document.getElementById("userInfo").textContent = "無法取得使用者資料";
+        alert("讀取商品失敗: " + error);
       }
     }
 
-    // 顯示使用者名稱和日期倒數
-    function showUserInfo(profile) {
-      const container = document.getElementById("userInfo");
-      const name = profile.displayName || "使用者";
+    function renderTable() {
+      reportBody.innerHTML = "";
+      let totalPrice = 0;
+      let totalPv = 0;
 
-      // 計算剩餘天數
-      const expiryDate = new Date("2024-12-25T23:59:59");
-      const now = new Date();
-      const diffDays = Math.max(0, Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24)));
+      selectedProducts.forEach((item, idx) => {
+        const subtotalPrice = item.price * item.qty;
+        const subtotalPv = item.pv * item.qty;
+        totalPrice += subtotalPrice;
+        totalPv += subtotalPv;
 
-      let daysHTML = `<span class="daysWrapper${diffDays <= 5 ? " danger" : ""}">${diffDays} 天</span>`;
-      container.innerHTML = `
-        <div class="name">${name}</div>
-        <div>${daysHTML}<span class="expiry">使用期限倒數</span></div>
-      `;
-    }
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.qty}</td>
+          <td>${item.price}</td>
+          <td>${item.pv}</td>
+          <td>${subtotalPrice}</td>
+          <td>${subtotalPv}</td>
+          <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
+        `;
+        reportBody.appendChild(tr);
+      });
 
-    // 改寫函式（模擬）
-    async function autoRewrite() {
-      const original = document.getElementById("originalText").value.trim();
-      const topic = document.getElementById("topicSelect").value;
+      totalPriceCellDup.textContent = totalPrice;
+      totalPvCellDup.textContent = totalPv;
+      const diff1 = 112000 - totalPv;
+      const diff2 = 220000 - totalPv;
 
-      if (!original) return;
+      pvDiff.textContent = diff1 > 0 ? diff1 : 0;
+      pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
+      pvMessage1.innerHTML = totalPv >= 112000 ? '<span class="done">🎉 已達標</span>' : '';
+      pvMessage2.innerHTML = totalPv >= 220000 ? '<span class="done">🎉 已達標</span>' : '';
 
-      // 按鈕禁用中防止重複觸發
-      const btn = document.getElementById("rewriteBtn");
-      btn.disabled = true;
-      btn.textContent = "⌛ 處理中...";
-
-      // 模擬改寫（此處替換成你的 AI API 調用）
-      try {
-        const rewritten = await fakeRewriteAPI(original, topic);
-        document.getElementById("rewriteResult").textContent = rewritten;
-        document.getElementById("shareBtn").style.display = "block";
-      } catch (e) {
-        document.getElementById("rewriteResult").innerHTML = `<span class="error">改寫失敗，請稍後再試</span>`;
-      } finally {
-        btn.textContent = langMap[currentLang].rewriteBtn;
-        updateRewriteButton();
-      }
-    }
-
-    // 假設改寫 API（模擬）
-    function fakeRewriteAPI(text, topic) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          let suffix = topic ? `（主題：${topic}）` : "";
-          resolve(text.split("").reverse().join("") + suffix);
-        }, 1200);
+      document.querySelectorAll(".deleteBtn").forEach(btn => {
+        btn.onclick = e => {
+          const idx = parseInt(e.target.dataset.index);
+          selectedProducts.splice(idx, 1);
+          renderTable();
+        };
       });
     }
 
-    // 分享功能，利用 Web Share API (須 HTTPS 且瀏覽器支援)
-    function nativeShare() {
-      const textToShare = document.getElementById("rewriteResult").textContent.trim();
-      if (!textToShare) return;
-
-      if (navigator.share) {
-        navigator.share({
-          title: "彥彬文案改寫分享",
-          text: textToShare,
-        }).catch(console.error);
-      } else {
-        alert("此裝置或瀏覽器不支援分享功能。");
+    function addProduct() {
+      const selectedName = nameInput.value;
+      const qty = parseInt(qtyInput.value);
+      if (!selectedName || qty <= 0) {
+        alert("請選擇品項與數量");
+        return;
       }
+
+      const product = allProducts.find(p => p.name === selectedName);
+      if (!product) {
+        alert("找不到該品項");
+        return;
+      }
+
+      const exists = selectedProducts.find(p => p.name === selectedName);
+      if (exists) {
+        exists.qty += qty;
+      } else {
+        selectedProducts.push({ ...product, qty });
+      }
+
+      renderTable();
     }
+
+    exportBtn.addEventListener("click", async () => {
+      if (selectedProducts.length === 0) {
+        alert("請先新增至少一個品項，才能匯出圖片！");
+        return;
+      }
+
+      exportBtn.disabled = true;
+      exportBtn.textContent = "匯出中...";
+
+      try {
+        const canvas = await html2canvas(document.getElementById("captureArea"), {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: null,
+          logging: false,
+        });
+        const dataUrl = canvas.toDataURL("image/png");
+        previewImage.src = dataUrl;
+        previewImage.style.display = "block";
+        shareToLineBtn.style.display = "inline-block";
+        nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
+        clearImageBtn.style.display = "inline-block";
+      } catch (error) {
+        alert("匯出失敗：" + error);
+      } finally {
+        exportBtn.disabled = false;
+        exportBtn.textContent = "📤 報表轉圖片";
+      }
+    });
+
+    shareToLineBtn.addEventListener("click", async () => {
+      if (!previewImage.src) {
+        alert("請先匯出圖片");
+        return;
+      }
+
+      shareToLineBtn.disabled = true;
+      shareToLineBtn.textContent = "上傳中...";
+
+      try {
+        const base64Data = previewImage.src.split(",")[1];
+        const formData = new FormData();
+        formData.append("image", base64Data);
+        formData.append("key", IMGBB_API_KEY);
+
+        const res = await fetch("https://api.imgbb.com/1/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await res.json();
+        if (result.success) {
+          const imageUrl = result.data.url;
+          const buyerName = buyerInput.value.trim() || "未填";
+          const calculatorName = calculatorInput.value.trim() || "未填";
+          const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(
+          `康園試算報表\n\n購買者：${buyerName}\n試算者：${calculatorName}\n${imageUrl}`
+      )}`;
+
+          window.open(lineShareUrl, "_blank");
+          showToast("✅ 圖片已上傳備份");
+        } else {
+          alert("圖片上傳失敗，請稍後再試");
+        }
+      } catch (error) {
+        alert("圖片上傳錯誤: " + error);
+      } finally {
+        shareToLineBtn.disabled = false;
+        shareToLineBtn.textContent = "📩 上傳備份";
+      }
+    });
+
+    nativeShareBtn.addEventListener("click", async () => {
+      if (!navigator.share || !previewImage.src) {
+        alert("無法使用原生分享");
+        return;
+      }
+
+      try {
+        const response = await fetch(previewImage.src);
+        const blob = await response.blob();
+        const filesArray = [new File([blob], "康園試算報表.png", { type: blob.type })];
+
+        const buyer = buyerInput.value.trim() || "未填";
+        const calculator = calculatorInput.value.trim() || "未填";
+        const shareText = `康園試算報表\n購買者：${buyer}\n試算者：${calculator}`;
+
+        await navigator.share({
+          files: filesArray,
+          title: "康園試算報表",
+          text: shareText,
+        });
+      } catch (error) {
+        alert("分享失敗: " + error);
+      }
+    });
+
+    clearImageBtn.addEventListener("click", () => {
+      previewImage.style.display = "none";
+      previewImage.src = "";
+      shareToLineBtn.style.display = "none";
+      nativeShareBtn.style.display = "none";
+      clearImageBtn.style.display = "none";
+    });
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    addBtn.addEventListener("click", addProduct);
+
+    window.onload = () => {
+      loadProducts();
+    };
   </script>
 </body>
 </html>
