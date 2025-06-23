@@ -403,6 +403,48 @@ select::-ms-expand {
   font-weight: 600;
 }
 
+    <style>
+  .export-mode table,
+  .export-mode th,
+  .export-mode td {
+    border: none !important;
+    background: transparent !important;
+    text-align: center !important;
+    font-size: 20px !important;
+    color: #000 !important;
+    padding: 8px !important;
+  }
+
+  /* 隱藏數量下拉、按鈕，只保留數字 */
+  .export-mode select.qtySelect {
+    display: none !important;
+  }
+
+  .export-mode td[data-export-qty]::before {
+    content: attr(data-export-qty);
+    display: block;
+    font-size: 22px;
+    font-weight: bold;
+  }
+
+  .export-mode td:last-child,
+  .export-mode th:last-child {
+    display: none !important;
+  }
+
+  .export-mode .summaryBox {
+    text-align: center;
+    font-size: 24px;
+  }
+
+  .export-mode h2 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+  }
+</style>
+
+
   }
 </style>
 
@@ -542,11 +584,12 @@ select::-ms-expand {
 
     tr.innerHTML = `
       <td>${item.name}</td>
-      <td>
-        <select class="qtySelect" data-index="${idx}">
-          ${qtyOptions}
-        </select>
-      </td>
+<td data-export-qty="${item.qty}">
+  <select class="qtySelect" data-index="${idx}">
+    ${qtyOptions}
+  </select>
+</td>
+
       <td>${item.price}</td>
       <td>${item.pv}</td>
       <td>${subtotalPrice}</td>
@@ -626,6 +669,10 @@ select::-ms-expand {
 
   try {
     const canvas = await html2canvas(document.getElementById("captureArea"), {
+
+      document.getElementById("captureArea").classList.add("export-mode");
+// ... 匯出完成或錯誤後
+document.getElementById("captureArea").classList.remove("export-mode");
       scale: 2,
       useCORS: true,
       allowTaint: true,
