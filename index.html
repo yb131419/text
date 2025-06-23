@@ -402,44 +402,6 @@ select::-ms-expand {
   text-align: center;
   font-weight: 600;
 }
-    .export-mode table,
-  .export-mode th,
-  .export-mode td {
-    border: none !important;
-    background: transparent !important;
-    text-align: center !important;
-    font-size: 20px !important;
-    color: #000 !important;
-    padding: 8px !important;
-  }
-
-  /* 隱藏數量下拉、按鈕，只保留數字 */
-  .export-mode select.qtySelect {
-    display: none !important;
-  }
-
-  .export-mode td[data-export-qty]::before {
-    content: attr(data-export-qty);
-    display: block;
-    font-size: 22px;
-    font-weight: bold;
-  }
-
-  .export-mode td:last-child,
-  .export-mode th:last-child {
-    display: none !important;
-  }
-
-  .export-mode .summaryBox {
-    text-align: center;
-    font-size: 24px;
-  }
-
-  .export-mode h2 {
-    text-align: center;
-    font-size: 28px;
-    font-weight: bold;
-  }
 
   }
 </style>
@@ -580,11 +542,11 @@ select::-ms-expand {
 
     tr.innerHTML = `
       <td>${item.name}</td>
-<td data-export-qty="${item.qty}">
-  <select class="qtySelect" data-index="${idx}">
-    ${qtyOptions}
-  </select>
-</td>
+      <td>
+        <select class="qtySelect" data-index="${idx}">
+          ${qtyOptions}
+        </select>
+      </td>
       <td>${item.price}</td>
       <td>${item.pv}</td>
       <td>${subtotalPrice}</td>
