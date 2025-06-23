@@ -125,9 +125,6 @@
     font-weight: 600;
   }
 
-#reportTable tbody tr td:nth-child(2) {
-  background-color: transparent !important;
-}
 
   #reportTable tbody tr:hover {
     background-color: #1e88e5;
@@ -321,23 +318,34 @@
     font-weight: 500;
   }
 
+/* 數量欄位樣式調整 */
+#reportTable td:nth-child(2) {
+  background-color: transparent !important; /* 移除交錯灰底 */
+  padding: 0 !important;                    /* 移除內邊距 */
+  text-align: center;                       /* 水平置中 */
+  vertical-align: middle;                   /* 垂直置中 */
+}
+
+/* 選單樣式（只顯示數字、無下拉箭頭、置中） */
 .slimQty {
-  background-color: transparent !important; /* 移除背景 */
-  font-size: 18px;                          /* 放大字體 */
-  color: #111;                              /* 深色數字，顯眼 */
+  background-color: transparent !important;
+  font-size: 18px;
+  color: #111;
   padding: 0;
+  margin: 0 auto;
   border: none;
-  text-align: center;
   width: 100%;
-  height: auto;
+  height: 100%;
+  text-align: center;
 
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  background-image: none;
 
-  background-image: none; /* 移除下拉箭頭 */
-  cursor: pointer;
+  pointer-events: none; /* 停用下拉功能，只顯示數字 */
 }
+
 
 
   @media (min-width: 600px) {
