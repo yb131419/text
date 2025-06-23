@@ -95,7 +95,20 @@
     color: #374151;
   }
 
-
+  #reportTable th:nth-child(1),
+  #reportTable td:nth-child(1) { width: 25%; }
+  #reportTable th:nth-child(2),
+  #reportTable td:nth-child(2) { width: 13%; }
+  #reportTable th:nth-child(3),
+  #reportTable td:nth-child(3) { width: 13%; }
+  #reportTable th:nth-child(4),
+  #reportTable td:nth-child(4) { width: 13%; }
+  #reportTable th:nth-child(5),
+  #reportTable td:nth-child(5) { width: 15%; }
+  #reportTable th:nth-child(6),
+  #reportTable td:nth-child(6) { width: 14%; }
+  #reportTable th:nth-child(7),
+  #reportTable td:nth-child(7) { width: 7%; }
 
   #reportTable th,
   #reportTable td {
@@ -382,118 +395,49 @@ select::-ms-expand {
   padding: 10px;
   font-size: 14px;
 }
-    #reportTable td:nth-child(2) select.qtySelect {
-  font-size: 20px;              /* 數字大一點 */
-  font-weight: bold;
-  text-align: center;
-  text-align-last: center;      /* Firefox 專用 */
-  width: 100%;
-  padding: 4px 0;
-  margin: 0 auto;
 
-  background: none;
-  border: none;
-  outline: none;
-  box-shadow: none;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-}
-
-    #reportTable td:nth-child(2) select.slimQty {
-  font-size: 20px;
-  font-weight: bold;
-  text-align: center;
-  text-align-last: center;
-  width: 100%;
-  padding: 4px 0;
-  background: none;
-  border: none;
-  outline: none;
-  box-shadow: none;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-}
-
-    #reportTable th:nth-child(2),
-#reportTable td:nth-child(2) {
-  width: 10%;
-  padding: 0;
-}
-    /* === 表格整體字體加大與置中 === */
-#reportTable th,
-#reportTable td {
-  padding: 12px;
-  font-size: 16px;
-  text-align: center;
-  vertical-align: middle;
-}
-
-/* === 第二欄「數量」的下拉選單樣式（加大置中）=== */
-#reportTable td:nth-child(2) select.qtySelect,
-#reportTable td:nth-child(2) select.slimQty {
-  font-size: 20px;
-  font-weight: bold;
-  text-align: center;
-  text-align-last: center;
-  padding: 6px;
-  width: 100%;
-  min-width: 50px;
-
-  background: transparent;
-  color: #374151;
-  border: none;
-  outline: none;
-  box-shadow: none;
-
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-}
-
-select::-ms-expand {
-  display: none;
-}
-
-/* === 表頭與欄寬調整，更加寬敞與對齊 === */
-#reportTable th:nth-child(1),
-#reportTable td:nth-child(1) { width: 25%; }
-#reportTable th:nth-child(2),
-#reportTable td:nth-child(2) { width: 12%; padding: 0; }
-#reportTable th:nth-child(3),
-#reportTable td:nth-child(3) { width: 13%; }
-#reportTable th:nth-child(4),
-#reportTable td:nth-child(4) { width: 13%; }
-#reportTable th:nth-child(5),
-#reportTable td:nth-child(5) { width: 15%; }
-#reportTable th:nth-child(6),
-#reportTable td:nth-child(6) { width: 14%; }
-#reportTable th:nth-child(7),
-#reportTable td:nth-child(7) { width: 8%; }
-
-/* === 表格 hover 效果加強（可選）=== */
-#reportTable tbody tr:hover {
-  background-color: #1976d2;
-  color: #fff;
-  font-weight: bold;
-  transform: scale(1.005);
-}
-
-/* === 確保所有欄位輸入都字體偏大置中（如購買者欄位等）=== */
-.userInputs input,
-#nameInput,
-#qtyInput {
-  font-size: 18px;
-  text-align: center;
-}
-
-    #buyerInput,
+#buyerInput,
 #calculatorInput {
   font-size: 20px;
   text-align: center;
   font-weight: 600;
 }
+    <style>
+  /* 匯出圖片用的樣式 */
+  .export-mode table,
+  .export-mode td,
+  .export-mode th {
+    border: none !important;
+    padding: 6px 8px !important;
+    text-align: center !important;
+    font-size: 20px !important;
+    color: #000 !important;
+    background: transparent !important;
+  }
+
+  .export-mode td button,
+  .export-mode select {
+    display: none !important; /* 隱藏下拉選單和按鈕 */
+  }
+
+  .export-mode td,
+  .export-mode th {
+    font-weight: bold;
+  }
+
+  .export-mode #reportTable td:last-child,
+  .export-mode #reportTable th:last-child {
+    display: none !important;
+  }
+
+  .export-mode h2,
+  .export-mode .summaryBox {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+  }
+</style>
+
 
   }
 </style>
@@ -712,9 +656,8 @@ select::-ms-expand {
   exportBtn.disabled = true;
   exportBtn.textContent = "匯出中...";
 
-  // ✅ 暫時隱藏「操作」欄
-  const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
-  opCells.forEach(el => el.style.display = "none");
+  // 👉 加入 export 樣式
+  document.getElementById("captureArea").classList.add("export-mode");
 
   try {
     const canvas = await html2canvas(document.getElementById("captureArea"), {
@@ -722,7 +665,6 @@ select::-ms-expand {
       useCORS: true,
       allowTaint: true,
       backgroundColor: null,
-      logging: false,
     });
     const dataUrl = canvas.toDataURL("image/png");
     previewImage.src = dataUrl;
@@ -733,12 +675,14 @@ select::-ms-expand {
   } catch (error) {
     alert("匯出失敗：" + error);
   } finally {
-    // ✅ 還原顯示「操作」欄
-    opCells.forEach(el => el.style.display = "");
+    // 👉 移除 export 樣式
+    document.getElementById("captureArea").classList.remove("export-mode");
+
     exportBtn.disabled = false;
     exportBtn.textContent = "📤 報表轉圖片";
   }
 });
+
 
     shareToLineBtn.addEventListener("click", async () => {
       if (!previewImage.src) {
