@@ -95,20 +95,7 @@
     color: #374151;
   }
 
-  #reportTable th:nth-child(1),
-  #reportTable td:nth-child(1) { width: 25%; }
-  #reportTable th:nth-child(2),
-  #reportTable td:nth-child(2) { width: 13%; }
-  #reportTable th:nth-child(3),
-  #reportTable td:nth-child(3) { width: 13%; }
-  #reportTable th:nth-child(4),
-  #reportTable td:nth-child(4) { width: 13%; }
-  #reportTable th:nth-child(5),
-  #reportTable td:nth-child(5) { width: 15%; }
-  #reportTable th:nth-child(6),
-  #reportTable td:nth-child(6) { width: 14%; }
-  #reportTable th:nth-child(7),
-  #reportTable td:nth-child(7) { width: 7%; }
+
 
   #reportTable th,
   #reportTable td {
@@ -433,6 +420,72 @@ select::-ms-expand {
 #reportTable td:nth-child(2) {
   width: 10%;
   padding: 0;
+}
+    /* === 表格整體字體加大與置中 === */
+#reportTable th,
+#reportTable td {
+  padding: 12px;
+  font-size: 16px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* === 第二欄「數量」的下拉選單樣式（加大置中）=== */
+#reportTable td:nth-child(2) select.qtySelect,
+#reportTable td:nth-child(2) select.slimQty {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  text-align-last: center;
+  padding: 6px;
+  width: 100%;
+  min-width: 50px;
+
+  background: transparent;
+  color: #374151;
+  border: none;
+  outline: none;
+  box-shadow: none;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+/* === 表頭與欄寬調整，更加寬敞與對齊 === */
+#reportTable th:nth-child(1),
+#reportTable td:nth-child(1) { width: 25%; }
+#reportTable th:nth-child(2),
+#reportTable td:nth-child(2) { width: 12%; padding: 0; }
+#reportTable th:nth-child(3),
+#reportTable td:nth-child(3) { width: 13%; }
+#reportTable th:nth-child(4),
+#reportTable td:nth-child(4) { width: 13%; }
+#reportTable th:nth-child(5),
+#reportTable td:nth-child(5) { width: 15%; }
+#reportTable th:nth-child(6),
+#reportTable td:nth-child(6) { width: 14%; }
+#reportTable th:nth-child(7),
+#reportTable td:nth-child(7) { width: 8%; }
+
+/* === 表格 hover 效果加強（可選）=== */
+#reportTable tbody tr:hover {
+  background-color: #1976d2;
+  color: #fff;
+  font-weight: bold;
+  transform: scale(1.005);
+}
+
+/* === 確保所有欄位輸入都字體偏大置中（如購買者欄位等）=== */
+.userInputs input,
+#nameInput,
+#qtyInput {
+  font-size: 18px;
+  text-align: center;
 }
 
   }
