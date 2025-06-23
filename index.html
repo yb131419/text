@@ -402,9 +402,7 @@ select::-ms-expand {
   text-align: center;
   font-weight: 600;
 }
-
-    <style>
-  .export-mode table,
+    .export-mode table,
   .export-mode th,
   .export-mode td {
     border: none !important;
@@ -442,8 +440,6 @@ select::-ms-expand {
     font-size: 28px;
     font-weight: bold;
   }
-</style>
-
 
   }
 </style>
@@ -589,7 +585,6 @@ select::-ms-expand {
     ${qtyOptions}
   </select>
 </td>
-
       <td>${item.price}</td>
       <td>${item.pv}</td>
       <td>${subtotalPrice}</td>
@@ -669,10 +664,6 @@ select::-ms-expand {
 
   try {
     const canvas = await html2canvas(document.getElementById("captureArea"), {
-
-      document.getElementById("captureArea").classList.add("export-mode");
-// ... 匯出完成或錯誤後
-document.getElementById("captureArea").classList.remove("export-mode");
       scale: 2,
       useCORS: true,
       allowTaint: true,
