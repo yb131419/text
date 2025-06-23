@@ -318,57 +318,64 @@
     font-weight: 500;
   }
 
-  <td>
-  <select class="slimQty">
-    <option value="1">1</option>
-    <option value="2">2</option>
-    ...
-  </select>
-</td>
 
-/* 強化 td 第2欄樣式 */
+  
+/* 數量欄 <td> 样式 */
 #reportTable td:nth-child(2) {
-  background-color: transparent !important;
+  background: none !important;
   padding: 0 !important;
   text-align: center;
   vertical-align: middle;
 }
 
-/* select 本身樣式強化 */
+/* 數量 <select> 清除所有框線與背景 */
 #reportTable td:nth-child(2) select.slimQty {
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
 
-  background: transparent !important;
+  background: none !important;
+  background-color: transparent !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
+  border-radius: 0 !important;
 
   font-size: 20px !important;
   color: #111 !important;
-  text-align: center;
-  text-align-last: center;  /* 有些瀏覽器需要這個才能置中 option */
-  padding: 0 !important;
-  margin: 0 auto;
+
   width: 100%;
   height: 100%;
+  padding: 0 !important;
+  margin: 0 auto;
+  text-align: center;
+  text-align-last: center;
 
   pointer-events: none !important;
-  cursor: default;
+  cursor: default !important;
 }
 
-/* 選項樣式也清除背景色 */
+/* select 聚焦時仍不顯示任何框線或陰影 */
+#reportTable td:nth-child(2) select.slimQty:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background-color: transparent !important;
+}
+
+/* option 也不能有底色 */
 #reportTable td:nth-child(2) select.slimQty option {
+  background: none !important;
   background-color: transparent !important;
   color: #111 !important;
   text-align: center;
 }
 
-/* IE 下拉箭頭移除 */
-#reportTable td:nth-child(2) select.slimQty::-ms-expand {
+/* 移除 IE 的箭頭 */
+select.slimQty::-ms-expand {
   display: none;
 }
+
 
 
 
