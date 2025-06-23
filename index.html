@@ -402,42 +402,6 @@ select::-ms-expand {
   text-align: center;
   font-weight: 600;
 }
-    <style>
-  /* 匯出圖片用的樣式 */
-  .export-mode table,
-  .export-mode td,
-  .export-mode th {
-    border: none !important;
-    padding: 6px 8px !important;
-    text-align: center !important;
-    font-size: 20px !important;
-    color: #000 !important;
-    background: transparent !important;
-  }
-
-  .export-mode td button,
-  .export-mode select {
-    display: none !important; /* 隱藏下拉選單和按鈕 */
-  }
-
-  .export-mode td,
-  .export-mode th {
-    font-weight: bold;
-  }
-
-  .export-mode #reportTable td:last-child,
-  .export-mode #reportTable th:last-child {
-    display: none !important;
-  }
-
-  .export-mode h2,
-  .export-mode .summaryBox {
-    text-align: center;
-    font-size: 24px;
-    font-weight: bold;
-  }
-</style>
-
 
   }
 </style>
@@ -647,7 +611,7 @@ select::-ms-expand {
       renderTable();
     }
 
-   exportBtn.addEventListener("click", async () => {
+    exportBtn.addEventListener("click", async () => {
   if (selectedProducts.length === 0) {
     alert("請先新增至少一個品項，才能匯出圖片！");
     return;
@@ -656,8 +620,9 @@ select::-ms-expand {
   exportBtn.disabled = true;
   exportBtn.textContent = "匯出中...";
 
-  // 👉 加入 export 樣式
-  document.getElementById("captureArea").classList.add("export-mode");
+  // ✅ 暫時隱藏「操作」欄
+  const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
+  opCells.forEach(el => el.style.display = "none");
 
   try {
     const canvas = await html2canvas(document.getElementById("captureArea"), {
@@ -665,6 +630,7 @@ select::-ms-expand {
       useCORS: true,
       allowTaint: true,
       backgroundColor: null,
+      logging: false,
     });
     const dataUrl = canvas.toDataURL("image/png");
     previewImage.src = dataUrl;
@@ -675,14 +641,12 @@ select::-ms-expand {
   } catch (error) {
     alert("匯出失敗：" + error);
   } finally {
-    // 👉 移除 export 樣式
-    document.getElementById("captureArea").classList.remove("export-mode");
-
+    // ✅ 還原顯示「操作」欄
+    opCells.forEach(el => el.style.display = "");
     exportBtn.disabled = false;
     exportBtn.textContent = "📤 報表轉圖片";
   }
 });
-
 
     shareToLineBtn.addEventListener("click", async () => {
       if (!previewImage.src) {
