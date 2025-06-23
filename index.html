@@ -39,8 +39,8 @@
   text-align: center;
   font-size: 1.6rem;
   font-weight: bold;
-  color: #FCFCFC;
-  margin-bottom: 19px;
+  color: #00e676;
+  margin-bottom: 15px;
 }
 
   .userInputs {
@@ -96,19 +96,19 @@
   }
 
   #reportTable th:nth-child(1),
-  #reportTable td:nth-child(1) { width: 26%; }
+  #reportTable td:nth-child(1) { width: 24%; }
   #reportTable th:nth-child(2),
-  #reportTable td:nth-child(2) { width: 7%; }
+  #reportTable td:nth-child(2) { width: 13%; }
   #reportTable th:nth-child(3),
   #reportTable td:nth-child(3) { width: 13%; }
   #reportTable th:nth-child(4),
   #reportTable td:nth-child(4) { width: 13%; }
   #reportTable th:nth-child(5),
-  #reportTable td:nth-child(5) { width: 16%; }
+  #reportTable td:nth-child(5) { width: 15%; }
   #reportTable th:nth-child(6),
-  #reportTable td:nth-child(6) { width: 16%; }
+  #reportTable td:nth-child(6) { width: 15%; }
   #reportTable th:nth-child(7),
-  #reportTable td:nth-child(7) { width: 9%; }
+  #reportTable td:nth-child(7) { width: 7%; }
 
   #reportTable th,
   #reportTable td {
@@ -356,18 +356,39 @@
     
 .payment-options {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: column;  /* 垂直排列 */
+  align-items: center;     /* 置中對齊（你也可以改成 flex-start 靠左） */
   margin-top: 10px;
+  color: white;
   font-size: 0.95rem;
 }
-
 .payment-options label {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #FCFCFC;        /* ✅ 把字體顏色設為白色 */
+  color: white; /* ⬅ 更改 現金、刷卡 字體顏色 */
   font-weight: 500;
+}
+
+.slimQty {
+  background-color: transparent;
+  font-size: 14px;
+  color: #333;
+  padding: 2px 6px;
+  border: none;
+  width: auto;
+  min-width: 38px;
+  text-align: center;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-image: none; /* 移除下拉箭頭圖示 */
+}
+
+select::-ms-expand {
+  display: none;
 }
 
   }
@@ -381,10 +402,10 @@
 <h2>
   🌿 康園試算報表
   <br />
-<span class="payment-options">
-  <label><input type="checkbox" id="cashOption" /> 現金</label>
-  <label><input type="checkbox" id="cardOption" /> 刷卡</label>
-</span>
+  <span class="payment-options">
+    <label><input type="checkbox" id="cashOption" /> 現金</label>
+    <label><input type="checkbox" id="cardOption" /> 刷卡</label>
+  </span>
 </h2>
     <div class="userInputs">
       <div class="row">
@@ -466,7 +487,7 @@
     const calculatorInput = document.getElementById("calculatorInput");
     const toast = document.getElementById("toast");
 
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 20; i++) {
       const option = document.createElement("option");
       option.value = i;
       option.textContent = i;
@@ -490,48 +511,69 @@
       }
     }
 
-    function renderTable() {
-      reportBody.innerHTML = "";
-      let totalPrice = 0;
-      let totalPv = 0;
+ function renderTable() {
+  reportBody.innerHTML = "";
+  let totalPrice = 0;
+  let totalPv = 0;
 
-      selectedProducts.forEach((item, idx) => {
-        const subtotalPrice = item.price * item.qty;
-        const subtotalPv = item.pv * item.qty;
-        totalPrice += subtotalPrice;
-        totalPv += subtotalPv;
+  selectedProducts.forEach((item, idx) => {
+    const subtotalPrice = item.price * item.qty;
+    const subtotalPv = item.pv * item.qty;
+    totalPrice += subtotalPrice;
+    totalPv += subtotalPv;
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${item.name}</td>
-          <td>${item.qty}</td>
-          <td>${item.price}</td>
-          <td>${item.pv}</td>
-          <td>${subtotalPrice}</td>
-          <td>${subtotalPv}</td>
-          <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
-        `;
-        reportBody.appendChild(tr);
-      });
+    const tr = document.createElement("tr");
+    const qtyOptions = Array.from({ length: 20 }, (_, i) => {
+      const val = i + 1;
+      return `<option value="${val}" ${val === item.qty ? "selected" : ""}>${val}</option>`;
+    }).join("");
 
-      totalPriceCellDup.textContent = totalPrice;
-      totalPvCellDup.textContent = totalPv;
-      const diff1 = 112000 - totalPv;
-      const diff2 = 220000 - totalPv;
+    tr.innerHTML = `
+      <td>${item.name}</td>
+      <td>
+        <select class="qtySelect" data-index="${idx}">
+          ${qtyOptions}
+        </select>
+      </td>
+      <td>${item.price}</td>
+      <td>${item.pv}</td>
+      <td>${subtotalPrice}</td>
+      <td>${subtotalPv}</td>
+      <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
+    `;
+    reportBody.appendChild(tr);
+  });
 
-      pvDiff.textContent = diff1 > 0 ? diff1 : 0;
-      pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
-      pvMessage1.innerHTML = totalPv >= 112000 ? '<span class="done">🎉 已達標</span>' : '';
-      pvMessage2.innerHTML = totalPv >= 220000 ? '<span class="done">🎉 已達標</span>' : '';
+  totalPriceCellDup.textContent = totalPrice;
+  totalPvCellDup.textContent = totalPv;
+  const diff1 = 112000 - totalPv;
+  const diff2 = 220000 - totalPv;
 
-      document.querySelectorAll(".deleteBtn").forEach(btn => {
-        btn.onclick = e => {
-          const idx = parseInt(e.target.dataset.index);
-          selectedProducts.splice(idx, 1);
-          renderTable();
-        };
-      });
-    }
+  pvDiff.textContent = diff1 > 0 ? diff1 : 0;
+  pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
+  pvMessage1.innerHTML = totalPv >= 112000 ? '<span class="done">🎉 已達標</span>' : '';
+  pvMessage2.innerHTML = totalPv >= 220000 ? '<span class="done">🎉 已達標</span>' : '';
+
+  // 刪除按鈕事件
+  document.querySelectorAll(".deleteBtn").forEach(btn => {
+    btn.onclick = e => {
+      const idx = parseInt(e.target.dataset.index);
+      selectedProducts.splice(idx, 1);
+      renderTable();
+    };
+  });
+
+  // 數量下拉變更事件
+  document.querySelectorAll(".qtySelect").forEach(select => {
+    select.onchange = e => {
+      const idx = parseInt(e.target.dataset.index);
+      const newQty = parseInt(e.target.value);
+      selectedProducts[idx].qty = newQty;
+      renderTable();
+    };
+  });
+}
+
 
     function addProduct() {
       const selectedName = nameInput.value;
