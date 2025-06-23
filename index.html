@@ -35,13 +35,13 @@
     margin-bottom: 20px;
   }
 
-  #captureArea h2 {
-    text-align: center;
-    font-size: 1.6rem;
-    font-weight: bold;
-    color: #00e676;
-    margin-bottom: 15px;
-  }
+#captureArea h2 {
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #00e676;
+  margin-bottom: 15px;
+}
 
   .userInputs {
     display: flex;
@@ -125,6 +125,8 @@
     font-weight: 600;
   }
 
+  #reportTable tbody tr:nth-child(odd) { background-color: #f3f4f6; }
+  #reportTable tbody tr:nth-child(even) { background-color: #e5e7eb; }
 
   #reportTable tbody tr:hover {
     background-color: #1e88e5;
@@ -147,6 +149,7 @@
     height: auto;
     width: auto;
   }
+
 
   .summaryBox {
     text-align: center;
@@ -301,86 +304,6 @@
     transform: translateX(-50%) translateY(-10px);
   }
 
-  .payment-options {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 10px;
-    color: white;
-    font-size: 0.95rem;
-  }
-
-  .payment-options label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: white;
-    font-weight: 500;
-  }
-
-
-  
-/* 數量欄 <td> 样式 */
-#reportTable td:nth-child(2) {
-  background: none !important;
-  padding: 0 !important;
-  text-align: center;
-  vertical-align: middle;
-}
-
-/* 數量 <select> 清除所有框線與背景 */
-#reportTable td:nth-child(2) select.slimQty {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-
-  background: none !important;
-  background-color: transparent !important;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-
-  font-size: 30px !important;
-  color: #111 !important;
-
-  width: 100%;
-  height: 100%;
-  padding: 0 !important;
-  margin: 0 auto;
-  text-align: center;
-  text-align-last: center;
-
-  pointer-events: none !important;
-  cursor: default !important;
-}
-
-/* select 聚焦時仍不顯示任何框線或陰影 */
-#reportTable td:nth-child(2) select.slimQty:focus {
-  outline: none !important;
-  box-shadow: none !important;
-  border: none !important;
-  background-color: transparent !important;
-}
-
-/* option 也不能有底色 */
-#reportTable td:nth-child(2) select.slimQty option {
-  background: none !important;
-  background-color: transparent !important;
-  color: #111 !important;
-  text-align: center;
-}
-
-/* 移除 IE 的箭頭 */
-select.slimQty::-ms-expand {
-  display: none;
-}
-
-
-
-
-
-
   @media (min-width: 600px) {
     #inputArea {
       flex-direction: row;
@@ -430,18 +353,52 @@ select.slimQty::-ms-expand {
     .summaryBox {
       color: #000 !important;
     }
-  }
-
-  .qtyDisplay {
-  display: block;
-  font-size: 30px;
-  color: #111;
-  text-align: center;
-  width: 100%;
-  padding: 5px 0;
+    
+.payment-options {
+  display: flex;
+  flex-direction: column;  /* 垂直排列 */
+  align-items: center;     /* 置中對齊（你也可以改成 flex-start 靠左） */
+  margin-top: 10px;
+  color: white;
+  font-size: 0.95rem;
+}
+.payment-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: white; /* ⬅ 更改 現金、刷卡 字體顏色 */
+  font-weight: 500;
 }
 
+.slimQty {
+  background-color: transparent;
+  font-size: 14px;
+  color: #333;
+  padding: 2px 6px;
+  border: none;
+  width: auto;
+  min-width: 38px;
+  text-align: center;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-image: none; /* 移除下拉箭頭圖示 */
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+#reportTable th, #reportTable td {
+  padding: 10px;
+  font-size: 14px;
+}
+
+  }
 </style>
+
 
 
 </head>
@@ -455,7 +412,7 @@ select.slimQty::-ms-expand {
     <label><input type="checkbox" id="cardOption" /> 刷卡</label>
   </span>
 </h2>
-    <div class="userInputs">
+    <div class="userInputs">  
       <div class="row">
         <label>購買者：
           <input type="text" placeholder="輸入購買者" id="buyerInput" />
@@ -648,35 +605,41 @@ select.slimQty::-ms-expand {
     }
 
     exportBtn.addEventListener("click", async () => {
-      if (selectedProducts.length === 0) {
-        alert("請先新增至少一個品項，才能匯出圖片！");
-        return;
-      }
+  if (selectedProducts.length === 0) {
+    alert("請先新增至少一個品項，才能匯出圖片！");
+    return;
+  }
 
-      exportBtn.disabled = true;
-      exportBtn.textContent = "匯出中...";
+  exportBtn.disabled = true;
+  exportBtn.textContent = "匯出中...";
 
-      try {
-        const canvas = await html2canvas(document.getElementById("captureArea"), {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: null,
-          logging: false,
-        });
-        const dataUrl = canvas.toDataURL("image/png");
-        previewImage.src = dataUrl;
-        previewImage.style.display = "block";
-        shareToLineBtn.style.display = "inline-block";
-        nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
-        clearImageBtn.style.display = "inline-block";
-      } catch (error) {
-        alert("匯出失敗：" + error);
-      } finally {
-        exportBtn.disabled = false;
-        exportBtn.textContent = "📤 報表轉圖片";
-      }
+  // ✅ 暫時隱藏「操作」欄
+  const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
+  opCells.forEach(el => el.style.display = "none");
+
+  try {
+    const canvas = await html2canvas(document.getElementById("captureArea"), {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: null,
+      logging: false,
     });
+    const dataUrl = canvas.toDataURL("image/png");
+    previewImage.src = dataUrl;
+    previewImage.style.display = "block";
+    shareToLineBtn.style.display = "inline-block";
+    nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
+    clearImageBtn.style.display = "inline-block";
+  } catch (error) {
+    alert("匯出失敗：" + error);
+  } finally {
+    // ✅ 還原顯示「操作」欄
+    opCells.forEach(el => el.style.display = "");
+    exportBtn.disabled = false;
+    exportBtn.textContent = "📤 報表轉圖片";
+  }
+});
 
     shareToLineBtn.addEventListener("click", async () => {
       if (!previewImage.src) {
