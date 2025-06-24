@@ -402,6 +402,55 @@ select::-ms-expand {
   font-weight: 600;
 }
 
+    /* 🌿 主標題樣式（白字 + 放大 + 間距 + 線條層次） */
+#captureArea h2 {
+  color: #ffffff;
+  font-size: 2rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #00e676;
+  padding-bottom: 10px;
+}
+
+/* ✅ 數量欄下拉選單：去除邊框、置中顯示、數字樣式 */
+#reportTable td:nth-child(2) select {
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  background: transparent;
+  border: none;
+  color: #222;
+  width: 100%;
+  appearance: none;
+  padding: 4px 0;
+}
+
+/* 移除數量下拉選單的箭頭樣式 */
+#reportTable td:nth-child(2) select::-ms-expand {
+  display: none;
+}
+#reportTable td:nth-child(2) select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* 手機版優化：壓縮 padding、調整字型大小 */
+@media (max-width: 600px) {
+  #captureArea {
+    padding: 15px;
+  }
+  #reportTable th, #reportTable td {
+    padding: 6px 3px;
+    font-size: 13px;
+  }
+  #captureArea h2 {
+    font-size: 1.6rem;
+  }
+}
+
+
   }
 </style>
 
