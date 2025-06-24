@@ -673,13 +673,13 @@ select::-ms-expand {
   opCells.forEach(el => el.style.display = "none");
 
   try {
-    const canvas = await html2canvas(document.getElementById("captureArea"), {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: null,
-      logging: false,
-    });
+const canvas = await html2canvas(document.getElementById("captureArea"), {
+  scale: 2,
+  useCORS: true,
+  allowTaint: true,
+  backgroundColor: "#0f0f0f",  // ✅ 改為暗黑背景
+  logging: false,
+});
     const dataUrl = canvas.toDataURL("image/png");
     previewImage.src = dataUrl;
     previewImage.style.display = "block";
