@@ -1,158 +1,165 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>3分鐘逆齡評估</title>
-  <style>
-    /* Reset & 基本 */
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      margin: 0;
-      padding: 20px;
-      font-family: 'Noto Sans TC', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #0b1a40, #1a2a6c);
-      color: #e0e7ff;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
-    /* 容器 */
-    .container {
-      width: 100%;
-      max-width: 480px;
-      background: #142851;
-      border-radius: 16px;
-      padding: 30px 28px 40px 28px;
-      box-shadow: 0 12px 32px rgba(10, 25, 75, 0.7);
-      user-select: none;
-    }
-    h1 {
-      color: #70b3ff;
-      text-align: center;
-      font-size: 2.2rem;
-      font-weight: 900;
-      margin-bottom: 36px;
-      text-shadow: 0 0 10px #70b3ff99;
-      letter-spacing: 1.2px;
-    }
-    .form-group {
-      margin-bottom: 28px;
-    }
-    label {
-      display: block;
-      margin-bottom: 14px;
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: #a8c0ff;
-      text-shadow: 0 0 4px #3d5afe99;
-    }
-    select {
-      width: 100%;
-      padding: 14px 16px;
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: #e0e7ff;
-      background: #1f3a8a;
-      border: 2px solid #4171ff;
-      border-radius: 10px;
-      transition: border-color 0.3s ease;
-      box-shadow: inset 0 0 8px #3d5afeaa;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-      background-repeat: no-repeat;
-      background-position: right 16px center;
-      background-size: 20px 20px;
-    }
-    select:hover, select:focus {
-      border-color: #94aaff;
-      outline: none;
-      box-shadow: 0 0 12px #a3baffcc;
-      background-color: #2a479f;
-    }
-    /* Checkbox group */
-    .checkbox-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>3分鐘逆齡評估</title>
+<style>
+  /* Reset & 基本 */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    padding: 24px 20px;
+    font-family: 'Noto Sans TC', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #050a20 0%, #0a103d 70%, #121940 100%);
+    color: #d6e0ff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  /* 容器 */
+  .container {
+    width: 100%;
+    max-width: 480px;
+    background: #0f1740;
+    border-radius: 20px;
+    padding: 36px 32px 44px 32px;
+    box-shadow:
+      0 6px 18px rgba(0, 42, 140, 0.35),
+      inset 0 0 8px rgba(31, 65, 173, 0.9);
+    user-select: none;
+  }
+  h1 {
+    color: #7ea3ff;
+    text-align: center;
+    font-size: 2.3rem;
+    font-weight: 900;
+    margin-bottom: 40px;
+    text-shadow: 0 0 14px #7ea3ffbb;
+    letter-spacing: 1.3px;
+  }
+  .form-group {
+    margin-bottom: 32px;
+  }
+  label {
+    display: block;
+    margin-bottom: 16px;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: #a8bbffcc;
+    text-shadow: 0 0 6px #415fbb88;
+    user-select: text;
+  }
+  select {
+    width: 100%;
+    padding: 16px 18px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #d6e0ff;
+    background: rgba(17, 31, 74, 0.9);
+    border: 2.5px solid #527aff;
+    border-radius: 14px;
+    transition: border-color 0.35s ease, background-color 0.35s ease;
+    box-shadow: inset 0 0 12px #4a6efcaa;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 18px center;
+    background-size: 20px 20px;
+  }
+  select:hover, select:focus {
+    border-color: #aac6ff;
+    background-color: rgba(23, 40, 94, 0.95);
+    outline: none;
+    box-shadow: 0 0 14px #89a7ffcc;
+  }
+  /* Checkbox group */
+  .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+  .checkbox-item {
+    background: rgba(23, 38, 90, 0.9);
+    border: 2.5px solid #638bff;
+    border-radius: 16px;
+    padding: 14px 20px;
+    flex: 1 1 45%;
+    display: flex;
+    align-items: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #c6d1ffdd;
+    cursor: pointer;
+    box-shadow: inset 0 0 8px #5678f8aa;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    user-select: none;
+  }
+  .checkbox-item input {
+    margin-right: 14px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: #92aaff;
+  }
+  .checkbox-item:hover {
+    background-color: rgba(36, 59, 120, 0.95);
+    border-color: #9db8ff;
+    color: #e4ebff;
+    box-shadow: 0 0 18px #9db8ffbb;
+  }
+  button {
+    width: 100%;
+    padding: 18px;
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: #0f1740;
+    background: linear-gradient(45deg, #9ab7ff, #527aff);
+    border: none;
+    border-radius: 18px;
+    cursor: pointer;
+    box-shadow:
+      0 10px 26px #527affbb,
+      inset 0 2px 6px #a9bcffcc;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
+    user-select: none;
+  }
+  button:hover, button:focus {
+    background: linear-gradient(45deg, #acc0ff, #7a94ff);
+    box-shadow:
+      0 12px 32px #7a94ffdd,
+      inset 0 3px 8px #c0d0ffcc;
+    outline: none;
+  }
+  #result {
+    margin-top: 44px;
+    background: rgba(20, 39, 95, 0.9);
+    border: 3px solid #6390ff;
+    padding: 30px 28px;
+    border-radius: 18px;
+    box-shadow: 0 0 22px #638bffcc;
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1.6;
+    color: #d7e2ff;
+    display: none;
+    user-select: text;
+  }
+  /* 手機適配 */
+  @media (max-width: 480px) {
     .checkbox-item {
-      background: #1f3a8a;
-      border: 2px solid #527bff;
-      border-radius: 12px;
-      padding: 12px 18px;
-      flex: 1 1 45%;
-      display: flex;
-      align-items: center;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #cbd7ff;
-      cursor: pointer;
-      box-shadow: inset 0 0 6px #4269ff88;
-      transition: background-color 0.25s ease, border-color 0.25s ease;
-      user-select: none;
+      flex: 1 1 100%;
     }
-    .checkbox-item input {
-      margin-right: 12px;
-      width: 22px;
-      height: 22px;
-      cursor: pointer;
-      accent-color: #6991ff;
-    }
-    .checkbox-item:hover {
-      background-color: #2a479f;
-      border-color: #7a9fff;
-      color: #d1deff;
-      box-shadow: 0 0 12px #7f9effbb;
-    }
-    button {
-      width: 100%;
-      padding: 16px;
-      font-size: 1.25rem;
-      font-weight: 900;
-      color: #142851;
-      background: linear-gradient(45deg, #a8c0ff, #3d5afe);
-      border: none;
-      border-radius: 14px;
-      cursor: pointer;
-      box-shadow: 0 8px 16px #527bffcc;
-      transition: background 0.35s ease, box-shadow 0.35s ease;
-      user-select: none;
-    }
-    button:hover, button:focus {
-      background: linear-gradient(45deg, #c0d0ff, #6991ff);
-      box-shadow: 0 10px 24px #739dffdd;
-      outline: none;
-    }
-    #result {
-      margin-top: 36px;
-      background: #1f3a8a;
-      border: 2px solid #527bff;
-      padding: 26px 24px;
-      border-radius: 14px;
-      box-shadow: 0 0 14px #3f6fffcc;
-      font-weight: 700;
-      font-size: 1.1rem;
-      line-height: 1.5;
-      color: #d1deff;
-      display: none;
-      user-select: text;
-    }
-    /* 手機適配 */
-    @media (max-width: 480px) {
-      .checkbox-item {
-        flex: 1 1 100%;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
   <div class="container" role="main">
@@ -222,72 +229,72 @@
     <div id="result" aria-live="polite" aria-atomic="true"></div>
   </div>
 
-  <script>
-    function calculateAndSubmit() {
-      const form = document.forms["quizForm"];
-      const sleepSelect = form["sleep"];
-      const waterSelect = form["water"];
-      const fruitSelect = form["fruit"];
-      const tiredSelect = form["tired"];
+<script>
+  function calculateAndSubmit() {
+    const form = document.forms["quizForm"];
+    const sleepSelect = form["sleep"];
+    const waterSelect = form["water"];
+    const fruitSelect = form["fruit"];
+    const tiredSelect = form["tired"];
 
-      // 取得選項文字
-      const sleepText = sleepSelect.options[sleepSelect.selectedIndex].text;
-      const waterText = waterSelect.options[waterSelect.selectedIndex].text;
-      const fruitText = fruitSelect.options[fruitSelect.selectedIndex].text;
-      const tiredText = tiredSelect.options[tiredSelect.selectedIndex].text;
+    // 取得選項文字
+    const sleepText = sleepSelect.options[sleepSelect.selectedIndex].text;
+    const waterText = waterSelect.options[waterSelect.selectedIndex].text;
+    const fruitText = fruitSelect.options[fruitSelect.selectedIndex].text;
+    const tiredText = tiredSelect.options[tiredSelect.selectedIndex].text;
 
-      // 複選取得文字值
-      const skin = Array.from(document.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
-      const wish = Array.from(document.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
+    // 複選取得文字值
+    const skin = Array.from(document.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
+    const wish = Array.from(document.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
 
-      // 計算分數
-      const totalScore = parseInt(sleepSelect.value) + parseInt(waterSelect.value) +
-                         parseInt(fruitSelect.value) + parseInt(tiredSelect.value) +
-                         skin.length + wish.length;
+    // 計算分數
+    const totalScore = parseInt(sleepSelect.value) + parseInt(waterSelect.value) +
+                       parseInt(fruitSelect.value) + parseInt(tiredSelect.value) +
+                       skin.length + wish.length;
 
-      // 判斷結果
-      let result = "";
-      if (totalScore <= 5) {
-        result = "💚 年輕穩定：保持健康習慣，輕保養即可。";
-      } else if (totalScore <= 10) {
-        result = "🟡 輕度老化：建議補水＋調整睡眠，使用基礎逆齡產品。";
-      } else {
-        result = "🔴 快速老化：建議立即排毒、修肝、使用深度逆齡保養。";
-      }
-
-      // 傳送資料至 GAS (JSONP)
-      const baseURL = "https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec";
-      const params = new URLSearchParams({
-        sleep: sleepText,
-        water: waterText,
-        fruit: fruitText,
-        tired: tiredText,
-        skin: skin.join(","),
-        wish: wish.join(","),
-        totalScore,
-        result,
-        callback: "handleResponse"
-      });
-
-      const script = document.createElement("script");
-      script.src = `${baseURL}?${params.toString()}`;
-      document.body.appendChild(script);
-
-      // 顯示結果區塊
-      const resultDiv = document.getElementById("result");
-      resultDiv.style.display = "block";
-      resultDiv.innerHTML = `
-        <h3 style="color:#a6c8ff; margin-top:0; font-weight: 900;">✨ 評估完成 ✨</h3>
-        <p style="font-size:1.15rem; margin: 8px 0;">總分：<strong>${totalScore}</strong></p>
-        <p style="font-size:1.05rem; margin: 0;">${result}</p>
-      `;
+    // 判斷結果
+    let result = "";
+    if (totalScore <= 5) {
+      result = "💚 年輕穩定：保持健康習慣，輕保養即可。";
+    } else if (totalScore <= 10) {
+      result = "🟡 輕度老化：建議補水＋調整睡眠，使用基礎逆齡產品。";
+    } else {
+      result = "🔴 快速老化：建議立即排毒、修肝、使用深度逆齡保養。";
     }
 
-    function handleResponse(res) {
-      if (!res.success) {
-        alert("❌ 發送失敗：" + res.error);
-      }
+    // 傳送資料至 GAS (JSONP)
+    const baseURL = "https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec";
+    const params = new URLSearchParams({
+      sleep: sleepText,
+      water: waterText,
+      fruit: fruitText,
+      tired: tiredText,
+      skin: skin.join(","),
+      wish: wish.join(","),
+      totalScore,
+      result,
+      callback: "handleResponse"
+    });
+
+    const script = document.createElement("script");
+    script.src = `${baseURL}?${params.toString()}`;
+    document.body.appendChild(script);
+
+    // 顯示結果區塊
+    const resultDiv = document.getElementById("result");
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = `
+      <h3 style="color:#a6c8ff; margin-top:0; font-weight: 900;">✨ 評估完成 ✨</h3>
+      <p style="font-size:1.15rem; margin: 8px 0;">總分：<strong>${totalScore}</strong></p>
+      <p style="font-size:1.05rem; margin: 0;">${result}</p>
+    `;
+  }
+
+  function handleResponse(res) {
+    if (!res.success) {
+      alert("❌ 發送失敗：" + res.error);
     }
-  </script>
+  }
+</script>
 </body>
 </html>
