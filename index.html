@@ -1,786 +1,111 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>彥彬🌿試算系統</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<style>
-  :root {
-    --bg-color: #0f0f0f;
-    --panel-bg: #1a1a1a;
-    --text-color: #e0e0e0;
-    --accent: #00d1b2;
-    --highlight: #40c4ff;
-    --error: #ff5252;
-    --button-green: #00bfa5;
-    --button-grey: #3a3a3a;
-  }
-
-  body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: 'Segoe UI', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-    margin: 0;
-    padding: 20px;
-  }
-
-  #captureArea {
-    background: linear-gradient(145deg, #1c1c1c, #141414);
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05),
-                0 4px 20px rgba(0, 0, 0, 0.6);
-    color: var(--text-color);
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-  }
-
-#captureArea h2 {
-  text-align: center;
-  font-size: 2rem; /* 原本是 1.6rem，可視情況調整更大 */
-  font-weight: bold;
-  color: #ffffff;  /* 改為白色 */
-  margin-bottom: 15px;
-}
-  .userInputs {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 15px;
-  }
-
-  .userInputs .row {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  .userInputs label {
-    flex: 0 0 150px;
-    display: flex;
-    flex-direction: column;
-    font-size: 16px;
-    color: #bbb;
-  }
-
-  .userInputs input {
-    padding: 8px;
-    font-size: 18px;
-    background: #333;
-    color: var(--text-color);
-    border: none;
-    border-radius: 6px;
-    margin-top: 4px;
-    width: 150px;
-    box-sizing: border-box;
-  }
-
-  #nameInput option {
-    padding: 12px 10px;
-    line-height: 1.6;
-    font-size: 16px;
-    height: auto;
-    white-space: normal;
-  }
-
-  #reportTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    table-layout: fixed;
-    border-radius: 10px;
-    overflow: hidden;
-    background-color: #f9fafb;
-    color: #374151;
-  }
-
-  #reportTable th:nth-child(1),
-  #reportTable td:nth-child(1) { width: 25%; }
-  #reportTable th:nth-child(2),
-  #reportTable td:nth-child(2) { width: 13%; }
-  #reportTable th:nth-child(3),
-  #reportTable td:nth-child(3) { width: 13%; }
-  #reportTable th:nth-child(4),
-  #reportTable td:nth-child(4) { width: 13%; }
-  #reportTable th:nth-child(5),
-  #reportTable td:nth-child(5) { width: 15%; }
-  #reportTable th:nth-child(6),
-  #reportTable td:nth-child(6) { width: 14%; }
-  #reportTable th:nth-child(7),
-  #reportTable td:nth-child(7) { width: 7%; }
-
-  #reportTable th,
-  #reportTable td {
-    border: 1px solid #d1d5db;
-    padding: 5px;
-    text-align: center;
-    white-space: nowrap;
-    transition: all 0.3s ease;
-  }
-
-  #reportTable thead {
-    background: linear-gradient(90deg, #2b6cb0, #3182ce);
-    color: #fff;
-    font-weight: 600;
-  }
-
-  #reportTable tbody tr:nth-child(odd) { background-color: #f3f4f6; }
-  #reportTable tbody tr:nth-child(even) { background-color: #e5e7eb; }
-
-  #reportTable tbody tr:hover {
-    background-color: #1e88e5;
-    color: #fff;
-    font-weight: bold;
-    transform: scale(1.01);
-  }
-
-  .deleteBtn {
-    writing-mode: vertical-rl;
-    text-orientation: upright;
-    background-color: var(--error);
-    border: none;
-    color: white;
-    border-radius: 4px;
-    padding: 2px;
-    cursor: pointer;
-    font-size: 12px;
-    display: inline-block;
-    height: auto;
-    width: auto;
-  }
-
-
-  .summaryBox {
-    text-align: center;
-    margin-top: 13px;
-    font-size: 1rem;
-    font-weight: bold;
-    color: var(--highlight);
-  }
-
-  .summaryBox .extra {
-    display: block;
-    font-size: 0.95rem;
-    color: var(--accent);
-    margin-top: 6px;
-  }
-
-  .summaryBox .done {
-    color: #4caf50;
-    font-weight: bold;
-  }
-
-  #inputArea {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 20px;
-  }
-
-  #nameInput,
-  #qtyInput,
-  #addBtn {
-    padding: 10px;
-    font-size: 16px;
-    border-radius: 6px;
-    border: none;
-  }
-
-  #nameInput,
-  #qtyInput {
-    background-color: #2c2c2c;
-    color: var(--text-color);
-  }
-
-  #addBtn,
-  #exportBtn,
-  #shareToLineBtn,
-  #nativeShareBtn,
-  #clearImageBtn {
-    background: linear-gradient(145deg, #00bfa5, #009e8a);
-    box-shadow: 0 4px 8px rgba(0, 191, 165, 0.3);
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
-  #addBtn:hover,
-  #exportBtn:hover,
-  #shareToLineBtn:hover,
-  #nativeShareBtn:hover {
-    background: linear-gradient(145deg, #00ccb2, #00a98e);
-    transform: translateY(-2px);
-  }
-
-  #exportBtn,
-  #shareToLineBtn,
-  #nativeShareBtn,
-  #clearImageBtn {
-    margin: 10px auto;
-    display: block;
-    padding: 10px 0;
-    width: 30%;
-    font-size: 16px;
-    border-radius: 8px;
-    box-sizing: border-box;
-  }
-
-  #clearImageBtn {
-    background: var(--button-grey);
-  }
-
-  #clearImageBtn:hover {
-    background: #555;
-  }
-
-  #previewImage {
-    display: none;
-    max-width: 100%;
-    border: 2px solid #888;
-    border-radius: 10px;
-    margin: 20px auto;
-  }
-
-  #shareToLineBtn,
-  #nativeShareBtn,
-  #clearImageBtn {
-    display: none;
-  }
-
-  #buyerInput,
-  #calculatorInput {
-    background-color: #f9fafb;
-    border: 1.5px solid #d1d5db;
-    color: #374151;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 16px;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    width: 100%;
-    box-sizing: border-box;
-    font-weight: 500;
-  }
-
-  #buyerInput:focus,
-  #calculatorInput:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 8px 2px rgba(37, 99, 235, 0.3);
-    outline: none;
-    background-color: #ffffff;
-  }
-
-  #buyerInput::placeholder,
-  #calculatorInput::placeholder {
-    color: #9ca3af;
-    font-weight: 400;
-  }
-
-  #uploadSuccessMessage {
-    color: #4caf50;
-    text-align: center;
-    margin-top: 10px;
-    display: none;
-    font-weight: bold;
-  }
-
-  .toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #4caf50;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 6px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    opacity: 0;
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    z-index: 1000;
-  }
-
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-10px);
-  }
-
-  @media (min-width: 600px) {
-    #inputArea {
-      flex-direction: row;
-      align-items: center;
-    }
-
-    #nameInput,
-    #qtyInput {
-      flex: 1;
-    }
-
-    #addBtn {
-      width: 120px;
-    }
-  }
-
-  @media print {
-    body {
-      background: #fff;
-      color: #000;
-    }
-
-    #inputArea,
-    #addBtn,
-    #exportBtn,
-    #shareToLineBtn,
-    #clearImageBtn,
-    #nativeShareBtn {
-      display: none !important;
-    }
-
-    #captureArea {
-      box-shadow: none;
-      background: #fff;
-      color: #000;
-    }
-
-    #reportTable th {
-      background: #ccc !important;
-      color: #000 !important;
-    }
-
-    .deleteBtn {
-      display: none !important;
-    }
-
-    .summaryBox {
-      color: #000 !important;
-    }
-    
-.payment-options {
-  display: flex;
-  flex-direction: column;  /* 垂直排列 */
-  align-items: center;     /* 置中對齊（你也可以改成 flex-start 靠左） */
-  margin-top: 10px;
-  color: white;
-  font-size: 0.95rem;
-}
-.payment-options label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: white; /* ⬅ 更改 現金、刷卡 字體顏色 */
-  font-weight: 500;
-}
-
-.slimQty {
-  background-color: transparent;
-  font-size: 14px;
-  color: #333;
-  padding: 2px 6px;
-  border: none;
-  width: auto;
-  min-width: 38px;
-  text-align: center;
-
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-
-  background-image: none; /* 移除下拉箭頭圖示 */
-}
-
-select::-ms-expand {
-  display: none;
-}
-
-#reportTable th, #reportTable td {
-  padding: 10px;
-  font-size: 14px;
-}
-
-#buyerInput,
-#calculatorInput {
-  font-size: 20px;
-  text-align: center;
-  font-weight: 600;
-}
-
-    /* 🌿 主標題樣式（白字 + 放大 + 間距 + 線條層次） */
-#captureArea h2 {
-  color: #ffffff;
-  font-size: 2rem;
-  font-weight: 800;
-  text-align: center;
-  letter-spacing: 1px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #00e676;
-  padding-bottom: 10px;
-}
-
-/* ✅ 數量欄下拉選單：去除邊框、置中顯示、數字樣式 */
-#reportTable td:nth-child(2) select {
-  font-size: 18px;
-  font-weight: 600;
-  text-align: center;
-  background: transparent;
-  border: none;
-  color: #222;
-  width: 100%;
-  appearance: none;
-  padding: 4px 0;
-}
-
-/* 移除數量下拉選單的箭頭樣式 */
-#reportTable td:nth-child(2) select::-ms-expand {
-  display: none;
-}
-#reportTable td:nth-child(2) select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-}
-
-/* 手機版優化：壓縮 padding、調整字型大小 */
-@media (max-width: 600px) {
-  #captureArea {
-    padding: 15px;
-  }
-  #reportTable th, #reportTable td {
-    padding: 6px 3px;
-    font-size: 13px;
-  }
-  #captureArea h2 {
-    font-size: 1.6rem;
-  }
-}
-
-
-  }
-</style>
-
-
-
+  <meta charset="UTF-8">
+  <title>3分鐘逆齡評估</title>
+  <style>
+    body { background: #121212; color: #f0f0f0; font-family: 'Noto Sans TC', sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+    h1 { color: #00e676; }
+    label { display: block; margin-top: 15px; }
+    select, input[type="checkbox"] { margin-top: 5px; padding: 5px; width: 100%; background: #1e1e1e; color: #fff; border: 1px solid #444; }
+    button { margin-top: 20px; padding: 10px 20px; background: #00e676; border: none; color: #000; font-weight: bold; cursor: pointer; }
+    #result { margin-top: 30px; background: #1e1e1e; padding: 20px; border: 1px solid #00e676; }
+  </style>
 </head>
 <body>
-  <div id="captureArea">
-<h2>
-  🌿 康園試算報表
-  <br />
-  <span class="payment-options">
-    <label><input type="checkbox" id="cashOption" /> 現金</label>
-    <label><input type="checkbox" id="cardOption" /> 刷卡</label>
-  </span>
-</h2>
-    <div class="userInputs">  
-      <div class="row">
-        <label>購買者：
-          <input type="text" placeholder="輸入購買者" id="buyerInput" />
-        </label>
-        <label>試算者：
-          <input type="text" placeholder="輸入試算者" id="calculatorInput" />
-        </label>
-      </div>
-    </div>
-
-    <table id="reportTable" aria-label="試算報表">
-      <thead>
-        <tr>
-          <th>品項<br>名稱</th>
-          <th>數量</th>
-          <th>單<br>價</th>
-          <th>PV</th>
-          <th>小計<br>金額</th>
-          <th>小計<br>PV</th>
-          <th>操<br>作</th>
-        </tr>
-      </thead>
-      <tbody id="reportBody"></tbody>
-    </table>
-
-    <div class="summaryBox" aria-live="polite">
-      總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
-      <span class="extra">距 11.2萬 PV ：<span id="pvDiff">112000</span> <span id="pvMessage1"></span></span>
-      <span class="extra">距 22.0萬 PV ：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
-    </div>
-  </div>
-
-  <img id="previewImage" alt="預覽匯出圖片" />
-  <button id="shareToLineBtn">📩 上傳備份</button>
-  <button id="clearImageBtn">❌ 清除圖片</button>
-  <button id="nativeShareBtn">📱 分享圖片</button>
+  <h1>🧬 3分鐘逆齡評估</h1>
   
+  <form id="quizForm">
+    <label>1. 每週睡眠不足6小時的天數？
+      <select name="sleep">
+        <option value="0">0天</option>
+        <option value="1">1-2天</option>
+        <option value="2">3-4天</option>
+        <option value="3">5天以上</option>
+      </select>
+    </label>
 
-  <!-- ✅ 浮窗提示 -->
-  <div id="toast" class="toast">✅ 圖片已上傳備份</div>
+    <label>2. 平常喝水量是否足夠？
+      <select name="water">
+        <option value="0">足夠</option>
+        <option value="1">普通</option>
+        <option value="2">偏少</option>
+        <option value="3">幾乎沒喝</option>
+      </select>
+    </label>
 
-  <div id="inputArea">
-    <select id="nameInput"></select>
-    <select id="qtyInput"></select>
-    <button id="addBtn">➕ 新增品項</button>
-  </div>
+    <label>3. 肌膚困擾有哪些？（可複選）</label>
+    <label><input type="checkbox" name="skin" value="1"> 乾燥</label>
+    <label><input type="checkbox" name="skin" value="1"> 暗沉</label>
+    <label><input type="checkbox" name="skin" value="1"> 鬆弛</label>
+    <label><input type="checkbox" name="skin" value="1"> 斑點</label>
 
-   <button id="exportBtn">📤 報表轉圖片</button>
+    <label>4. 每週蔬果攝取是否足夠？
+      <select name="fruit">
+        <option value="0">每天都有</option>
+        <option value="1">偶爾有</option>
+        <option value="2">幾乎沒有</option>
+      </select>
+    </label>
 
- <!-- 新增這段留白用的區塊 -->
-  <div style="height: 100px;"></div>
+    <label>5. 是否常感到疲勞或沒精神？
+      <select name="tired">
+        <option value="0">否</option>
+        <option value="2">是</option>
+      </select>
+    </label>
+
+    <label>6. 想改善的問題是？（可複選）</label>
+    <label><input type="checkbox" name="wish" value="1"> 氣色差</label>
+    <label><input type="checkbox" name="wish" value="1"> 老化快</label>
+    <label><input type="checkbox" name="wish" value="1"> 皺紋</label>
+    <label><input type="checkbox" name="wish" value="1"> 睡不好</label>
+    <label><input type="checkbox" name="wish" value="1"> 易胖</label>
+
+    <button type="button" onclick="calculateScore()">送出評估</button>
+  </form>
+
+  <div id="result" style="display:none;"></div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxMK8aSmldCGKmXffbL5XU6IGuLbaKS1VABe9LuWXSF6hg2NtGLGZxS8fT-jqiFKy8_/exec";
-    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
+    function calculateScore() {
+      const form = document.forms["quizForm"];
+      let score = 0;
 
-    let allProducts = [];
-    let selectedProducts = [];
+      score += parseInt(form["sleep"].value);
+      score += parseInt(form["water"].value);
+      score += parseInt(form["fruit"].value);
+      score += parseInt(form["tired"].value);
 
-    const nameInput = document.getElementById("nameInput");
-    const qtyInput = document.getElementById("qtyInput");
-    const addBtn = document.getElementById("addBtn");
-    const reportBody = document.getElementById("reportBody");
-    const totalPriceCellDup = document.getElementById("totalPriceCellDup");
-    const totalPvCellDup = document.getElementById("totalPvCellDup");
-    const pvDiff = document.getElementById("pvDiff");
-    const pvDiff2 = document.getElementById("pvDiff2");
-    const pvMessage1 = document.getElementById("pvMessage1");
-    const pvMessage2 = document.getElementById("pvMessage2");
+      const skin = form["skin"];
+      const wish = form["wish"];
+      let skinScore = 0;
+      let wishScore = 0;
 
-    const exportBtn = document.getElementById("exportBtn");
-    const previewImage = document.getElementById("previewImage");
-    const shareToLineBtn = document.getElementById("shareToLineBtn");
-    const nativeShareBtn = document.getElementById("nativeShareBtn");
-    const clearImageBtn = document.getElementById("clearImageBtn");
-    const buyerInput = document.getElementById("buyerInput");
-    const calculatorInput = document.getElementById("calculatorInput");
-    const toast = document.getElementById("toast");
-
-    for (let i = 1; i <= 20; i++) {
-      const option = document.createElement("option");
-      option.value = i;
-      option.textContent = i;
-      qtyInput.appendChild(option);
-    }
-
-    async function loadProducts() {
-      try {
-        const res = await fetch(API_URL + "?action=all");
-        const data = await res.json();
-        allProducts = data;
-        nameInput.innerHTML = "";
-        data.forEach(item => {
-          const opt = document.createElement("option");
-          opt.value = item.name;
-          opt.textContent = item.name;
-          nameInput.appendChild(opt);
-        });
-      } catch (error) {
-        alert("讀取商品失敗: " + error);
-      }
-    }
-
- function renderTable() {
-  reportBody.innerHTML = "";
-  let totalPrice = 0;
-  let totalPv = 0;
-
-  selectedProducts.forEach((item, idx) => {
-    const subtotalPrice = item.price * item.qty;
-    const subtotalPv = item.pv * item.qty;
-    totalPrice += subtotalPrice;
-    totalPv += subtotalPv;
-
-    const tr = document.createElement("tr");
-    const qtyOptions = Array.from({ length: 20 }, (_, i) => {
-      const val = i + 1;
-      return `<option value="${val}" ${val === item.qty ? "selected" : ""}>${val}</option>`;
-    }).join("");
-
-    tr.innerHTML = `
-      <td>${item.name}</td>
-      <td>
-        <select class="qtySelect" data-index="${idx}">
-          ${qtyOptions}
-        </select>
-      </td>
-      <td>${item.price}</td>
-      <td>${item.pv}</td>
-      <td>${subtotalPrice}</td>
-      <td>${subtotalPv}</td>
-      <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
-    `;
-    reportBody.appendChild(tr);
-  });
-
-  totalPriceCellDup.textContent = totalPrice;
-  totalPvCellDup.textContent = totalPv;
-  const diff1 = 112000 - totalPv;
-  const diff2 = 220000 - totalPv;
-
-  pvDiff.textContent = diff1 > 0 ? diff1 : 0;
-  pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
-  pvMessage1.innerHTML = totalPv >= 112000 ? '<span class="done">🎉 已達標</span>' : '';
-  pvMessage2.innerHTML = totalPv >= 220000 ? '<span class="done">🎉 已達標</span>' : '';
-
-  // 刪除按鈕事件
-  document.querySelectorAll(".deleteBtn").forEach(btn => {
-    btn.onclick = e => {
-      const idx = parseInt(e.target.dataset.index);
-      selectedProducts.splice(idx, 1);
-      renderTable();
-    };
-  });
-
-  // 數量下拉變更事件
-  document.querySelectorAll(".qtySelect").forEach(select => {
-    select.onchange = e => {
-      const idx = parseInt(e.target.dataset.index);
-      const newQty = parseInt(e.target.value);
-      selectedProducts[idx].qty = newQty;
-      renderTable();
-    };
-  });
-}
-
-
-    function addProduct() {
-      const selectedName = nameInput.value;
-      const qty = parseInt(qtyInput.value);
-      if (!selectedName || qty <= 0) {
-        alert("請選擇品項與數量");
-        return;
+      for (let i = 0; i < skin.length; i++) {
+        if (skin[i].checked) skinScore += parseInt(skin[i].value);
       }
 
-      const product = allProducts.find(p => p.name === selectedName);
-      if (!product) {
-        alert("找不到該品項");
-        return;
+      for (let i = 0; i < wish.length; i++) {
+        if (wish[i].checked) wishScore += parseInt(wish[i].value);
       }
 
-      const exists = selectedProducts.find(p => p.name === selectedName);
-      if (exists) {
-        exists.qty += qty;
+      score += skinScore + wishScore;
+
+      let suggestion = "";
+      if (score <= 5) {
+        suggestion = "💚 年輕穩定：保持健康習慣，輕保養即可。";
+      } else if (score <= 10) {
+        suggestion = "🟡 輕度老化：建議補水＋調整睡眠，使用基礎逆齡產品。";
       } else {
-        selectedProducts.push({ ...product, qty });
+        suggestion = "🔴 快速老化：建議立即排毒、修肝、使用深度逆齡保養。";
       }
 
-      renderTable();
+      document.getElementById("result").style.display = "block";
+      document.getElementById("result").innerHTML = "<h2>評估結果</h2>" +
+        "<p>總分：" + score + "</p>" +
+        "<p>" + suggestion + "</p>";
     }
-
-    exportBtn.addEventListener("click", async () => {
-  if (selectedProducts.length === 0) {
-    alert("請先新增至少一個品項，才能匯出圖片！");
-    return;
-  }
-
-  exportBtn.disabled = true;
-  exportBtn.textContent = "匯出中...";
-
-  // ✅ 暫時隱藏「操作」欄
-  const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
-  opCells.forEach(el => el.style.display = "none");
-
-  try {
-const canvas = await html2canvas(document.getElementById("captureArea"), {
-  scale: 2,
-  useCORS: true,
-  allowTaint: true,
-  backgroundColor: "#0f0f0f",  // ✅ 改為暗黑背景
-  logging: false,
-});
-    const dataUrl = canvas.toDataURL("image/png");
-    previewImage.src = dataUrl;
-    previewImage.style.display = "block";
-    shareToLineBtn.style.display = "inline-block";
-    nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
-    clearImageBtn.style.display = "inline-block";
-  } catch (error) {
-    alert("匯出失敗：" + error);
-  } finally {
-    // ✅ 還原顯示「操作」欄
-    opCells.forEach(el => el.style.display = "");
-    exportBtn.disabled = false;
-    exportBtn.textContent = "📤 報表轉圖片";
-  }
-});
-
-    shareToLineBtn.addEventListener("click", async () => {
-      if (!previewImage.src) {
-        alert("請先匯出圖片");
-        return;
-      }
-
-      shareToLineBtn.disabled = true;
-      shareToLineBtn.textContent = "上傳中...";
-
-      try {
-        const base64Data = previewImage.src.split(",")[1];
-        const formData = new FormData();
-        formData.append("image", base64Data);
-        formData.append("key", IMGBB_API_KEY);
-
-        const res = await fetch("https://api.imgbb.com/1/upload", {
-          method: "POST",
-          body: formData,
-        });
-        const result = await res.json();
-        if (result.success) {
-          const imageUrl = result.data.url;
-          const buyerName = buyerInput.value.trim() || "未填";
-          const calculatorName = calculatorInput.value.trim() || "未填";
-          const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(
-          `康園試算報表\n\n購買者：${buyerName}\n試算者：${calculatorName}\n${imageUrl}`
-      )}`;
-
-          window.open(lineShareUrl, "_blank");
-          showToast("✅ 圖片已上傳備份");
-        } else {
-          alert("圖片上傳失敗，請稍後再試");
-        }
-      } catch (error) {
-        alert("圖片上傳錯誤: " + error);
-      } finally {
-        shareToLineBtn.disabled = false;
-        shareToLineBtn.textContent = "📩 上傳備份";
-      }
-    });
-
-    nativeShareBtn.addEventListener("click", async () => {
-      if (!navigator.share || !previewImage.src) {
-        alert("無法使用原生分享");
-        return;
-      }
-
-      try {
-        const response = await fetch(previewImage.src);
-        const blob = await response.blob();
-        const filesArray = [new File([blob], "康園試算報表.png", { type: blob.type })];
-
-        const buyer = buyerInput.value.trim() || "未填";
-        const calculator = calculatorInput.value.trim() || "未填";
-        const shareText = `康園試算報表\n購買者：${buyer}\n試算者：${calculator}`;
-
-        await navigator.share({
-          files: filesArray,
-          title: "康園試算報表",
-          text: shareText,
-        });
-      } catch (error) {
-        alert("分享失敗: " + error);
-      }
-    });
-
-    clearImageBtn.addEventListener("click", () => {
-      previewImage.style.display = "none";
-      previewImage.src = "";
-      shareToLineBtn.style.display = "none";
-      nativeShareBtn.style.display = "none";
-      clearImageBtn.style.display = "none";
-    });
-
-    function showToast(message) {
-      toast.textContent = message;
-      toast.classList.add("show");
-      setTimeout(() => toast.classList.remove("show"), 3000);
-    }
-
-    addBtn.addEventListener("click", addProduct);
-
-    window.onload = () => {
-      loadProducts();
-    };
   </script>
 </body>
 </html>
