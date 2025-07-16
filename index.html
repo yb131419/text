@@ -5,51 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3分鐘逆齡評估</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       background: #121212;
       color: #f0f0f0;
       font-family: 'Noto Sans TC', sans-serif;
+      margin: 0;
       padding: 20px;
-      margin: 0 auto;
-      max-width: 500px;
     }
     h1 {
       color: #00e676;
-      font-size: 1.8rem;
       text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 25px;
     }
     label {
       display: block;
-      margin-top: 15px;
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-size: 1.05rem;
     }
-    select,
-    input[type="checkbox"] {
-      margin-top: 5px;
-      padding: 10px;
+    select {
       width: 100%;
+      padding: 12px;
       background: #1e1e1e;
       color: #fff;
       border: 1px solid #444;
-      border-radius: 5px;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .checkbox-item {
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 10px 14px;
+      flex: 1 1 45%;
+      display: flex;
+      align-items: center;
+    }
+    .checkbox-item input {
+      margin-right: 8px;
     }
     button {
-      margin-top: 20px;
-      padding: 12px;
       width: 100%;
-      background: #00e676;
-      border: none;
-      color: #000;
-      font-weight: bold;
+      padding: 14px;
       font-size: 1.1rem;
+      font-weight: bold;
+      background: #00e676;
+      color: #000;
+      border: none;
+      border-radius: 6px;
       cursor: pointer;
-      border-radius: 5px;
+      margin-top: 10px;
     }
     #result {
       margin-top: 30px;
       background: #1e1e1e;
-      padding: 20px;
       border: 1px solid #00e676;
-      border-radius: 5px;
+      padding: 20px;
+      border-radius: 6px;
       display: none;
     }
   </style>
@@ -57,51 +79,63 @@
 <body>
   <h1>🧬 3分鐘逆齡評估</h1>
   <form id="quizForm">
-    <label>1. 每週睡眠不足6小時的天數？
+    <div class="form-group">
+      <label>1. 每週睡眠不足6小時的天數？</label>
       <select name="sleep" required>
         <option value="0">0天</option>
         <option value="1">1-2天</option>
         <option value="2">3-4天</option>
         <option value="3">5天以上</option>
       </select>
-    </label>
+    </div>
 
-    <label>2. 平常喝水量是否足夠？
+    <div class="form-group">
+      <label>2. 平常喝水量是否足夠？</label>
       <select name="water" required>
         <option value="0">足夠</option>
         <option value="1">普通</option>
         <option value="2">偏少</option>
         <option value="3">幾乎沒喝</option>
       </select>
-    </label>
+    </div>
 
-    <label>3. 肌膚困擾有哪些？（可複選）</label>
-    <label><input type="checkbox" name="skin" value="乾燥" /> 乾燥</label>
-    <label><input type="checkbox" name="skin" value="暗沉" /> 暗沉</label>
-    <label><input type="checkbox" name="skin" value="鬆弛" /> 鬆弛</label>
-    <label><input type="checkbox" name="skin" value="斑點" /> 斑點</label>
+    <div class="form-group">
+      <label>3. 肌膚困擾有哪些？（可複選）</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="乾燥"> 乾燥</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="暗沉"> 暗沉</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="鬆弛"> 鬆弛</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="斑點"> 斑點</label>
+      </div>
+    </div>
 
-    <label>4. 每週蔬果攝取是否足夠？
+    <div class="form-group">
+      <label>4. 每週蔬果攝取是否足夠？</label>
       <select name="fruit" required>
         <option value="0">每天都有</option>
         <option value="1">偶爾有</option>
         <option value="2">幾乎沒有</option>
       </select>
-    </label>
+    </div>
 
-    <label>5. 是否常感到疲勞或沒精神？
+    <div class="form-group">
+      <label>5. 是否常感到疲勞或沒精神？</label>
       <select name="tired" required>
         <option value="0">否</option>
         <option value="2">是</option>
       </select>
-    </label>
+    </div>
 
-    <label>6. 想改善的問題是？（可複選）</label>
-    <label><input type="checkbox" name="wish" value="氣色差" /> 氣色差</label>
-    <label><input type="checkbox" name="wish" value="老化快" /> 老化快</label>
-    <label><input type="checkbox" name="wish" value="皺紋" /> 皺紋</label>
-    <label><input type="checkbox" name="wish" value="睡不好" /> 睡不好</label>
-    <label><input type="checkbox" name="wish" value="易胖" /> 易胖</label>
+    <div class="form-group">
+      <label>6. 想改善的問題是？（可複選）</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="氣色差"> 氣色差</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="老化快"> 老化快</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="皺紋"> 皺紋</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="睡不好"> 睡不好</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="易胖"> 易胖</label>
+      </div>
+    </div>
 
     <button type="button" onclick="calculateAndSubmit()">送出評估</button>
   </form>
