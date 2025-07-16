@@ -1,258 +1,175 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>3分鐘逆齡評估</title>
-<style>
-  /* Reset & 基本 */
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    margin: 0;
-    padding: 24px 20px;
-    font-family: 'Noto Sans TC', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #050a20 0%, #0a103d 70%, #121940 100%);
-    color: #d6e0ff;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-  }
-  /* 容器 */
-  .container {
-    width: 100%;
-    max-width: 480px;
-    background: #0f1740;
-    border-radius: 20px;
-    padding: 36px 32px 44px 32px;
-    box-shadow:
-      0 6px 18px rgba(0, 42, 140, 0.35),
-      inset 0 0 8px rgba(31, 65, 173, 0.9);
-    user-select: none;
-  }
-  h1 {
-    color: #7ea3ff;
-    text-align: center;
-    font-size: 2.3rem;
-    font-weight: 900;
-    margin-bottom: 40px;
-    text-shadow: 0 0 14px #7ea3ffbb;
-    letter-spacing: 1.3px;
-  }
-  .form-group {
-    margin-bottom: 32px;
-  }
-  label {
-    display: block;
-    margin-bottom: 16px;
-    font-weight: 700;
-    font-size: 1.15rem;
-    color: #a8bbffcc;
-    text-shadow: 0 0 6px #415fbb88;
-    user-select: text;
-  }
-  select {
-    width: 100%;
-    padding: 16px 18px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #d6e0ff;
-    background: rgba(17, 31, 74, 0.9);
-    border: 2.5px solid #527aff;
-    border-radius: 14px;
-    transition: border-color 0.35s ease, background-color 0.35s ease;
-    box-shadow: inset 0 0 12px #4a6efcaa;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 18px center;
-    background-size: 20px 20px;
-  }
-  select:hover, select:focus {
-    border-color: #aac6ff;
-    background-color: rgba(23, 40, 94, 0.95);
-    outline: none;
-    box-shadow: 0 0 14px #89a7ffcc;
-  }
-  /* Checkbox group */
-  .checkbox-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-  }
-  .checkbox-item {
-    background: rgba(23, 38, 90, 0.9);
-    border: 2.5px solid #638bff;
-    border-radius: 16px;
-    padding: 14px 20px;
-    flex: 1 1 45%;
-    display: flex;
-    align-items: center;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #c6d1ffdd;
-    cursor: pointer;
-    box-shadow: inset 0 0 8px #5678f8aa;
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-    user-select: none;
-  }
-  .checkbox-item input {
-    margin-right: 14px;
-    width: 22px;
-    height: 22px;
-    cursor: pointer;
-    accent-color: #92aaff;
-  }
-  .checkbox-item:hover {
-    background-color: rgba(36, 59, 120, 0.95);
-    border-color: #9db8ff;
-    color: #e4ebff;
-    box-shadow: 0 0 18px #9db8ffbb;
-  }
-  button {
-    width: 100%;
-    padding: 18px;
-    font-size: 1.35rem;
-    font-weight: 900;
-    color: #0f1740;
-    background: linear-gradient(45deg, #9ab7ff, #527aff);
-    border: none;
-    border-radius: 18px;
-    cursor: pointer;
-    box-shadow:
-      0 10px 26px #527affbb,
-      inset 0 2px 6px #a9bcffcc;
-    transition: background 0.4s ease, box-shadow 0.4s ease;
-    user-select: none;
-  }
-  button:hover, button:focus {
-    background: linear-gradient(45deg, #acc0ff, #7a94ff);
-    box-shadow:
-      0 12px 32px #7a94ffdd,
-      inset 0 3px 8px #c0d0ffcc;
-    outline: none;
-  }
-  #result {
-    margin-top: 44px;
-    background: rgba(20, 39, 95, 0.9);
-    border: 3px solid #6390ff;
-    padding: 30px 28px;
-    border-radius: 18px;
-    box-shadow: 0 0 22px #638bffcc;
-    font-weight: 700;
-    font-size: 1.15rem;
-    line-height: 1.6;
-    color: #d7e2ff;
-    display: none;
-    user-select: text;
-  }
-  /* 手機適配 */
-  @media (max-width: 480px) {
-    .checkbox-item {
-      flex: 1 1 100%;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3分鐘逆齡評估</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: #121212;
+      color: #f0f0f0;
+      font-family: 'Noto Sans TC', sans-serif;
+      margin: 0;
+      padding: 20px;
     }
-  }
-</style>
+    h1 {
+      color: #00e676;
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 25px;
+    }
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-size: 1.05rem;
+    }
+    select {
+      width: 100%;
+      padding: 12px;
+      background: #1e1e1e;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .checkbox-item {
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 10px 14px;
+      flex: 1 1 45%;
+      display: flex;
+      align-items: center;
+      font-size: 0.95rem;
+    }
+    .checkbox-item input {
+      margin-right: 8px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      background: #00e676;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #result {
+      margin-top: 30px;
+      background: #1e1e1e;
+      border: 1px solid #00e676;
+      padding: 20px;
+      border-radius: 6px;
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <div class="container" role="main">
-    <h1>🧬 3分鐘逆齡評估</h1>
-    <form id="quizForm" autocomplete="off" novalidate>
-      <div class="form-group">
-        <label for="sleep">1. 每週睡眠不足6小時的天數？</label>
-        <select id="sleep" name="sleep" required>
-          <option value="0">0天</option>
-          <option value="1">1-2天</option>
-          <option value="2">3-4天</option>
-          <option value="3">5天以上</option>
-        </select>
+  <h1>🧬 3分鐘逆齡評估</h1>
+  <form id="quizForm">
+    <div class="form-group">
+      <label>1. 每週睡眠不足6小時的天數？</label>
+      <select name="sleep">
+        <option value="0">0天</option>
+        <option value="1">1-2天</option>
+        <option value="2">3-4天</option>
+        <option value="3">5天以上</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>2. 平常喝水量是否足夠？</label>
+      <select name="water">
+        <option value="0">足夠</option>
+        <option value="1">普通</option>
+        <option value="2">偏少</option>
+        <option value="3">幾乎沒喝</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>3. 肌膚困擾有哪些？（可複選）</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="乾燥">乾燥</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="暗沉">暗沉</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="鬆弛">鬆弛</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="斑點">斑點</label>
       </div>
+    </div>
 
-      <div class="form-group">
-        <label for="water">2. 平常喝水量是否足夠？</label>
-        <select id="water" name="water" required>
-          <option value="0">足夠</option>
-          <option value="1">普通</option>
-          <option value="2">偏少</option>
-          <option value="3">幾乎沒喝</option>
-        </select>
+    <div class="form-group">
+      <label>4. 每週蔬果攝取是否足夠？</label>
+      <select name="fruit">
+        <option value="0">每天都有</option>
+        <option value="1">偶爾有</option>
+        <option value="2">幾乎沒有</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>5. 是否常感到疲勞或沒精神？</label>
+      <select name="tired">
+        <option value="0">否</option>
+        <option value="2">是</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>6. 想改善的問題是？（可複選）</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="氣色差">氣色差</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="老化快">老化快</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="皺紋">皺紋</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="睡不好">睡不好</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="易胖">易胖</label>
       </div>
+    </div>
 
-      <div class="form-group">
-        <label>3. 肌膚困擾有哪些？（可複選）</label>
-        <div class="checkbox-group" role="group" aria-label="肌膚困擾選項">
-          <label class="checkbox-item"><input type="checkbox" name="skin" value="乾燥" />乾燥</label>
-          <label class="checkbox-item"><input type="checkbox" name="skin" value="暗沉" />暗沉</label>
-          <label class="checkbox-item"><input type="checkbox" name="skin" value="鬆弛" />鬆弛</label>
-          <label class="checkbox-item"><input type="checkbox" name="skin" value="斑點" />斑點</label>
-        </div>
-      </div>
+    <button type="button" onclick="calculateAndSubmit()">送出評估</button>
+  </form>
 
-      <div class="form-group">
-        <label for="fruit">4. 每週蔬果攝取是否足夠？</label>
-        <select id="fruit" name="fruit" required>
-          <option value="0">每天都有</option>
-          <option value="1">偶爾有</option>
-          <option value="2">幾乎沒有</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="tired">5. 是否常感到疲勞或沒精神？</label>
-        <select id="tired" name="tired" required>
-          <option value="0">否</option>
-          <option value="2">是</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>6. 想改善的問題是？（可複選）</label>
-        <div class="checkbox-group" role="group" aria-label="想改善問題選項">
-          <label class="checkbox-item"><input type="checkbox" name="wish" value="氣色差" />氣色差</label>
-          <label class="checkbox-item"><input type="checkbox" name="wish" value="老化快" />老化快</label>
-          <label class="checkbox-item"><input type="checkbox" name="wish" value="皺紋" />皺紋</label>
-          <label class="checkbox-item"><input type="checkbox" name="wish" value="睡不好" />睡不好</label>
-          <label class="checkbox-item"><input type="checkbox" name="wish" value="易胖" />易胖</label>
-        </div>
-      </div>
-
-      <button type="button" onclick="calculateAndSubmit()" aria-label="送出評估">送出評估</button>
-    </form>
-
-    <div id="result" aria-live="polite" aria-atomic="true"></div>
-  </div>
+  <div id="result"></div>
 
 <script>
   function calculateAndSubmit() {
     const form = document.forms["quizForm"];
+    const btn = document.querySelector("button");
+    const resultDiv = document.getElementById("result");
+
+    // 防止重複送出
+    btn.disabled = true;
+    btn.innerText = "處理中...";
+
     const sleepSelect = form["sleep"];
     const waterSelect = form["water"];
     const fruitSelect = form["fruit"];
     const tiredSelect = form["tired"];
 
-    // 取得選項文字
     const sleepText = sleepSelect.options[sleepSelect.selectedIndex].text;
     const waterText = waterSelect.options[waterSelect.selectedIndex].text;
     const fruitText = fruitSelect.options[fruitSelect.selectedIndex].text;
     const tiredText = tiredSelect.options[tiredSelect.selectedIndex].text;
 
-    // 複選取得文字值
     const skin = Array.from(document.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
     const wish = Array.from(document.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
 
-    // 計算分數
     const totalScore = parseInt(sleepSelect.value) + parseInt(waterSelect.value) +
                        parseInt(fruitSelect.value) + parseInt(tiredSelect.value) +
                        skin.length + wish.length;
 
-    // 判斷結果
     let result = "";
     if (totalScore <= 5) {
       result = "💚 年輕穩定：保持健康習慣，輕保養即可。";
@@ -262,7 +179,6 @@
       result = "🔴 快速老化：建議立即排毒、修肝、使用深度逆齡保養。";
     }
 
-    // 傳送資料至 GAS (JSONP)
     const baseURL = "https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec";
     const params = new URLSearchParams({
       sleep: sleepText,
@@ -280,14 +196,21 @@
     script.src = `${baseURL}?${params.toString()}`;
     document.body.appendChild(script);
 
-    // 顯示結果區塊
-    const resultDiv = document.getElementById("result");
+    // 顯示結果並捲動
     resultDiv.style.display = "block";
-    resultDiv.innerHTML = `
-      <h3 style="color:#a6c8ff; margin-top:0; font-weight: 900;">✨ 評估完成 ✨</h3>
-      <p style="font-size:1.15rem; margin: 8px 0;">總分：<strong>${totalScore}</strong></p>
-      <p style="font-size:1.05rem; margin: 0;">${result}</p>
-    `;
+    resultDiv.innerHTML =
+      `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${result}</p>`;
+    
+    setTimeout(() => {
+      resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 300);
+
+    // 重置表單（稍晚執行以保留選項顯示）
+    setTimeout(() => {
+      form.reset();
+      btn.disabled = false;
+      btn.innerText = "送出評估";
+    }, 800);
   }
 
   function handleResponse(res) {
