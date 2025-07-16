@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3分鐘逆齡評估</title>
   <style>
-    * { box-sizing: border-box; }
     body {
       background: #121212;
       color: #f0f0f0;
       font-family: 'Noto Sans TC', sans-serif;
-      margin: 0;
       padding: 20px;
+      margin: 0 auto;
+      max-width: 500px;
     }
     h1 {
       color: #00e676;
@@ -28,7 +28,7 @@
       font-weight: bold;
       font-size: 1.05rem;
     }
-    select {
+    select, input[type="checkbox"] {
       width: 100%;
       padding: 12px;
       background: #1e1e1e;
@@ -81,7 +81,7 @@
   <form id="quizForm">
     <div class="form-group">
       <label>1. 每週睡眠不足6小時的天數？</label>
-      <select name="sleep" required>
+      <select name="sleep">
         <option value="0">0天</option>
         <option value="1">1-2天</option>
         <option value="2">3-4天</option>
@@ -91,7 +91,7 @@
 
     <div class="form-group">
       <label>2. 平常喝水量是否足夠？</label>
-      <select name="water" required>
+      <select name="water">
         <option value="0">足夠</option>
         <option value="1">普通</option>
         <option value="2">偏少</option>
@@ -102,16 +102,16 @@
     <div class="form-group">
       <label>3. 肌膚困擾有哪些？（可複選）</label>
       <div class="checkbox-group">
-        <label class="checkbox-item"><input type="checkbox" name="skin" value="乾燥"> 乾燥</label>
-        <label class="checkbox-item"><input type="checkbox" name="skin" value="暗沉"> 暗沉</label>
-        <label class="checkbox-item"><input type="checkbox" name="skin" value="鬆弛"> 鬆弛</label>
-        <label class="checkbox-item"><input type="checkbox" name="skin" value="斑點"> 斑點</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="乾燥">乾燥</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="暗沉">暗沉</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="鬆弛">鬆弛</label>
+        <label class="checkbox-item"><input type="checkbox" name="skin" value="斑點">斑點</label>
       </div>
     </div>
 
     <div class="form-group">
       <label>4. 每週蔬果攝取是否足夠？</label>
-      <select name="fruit" required>
+      <select name="fruit">
         <option value="0">每天都有</option>
         <option value="1">偶爾有</option>
         <option value="2">幾乎沒有</option>
@@ -120,7 +120,7 @@
 
     <div class="form-group">
       <label>5. 是否常感到疲勞或沒精神？</label>
-      <select name="tired" required>
+      <select name="tired">
         <option value="0">否</option>
         <option value="2">是</option>
       </select>
@@ -129,11 +129,11 @@
     <div class="form-group">
       <label>6. 想改善的問題是？（可複選）</label>
       <div class="checkbox-group">
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="氣色差"> 氣色差</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="老化快"> 老化快</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="皺紋"> 皺紋</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="睡不好"> 睡不好</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="易胖"> 易胖</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="氣色差">氣色差</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="老化快">老化快</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="皺紋">皺紋</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="睡不好">睡不好</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="易胖">易胖</label>
       </div>
     </div>
 
@@ -143,12 +143,8 @@
   <div id="result"></div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec';
-
     function calculateAndSubmit() {
       const form = document.forms["quizForm"];
-      let score = 0;
-
       const sleep = parseInt(form["sleep"].value);
       const water = parseInt(form["water"].value);
       const fruit = parseInt(form["fruit"].value);
@@ -157,39 +153,40 @@
       const skin = Array.from(document.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
       const wish = Array.from(document.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
 
-      score += sleep + water + fruit + tired + skin.length + wish.length;
+      const totalScore = sleep + water + fruit + tired + skin.length + wish.length;
 
-      let resultText = "";
-      if (score <= 5) {
-        resultText = "💚 年輕穩定：保持健康習慣，輕保養即可。";
-      } else if (score <= 10) {
-        resultText = "🟡 輕度老化：建議補水＋調整睡眠，使用基礎逆齡產品。";
+      let result = "";
+      if (totalScore <= 5) {
+        result = "💚 年輕穩定：保持健康習慣，輕保養即可。";
+      } else if (totalScore <= 10) {
+        result = "🟡 輕度老化：建議補水＋調整睡眠，使用基礎逆齡產品。";
       } else {
-        resultText = "🔴 快速老化：建議立即排毒、修肝、使用深度逆齡保養。";
+        result = "🔴 快速老化：建議立即排毒、修肝、使用深度逆齡保養。";
       }
 
-      const payload = {
-        sleep: sleep,
-        water: water,
-        skin: skin,
-        fruit: fruit,
-        tired: tired,
-        wish: wish,
-        totalScore: score,
-        result: resultText
-      };
+      const baseURL = "https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec";
+      const params = new URLSearchParams({
+        sleep, water, fruit, tired,
+        skin: skin.join(","),
+        wish: wish.join(","),
+        totalScore,
+        result,
+        callback: "handleResponse"
+      });
 
-      fetch(scriptURL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'application/json' }
-      })
-      .then(response => {
-        document.getElementById("result").style.display = "block";
-        document.getElementById("result").innerHTML =
-          `<h3>✨ 評估完成 ✨</h3><p>總分：${score}</p><p>${resultText}</p>`;
-      })
-      .catch(error => alert('❌ 發送失敗，請稍後再試'));
+      const script = document.createElement("script");
+      script.src = `${baseURL}?${params.toString()}`;
+      document.body.appendChild(script);
+
+      document.getElementById("result").style.display = "block";
+      document.getElementById("result").innerHTML =
+        `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${result}</p>`;
+    }
+
+    function handleResponse(res) {
+      if (!res.success) {
+        alert("❌ 發送失敗：" + res.error);
+      }
     }
   </script>
 </body>
