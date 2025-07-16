@@ -1,23 +1,64 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3分鐘逆齡評估</title>
   <style>
-    body { background: #121212; color: #f0f0f0; font-family: 'Noto Sans TC', sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
-    h1 { color: #00e676; }
-    label { display: block; margin-top: 15px; }
-    select, input[type="checkbox"] { margin-top: 5px; padding: 5px; width: 100%; background: #1e1e1e; color: #fff; border: 1px solid #444; }
-    button { margin-top: 20px; padding: 10px 20px; background: #00e676; border: none; color: #000; font-weight: bold; cursor: pointer; }
-    #result { margin-top: 30px; background: #1e1e1e; padding: 20px; border: 1px solid #00e676; }
+    body {
+      background: #121212;
+      color: #f0f0f0;
+      font-family: 'Noto Sans TC', sans-serif;
+      padding: 20px;
+      margin: 0 auto;
+      max-width: 500px;
+    }
+    h1 {
+      color: #00e676;
+      font-size: 1.8rem;
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    select,
+    input[type="checkbox"] {
+      margin-top: 5px;
+      padding: 10px;
+      width: 100%;
+      background: #1e1e1e;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 5px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background: #00e676;
+      border: none;
+      color: #000;
+      font-weight: bold;
+      font-size: 1.1rem;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    #result {
+      margin-top: 30px;
+      background: #1e1e1e;
+      padding: 20px;
+      border: 1px solid #00e676;
+      border-radius: 5px;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>🧬 3分鐘逆齡評估</h1>
-  
   <form id="quizForm">
     <label>1. 每週睡眠不足6小時的天數？
-      <select name="sleep">
+      <select name="sleep" required>
         <option value="0">0天</option>
         <option value="1">1-2天</option>
         <option value="2">3-4天</option>
@@ -26,7 +67,7 @@
     </label>
 
     <label>2. 平常喝水量是否足夠？
-      <select name="water">
+      <select name="water" required>
         <option value="0">足夠</option>
         <option value="1">普通</option>
         <option value="2">偏少</option>
@@ -35,13 +76,13 @@
     </label>
 
     <label>3. 肌膚困擾有哪些？（可複選）</label>
-    <label><input type="checkbox" name="skin" value="1"> 乾燥</label>
-    <label><input type="checkbox" name="skin" value="1"> 暗沉</label>
-    <label><input type="checkbox" name="skin" value="1"> 鬆弛</label>
-    <label><input type="checkbox" name="skin" value="1"> 斑點</label>
+    <label><input type="checkbox" name="skin" value="乾燥" /> 乾燥</label>
+    <label><input type="checkbox" name="skin" value="暗沉" /> 暗沉</label>
+    <label><input type="checkbox" name="skin" value="鬆弛" /> 鬆弛</label>
+    <label><input type="checkbox" name="skin" value="斑點" /> 斑點</label>
 
     <label>4. 每週蔬果攝取是否足夠？
-      <select name="fruit">
+      <select name="fruit" required>
         <option value="0">每天都有</option>
         <option value="1">偶爾有</option>
         <option value="2">幾乎沒有</option>
@@ -49,62 +90,72 @@
     </label>
 
     <label>5. 是否常感到疲勞或沒精神？
-      <select name="tired">
+      <select name="tired" required>
         <option value="0">否</option>
         <option value="2">是</option>
       </select>
     </label>
 
     <label>6. 想改善的問題是？（可複選）</label>
-    <label><input type="checkbox" name="wish" value="1"> 氣色差</label>
-    <label><input type="checkbox" name="wish" value="1"> 老化快</label>
-    <label><input type="checkbox" name="wish" value="1"> 皺紋</label>
-    <label><input type="checkbox" name="wish" value="1"> 睡不好</label>
-    <label><input type="checkbox" name="wish" value="1"> 易胖</label>
+    <label><input type="checkbox" name="wish" value="氣色差" /> 氣色差</label>
+    <label><input type="checkbox" name="wish" value="老化快" /> 老化快</label>
+    <label><input type="checkbox" name="wish" value="皺紋" /> 皺紋</label>
+    <label><input type="checkbox" name="wish" value="睡不好" /> 睡不好</label>
+    <label><input type="checkbox" name="wish" value="易胖" /> 易胖</label>
 
-    <button type="button" onclick="calculateScore()">送出評估</button>
+    <button type="button" onclick="calculateAndSubmit()">送出評估</button>
   </form>
 
-  <div id="result" style="display:none;"></div>
+  <div id="result"></div>
 
   <script>
-    function calculateScore() {
+    const scriptURL = 'https://script.google.com/macros/s/【請貼上你的 Apps Script 網址】/exec';
+
+    function calculateAndSubmit() {
       const form = document.forms["quizForm"];
       let score = 0;
 
-      score += parseInt(form["sleep"].value);
-      score += parseInt(form["water"].value);
-      score += parseInt(form["fruit"].value);
-      score += parseInt(form["tired"].value);
+      const sleep = parseInt(form["sleep"].value);
+      const water = parseInt(form["water"].value);
+      const fruit = parseInt(form["fruit"].value);
+      const tired = parseInt(form["tired"].value);
 
-      const skin = form["skin"];
-      const wish = form["wish"];
-      let skinScore = 0;
-      let wishScore = 0;
+      const skin = Array.from(document.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
+      const wish = Array.from(document.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
 
-      for (let i = 0; i < skin.length; i++) {
-        if (skin[i].checked) skinScore += parseInt(skin[i].value);
-      }
+      score += sleep + water + fruit + tired + skin.length + wish.length;
 
-      for (let i = 0; i < wish.length; i++) {
-        if (wish[i].checked) wishScore += parseInt(wish[i].value);
-      }
-
-      score += skinScore + wishScore;
-
-      let suggestion = "";
+      let resultText = "";
       if (score <= 5) {
-        suggestion = "💚 年輕穩定：保持健康習慣，輕保養即可。";
+        resultText = "💚 年輕穩定：保持健康習慣，輕保養即可。";
       } else if (score <= 10) {
-        suggestion = "🟡 輕度老化：建議補水＋調整睡眠，使用基礎逆齡產品。";
+        resultText = "🟡 輕度老化：建議補水＋調整睡眠，使用基礎逆齡產品。";
       } else {
-        suggestion = "🔴 快速老化：建議立即排毒、修肝、使用深度逆齡保養。";
+        resultText = "🔴 快速老化：建議立即排毒、修肝、使用深度逆齡保養。";
       }
 
-      document.getElementById("result").style.display = "block";
-      document.getElementById("result").innerHTML = "<h2>評估結果</h2>" +
-        "<p>總分：" + score + "</p>" +
-        "<p>" + suggestion + "</p>";
+      const payload = {
+        sleep: sleep,
+        water: water,
+        skin: skin,
+        fruit: fruit,
+        tired: tired,
+        wish: wish,
+        totalScore: score,
+        result: resultText
+      };
+
+      fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(response => {
+        document.getElementById("result").style.display = "block";
+        document.getElementById("result").innerHTML =
+          `<h3>✨ 評估完成 ✨</h3><p>總分：${score}</p><p>${resultText}</p>`;
+      })
+      .catch(error => alert('❌ 發送失敗，請稍後再試'));
     }
   </script>
 </body>
