@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3分鐘逆齡評估</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       background: #121212;
       color: #f0f0f0;
       font-family: 'Noto Sans TC', sans-serif;
+      margin: 0;
       padding: 20px;
-      margin: 0 auto;
-      max-width: 500px;
     }
     h1 {
       color: #00e676;
@@ -28,7 +28,7 @@
       font-weight: bold;
       font-size: 1.05rem;
     }
-    select, input[type="checkbox"] {
+    select {
       width: 100%;
       padding: 12px;
       background: #1e1e1e;
@@ -50,6 +50,7 @@
       flex: 1 1 45%;
       display: flex;
       align-items: center;
+      font-size: 0.95rem;
     }
     .checkbox-item input {
       margin-right: 8px;
@@ -145,15 +146,22 @@
   <script>
     function calculateAndSubmit() {
       const form = document.forms["quizForm"];
-      const sleep = parseInt(form["sleep"].value);
-      const water = parseInt(form["water"].value);
-      const fruit = parseInt(form["fruit"].value);
-      const tired = parseInt(form["tired"].value);
+      const sleepSelect = form["sleep"];
+      const waterSelect = form["water"];
+      const fruitSelect = form["fruit"];
+      const tiredSelect = form["tired"];
+
+      const sleepText = sleepSelect.options[sleepSelect.selectedIndex].text;
+      const waterText = waterSelect.options[waterSelect.selectedIndex].text;
+      const fruitText = fruitSelect.options[fruitSelect.selectedIndex].text;
+      const tiredText = tiredSelect.options[tiredSelect.selectedIndex].text;
 
       const skin = Array.from(document.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
       const wish = Array.from(document.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
 
-      const totalScore = sleep + water + fruit + tired + skin.length + wish.length;
+      const totalScore = parseInt(sleepSelect.value) + parseInt(waterSelect.value) +
+                         parseInt(fruitSelect.value) + parseInt(tiredSelect.value) +
+                         skin.length + wish.length;
 
       let result = "";
       if (totalScore <= 5) {
@@ -166,7 +174,10 @@
 
       const baseURL = "https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec";
       const params = new URLSearchParams({
-        sleep, water, fruit, tired,
+        sleep: sleepText,
+        water: waterText,
+        fruit: fruitText,
+        tired: tiredText,
         skin: skin.join(","),
         wish: wish.join(","),
         totalScore,
