@@ -399,12 +399,20 @@
     params.set("fruit", fruitMap[fruit]);
     params.set("tired", tiredMap[tired]);
 
-    const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
-    const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
-    score += skin.length + wish.length;
+// 處理「肌膚困擾」
+const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
+const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
+score += skin.length + wish.length;
 
-    params.set("skin", skin.join(","));
-    params.set("wish", wish.join(","));
+// 如果有「其他」就把它換成「其他：使用者填的文字」
+const skinOtherText = document.getElementById("skinOtherText").value.trim();
+if (skin.includes("其他") && skinOtherText) {
+  skin[skin.indexOf("其他")] = `其他：${skinOtherText}`;
+}
+
+params.set("skin", skin.join(","));
+params.set("wish", wish.join(","));
+
 
     // 分數對應狀態
     const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
