@@ -360,26 +360,42 @@
     params.set("callback", "handleResponse");
 
     // ✨ 根據年齡範圍設定加權係數
-const weightMap = {
-  "18-24": 1.0,
-  "25-29": 1.05,
-  "30-34": 1.1,
-  "35-39": 1.15,
-  "40-44": 1.2,
-  "45-49": 1.3,
-  "50-54": 1.4,
-  "55-59": 1.5,
-  "60-64": 1.6,
-  "65以上": 1.7
+// 取得實際年齡中位數
+const ageRangeMidMap = {
+  "18-24": 21,
+  "25-29": 27,
+  "30-34": 32,
+  "35-39": 37,
+  "40-44": 42,
+  "45-49": 47,
+  "50-54": 52,
+  "55-59": 57,
+  "60-64": 62,
+  "65以上": 68
 };
-const multiplier = weightMap[ageRange] || 1.0;
-const skinAge = Math.round(20 + score * multiplier);  // 肌膚年齡
+const baseAge = ageRangeMidMap[ageRange] || 30;
 
-    // 顯示結果
-    basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
-    scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
-    resultText.textContent = result;
-    resultDiv.style.display = "block";
+// 分數最大值（依你題目和選項數調整）
+const maxScore = 15;
+
+// 肌膚年齡差距範圍
+const minDiff = -5;
+const maxDiff = 10;
+
+// 分數比例
+const ratio = Math.min(score / maxScore, 1);
+
+// 差距換算
+const diff = minDiff + ratio * (maxDiff - minDiff);
+
+// 計算肌膚年齡
+const skinAge = Math.round(baseAge + diff);
+
+// 顯示結果
+basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
+scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
+resultText.textContent = result;
+resultDiv.style.display = "block";
 
     // 傳送資料到 Google Sheets
     const script = document.createElement("script");
