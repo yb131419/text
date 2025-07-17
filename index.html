@@ -287,14 +287,14 @@ button:active {
     </div>
   </div>
 
+
   <script>
     const liffId = "2007475335-OaAdKYr9";
 
     window.onload = async () => {
       await liff.init({ liffId });
-      if (!liff.isLoggedIn()) {
-        liff.login();
-      } else {
+      if (!liff.isLoggedIn()) liff.login();
+      else {
         const profile = await liff.getProfile();
         document.getElementById("userId").value = profile.userId;
         document.getElementById("username").value = profile.displayName;
@@ -312,55 +312,48 @@ button:active {
 
       btn.disabled = true;
       btn.innerText = "分析中…";
+      aiDiv.textContent = "";
 
       const params = new URLSearchParams();
-      ["name", "lineId", "userId", "username", "gender", "ageRange"].forEach(k => {
-        params.set(k, form[k].value.trim?.() || form[k].value);
+      ["name","lineId","userId","username","gender","ageRange"].forEach(k => params.set(k, form[k].value.trim()||form[k].value));
+      ["sleep","water","fruit","tired"].forEach(k => {
+        const sel = form[k];
+        params.set(k, sel.options[sel.selectedIndex].text);
       });
-
-      ["sleep", "water", "fruit", "tired"].forEach(name => {
-        const s = form[name];
-        params.set(name, s.options[s.selectedIndex].text);
-      });
-
-      const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
-      const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
+      const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb=>cb.value);
+      const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb=>cb.value);
       params.set("skin", skin.join(","));
       params.set("wish", wish.join(","));
 
-      const totalScore = parseInt(form.sleep.value) + parseInt(form.water.value) + parseInt(form.fruit.value) + parseInt(form.tired.value) + skin.length + wish.length;
-      const result = totalScore <= 5 ? "💚 年輕穩定" : totalScore <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
-
+      const totalScore = +form.sleep.value + +form.water.value + +form.fruit.value + +form.tired.value + skin.length + wish.length;
+      const result = totalScore <=5 ? "💚 年輕穩定" : totalScore<=10 ? "🟡 輕度老化" : "🔴 快速老化";
       params.set("totalScore", totalScore);
       params.set("result", result);
       params.set("callback", "handleResponse");
 
-      const script = document.createElement("script");
-      script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
-      document.body.appendChild(script);
-
       scoreText.textContent = `總分：${totalScore}`;
       resultText.textContent = result;
       resultDiv.style.display = "block";
-      aiDiv.textContent = "⌛ 正在產生 AI 建議中…";
 
-      setTimeout(() => resultDiv.scrollIntoView({ behavior: "smooth" }), 300);
+      const script = document.createElement("script");
+      script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
+      document.body.appendChild(script);
     }
 
-  function handleResponse(res) {
-    const aiDiv = document.getElementById("aiSuggestion");
-    const btn = document.querySelector("button");
+    function handleResponse(res) {
+      const aiDiv = document.getElementById("aiSuggestion");
+      const btn = document.querySelector("button");
 
-    if (res.success) {
-      aiDiv.innerHTML = `🤖 <strong>AI 建議：</strong><br>${res.aiSuggestion || '建議將會稍後送出！'}`;
-    } else {
-      alert("❌ 發送失敗：" + res.error);
-      aiDiv.textContent = "⚠️ 無法取得 AI 建議，請稍後再試。";
+      if (res.success) {
+        aiDiv.innerHTML = `🤖 <strong>建議：</strong><br>${res.combinedAdvice || res.aiSuggestion}`;
+      } else {
+        alert("❌ 無法取得建議：" + res.error);
+        aiDiv.textContent = "⚠️ 請稍後再試。";
+      }
+
+      btn.disabled = false;
+      btn.innerText = "送出評估";
     }
-
-    btn.disabled = false;
-    btn.innerText = "送出評估";
-  }
   </script>
 </body>
 </html>
