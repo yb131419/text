@@ -18,28 +18,28 @@
     }
     .container {
       width: 100%;
-      max-width: 420px;
+      max-width: 460px;
       background: #141a2d;
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 24px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.65);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
     }
     h1 {
       text-align: center;
       color: #7ea3ff;
-      margin-bottom: 20px;
       font-size: 1.6rem;
+      margin-bottom: 16px;
     }
     .line-official {
       text-align: center;
-      margin-bottom: 16px;
-      font-size: 0.95rem;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
       color: #a8c0ff;
     }
     .line-official a {
-      color: #d1deff;
+      color: #ffffff;
       font-weight: bold;
-      text-decoration: none;
+      text-decoration: underline;
     }
     .form-group {
       margin-bottom: 16px;
@@ -53,9 +53,9 @@
     input, select {
       width: 100%;
       padding: 12px;
-      background: #1e2546;
+      background: #1f2947;
       color: #e0e7ff;
-      border: 1px solid #3d5afe;
+      border: 1px solid #4e6cff;
       border-radius: 6px;
       font-size: 1rem;
     }
@@ -98,6 +98,15 @@
       border-radius: 6px;
       display: none;
     }
+    #result h3 {
+      color: #8ab4ff;
+    }
+    #aiSuggestion {
+      margin-top: 10px;
+      color: #d1deff;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
     @media (max-width: 400px) {
       body { padding: 12px; }
       .container { padding: 16px; }
@@ -109,7 +118,7 @@
     <h1>🧬 3分鐘逆齡評估</h1>
     <div class="line-official">
       彥彬 LINE：<a href="https://lin.ee/uOsPSJSo" target="_blank">@248zwwwu</a>
-      <p>📲 填完表單後私訊免費獲得你的逆齡建議卡！</p>
+      <p>📲 填完表單後，立即獲得 AI 專屬建議卡</p>
     </div>
 
     <form id="quizForm">
@@ -207,7 +216,12 @@
       <button type="button" onclick="calculateAndSubmit()">送出評估</button>
     </form>
 
-    <div id="result"></div>
+    <div id="result">
+      <h3>✨ 評估完成 ✨</h3>
+      <p id="scoreText"></p>
+      <p id="resultText"></p>
+      <div id="aiSuggestion"></div>
+    </div>
   </div>
 
   <script>
@@ -221,8 +235,7 @@
         const profile = await liff.getProfile();
         document.getElementById("userId").value = profile.userId;
         document.getElementById("username").value = profile.displayName;
-        const nameInput = document.querySelector('input[name="name"]');
-        if (!nameInput.value) nameInput.value = profile.displayName;
+        document.querySelector('input[name="name"]').value ||= profile.displayName;
       }
     };
 
@@ -230,9 +243,12 @@
       const form = document.forms["quizForm"];
       const btn = document.querySelector("button");
       const resultDiv = document.getElementById("result");
+      const scoreText = document.getElementById("scoreText");
+      const resultText = document.getElementById("resultText");
+      const aiDiv = document.getElementById("aiSuggestion");
 
       btn.disabled = true;
-      btn.innerText = "處理中…";
+      btn.innerText = "分析中…";
 
       const params = new URLSearchParams();
       ["name", "lineId", "userId", "username", "gender", "ageRange"].forEach(k => {
@@ -250,28 +266,37 @@
       params.set("wish", wish.join(","));
 
       const totalScore = parseInt(form.sleep.value) + parseInt(form.water.value) + parseInt(form.fruit.value) + parseInt(form.tired.value) + skin.length + wish.length;
+      const result = totalScore <= 5 ? "💚 年輕穩定" : totalScore <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
+
       params.set("totalScore", totalScore);
-      const resultText = totalScore <= 5 ? "💚 年輕穩定" : totalScore <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
-      params.set("result", resultText);
+      params.set("result", result);
       params.set("callback", "handleResponse");
 
       const script = document.createElement("script");
-      script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params}`;
+      script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
       document.body.appendChild(script);
 
+      scoreText.textContent = `總分：${totalScore}`;
+      resultText.textContent = result;
       resultDiv.style.display = "block";
-      resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${resultText}</p>`;
+      aiDiv.textContent = "⌛ 正在產生 AI 建議中…";
 
       setTimeout(() => resultDiv.scrollIntoView({ behavior: "smooth" }), 300);
-      setTimeout(() => {
-        form.reset();
-        btn.disabled = false;
-        btn.innerText = "送出評估";
-      }, 800);
     }
 
     function handleResponse(res) {
-      if (!res.success) alert("❌ 發送失敗：" + res.error);
+      const aiDiv = document.getElementById("aiSuggestion");
+      const btn = document.querySelector("button");
+
+      if (res.success) {
+        aiDiv.innerHTML = `🤖 <strong>AI 建議：</strong><br>${res.suggestion || '建議將會稍後送出！'}`;
+      } else {
+        alert("❌ 發送失敗：" + res.error);
+        aiDiv.textContent = "⚠️ 無法取得 AI 建議，請稍後再試。";
+      }
+
+      btn.disabled = false;
+      btn.innerText = "送出評估";
     }
   </script>
 </body>
