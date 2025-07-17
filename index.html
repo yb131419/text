@@ -375,20 +375,34 @@ button:active {
     const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
     const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
     score += skin.length + wish.length;
+
     params.set("skin", skin.join(","));
     params.set("wish", wish.join(","));
 
+    // 分數區間結果
     const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
     params.set("totalScore", score);
     params.set("result", result);
     params.set("callback", "handleResponse");
 
-    const skinAge = 20 + score;
-    basicInfoText.innerHTML = `🙋‍♀️ <strong>${name}</strong>（${gender}｜${ageRange}）`;
-    scoreText.textContent = `🧑‍🔬 肌膚年齡：${skinAge} 歲`;
+    // ✨ 根據年齡範圍設定加權係數
+    const weightMap = {
+      "18-24": 1.0,
+      "25-34": 1.1,
+      "35-44": 1.2,
+      "45-54": 1.3,
+      "55以上": 1.5
+    };
+    const multiplier = weightMap[ageRange] || 1.0;
+    const skinAge = Math.round(20 + score * multiplier);  // 肌膚年齡
+
+    // 顯示結果
+    basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
+    scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
     resultText.textContent = result;
     resultDiv.style.display = "block";
 
+    // 傳送資料到 Google Sheets
     const script = document.createElement("script");
     script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
     document.body.appendChild(script);
@@ -409,6 +423,7 @@ button:active {
     }
   }
 </script>
+
 
 </body>
 
