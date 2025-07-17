@@ -322,18 +322,54 @@ button:active {
     );
 
     let score = 0;
-    ["sleep", "water", "fruit", "tired"].forEach(k => {
-      const value = form[k].value;
-      score += parseInt(value, 10);
-      params.set(k, value);
-    });
 
+    // 選項文字轉換
+    const sleepMap = {
+      "0": "0天",
+      "1": "1–2天",
+      "2": "3–4天",
+      "3": "5天以上"
+    };
+    const waterMap = {
+      "0": "足夠（≥2000cc）",
+      "1": "普通（1500–1999cc）",
+      "2": "偏少（1000–1499cc）",
+      "3": "很少（<1000cc）"
+    };
+    const fruitMap = {
+      "0": "每天都有",
+      "1": "2–3次/週",
+      "2": "幾乎沒有"
+    };
+    const tiredMap = {
+      "0": "否",
+      "2": "是"
+    };
+
+    // 分數累加並轉換為中文
+    const sleep = form["sleep"].value;
+    const water = form["water"].value;
+    const fruit = form["fruit"].value;
+    const tired = form["tired"].value;
+
+    score += parseInt(sleep, 10);
+    score += parseInt(water, 10);
+    score += parseInt(fruit, 10);
+    score += parseInt(tired, 10);
+
+    params.set("sleep", sleepMap[sleep]);
+    params.set("water", waterMap[water]);
+    params.set("fruit", fruitMap[fruit]);
+    params.set("tired", tiredMap[tired]);
+
+    // 肌膚與願望：勾選數量即為分數，送出字串陣列
     const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
     const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
     score += skin.length + wish.length;
     params.set("skin", skin.join(","));
     params.set("wish", wish.join(","));
 
+    // 結果分類
     const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
     params.set("totalScore", score);
     params.set("result", result);
