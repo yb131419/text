@@ -9,29 +9,30 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 20px;
+      padding: 16px;
       background: #0a0f1d;
-      color: #e0e7ff;
+      color: #f0f3ff;
       font-family: 'Noto Sans TC', sans-serif;
       display: flex;
       justify-content: center;
     }
     .container {
       width: 100%;
-      max-width: 400px;
-      background: #141a33;
-      border-radius: 12px;
+      max-width: 420px;
+      background: #141a2d;
+      border-radius: 14px;
       padding: 24px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.65);
     }
     h1 {
       text-align: center;
       color: #7ea3ff;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
+      font-size: 1.6rem;
     }
     .line-official {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       font-size: 0.95rem;
       color: #a8c0ff;
     }
@@ -47,6 +48,7 @@
       display: block;
       margin-bottom: 6px;
       font-weight: 600;
+      color: #b8c4ff;
     }
     input, select {
       width: 100%;
@@ -56,9 +58,6 @@
       border: 1px solid #3d5afe;
       border-radius: 6px;
       font-size: 1rem;
-    }
-    input:disabled {
-      background: #2a3053;
     }
     .checkbox-group {
       display: flex;
@@ -74,6 +73,7 @@
       font-size: 0.95rem;
       display: flex;
       align-items: center;
+      color: #e0e7ff;
     }
     .checkbox-item input {
       margin-right: 8px;
@@ -90,13 +90,9 @@
       font-weight: bold;
       cursor: pointer;
     }
-    button:disabled {
-      background: #556eba;
-      cursor: not-allowed;
-    }
     #result {
-      margin-top: 20px;
-      background: #1e2546;
+      margin-top: 24px;
+      background: #1c223f;
       border: 1px solid #3d5afe;
       padding: 16px;
       border-radius: 6px;
@@ -110,10 +106,10 @@
 </head>
 <body>
   <div class="container">
-    <h1>彥彬 🧬 3分鐘逆齡評估</h1>
+    <h1>🧬 3分鐘逆齡評估</h1>
     <div class="line-official">
-      彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank">點我加入</a>
-      <p>📲 填完表單後，點擊加入彥彬 LINE，私訊免費獲得你的逆齡建議卡！</p>
+      彥彬 LINE：<a href="https://lin.ee/uOsPSJSo" target="_blank">@248zwwwu</a>
+      <p>📲 填完表單後私訊免費獲得你的逆齡建議卡！</p>
     </div>
 
     <form id="quizForm">
@@ -128,12 +124,8 @@
       <div class="form-group">
         <label>性別</label>
         <div class="checkbox-group">
-          <label class="checkbox-item">
-            <input type="radio" name="gender" value="男" required /> 男
-          </label>
-          <label class="checkbox-item">
-            <input type="radio" name="gender" value="女" required /> 女
-          </label>
+          <label class="checkbox-item"><input type="radio" name="gender" value="男" required />男</label>
+          <label class="checkbox-item"><input type="radio" name="gender" value="女" required />女</label>
         </div>
       </div>
 
@@ -150,11 +142,10 @@
       </div>
 
       <div class="form-group">
-        <label>LINE 使用者ID or 手機號碼</label>
+        <label>LINE ID 或手機號碼</label>
         <input type="text" name="lineId" required />
       </div>
 
-      <!-- 題目項目 -->
       <div class="form-group">
         <label>1. 每週睡眠不足6小時的天數？</label>
         <select name="sleep">
@@ -176,7 +167,7 @@
       </div>
 
       <div class="form-group">
-        <label>3. 肌膚困擾有哪些？（可複選）</label>
+        <label>3. 肌膚困擾（可複選）</label>
         <div class="checkbox-group">
           <label class="checkbox-item"><input type="checkbox" name="skin" value="乾燥"/>乾燥</label>
           <label class="checkbox-item"><input type="checkbox" name="skin" value="暗沉"/>暗沉</label>
@@ -243,13 +234,12 @@
       btn.disabled = true;
       btn.innerText = "處理中…";
 
-      const fields = ["name", "lineId", "userId", "username", "gender", "ageRange"];
       const params = new URLSearchParams();
+      ["name", "lineId", "userId", "username", "gender", "ageRange"].forEach(k => {
+        params.set(k, form[k].value.trim?.() || form[k].value);
+      });
 
-      fields.forEach(k => params.set(k, form[k].value.trim?.() || form[k].value));
-
-      const selects = ["sleep", "water", "fruit", "tired"];
-      selects.forEach(name => {
+      ["sleep", "water", "fruit", "tired"].forEach(name => {
         const s = form[name];
         params.set(name, s.options[s.selectedIndex].text);
       });
@@ -259,10 +249,9 @@
       params.set("skin", skin.join(","));
       params.set("wish", wish.join(","));
 
-      const totalScore = parseInt(form.sleep.value) + parseInt(form.water.value)
-        + parseInt(form.fruit.value) + parseInt(form.tired.value) + skin.length + wish.length;
+      const totalScore = parseInt(form.sleep.value) + parseInt(form.water.value) + parseInt(form.fruit.value) + parseInt(form.tired.value) + skin.length + wish.length;
       params.set("totalScore", totalScore);
-      let resultText = totalScore <= 5 ? "💚 年輕穩定" : totalScore <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
+      const resultText = totalScore <= 5 ? "💚 年輕穩定" : totalScore <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
       params.set("result", resultText);
       params.set("callback", "handleResponse");
 
@@ -271,8 +260,7 @@
       document.body.appendChild(script);
 
       resultDiv.style.display = "block";
-      resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3>
-        <p>總分：${totalScore}</p><p>${resultText}</p>`;
+      resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${resultText}</p>`;
 
       setTimeout(() => resultDiv.scrollIntoView({ behavior: "smooth" }), 300);
       setTimeout(() => {
