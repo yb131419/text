@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>3分鐘逆齡評估</title>
   <style>
     * { box-sizing: border-box; }
@@ -17,7 +17,18 @@
       color: #00e676;
       text-align: center;
       font-size: 1.8rem;
-      margin-bottom: 30px;
+      margin-bottom: 8px;
+    }
+    .line-official {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1rem;
+      color: #00e676;
+    }
+    .line-official a {
+      color: #00e676;
+      text-decoration: none;
+      font-weight: bold;
     }
     .form-group {
       margin-bottom: 25px;
@@ -79,16 +90,20 @@
 </head>
 <body>
   <h1>🧬 3分鐘逆齡評估</h1>
+  <div class="line-official">
+    官方 LINE ID：<a href="https://line.me/R/ti/p/%40yourlineid" target="_blank">@yourlineid</a>
+  </div>
   <form id="quizForm">
     <div class="form-group">
       <label>姓名</label>
       <input type="text" name="name" required />
     </div>
     <div class="form-group">
-      <label>LINE ID</label>
+      <label>LINE 使用者ID</label>
       <input type="text" name="lineId" required />
     </div>
 
+    <!-- 其他表單內容保持不變 -->
     <div class="form-group">
       <label>1. 每週睡眠不足6小時的天數？</label>
       <select name="sleep">
@@ -98,7 +113,6 @@
         <option value="3">5天以上</option>
       </select>
     </div>
-
     <div class="form-group">
       <label>2. 平常喝水量是否足夠？</label>
       <select name="water">
@@ -108,7 +122,6 @@
         <option value="3">幾乎沒喝（低於1000cc）</option>
       </select>
     </div>
-
     <div class="form-group">
       <label>3. 肌膚困擾有哪些？（可複選）</label>
       <div class="checkbox-group">
@@ -118,7 +131,6 @@
         <label class="checkbox-item"><input type="checkbox" name="skin" value="斑點">斑點</label>
       </div>
     </div>
-
     <div class="form-group">
       <label>4. 每週蔬果攝取是否足夠？</label>
       <select name="fruit">
@@ -127,7 +139,6 @@
         <option value="2">幾乎沒有</option>
       </select>
     </div>
-
     <div class="form-group">
       <label>5. 是否常感到疲勞或沒精神？</label>
       <select name="tired">
@@ -135,7 +146,6 @@
         <option value="2">是</option>
       </select>
     </div>
-
     <div class="form-group">
       <label>6. 想改善的問題是？（可複選）</label>
       <div class="checkbox-group">
@@ -209,7 +219,6 @@
     script.src = `${baseURL}?${params.toString()}`;
     document.body.appendChild(script);
 
-    // 顯示結果區塊
     resultDiv.style.display = "block";
     resultDiv.innerHTML =
       `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${result}</p>`;
