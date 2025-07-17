@@ -93,7 +93,12 @@
   <div class="line-official">
     官方 LINE ID：<a href="https://line.me/R/ti/p/%40yourlineid" target="_blank">@yourlineid</a>
   </div>
+
   <form id="quizForm">
+    <!-- 使用者隱藏資料 -->
+    <input type="hidden" name="userId" id="userId" />
+    <input type="hidden" name="username" id="username" />
+
     <div class="form-group">
       <label>姓名</label>
       <input type="text" name="name" required />
@@ -103,7 +108,7 @@
       <input type="text" name="lineId" required />
     </div>
 
-    <!-- 其他表單內容保持不變 -->
+    <!-- 其他題目 -->
     <div class="form-group">
       <label>1. 每週睡眠不足6小時的天數？</label>
       <select name="sleep">
@@ -163,6 +168,11 @@
   <div id="result"></div>
 
 <script>
+  // TODO: 這裡你可以透過 LINE Login SDK 或其他方式取得 ID / username
+  // 範例（實際應用中請替換為後端資料）：
+  document.getElementById("userId").value = "LINE_USER_ID_123";
+  document.getElementById("username").value = "LINE_使用者名稱";
+
   function calculateAndSubmit() {
     const form = document.forms["quizForm"];
     const btn = document.querySelector("button");
@@ -173,6 +183,8 @@
 
     const name = form["name"].value.trim();
     const lineId = form["lineId"].value.trim();
+    const userId = form["userId"].value.trim();
+    const username = form["username"].value.trim();
 
     const sleepSelect = form["sleep"];
     const waterSelect = form["water"];
@@ -204,6 +216,8 @@
     const params = new URLSearchParams({
       name,
       lineId,
+      userId,
+      username,
       sleep: sleepText,
       water: waterText,
       fruit: fruitText,
@@ -220,8 +234,7 @@
     document.body.appendChild(script);
 
     resultDiv.style.display = "block";
-    resultDiv.innerHTML =
-      `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${result}</p>`;
+    resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${result}</p>`;
     
     setTimeout(() => {
       resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
