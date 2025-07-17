@@ -158,6 +158,10 @@ button:active {
   white-space: pre-wrap;
   user-select: text;
 }
+    #aiSuggestion {
+  line-height: 1.8;
+  margin-top: 1em;
+}
 
 @media (max-width: 400px) {
   body { padding: 12px 10px; }
@@ -418,20 +422,25 @@ const skinAge = Math.round(20 + score * multiplier);  // 肌膚年齡
     document.body.appendChild(script);
   }
 
-  function handleResponse(res) {
-    const aiDiv = document.getElementById("aiSuggestion");
-    const btn = document.querySelector("button");
+function handleResponse(res) {
+  const aiDiv = document.getElementById("aiSuggestion");
+  const btn = document.querySelector("button");
 
-    btn.disabled = false;
-    btn.innerText = "送出評估";
+  btn.disabled = false;
+  btn.innerText = "送出評估";
 
-    if (res.success && res.combinedAdvice) {
-      aiDiv.innerHTML = `🧬 <strong>AI專屬建議：</strong><br>${res.combinedAdvice}`;
-    } else {
-      alert("❌ 無法取得建議：" + res.error);
-      aiDiv.textContent = "⚠️ 請稍後再試。";
-    }
+  if (res.success && res.combinedAdvice) {
+    // 將中文句號（。）、英文句點（.）後加 <br><br> 形成段落
+    const formatted = res.combinedAdvice
+      .replace(/。/g, "。<br><br>")
+      .replace(/\. /g, ".<br><br>"); // 英文句點後加兩個換行
+
+    aiDiv.innerHTML = `🧬 <strong>AI 專屬建議：</strong><br><br>${formatted}`;
+  } else {
+    alert("❌ 無法取得建議：" + res.error);
+    aiDiv.textContent = "⚠️ 請稍後再試。";
   }
+}
 </script>
 
 
