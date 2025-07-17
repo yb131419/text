@@ -214,7 +214,7 @@ button:active {
       </div>
 
       <div class="form-group">
-        <label>LINE ID 或手機號碼</label>
+        <label>LINE ID 或 手機號碼</label>
         <input type="text" name="lineId" required />
       </div>
 
@@ -262,6 +262,7 @@ button:active {
         <label>5. 是否常感到疲勞？</label>
         <select name="tired">
           <option value="0">否</option>
+          <option value="1">偶爾</option>
           <option value="2">是</option>
         </select>
       </div>
@@ -281,7 +282,7 @@ button:active {
     </form>
 
     <div id="result">
-      <h3>✨ 評估完成 ✨</h3>
+      <h3>✨ 逆齡評估完成 ✨</h3>
       <p id="scoreText"></p>
       <p id="resultText"></p>
       <div id="aiSuggestion"></div>
@@ -344,6 +345,7 @@ button:active {
     };
     const tiredMap = {
       "0": "否",
+      "1": "偶爾",
       "2": "是"
     };
 
