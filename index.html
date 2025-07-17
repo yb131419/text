@@ -321,16 +321,12 @@
       <div id="aiSuggestion"></div>
     </div>
   </div>
-
-  <div id="shareImage" style="margin-top: 20px; text-align: center;">
-  <img src="https://your-image-url.com/skin-result.jpg" alt="逆齡評估結果圖" style="max-width: 100%; border-radius: 12px;" />
+<div id="shareImage" style="margin-top: 20px; text-align: center;">
+  <img id="resultImage" src="https://your-image-url.com/skin-result.jpg" alt="逆齡評估結果圖" style="max-width: 100%; border-radius: 12px;" />
 </div>
 
-<div style="text-align:center; margin-top: 16px;">
-  <button id="shareBtn"
-    style="display:inline-block; background-color:#00c300; color:white; padding:10px 18px; border-radius:6px; font-size:16px; border:none;">
-    📤 分享你的逆齡評估結果
-  </button>
+<div class="shareBox" style="text-align: center; margin: 20px 0;">
+  <button onclick="shareImageNative()">📤 分享我的逆齡評估結果</button>
 </div>
 <script>
   const liffId = "2007475335-OaAdKYr9";
@@ -499,12 +495,30 @@ params.set("wish", wish.join(","));
     }
   });
 
-  //原生分享圖片
-  function downloadImage() {
-  const link = document.createElement('a');
-  link.href = document.getElementById('shareImage').src;
-  link.download = '我的逆齡評估.png';
-  link.click();
+async function shareImageNative() {
+  const image = document.getElementById('resultImage');
+  const imageUrl = image.src;
+
+  try {
+    // 取得圖片 Blob
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+
+    const file = new File([blob], '逆齡評估結果.png', { type: blob.type });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: '我的逆齡評估結果',
+        text: '🧬 快來看看我的肌膚年齡！',
+        files: [file]
+      });
+    } else {
+      alert("❌ 無法使用原生分享，請手動下載或長按圖片分享。");
+    }
+  } catch (error) {
+    console.error("分享失敗", error);
+    alert("❌ 分享圖片時發生錯誤");
+  }
 }
 
 </script>
