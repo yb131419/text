@@ -304,55 +304,49 @@ button:active {
   };
 
   function calculateAndSubmit() {
-  const form = document.forms["quizForm"];
-  const btn = document.querySelector("button");
-  const resultDiv = document.getElementById("result");
-  const scoreText = document.getElementById("scoreText");
-  const resultText = document.getElementById("resultText");
-  const aiDiv = document.getElementById("aiSuggestion");
+    const form = document.forms["quizForm"];
+    const btn = document.querySelector("button");
+    const resultDiv = document.getElementById("result");
+    const scoreText = document.getElementById("scoreText");
+    const resultText = document.getElementById("resultText");
+    const aiDiv = document.getElementById("aiSuggestion");
 
-  btn.disabled = true;
-  btn.innerText = "分析中…";
-  aiDiv.textContent = "";
+    btn.disabled = true;
+    btn.innerText = "分析中…";
+    aiDiv.textContent = "";
 
-  const params = new URLSearchParams();
+    const params = new URLSearchParams();
 
-  // 基本欄位
-  ["name", "lineId", "userId", "username", "gender", "ageRange"].forEach(k =>
-    params.set(k, form[k].value.trim() || form[k].value)
-  );
+    ["name", "lineId", "userId", "username", "gender", "ageRange"].forEach(k =>
+      params.set(k, form[k].value.trim() || form[k].value)
+    );
 
-  // 傳送原始分數數值（非文字）
-  let score = 0;
-  ["sleep", "water", "fruit", "tired"].forEach(k => {
-    const value = form[k].value;
-    score += parseInt(value, 10);
-    params.set(k, value); // 直接送 value（數值）
-  });
+    let score = 0;
+    ["sleep", "water", "fruit", "tired"].forEach(k => {
+      const value = form[k].value;
+      score += parseInt(value, 10);
+      params.set(k, value);
+    });
 
-  // 肌膚與願望：勾選數量即為分數，送出字串陣列
-  const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
-  const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
-  score += skin.length + wish.length;
-  params.set("skin", skin.join(","));
-  params.set("wish", wish.join(","));
+    const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
+    const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
+    score += skin.length + wish.length;
+    params.set("skin", skin.join(","));
+    params.set("wish", wish.join(","));
 
-  // 老化結果分類
-  const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
-  params.set("totalScore", score);
-  params.set("result", result);
-  params.set("callback", "handleResponse");
+    const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
+    params.set("totalScore", score);
+    params.set("result", result);
+    params.set("callback", "handleResponse");
 
-  // 顯示分數與結果
-  scoreText.textContent = `總分：${score}`;
-  resultText.textContent = result;
-  resultDiv.style.display = "block";
+    scoreText.textContent = `總分：${score}`;
+    resultText.textContent = result;
+    resultDiv.style.display = "block";
 
-  // 動態載入 GAS 腳本
-  const script = document.createElement("script");
-  script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
-  document.body.appendChild(script);
-}
+    const script = document.createElement("script");
+    script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
+    document.body.appendChild(script);
+  }
 
   function handleResponse(res) {
     const aiDiv = document.getElementById("aiSuggestion");
@@ -363,8 +357,6 @@ button:active {
 
     if (res.success && res.combinedAdvice) {
       aiDiv.innerHTML = `🤖 <strong>綜合建議：</strong><br>${res.combinedAdvice}`;
-    } else if (res.success && res.aiSuggestion) {
-      aiDiv.innerHTML = `🤖 <strong>建議：</strong><br>${res.combinedAdvice}`;
     } else {
       alert("❌ 無法取得建議：" + res.error);
       aiDiv.textContent = "⚠️ 請稍後再試。";
