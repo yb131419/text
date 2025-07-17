@@ -199,6 +199,7 @@
 
 </head>
 <body>
+  
   <div class="container">
 <h1 style="text-align: center;">
   🧬 彥彬 · 3分鐘逆齡評估
@@ -320,7 +321,11 @@
       <p id="resultText"></p>    <!-- 評估結果 -->
       <div id="aiSuggestion"></div>
     </div>
+    <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的評估結果</button>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 
 <script>
   const liffId = "2007475335-OaAdKYr9";
@@ -489,31 +494,45 @@ params.set("wish", wish.join(","));
     }
   });
 
-async function shareImageNative() {
-  const image = document.getElementById('resultImage');
-  const imageUrl = image.src;
+// 送出後顯示分享按鈕
+  const shareBtn = document.getElementById('shareBtn');
+  shareBtn.style.display = 'none';
 
-  try {
-    // 取得圖片 Blob
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
+  // 原有 calculateAndSubmit 中結尾
+  // ...
+  resultDiv.style.display = "block";
+  shareBtn.style.display = "inline-block";  // 顯示分享按鈕
 
-    const file = new File([blob], '逆齡評估結果.png', { type: blob.type });
-
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        title: '我的逆齡評估結果',
-        text: '🧬 快來看看我的肌膚年齡！',
-        files: [file]
+  // 新增分享圖片功能
+  shareBtn.onclick = async () => {
+    // 用 html2canvas 截圖 #result
+    const resultElement = document.getElementById('result');
+    try {
+      const canvas = await html2canvas(resultElement, {
+        backgroundColor: '#0f0f0f', // 黑色背景，與你頁面風格一致
+        scale: 2 // 提升解析度
       });
-    } else {
-      alert("❌ 無法使用原生分享，請手動下載或長按圖片分享。");
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert("❌ 生成圖片失敗，請稍後重試");
+          return;
+        }
+        const file = new File([blob], '逆齡評估結果.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: '我的逆齡評估結果',
+            text: '🧬 快來看看我的肌膚年齡！',
+            files: [file],
+          });
+        } else {
+          alert("❌ 你的裝置或瀏覽器不支援原生分享功能，請手動保存或截圖分享");
+        }
+      }, 'image/png');
+    } catch (err) {
+      console.error(err);
+      alert("❌ 分享失敗，請稍後再試");
     }
-  } catch (error) {
-    console.error("分享失敗", error);
-    alert("❌ 分享圖片時發生錯誤");
-  }
-}
+  };
 
 </script>
 
