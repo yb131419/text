@@ -353,7 +353,7 @@ button:active {
     if (res.success && res.combinedAdvice) {
       aiDiv.innerHTML = `🤖 <strong>綜合建議：</strong><br>${res.combinedAdvice}`;
     } else if (res.success && res.aiSuggestion) {
-      aiDiv.innerHTML = `🤖 <strong>建議：</strong><br>${res.aiSuggestion}`;
+      aiDiv.innerHTML = `🤖 <strong>建議：</strong><br>${res.combinedAdvice}`;
     } else {
       alert("❌ 無法取得建議：" + res.error);
       aiDiv.textContent = "⚠️ 請稍後再試。";
