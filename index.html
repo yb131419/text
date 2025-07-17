@@ -229,51 +229,53 @@
     };
 
     function calculateAndSubmit() {
-      const form = document.forms["quizForm"];
-      const btn = document.querySelector("button");
-      const resultDiv = document.getElementById("result");
+  const form = document.forms["quizForm"];
+  const btn = document.querySelector("button");
+  const resultDiv = document.getElementById("result");
 
-      btn.disabled = true;
-      btn.innerText = "處理中…";
+  btn.disabled = true;
+  btn.innerText = "處理中…";
 
-      const fields = ["name","lineId","userId","username"];
-      const params = new URLSearchParams();
+  // ✅ 加入 gender 與 ageRange
+  const fields = ["name", "lineId", "userId", "username", "gender", "ageRange"];
+  const params = new URLSearchParams();
 
-      fields.forEach(k => params.set(k, form[k].value.trim()));
+  fields.forEach(k => params.set(k, form[k].value.trim?.() || form[k].value));  // 支援 select/input
 
-      const selects = ["sleep","water","fruit","tired"];
-      selects.forEach(name => {
-        const s = form[name];
-        params.set(name, s.options[s.selectedIndex].text);
-      });
+  const selects = ["sleep", "water", "fruit", "tired"];
+  selects.forEach(name => {
+    const s = form[name];
+    params.set(name, s.options[s.selectedIndex].text);
+  });
 
-      const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
-      const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
-      params.set("skin", skin.join(","));
-      params.set("wish", wish.join(","));
+  const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
+  const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
+  params.set("skin", skin.join(","));
+  params.set("wish", wish.join(","));
 
-      const totalScore = parseInt(form.sleep.value) + parseInt(form.water.value)
-        + parseInt(form.fruit.value) + parseInt(form.tired.value) + skin.length + wish.length;
-      params.set("totalScore", totalScore);
-      let resultText = totalScore <=5 ? "💚 年輕穩定" : totalScore <=10 ? "🟡 輕度老化" : "🔴 快速老化";
-      params.set("result", resultText);
-      params.set("callback", "handleResponse");
+  const totalScore = parseInt(form.sleep.value) + parseInt(form.water.value)
+    + parseInt(form.fruit.value) + parseInt(form.tired.value) + skin.length + wish.length;
+  params.set("totalScore", totalScore);
+  let resultText = totalScore <= 5 ? "💚 年輕穩定" : totalScore <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
+  params.set("result", resultText);
+  params.set("callback", "handleResponse");
 
-      const script = document.createElement("script");
-      script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params}`;
-      document.body.appendChild(script);
+  const script = document.createElement("script");
+  script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params}`;
+  document.body.appendChild(script);
 
-      resultDiv.style.display = "block";
-      resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3>
-        <p>總分：${totalScore}</p><p>${resultText}</p>`;
+  resultDiv.style.display = "block";
+  resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3>
+    <p>總分：${totalScore}</p><p>${resultText}</p>`;
 
-      setTimeout(() => resultDiv.scrollIntoView({behavior:"smooth"}), 300);
-      setTimeout(() => {
-        form.reset();
-        btn.disabled = false;
-        btn.innerText = "送出評估";
-      }, 800);
-    }
+  setTimeout(() => resultDiv.scrollIntoView({ behavior: "smooth" }), 300);
+  setTimeout(() => {
+    form.reset();
+    btn.disabled = false;
+    btn.innerText = "送出評估";
+  }, 800);
+}
+
 
     function handleResponse(res) {
       if (!res.success) alert("❌ 發送失敗：" + res.error);
