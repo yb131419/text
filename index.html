@@ -309,16 +309,24 @@
     const aiDiv = document.getElementById("aiSuggestion");
     const basicInfoText = document.getElementById("basicInfoText");
 
-    btn.disabled = true;
-    btn.innerText = "分析中…";
-    aiDiv.textContent = "";
-
-    const params = new URLSearchParams();
-
-    const name = form["name"].value;
+    // 取得使用者輸入
+    const name = form["name"].value.trim();
     const gender = form["gender"].value;
     const ageRange = form["ageRange"].value;
 
+    // ✅ 檢查必填欄位
+    if (!name || !ageRange) {
+      alert("⚠️ 請填寫完整：姓名與年齡範圍 為必填！");
+      return;
+    }
+
+    // 狀態更新：送出中
+    btn.disabled = true;
+    btn.innerText = "🧬 分析中…";
+    aiDiv.textContent = "";
+    resultDiv.style.display = "none";
+
+    const params = new URLSearchParams();
     params.set("name", name);
     params.set("gender", gender);
     params.set("ageRange", ageRange);
@@ -330,26 +338,16 @@
     let score = 0;
 
     const sleepMap = {
-      "0": "0天",
-      "1": "1–2天",
-      "2": "3–4天",
-      "3": "5天以上"
+      "0": "0天", "1": "1–2天", "2": "3–4天", "3": "5天以上"
     };
     const waterMap = {
-      "0": "足夠（≥2000cc）",
-      "1": "普通（1500–1999cc）",
-      "2": "偏少（1000–1499cc）",
-      "3": "很少（<1000cc）"
+      "0": "足夠（≥2000cc）", "1": "普通（1500–1999cc）", "2": "偏少（1000–1499cc）", "3": "很少（<1000cc）"
     };
     const fruitMap = {
-      "0": "每天都有",
-      "1": "2–3次/週",
-      "2": "幾乎沒有"
+      "0": "每天都有", "1": "2–3次/週", "2": "幾乎沒有"
     };
     const tiredMap = {
-      "0": "沒有",
-      "1": "偶爾",
-      "2": "會"
+      "0": "沒有", "1": "偶爾", "2": "會"
     };
 
     const sleep = form["sleep"].value;
@@ -374,39 +372,27 @@
     params.set("skin", skin.join(","));
     params.set("wish", wish.join(","));
 
-    // 分數區間結果
+    // 分數對應狀態
     const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
     params.set("result", result);
     params.set("callback", "handleResponse");
 
-    // ✨ 根據年齡範圍設定加權係數
+    // 肌膚年齡計算
     const ageRangeMidMap = {
-      "18以下": 18,
-      "18-24": 21,
-      "25-29": 27,
-      "30-34": 32,
-      "35-39": 37,
-      "40-44": 42,
-      "45-49": 47,
-      "50-54": 52,
-      "55-59": 57,
-      "60-64": 62,
-      "65以上": 68
+      "18以下": 18, "18-24": 21, "25-29": 27, "30-34": 32, "35-39": 37,
+      "40-44": 42, "45-49": 47, "50-54": 52, "55-59": 57, "60-64": 62, "65以上": 68
     };
     const baseAge = ageRangeMidMap[ageRange] || 30;
-
     const maxScore = 15;
     const minDiff = -5;
     const maxDiff = 10;
     const ratio = Math.min(score / maxScore, 1);
     const diff = minDiff + ratio * (maxDiff - minDiff);
     const skinAge = Math.round(baseAge + diff);
-
-    // ✅ 將肌膚年齡寫入 totalScore 欄位
     params.set("totalScore", skinAge);
 
-    // 顯示結果
-    basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
+    // 顯示評估結果
+    basicInfoText.innerHTML = `👤 <strong>${name}</strong>（${gender}｜${ageRange}）`;
     scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
     resultText.textContent = result;
     resultDiv.style.display = "block";
@@ -435,7 +421,6 @@
     }
   }
 </script>
-
 
 
 </body>
