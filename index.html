@@ -455,20 +455,18 @@
     }
   }
 
-    const wishOtherCheckbox = document.getElementById('wishOtherCheckbox');
-  const wishOtherText = document.getElementById('wishOtherText');
+    const otherCheckbox = document.getElementById('skinOtherCheckbox');
+  const otherInput = document.getElementById('skinOtherText');
 
-  wishOtherCheckbox.addEventListener('change', () => {
-    if (wishOtherCheckbox.checked) {
-      wishOtherText.style.display = 'inline-block';
-      wishOtherText.focus();
+  otherCheckbox.addEventListener('change', () => {
+    if (otherCheckbox.checked) {
+      otherInput.style.display = 'inline-block';
+      otherInput.focus();
     } else {
-      wishOtherText.style.display = 'none';
-      wishOtherText.value = '';
+      otherInput.style.display = 'none';
+      otherInput.value = '';
     }
   });
-
-  
 
   // 送出時過濾其他項目空白狀態
   document.getElementById('quizForm').addEventListener('submit', (e) => {
@@ -479,7 +477,7 @@
       otherInput.focus();
     }
   });
-  
+
 </script>
 
 
