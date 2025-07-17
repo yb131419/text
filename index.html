@@ -201,17 +201,22 @@ button:active {
         </div>
       </div>
 
-      <div class="form-group">
-        <label>年齡範圍</label>
-        <select name="ageRange" required>
-          <option value="">請選擇</option>
-          <option value="18-24">18-24歲</option>
-          <option value="25-34">25-34歲</option>
-          <option value="35-44">35-44歲</option>
-          <option value="45-54">45-54歲</option>
-          <option value="55以上">55歲以上</option>
-        </select>
-      </div>
+<div class="form-group">
+  <label>年齡範圍</label>
+  <select name="ageRange" required>
+    <option value="">請選擇</option>
+    <option value="18-24">18-24歲</option>
+    <option value="25-29">25-29歲</option>
+    <option value="30-34">30-34歲</option>
+    <option value="35-39">35-39歲</option>
+    <option value="40-44">40-44歲</option>
+    <option value="45-49">45-49歲</option>
+    <option value="50-54">50-54歲</option>
+    <option value="55-59">55-59歲</option>
+    <option value="60-64">60-64歲</option>
+    <option value="65以上">65歲以上</option>
+  </select>
+</div>
 
       <div class="form-group">
         <label>LINE ID 或 手機號碼</label>
@@ -386,15 +391,20 @@ button:active {
     params.set("callback", "handleResponse");
 
     // ✨ 根據年齡範圍設定加權係數
-    const weightMap = {
-      "18-24": 1.0,
-      "25-34": 1.1,
-      "35-44": 1.2,
-      "45-54": 1.3,
-      "55以上": 1.5
-    };
-    const multiplier = weightMap[ageRange] || 1.0;
-    const skinAge = Math.round(20 + score * multiplier);  // 肌膚年齡
+const weightMap = {
+  "18-24": 1.0,
+  "25-29": 1.05,
+  "30-34": 1.1,
+  "35-39": 1.15,
+  "40-44": 1.2,
+  "45-49": 1.3,
+  "50-54": 1.4,
+  "55-59": 1.5,
+  "60-64": 1.6,
+  "65以上": 1.7
+};
+const multiplier = weightMap[ageRange] || 1.0;
+const skinAge = Math.round(20 + score * multiplier);  // 肌膚年齡
 
     // 顯示結果
     basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
