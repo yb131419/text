@@ -125,6 +125,29 @@
         <input type="text" name="name" required />
       </div>
       <div class="form-group">
+  <label>性別</label>
+  <div class="checkbox-group">
+    <label class="checkbox-item" style="flex: 1 1 45%;">
+      <input type="radio" name="gender" value="男" required /> 男
+    </label>
+    <label class="checkbox-item" style="flex: 1 1 45%;">
+      <input type="radio" name="gender" value="女" required /> 女
+    </label>
+  </div>
+</div>
+
+<div class="form-group">
+  <label>年齡範圍</label>
+  <select name="ageRange" required>
+    <option value="">請選擇</option>
+    <option value="18-24">18-24歲</option>
+    <option value="25-34">25-34歲</option>
+    <option value="35-44">35-44歲</option>
+    <option value="45-54">45-54歲</option>
+    <option value="55以上">55歲以上</option>
+  </select>
+</div>
+      <div class="form-group">
         <label>LINE 使用者ID or 手機號碼</label>
         <input type="text" name="lineId" required />
       </div>
