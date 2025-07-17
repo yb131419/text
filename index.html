@@ -269,17 +269,15 @@
 <div class="form-group">
   <label>3. 肌膚困擾（可複選）</label>
   <div class="checkbox-group">
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="乾燥">乾燥</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="出油">出油</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="暗沉">暗沉</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="鬆弛">鬆弛</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="斑點">斑點</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="粉刺">粉刺</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="痘痘">痘痘</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="泛紅">泛紅</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="敏感">敏感</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="細紋">細紋</label>
-    <label class="checkbox-item"><input type="checkbox" name="skin" value="毛孔粗大">毛孔粗大</label>
+    <label class="checkbox-item"><input type="checkbox" name="wish" value="乾燥粗糙" />乾燥粗糙</label>
+    <label class="checkbox-item"><input type="checkbox" name="wish" value="出油" />出油</label>
+    <label class="checkbox-item"><input type="checkbox" name="wish" value="痘痘／粉刺" />痘痘／粉刺</label>
+    <label class="checkbox-item"><input type="checkbox" name="wish" value="敏感泛紅" />敏感泛紅</label>
+    <label class="checkbox-item"><input type="checkbox" name="wish" value="暗沉膚色不均" />暗沉膚色不均</label>
+    <label class="checkbox-item"><input type="checkbox" name="wish" value="毛孔粗大" />毛孔粗大</label>
+    <label class="checkbox-item"><input type="checkbox" name="wish" value="細紋／鬆弛" />細紋／鬆弛</label>
+    <label class="checkbox-item"><input type="checkbox" name="wish" value="斑點／黑斑" />斑點／黑斑</label>
+    <label class="checkbox-item"><input type="checkbox" name="wish" value="黑眼圈／眼袋" />黑眼圈／眼袋</label>
 
     <!-- 新增其他 -->
     <label class="checkbox-item checkbox-other">
@@ -307,28 +305,6 @@
           <option value="2">會</option>
         </select>
       </div>
-
-<div class="form-group">
-  <label>6. 想改善的問題？（可複選）</label>
-  <div class="checkbox-group">
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="乾燥粗糙" />乾燥粗糙</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="出油" />出油</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="痘痘／粉刺" />痘痘／粉刺</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="敏感泛紅" />敏感泛紅</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="暗沉膚色不均" />暗沉膚色不均</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="毛孔粗大" />毛孔粗大</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="細紋／鬆弛" />細紋／鬆弛</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="斑點／黑斑" />斑點／黑斑</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="黑眼圈／眼袋" />黑眼圈／眼袋</label>
-
-    <!-- 其他選項 -->
-    <label class="checkbox-item checkbox-other">
-      <input type="checkbox" id="wishOtherCheckbox" name="wish" value="其他" />其他
-      <input type="text" id="wishOtherText" name="wishOther" placeholder="請輸入其他想改善的問題" style="display:none; margin-left:8px; padding:6px 10px; border-radius:6px; border:1.5px solid #5a75ff; background:#1a2138; color:#fff; width:160px; font-size:14px;">
-    </label>
-  </div>
-</div>
-
 
       <button type="button" onclick="calculateAndSubmit()">送出評估</button>
     </form>
