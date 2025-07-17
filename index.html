@@ -226,7 +226,7 @@ button:active {
       <div class="form-group">
         <label>1. 每週睡眠不足6小時的天數？</label>
         <select name="sleep">
-          <option value="0">沒有</option>
+          <option value="0">0天</option>
           <option value="1">1-2天</option>
           <option value="2">3-4天</option>
           <option value="3">5天以上</option>
@@ -266,9 +266,9 @@ button:active {
       <div class="form-group">
         <label>5. 是否常感到疲勞？</label>
         <select name="tired">
-          <option value="0">否</option>
+          <option value="0">沒有</option>
           <option value="1">偶爾</option>
-          <option value="2">是</option>
+          <option value="2">會</option>
         </select>
       </div>
 
@@ -340,7 +340,7 @@ button:active {
     let score = 0;
 
     const sleepMap = {
-      "0": "沒有",
+      "0": "0天",
       "1": "1–2天",
       "2": "3–4天",
       "3": "5天以上"
@@ -357,9 +357,9 @@ button:active {
       "2": "幾乎沒有"
     };
     const tiredMap = {
-      "0": "否",
+      "0": "沒有",
       "1": "偶爾",
-      "2": "是"
+      "2": "會"
     };
 
     const sleep = form["sleep"].value;
