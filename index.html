@@ -284,7 +284,6 @@
       <div id="aiSuggestion"></div>
     </div>
   </div>
-
 <script>
   const liffId = "2007475335-OaAdKYr9";
 
@@ -376,47 +375,39 @@
 
     // 分數區間結果
     const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
-    params.set("totalScore", score);
     params.set("result", result);
     params.set("callback", "handleResponse");
 
     // ✨ 根據年齡範圍設定加權係數
-// 取得實際年齡中位數
-const ageRangeMidMap = {
-  "18-24": 21,
-  "25-29": 27,
-  "30-34": 32,
-  "35-39": 37,
-  "40-44": 42,
-  "45-49": 47,
-  "50-54": 52,
-  "55-59": 57,
-  "60-64": 62,
-  "65以上": 68
-};
-const baseAge = ageRangeMidMap[ageRange] || 30;
+    const ageRangeMidMap = {
+      "18-24": 21,
+      "25-29": 27,
+      "30-34": 32,
+      "35-39": 37,
+      "40-44": 42,
+      "45-49": 47,
+      "50-54": 52,
+      "55-59": 57,
+      "60-64": 62,
+      "65以上": 68
+    };
+    const baseAge = ageRangeMidMap[ageRange] || 30;
 
-// 分數最大值（依你題目和選項數調整）
-const maxScore = 15;
+    const maxScore = 15;
+    const minDiff = -5;
+    const maxDiff = 10;
+    const ratio = Math.min(score / maxScore, 1);
+    const diff = minDiff + ratio * (maxDiff - minDiff);
+    const skinAge = Math.round(baseAge + diff);
 
-// 肌膚年齡差距範圍
-const minDiff = -5;
-const maxDiff = 10;
+    // ✅ 將肌膚年齡寫入 totalScore 欄位
+    params.set("totalScore", skinAge);
 
-// 分數比例
-const ratio = Math.min(score / maxScore, 1);
-
-// 差距換算
-const diff = minDiff + ratio * (maxDiff - minDiff);
-
-// 計算肌膚年齡
-const skinAge = Math.round(baseAge + diff);
-
-// 顯示結果
-basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
-scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
-resultText.textContent = result;
-resultDiv.style.display = "block";
+    // 顯示結果
+    basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
+    scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
+    resultText.textContent = result;
+    resultDiv.style.display = "block";
 
     // 傳送資料到 Google Sheets
     const script = document.createElement("script");
@@ -424,26 +415,25 @@ resultDiv.style.display = "block";
     document.body.appendChild(script);
   }
 
-function handleResponse(res) {
-  const aiDiv = document.getElementById("aiSuggestion");
-  const btn = document.querySelector("button");
+  function handleResponse(res) {
+    const aiDiv = document.getElementById("aiSuggestion");
+    const btn = document.querySelector("button");
 
-  btn.disabled = false;
-  btn.innerText = "送出評估";
+    btn.disabled = false;
+    btn.innerText = "送出評估";
 
-  if (res.success && res.combinedAdvice) {
-    // 將中文句號（。）、英文句點（.）後加 <br><br> 形成段落
-    const formatted = res.combinedAdvice
-      .replace(/。/g, "。<br><br>")
-      .replace(/\. /g, ".<br><br>"); // 英文句點後加兩個換行
-
-    aiDiv.innerHTML = `🧬 <strong>AI 專屬建議：</strong><br><br>${formatted}`;
-  } else {
-    alert("❌ 無法取得建議：" + res.error);
-    aiDiv.textContent = "⚠️ 請稍後再試。";
+    if (res.success && res.combinedAdvice) {
+      const formatted = res.combinedAdvice
+        .replace(/。/g, "。<br><br>")
+        .replace(/\. /g, ".<br><br>");
+      aiDiv.innerHTML = `🧬 <strong>AI 專屬建議：</strong><br><br>${formatted}`;
+    } else {
+      alert("❌ 無法取得建議：" + res.error);
+      aiDiv.textContent = "⚠️ 請稍後再試。";
+    }
   }
-}
 </script>
+
 
 
 </body>
