@@ -111,11 +111,11 @@
 <body>
   <div class="container">
     <h1>彥彬 🧬 3分鐘逆齡評估</h1>
-<div class="line-official">
-  彥彬 LINE：
-  <a href="https://line.me/ti/p/HahcJAF8rk" target="_blank">點我加入</a>
-  <p>📲 填完表單後，點擊加入彥彬 LINE，私訊免費獲得你的逆齡建議卡！</p>
-</div>
+    <div class="line-official">
+      彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank">點我加入</a>
+      <p>📲 填完表單後，點擊加入彥彬 LINE，私訊免費獲得你的逆齡建議卡！</p>
+    </div>
+
     <form id="quizForm">
       <input type="hidden" name="userId" id="userId" />
       <input type="hidden" name="username" id="username" />
@@ -124,29 +124,31 @@
         <label>姓名</label>
         <input type="text" name="name" required />
       </div>
-      <div class="form-group">
-  <label>性別</label>
-  <div class="checkbox-group">
-    <label class="checkbox-item" style="flex: 1 1 45%;">
-      <input type="radio" name="gender" value="男" required /> 男
-    </label>
-    <label class="checkbox-item" style="flex: 1 1 45%;">
-      <input type="radio" name="gender" value="女" required /> 女
-    </label>
-  </div>
-</div>
 
-<div class="form-group">
-  <label>年齡範圍</label>
-  <select name="ageRange" required>
-    <option value="">請選擇</option>
-    <option value="18-24">18-24歲</option>
-    <option value="25-34">25-34歲</option>
-    <option value="35-44">35-44歲</option>
-    <option value="45-54">45-54歲</option>
-    <option value="55以上">55歲以上</option>
-  </select>
-</div>
+      <div class="form-group">
+        <label>性別</label>
+        <div class="checkbox-group">
+          <label class="checkbox-item">
+            <input type="radio" name="gender" value="男" required /> 男
+          </label>
+          <label class="checkbox-item">
+            <input type="radio" name="gender" value="女" required /> 女
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>年齡範圍</label>
+        <select name="ageRange" required>
+          <option value="">請選擇</option>
+          <option value="18-24">18-24歲</option>
+          <option value="25-34">25-34歲</option>
+          <option value="35-44">35-44歲</option>
+          <option value="45-54">45-54歲</option>
+          <option value="55以上">55歲以上</option>
+        </select>
+      </div>
+
       <div class="form-group">
         <label>LINE 使用者ID or 手機號碼</label>
         <input type="text" name="lineId" required />
@@ -162,6 +164,7 @@
           <option value="3">5天以上</option>
         </select>
       </div>
+
       <div class="form-group">
         <label>2. 平常喝水量是否足夠？</label>
         <select name="water">
@@ -171,6 +174,7 @@
           <option value="3">很少（<1000cc）</option>
         </select>
       </div>
+
       <div class="form-group">
         <label>3. 肌膚困擾有哪些？（可複選）</label>
         <div class="checkbox-group">
@@ -180,6 +184,7 @@
           <label class="checkbox-item"><input type="checkbox" name="skin" value="斑點"/>斑點</label>
         </div>
       </div>
+
       <div class="form-group">
         <label>4. 蔬果攝取頻率？</label>
         <select name="fruit">
@@ -188,6 +193,7 @@
           <option value="2">幾乎沒有</option>
         </select>
       </div>
+
       <div class="form-group">
         <label>5. 是否常感到疲勞？</label>
         <select name="tired">
@@ -195,6 +201,7 @@
           <option value="2">是</option>
         </select>
       </div>
+
       <div class="form-group">
         <label>6. 想改善的問題？（可複選）</label>
         <div class="checkbox-group">
@@ -229,53 +236,51 @@
     };
 
     function calculateAndSubmit() {
-  const form = document.forms["quizForm"];
-  const btn = document.querySelector("button");
-  const resultDiv = document.getElementById("result");
+      const form = document.forms["quizForm"];
+      const btn = document.querySelector("button");
+      const resultDiv = document.getElementById("result");
 
-  btn.disabled = true;
-  btn.innerText = "處理中…";
+      btn.disabled = true;
+      btn.innerText = "處理中…";
 
-  // ✅ 加入 gender 與 ageRange
-  const fields = ["name", "lineId", "userId", "username", "gender", "ageRange"];
-  const params = new URLSearchParams();
+      const fields = ["name", "lineId", "userId", "username", "gender", "ageRange"];
+      const params = new URLSearchParams();
 
-  fields.forEach(k => params.set(k, form[k].value.trim?.() || form[k].value));  // 支援 select/input
+      fields.forEach(k => params.set(k, form[k].value.trim?.() || form[k].value));
 
-  const selects = ["sleep", "water", "fruit", "tired"];
-  selects.forEach(name => {
-    const s = form[name];
-    params.set(name, s.options[s.selectedIndex].text);
-  });
+      const selects = ["sleep", "water", "fruit", "tired"];
+      selects.forEach(name => {
+        const s = form[name];
+        params.set(name, s.options[s.selectedIndex].text);
+      });
 
-  const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
-  const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
-  params.set("skin", skin.join(","));
-  params.set("wish", wish.join(","));
+      const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
+      const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
+      params.set("skin", skin.join(","));
+      params.set("wish", wish.join(","));
 
-  const totalScore = parseInt(form.sleep.value) + parseInt(form.water.value)
-    + parseInt(form.fruit.value) + parseInt(form.tired.value) + skin.length + wish.length;
-  params.set("totalScore", totalScore);
-  let resultText = totalScore <= 5 ? "💚 年輕穩定" : totalScore <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
-  params.set("result", resultText);
-  params.set("callback", "handleResponse");
+      const totalScore = parseInt(form.sleep.value) + parseInt(form.water.value)
+        + parseInt(form.fruit.value) + parseInt(form.tired.value) + skin.length + wish.length;
+      params.set("totalScore", totalScore);
+      let resultText = totalScore <= 5 ? "💚 年輕穩定" : totalScore <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
+      params.set("result", resultText);
+      params.set("callback", "handleResponse");
 
-  const script = document.createElement("script");
-  script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params}`;
-  document.body.appendChild(script);
+      const script = document.createElement("script");
+      script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params}`;
+      document.body.appendChild(script);
 
-  resultDiv.style.display = "block";
-  resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3>
-    <p>總分：${totalScore}</p><p>${resultText}</p>`;
+      resultDiv.style.display = "block";
+      resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3>
+        <p>總分：${totalScore}</p><p>${resultText}</p>`;
 
-  setTimeout(() => resultDiv.scrollIntoView({ behavior: "smooth" }), 300);
-  setTimeout(() => {
-    form.reset();
-    btn.disabled = false;
-    btn.innerText = "送出評估";
-  }, 800);
-}
-
+      setTimeout(() => resultDiv.scrollIntoView({ behavior: "smooth" }), 300);
+      setTimeout(() => {
+        form.reset();
+        btn.disabled = false;
+        btn.innerText = "送出評估";
+      }, 800);
+    }
 
     function handleResponse(res) {
       if (!res.success) alert("❌ 發送失敗：" + res.error);
