@@ -281,14 +281,14 @@ button:active {
       <button type="button" onclick="calculateAndSubmit()">送出評估</button>
     </form>
 
-    <div id="result">
+    <div id="result" style="display:none;">
       <h3>✨ 逆齡評估完成 ✨</h3>
-      <p id="scoreText"></p>
-      <p id="resultText"></p>
+      <p id="basicInfoText"></p> <!-- 新增姓名/性別/年齡 -->
+      <p id="scoreText"></p>     <!-- 肌膚年齡 -->
+      <p id="resultText"></p>    <!-- 評估結果 -->
       <div id="aiSuggestion"></div>
     </div>
   </div>
-
 
 <script>
   const liffId = "2007475335-OaAdKYr9";
@@ -312,6 +312,7 @@ button:active {
     const scoreText = document.getElementById("scoreText");
     const resultText = document.getElementById("resultText");
     const aiDiv = document.getElementById("aiSuggestion");
+    const basicInfoText = document.getElementById("basicInfoText");
 
     btn.disabled = true;
     btn.innerText = "分析中…";
@@ -319,13 +320,20 @@ button:active {
 
     const params = new URLSearchParams();
 
-    ["name", "lineId", "userId", "username", "gender", "ageRange"].forEach(k =>
+    const name = form["name"].value;
+    const gender = form["gender"].value;
+    const ageRange = form["ageRange"].value;
+
+    params.set("name", name);
+    params.set("gender", gender);
+    params.set("ageRange", ageRange);
+
+    ["lineId", "userId", "username"].forEach(k =>
       params.set(k, form[k].value.trim() || form[k].value)
     );
 
     let score = 0;
 
-    // 選項文字轉換
     const sleepMap = {
       "0": "沒有",
       "1": "1–2天",
@@ -349,7 +357,6 @@ button:active {
       "2": "是"
     };
 
-    // 分數累加並轉換為中文
     const sleep = form["sleep"].value;
     const water = form["water"].value;
     const fruit = form["fruit"].value;
@@ -365,20 +372,20 @@ button:active {
     params.set("fruit", fruitMap[fruit]);
     params.set("tired", tiredMap[tired]);
 
-    // 肌膚與願望：勾選數量即為分數，送出字串陣列
     const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
     const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
     score += skin.length + wish.length;
     params.set("skin", skin.join(","));
     params.set("wish", wish.join(","));
 
-    // 結果分類
     const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
     params.set("totalScore", score);
     params.set("result", result);
     params.set("callback", "handleResponse");
 
-    scoreText.textContent = `總分：${score}`;
+    const skinAge = 20 + score;
+    basicInfoText.innerHTML = `🙋‍♀️ <strong>${name}</strong>（${gender}｜${ageRange}）`;
+    scoreText.textContent = `🧑‍🔬 肌膚年齡：${skinAge} 歲`;
     resultText.textContent = result;
     resultDiv.style.display = "block";
 
@@ -404,4 +411,5 @@ button:active {
 </script>
 
 </body>
+
 </html>
