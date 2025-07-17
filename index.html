@@ -468,18 +468,7 @@
     }
   });
 
-   const otherCheckbox = document.getElementById('skinOtherCheckbox');
-  const otherInput = document.getElementById('skinOtherText');
-
-  otherCheckbox.addEventListener('change', () => {
-    if (otherCheckbox.checked) {
-      otherInput.style.display = 'inline-block';
-      otherInput.focus();
-    } else {
-      otherInput.style.display = 'none';
-      otherInput.value = '';
-    }
-  });
+  
 
   // 送出時過濾其他項目空白狀態
   document.getElementById('quizForm').addEventListener('submit', (e) => {
