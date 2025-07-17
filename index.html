@@ -28,7 +28,7 @@
       font-weight: bold;
       font-size: 1.05rem;
     }
-    select {
+    input, select {
       width: 100%;
       padding: 12px;
       background: #1e1e1e;
@@ -75,17 +75,19 @@
       border-radius: 6px;
       display: none;
     }
-    .hidden {
-      display: none;
-    }
   </style>
 </head>
 <body>
   <h1>🧬 3分鐘逆齡評估</h1>
   <form id="quizForm">
-    <!-- 隱藏欄位：LINE ID & 姓名 -->
-    <input type="hidden" name="name" value="匿名用戶" />
-    <input type="hidden" name="lineId" value="line_xxxx" />
+    <div class="form-group">
+      <label>姓名</label>
+      <input type="text" name="name" required />
+    </div>
+    <div class="form-group">
+      <label>LINE ID</label>
+      <input type="text" name="lineId" required />
+    </div>
 
     <div class="form-group">
       <label>1. 每週睡眠不足6小時的天數？</label>
@@ -159,23 +161,24 @@
     btn.disabled = true;
     btn.innerText = "處理中...";
 
-    const sleep = form["sleep"];
-    const water = form["water"];
-    const fruit = form["fruit"];
-    const tired = form["tired"];
-    const name = form["name"].value;
-    const lineId = form["lineId"].value;
+    const name = form["name"].value.trim();
+    const lineId = form["lineId"].value.trim();
 
-    const sleepText = sleep.options[sleep.selectedIndex].text;
-    const waterText = water.options[water.selectedIndex].text;
-    const fruitText = fruit.options[fruit.selectedIndex].text;
-    const tiredText = tired.options[tired.selectedIndex].text;
+    const sleepSelect = form["sleep"];
+    const waterSelect = form["water"];
+    const fruitSelect = form["fruit"];
+    const tiredSelect = form["tired"];
+
+    const sleepText = sleepSelect.options[sleepSelect.selectedIndex].text;
+    const waterText = waterSelect.options[waterSelect.selectedIndex].text;
+    const fruitText = fruitSelect.options[fruitSelect.selectedIndex].text;
+    const tiredText = tiredSelect.options[tiredSelect.selectedIndex].text;
 
     const skin = Array.from(document.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
     const wish = Array.from(document.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
 
-    const totalScore = parseInt(sleep.value) + parseInt(water.value) +
-                       parseInt(fruit.value) + parseInt(tired.value) +
+    const totalScore = parseInt(sleepSelect.value) + parseInt(waterSelect.value) +
+                       parseInt(fruitSelect.value) + parseInt(tiredSelect.value) +
                        skin.length + wish.length;
 
     let result = "";
@@ -206,9 +209,11 @@
     script.src = `${baseURL}?${params.toString()}`;
     document.body.appendChild(script);
 
+    // 顯示結果區塊
     resultDiv.style.display = "block";
-    resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${result}</p>`;
-
+    resultDiv.innerHTML =
+      `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${result}</p>`;
+    
     setTimeout(() => {
       resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 300);
