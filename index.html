@@ -288,72 +288,78 @@ button:active {
   </div>
 
 
-  <script>
-    const liffId = "2007475335-OaAdKYr9";
+<script>
+  const liffId = "2007475335-OaAdKYr9";
 
-    window.onload = async () => {
-      await liff.init({ liffId });
-      if (!liff.isLoggedIn()) liff.login();
-      else {
-        const profile = await liff.getProfile();
-        document.getElementById("userId").value = profile.userId;
-        document.getElementById("username").value = profile.displayName;
-        document.querySelector('input[name="name"]').value ||= profile.displayName;
-      }
-    };
-
-    function calculateAndSubmit() {
-      const form = document.forms["quizForm"];
-      const btn = document.querySelector("button");
-      const resultDiv = document.getElementById("result");
-      const scoreText = document.getElementById("scoreText");
-      const resultText = document.getElementById("resultText");
-      const aiDiv = document.getElementById("aiSuggestion");
-
-      btn.disabled = true;
-      btn.innerText = "分析中…";
-      aiDiv.textContent = "";
-
-      const params = new URLSearchParams();
-      ["name","lineId","userId","username","gender","ageRange"].forEach(k => params.set(k, form[k].value.trim()||form[k].value));
-      ["sleep","water","fruit","tired"].forEach(k => {
-        const sel = form[k];
-        params.set(k, sel.options[sel.selectedIndex].text);
-      });
-      const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb=>cb.value);
-      const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb=>cb.value);
-      params.set("skin", skin.join(","));
-      params.set("wish", wish.join(","));
-
-      const totalScore = +form.sleep.value + +form.water.value + +form.fruit.value + +form.tired.value + skin.length + wish.length;
-      const result = totalScore <=5 ? "💚 年輕穩定" : totalScore<=10 ? "🟡 輕度老化" : "🔴 快速老化";
-      params.set("totalScore", totalScore);
-      params.set("result", result);
-      params.set("callback", "handleResponse");
-
-      scoreText.textContent = `總分：${totalScore}`;
-      resultText.textContent = result;
-      resultDiv.style.display = "block";
-
-      const script = document.createElement("script");
-      script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
-      document.body.appendChild(script);
+  window.onload = async () => {
+    await liff.init({ liffId });
+    if (!liff.isLoggedIn()) {
+      liff.login();
+    } else {
+      const profile = await liff.getProfile();
+      document.getElementById("userId").value = profile.userId;
+      document.getElementById("username").value = profile.displayName;
+      document.querySelector('input[name="name"]').value ||= profile.displayName;
     }
+  };
 
-    function handleResponse(res) {
-      const aiDiv = document.getElementById("aiSuggestion");
-      const btn = document.querySelector("button");
+  function calculateAndSubmit() {
+    const form = document.forms["quizForm"];
+    const btn = document.querySelector("button");
+    const resultDiv = document.getElementById("result");
+    const scoreText = document.getElementById("scoreText");
+    const resultText = document.getElementById("resultText");
+    const aiDiv = document.getElementById("aiSuggestion");
 
-      if (res.success) {
-        aiDiv.innerHTML = `🤖 <strong>建議：</strong><br>${res.combinedAdvice || res.aiSuggestion}`;
-      } else {
-        alert("❌ 無法取得建議：" + res.error);
-        aiDiv.textContent = "⚠️ 請稍後再試。";
-      }
+    btn.disabled = true;
+    btn.innerText = "分析中…";
+    aiDiv.textContent = "";
 
-      btn.disabled = false;
-      btn.innerText = "送出評估";
+    const params = new URLSearchParams();
+    ["name","lineId","userId","username","gender","ageRange"].forEach(k =>
+      params.set(k, form[k].value.trim()||form[k].value)
+    );
+    ["sleep","water","fruit","tired"].forEach(k => {
+      const sel = form[k];
+      params.set(k, sel.options[sel.selectedIndex].text);
+    });
+    const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
+    const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
+    params.set("skin", skin.join(","));
+    params.set("wish", wish.join(","));
+
+    const totalScore = +form.sleep.value + +form.water.value + +form.fruit.value + +form.tired.value + skin.length + wish.length;
+    const result = totalScore <= 5 ? "💚 年輕穩定" : totalScore <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
+    params.set("totalScore", totalScore);
+    params.set("result", result);
+    params.set("callback", "handleResponse");
+
+    scoreText.textContent = `總分：${totalScore}`;
+    resultText.textContent = result;
+    resultDiv.style.display = "block";
+
+    const script = document.createElement("script");
+    script.src = `https://script.google.com/macros/s/…/exec?${params.toString()}`;
+    document.body.appendChild(script);
+  }
+
+  function handleResponse(res) {
+    const aiDiv = document.getElementById("aiSuggestion");
+    const btn = document.querySelector("button");
+
+    btn.disabled = false;
+    btn.innerText = "送出評估";
+
+    if (res.success && res.combinedAdvice) {
+      aiDiv.innerHTML = `🤖 <strong>綜合建議：</strong><br>${res.combinedAdvice}`;
+    } else if (res.success && res.aiSuggestion) {
+      aiDiv.innerHTML = `🤖 <strong>建議：</strong><br>${res.aiSuggestion}`;
+    } else {
+      alert("❌ 無法取得建議：" + res.error);
+      aiDiv.textContent = "⚠️ 請稍後再試。";
     }
-  </script>
+  }
+</script>
+
 </body>
 </html>
