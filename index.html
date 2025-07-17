@@ -320,6 +320,12 @@
     <label class="checkbox-item"><input type="checkbox" name="wish" value="細紋／鬆弛" />細紋／鬆弛</label>
     <label class="checkbox-item"><input type="checkbox" name="wish" value="斑點／黑斑" />斑點／黑斑</label>
     <label class="checkbox-item"><input type="checkbox" name="wish" value="黑眼圈／眼袋" />黑眼圈／眼袋</label>
+
+    <!-- 其他選項 -->
+    <label class="checkbox-item checkbox-other">
+      <input type="checkbox" id="wishOtherCheckbox" name="wish" value="其他" />其他
+      <input type="text" id="wishOtherText" name="wishOther" placeholder="請輸入其他想改善的問題" style="display:none; margin-left:8px; padding:6px 10px; border-radius:6px; border:1.5px solid #5a75ff; background:#1a2138; color:#fff; width:160px; font-size:14px;">
+    </label>
   </div>
 </div>
 
@@ -470,6 +476,19 @@
       aiDiv.textContent = "⚠️ 請稍後再試。";
     }
   }
+
+    const wishOtherCheckbox = document.getElementById('wishOtherCheckbox');
+  const wishOtherText = document.getElementById('wishOtherText');
+
+  wishOtherCheckbox.addEventListener('change', () => {
+    if (wishOtherCheckbox.checked) {
+      wishOtherText.style.display = 'inline-block';
+      wishOtherText.focus();
+    } else {
+      wishOtherText.style.display = 'none';
+      wishOtherText.value = '';
+    }
+  });
 
    const otherCheckbox = document.getElementById('skinOtherCheckbox');
   const otherInput = document.getElementById('skinOtherText');
