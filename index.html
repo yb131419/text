@@ -356,7 +356,7 @@
     // 分數區間結果
     const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
     params.set("totalScore", score);
-    params.set("result", result);
+    params.set("totalScore", skinAge);
     params.set("callback", "handleResponse");
 
     // ✨ 根據年齡範圍設定加權係數
