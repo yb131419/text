@@ -347,20 +347,20 @@ button:active {
       setTimeout(() => resultDiv.scrollIntoView({ behavior: "smooth" }), 300);
     }
 
-    function handleResponse(res) {
-      const aiDiv = document.getElementById("aiSuggestion");
-      const btn = document.querySelector("button");
+  function handleResponse(res) {
+    const aiDiv = document.getElementById("aiSuggestion");
+    const btn = document.querySelector("button");
 
-      if (res.success) {
-        aiDiv.innerHTML = `🤖 <strong>AI 建議：</strong><br>${res.suggestion || '建議將會稍後送出！'}`;
-      } else {
-        alert("❌ 發送失敗：" + res.error);
-        aiDiv.textContent = "⚠️ 無法取得 AI 建議，請稍後再試。";
-      }
-
-      btn.disabled = false;
-      btn.innerText = "送出評估";
+    if (res.success) {
+      aiDiv.innerHTML = `🤖 <strong>AI 建議：</strong><br>${res.aiSuggestion || '建議將會稍後送出！'}`;
+    } else {
+      alert("❌ 發送失敗：" + res.error);
+      aiDiv.textContent = "⚠️ 無法取得 AI 建議，請稍後再試。";
     }
+
+    btn.disabled = false;
+    btn.innerText = "送出評估";
+  }
   </script>
 </body>
 </html>
