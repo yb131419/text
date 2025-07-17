@@ -199,134 +199,127 @@
 
 </head>
 <body>
-  
-  <div class="container">
-<h1 style="text-align: center;">
-  🧬 彥彬 · 3分鐘逆齡評估
-</h1>
-    <div class="line-official">
-      彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank">點我加入</a>
-      <p>📲 填完表單後，立即獲得 AI 專屬建議卡</p>
-    </div>
 
-    <form id="quizForm">
-      <input type="hidden" name="userId" id="userId" />
-      <input type="hidden" name="username" id="username" />
-
-      <div class="form-group">
-        <label>姓名</label>
-        <input type="text" name="name" required />
-      </div>
-
-      <div class="form-group">
-        <label>性別</label>
-        <div class="checkbox-group">
-          <label class="checkbox-item"><input type="radio" name="gender" value="男" required />男</label>
-          <label class="checkbox-item"><input type="radio" name="gender" value="女" required />女</label>
-        </div>
-      </div>
-
-<div class="form-group">
-  <label>年齡範圍</label>
-  <select name="ageRange" required>
-    <option value="">請選擇</option>
-    <option value="18以下">18歲以下</option>
-    <option value="18-24">18-24歲</option>
-    <option value="25-29">25-29歲</option>
-    <option value="30-34">30-34歲</option>
-    <option value="35-39">35-39歲</option>
-    <option value="40-44">40-44歲</option>
-    <option value="45-49">45-49歲</option>
-    <option value="50-54">50-54歲</option>
-    <option value="55-59">55-59歲</option>
-    <option value="60-64">60-64歲</option>
-    <option value="65以上">65歲以上</option>
-  </select>
-</div>
-
-      <div class="form-group">
-        <label>LINE ID 或 手機號碼</label>
-        <input type="text" name="lineId" required />
-      </div>
-
-      <div class="form-group">
-        <label>1. 每週睡眠不足6小時的天數？</label>
-        <select name="sleep">
-          <option value="0">0天</option>
-          <option value="1">1-2天</option>
-          <option value="2">3-4天</option>
-          <option value="3">5天以上</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>2. 平常喝水量是否足夠？</label>
-        <select name="water">
-          <option value="0">足夠（≥2000cc）</option>
-          <option value="1">普通（1500–1999cc）</option>
-          <option value="2">偏少（1000–1499cc）</option>
-          <option value="3">很少（<1000cc）</option>
-        </select>
-      </div>
-
-<div class="form-group">
-  <label>3. 肌膚困擾（可複選）</label>
-  <div class="checkbox-group">
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="乾燥粗糙" />乾燥粗糙</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="出油" />出油</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="痘痘／粉刺" />痘痘／粉刺</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="敏感泛紅" />敏感泛紅</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="暗沉膚色不均" />暗沉膚色不均</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="毛孔粗大" />毛孔粗大</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="細紋／鬆弛" />細紋／鬆弛</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="斑點／黑斑" />斑點／黑斑</label>
-    <label class="checkbox-item"><input type="checkbox" name="wish" value="黑眼圈／眼袋" />黑眼圈／眼袋</label>
-
-    <!-- 新增其他 -->
-    <label class="checkbox-item checkbox-other">
-      <input type="checkbox" id="skinOtherCheckbox" name="skin" value="其他">其他
-      <input type="text" id="skinOtherText" name="skinOther" placeholder="請輸入其他困擾" style="display:none; margin-left:8px; padding:6px 10px; border-radius:6px; border:1.5px solid #5a75ff; background:#1a2138; color:#fff; width:130px; font-size:14px;">
-    </label>
-  </div>
-</div>
-
-
-      <div class="form-group">
-        <label>4. 每週運動頻率？</label>
-        <select name="fruit">
-          <option value="0">每天都有</option>
-          <option value="1">2–3次/週</option>
-          <option value="2">幾乎沒有</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>5. 是否常感到疲勞？</label>
-        <select name="tired">
-          <option value="0">沒有</option>
-          <option value="1">偶爾</option>
-          <option value="2">會</option>
-        </select>
-      </div>
-
-      <button type="button" onclick="calculateAndSubmit()">🧬 送出逆齡評估</button>
-      <!-- 增加空白區域 -->
-      <div style="height: 100px;"></div>
-    </form>
-
-    <div id="result" style="display:none;">
-      <h3>✨ 逆齡評估 ✨</h3>
-      <p id="basicInfoText"></p> <!-- 新增姓名/性別/年齡 -->
-      <p id="scoreText"></p>     <!-- 肌膚年齡 -->
-      <p id="resultText"></p>    <!-- 評估結果 -->
-      <div id="aiSuggestion"></div>
-    </div>
-    <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的評估結果</button>
+<div class="container">
+  <h1>🧬 彥彬 · 3分鐘逆齡評估</h1>
+  <div class="line-official">
+    彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank" rel="noopener noreferrer">點我加入</a>
+    <p>📲 填完表單後，立即獲得 AI 專屬建議卡</p>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <form id="quizForm">
+    <input type="hidden" name="userId" id="userId" />
+    <input type="hidden" name="username" id="username" />
 
+    <div class="form-group">
+      <label>姓名</label>
+      <input type="text" name="name" required />
+    </div>
 
+    <div class="form-group">
+      <label>性別</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="radio" name="gender" value="男" required />男</label>
+        <label class="checkbox-item"><input type="radio" name="gender" value="女" required />女</label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>年齡範圍</label>
+      <select name="ageRange" required>
+        <option value="">請選擇</option>
+        <option value="18以下">18歲以下</option>
+        <option value="18-24">18-24歲</option>
+        <option value="25-29">25-29歲</option>
+        <option value="30-34">30-34歲</option>
+        <option value="35-39">35-39歲</option>
+        <option value="40-44">40-44歲</option>
+        <option value="45-49">45-49歲</option>
+        <option value="50-54">50-54歲</option>
+        <option value="55-59">55-59歲</option>
+        <option value="60-64">60-64歲</option>
+        <option value="65以上">65歲以上</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>LINE ID 或 手機號碼</label>
+      <input type="text" name="lineId" required />
+    </div>
+
+    <div class="form-group">
+      <label>1. 每週睡眠不足6小時的天數？</label>
+      <select name="sleep">
+        <option value="0">0天</option>
+        <option value="1">1-2天</option>
+        <option value="2">3-4天</option>
+        <option value="3">5天以上</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>2. 平常喝水量是否足夠？</label>
+      <select name="water">
+        <option value="0">足夠（≥2000cc）</option>
+        <option value="1">普通（1500–1999cc）</option>
+        <option value="2">偏少（1000–1499cc）</option>
+        <option value="3">很少（<1000cc）</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>3. 肌膚困擾（可複選）</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="乾燥粗糙" />乾燥粗糙</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="出油" />出油</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="痘痘／粉刺" />痘痘／粉刺</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="敏感泛紅" />敏感泛紅</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="暗沉膚色不均" />暗沉膚色不均</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="毛孔粗大" />毛孔粗大</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="細紋／鬆弛" />細紋／鬆弛</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="斑點／黑斑" />斑點／黑斑</label>
+        <label class="checkbox-item"><input type="checkbox" name="wish" value="黑眼圈／眼袋" />黑眼圈／眼袋</label>
+
+        <label class="checkbox-item checkbox-other">
+          <input type="checkbox" id="skinOtherCheckbox" name="skin" value="其他" />其他
+          <input type="text" id="skinOtherText" name="skinOther" placeholder="請輸入其他困擾" style="display:none; margin-left:8px; padding:6px 10px; border-radius:6px; border:1.5px solid #5a75ff; background:#1a2138; color:#fff; width:130px; font-size:14px;" />
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>4. 每週運動頻率？</label>
+      <select name="fruit">
+        <option value="0">每天都有</option>
+        <option value="1">2–3次/週</option>
+        <option value="2">幾乎沒有</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>5. 是否常感到疲勞？</label>
+      <select name="tired">
+        <option value="0">沒有</option>
+        <option value="1">偶爾</option>
+        <option value="2">會</option>
+      </select>
+    </div>
+
+    <button type="button" id="submitBtn">🧬 送出逆齡評估</button>
+    <div style="height: 100px;"></div>
+  </form>
+
+  <div id="result" style="display:none;">
+    <h3>✨ 逆齡評估 ✨</h3>
+    <p id="basicInfoText"></p>
+    <p id="scoreText"></p>
+    <p id="resultText"></p>
+    <div id="aiSuggestion"></div>
+  </div>
+  <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的評估結果</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
   const liffId = "2007475335-OaAdKYr9";
 
@@ -338,44 +331,48 @@
       const profile = await liff.getProfile();
       document.getElementById("userId").value = profile.userId;
       document.getElementById("username").value = profile.displayName;
-      document.querySelector('input[name="name"]').value ||= profile.displayName;
+      const nameInput = document.querySelector('input[name="name"]');
+      if (!nameInput.value) nameInput.value = profile.displayName;
     }
   };
 
+  const submitBtn = document.getElementById("submitBtn");
+  const shareBtn = document.getElementById("shareBtn");
+
+  submitBtn.addEventListener("click", calculateAndSubmit);
+
   function calculateAndSubmit() {
     const form = document.forms["quizForm"];
-    const btn = document.querySelector("button");
+    const btn = submitBtn;
     const resultDiv = document.getElementById("result");
     const scoreText = document.getElementById("scoreText");
     const resultText = document.getElementById("resultText");
     const aiDiv = document.getElementById("aiSuggestion");
     const basicInfoText = document.getElementById("basicInfoText");
 
-    // 取得使用者輸入
     const name = form["name"].value.trim();
     const gender = form["gender"].value;
     const ageRange = form["ageRange"].value;
 
-    // ✅ 檢查必填欄位
     if (!name || !ageRange) {
       alert("⚠️ 請填寫完整：姓名與年齡範圍 為必填！");
       return;
     }
 
-    // 狀態更新：送出中
     btn.disabled = true;
     btn.innerText = "🧬 分析中…";
     aiDiv.textContent = "";
     resultDiv.style.display = "none";
+    shareBtn.style.display = "none";
 
     const params = new URLSearchParams();
     params.set("name", name);
     params.set("gender", gender);
     params.set("ageRange", ageRange);
 
-    ["lineId", "userId", "username"].forEach(k =>
-      params.set(k, form[k].value.trim() || form[k].value)
-    );
+    ["lineId", "userId", "username"].forEach(k => {
+      params.set(k, form[k].value.trim() || form[k].value);
+    });
 
     let score = 0;
 
@@ -407,20 +404,20 @@
     params.set("fruit", fruitMap[fruit]);
     params.set("tired", tiredMap[tired]);
 
-// 處理「肌膚困擾」
-const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
-const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
-score += skin.length + wish.length;
+    // 處理「肌膚困擾」
+    const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
+    const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
 
-// 如果有「其他」就把它換成「其他：使用者填的文字」
-const skinOtherText = document.getElementById("skinOtherText").value.trim();
-if (skin.includes("其他") && skinOtherText) {
-  skin[skin.indexOf("其他")] = `其他：${skinOtherText}`;
-}
+    // 如果有「其他」就把它換成「其他：使用者填的文字」
+    const skinOtherText = document.getElementById("skinOtherText").value.trim();
+    if (skin.includes("其他") && skinOtherText) {
+      skin[skin.indexOf("其他")] = `其他：${skinOtherText}`;
+    }
 
-params.set("skin", skin.join(","));
-params.set("wish", wish.join(","));
+    score += skin.length + wish.length;
 
+    params.set("skin", skin.join(","));
+    params.set("wish", wish.join(","));
 
     // 分數對應狀態
     const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
@@ -447,6 +444,9 @@ params.set("wish", wish.join(","));
     resultText.textContent = result;
     resultDiv.style.display = "block";
 
+    // 顯示分享按鈕
+    shareBtn.style.display = "inline-block";
+
     // 傳送資料到 Google Sheets
     const script = document.createElement("script");
     script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
@@ -455,10 +455,8 @@ params.set("wish", wish.join(","));
 
   function handleResponse(res) {
     const aiDiv = document.getElementById("aiSuggestion");
-    const btn = document.querySelector("button");
-
-    btn.disabled = false;
-    btn.innerText = "送出評估";
+    submitBtn.disabled = false;
+    submitBtn.innerText = "🧬 送出逆齡評估";
 
     if (res.success && res.combinedAdvice) {
       const formatted = res.combinedAdvice
@@ -466,12 +464,13 @@ params.set("wish", wish.join(","));
         .replace(/\. /g, ".<br><br>");
       aiDiv.innerHTML = `🧬 <strong>AI 專屬建議：</strong><br><br>${formatted}`;
     } else {
-      alert("❌ 無法取得建議：" + res.error);
+      alert("❌ 無法取得建議：" + (res.error || "未知錯誤"));
       aiDiv.textContent = "⚠️ 請稍後再試。";
     }
   }
 
-    const otherCheckbox = document.getElementById('skinOtherCheckbox');
+  // 其他肌膚困擾輸入框切換
+  const otherCheckbox = document.getElementById('skinOtherCheckbox');
   const otherInput = document.getElementById('skinOtherText');
 
   otherCheckbox.addEventListener('change', () => {
@@ -484,33 +483,22 @@ params.set("wish", wish.join(","));
     }
   });
 
-  // 送出時過濾其他項目空白狀態
+  // 送出前檢查其他肌膚困擾是否填寫
   document.getElementById('quizForm').addEventListener('submit', (e) => {
     if (otherCheckbox.checked && otherInput.value.trim() === '') {
-      // 阻止送出，提示填寫
       e.preventDefault();
       alert('請填寫「其他」肌膚困擾內容，或取消勾選。');
       otherInput.focus();
     }
   });
 
-// 送出後顯示分享按鈕
-  const shareBtn = document.getElementById('shareBtn');
-  shareBtn.style.display = 'none';
-
-  // 原有 calculateAndSubmit 中結尾
-  // ...
-  resultDiv.style.display = "block";
-  shareBtn.style.display = "inline-block";  // 顯示分享按鈕
-
-  // 新增分享圖片功能
+  // 分享按鈕點擊事件
   shareBtn.onclick = async () => {
-    // 用 html2canvas 截圖 #result
     const resultElement = document.getElementById('result');
     try {
       const canvas = await html2canvas(resultElement, {
-        backgroundColor: '#0f0f0f', // 黑色背景，與你頁面風格一致
-        scale: 2 // 提升解析度
+        backgroundColor: '#0f0f0f',
+        scale: 2
       });
       canvas.toBlob(async (blob) => {
         if (!blob) {
@@ -533,9 +521,7 @@ params.set("wish", wish.join(","));
       alert("❌ 分享失敗，請稍後再試");
     }
   };
-
 </script>
-
 
 </body>
 
