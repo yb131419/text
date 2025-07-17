@@ -321,6 +321,10 @@
       <div id="aiSuggestion"></div>
     </div>
   </div>
+  <div id="shareImageContainer" style="margin-top: 20px; text-align: center;">
+  <p style="margin-bottom: 10px;">📸 分享你的專屬建議卡</p>
+  <img id="shareImage" src="https://your-image-url.jpg" alt="分享圖片" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer;" onclick="downloadImage()">
+</div>
 <script>
   const liffId = "2007475335-OaAdKYr9";
 
@@ -487,6 +491,14 @@ params.set("wish", wish.join(","));
       otherInput.focus();
     }
   });
+
+  //原生分享圖片
+  function downloadImage() {
+  const link = document.createElement('a');
+  link.href = document.getElementById('shareImage').src;
+  link.download = '我的逆齡評估.png';
+  link.click();
+}
 
 </script>
 
