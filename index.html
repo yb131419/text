@@ -75,11 +75,18 @@
       border-radius: 6px;
       display: none;
     }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>🧬 3分鐘逆齡評估</h1>
   <form id="quizForm">
+    <!-- 隱藏欄位：LINE ID & 姓名 -->
+    <input type="hidden" name="name" value="匿名用戶" />
+    <input type="hidden" name="lineId" value="line_xxxx" />
+
     <div class="form-group">
       <label>1. 每週睡眠不足6小時的天數？</label>
       <select name="sleep">
@@ -149,25 +156,26 @@
     const btn = document.querySelector("button");
     const resultDiv = document.getElementById("result");
 
-    // 防止重複送出
     btn.disabled = true;
     btn.innerText = "處理中...";
 
-    const sleepSelect = form["sleep"];
-    const waterSelect = form["water"];
-    const fruitSelect = form["fruit"];
-    const tiredSelect = form["tired"];
+    const sleep = form["sleep"];
+    const water = form["water"];
+    const fruit = form["fruit"];
+    const tired = form["tired"];
+    const name = form["name"].value;
+    const lineId = form["lineId"].value;
 
-    const sleepText = sleepSelect.options[sleepSelect.selectedIndex].text;
-    const waterText = waterSelect.options[waterSelect.selectedIndex].text;
-    const fruitText = fruitSelect.options[fruitSelect.selectedIndex].text;
-    const tiredText = tiredSelect.options[tiredSelect.selectedIndex].text;
+    const sleepText = sleep.options[sleep.selectedIndex].text;
+    const waterText = water.options[water.selectedIndex].text;
+    const fruitText = fruit.options[fruit.selectedIndex].text;
+    const tiredText = tired.options[tired.selectedIndex].text;
 
     const skin = Array.from(document.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
     const wish = Array.from(document.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
 
-    const totalScore = parseInt(sleepSelect.value) + parseInt(waterSelect.value) +
-                       parseInt(fruitSelect.value) + parseInt(tiredSelect.value) +
+    const totalScore = parseInt(sleep.value) + parseInt(water.value) +
+                       parseInt(fruit.value) + parseInt(tired.value) +
                        skin.length + wish.length;
 
     let result = "";
@@ -181,6 +189,8 @@
 
     const baseURL = "https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec";
     const params = new URLSearchParams({
+      name,
+      lineId,
       sleep: sleepText,
       water: waterText,
       fruit: fruitText,
@@ -196,16 +206,13 @@
     script.src = `${baseURL}?${params.toString()}`;
     document.body.appendChild(script);
 
-    // 顯示結果並捲動
     resultDiv.style.display = "block";
-    resultDiv.innerHTML =
-      `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${result}</p>`;
-    
+    resultDiv.innerHTML = `<h3>✨ 評估完成 ✨</h3><p>總分：${totalScore}</p><p>${result}</p>`;
+
     setTimeout(() => {
       resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 300);
 
-    // 重置表單（稍晚執行以保留選項顯示）
     setTimeout(() => {
       form.reset();
       btn.disabled = false;
