@@ -178,9 +178,9 @@ button:active {
 </head>
 <body>
   <div class="container">
-    <h1>🧬 3分鐘逆齡評估</h1>
+    <h1>彥彬🧬 3分鐘逆齡評估</h1>
     <div class="line-official">
-      彥彬 LINE：<a href="https://lin.ee/uOsPSJSo" target="_blank">@248zwwwu</a>
+      彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank">點我加入</a>
       <p>📲 填完表單後，立即獲得 AI 專屬建議卡</p>
     </div>
 
@@ -356,7 +356,7 @@ button:active {
     btn.innerText = "送出評估";
 
     if (res.success && res.combinedAdvice) {
-      aiDiv.innerHTML = `🤖 <strong>綜合建議：</strong><br>${res.combinedAdvice}`;
+      aiDiv.innerHTML = `🧬 <strong>AI專屬建議：</strong><br>${res.combinedAdvice}`;
     } else {
       alert("❌ 無法取得建議：" + res.error);
       aiDiv.textContent = "⚠️ 請稍後再試。";
