@@ -195,6 +195,7 @@
   <label>年齡範圍</label>
   <select name="ageRange" required>
     <option value="">請選擇</option>
+    <option value="18以下">18歲以下</option>
     <option value="18-24">18-24歲</option>
     <option value="25-29">25-29歲</option>
     <option value="30-34">30-34歲</option>
@@ -380,6 +381,7 @@
 
     // ✨ 根據年齡範圍設定加權係數
     const ageRangeMidMap = {
+      "18以下": 18,
       "18-24": 21,
       "25-29": 27,
       "30-34": 32,
