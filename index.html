@@ -330,6 +330,14 @@
   <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的評估結果</button>
 </div>
 
+  <!-- 📸 分享卡片內容區塊 -->
+<div id="resultShareCard" style="display:none; padding:24px; border-radius:12px; background:#1e1e1e; color:#fff; text-align:center; width:320px; font-family:'sans-serif'; margin:0 auto;">
+  <h2 style="font-size:20px; margin-bottom:16px;">🧬 快來看看我的逆齡評估</h2>
+  <p id="shareNameText">👤 姓名：</p>
+  <p id="shareAgeRangeText">📅 年齡區間：</p>
+  <p id="shareSkinAgeText">🌸 肌膚年齡：</p>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
   const liffId = "2007475335-OaAdKYr9";
@@ -454,6 +462,10 @@
     scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
     resultText.textContent = result;
     resultDiv.style.display = "block";
+    // 填入分享卡資料
+document.getElementById('shareNameText').textContent = `👤 姓名：${name}`;
+document.getElementById('shareAgeRangeText').textContent = `📅 年齡區間：${ageRange}`;
+document.getElementById('shareSkinAgeText').textContent = `🌸 肌膚年齡：${skinAge} 歲`;
 
     // 顯示分享按鈕
     shareBtn.style.display = "inline-block";
@@ -503,35 +515,44 @@
     }
   });
 
-  // 分享按鈕點擊事件
   shareBtn.onclick = async () => {
-    const resultElement = document.getElementById('result');
-    try {
-      const canvas = await html2canvas(resultElement, {
-        backgroundColor: '#0f0f0f',
-        scale: 2
-      });
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          alert("❌ 生成圖片失敗，請稍後重試");
-          return;
-        }
-        const file = new File([blob], '逆齡評估結果.png', { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: '我的逆齡評估結果',
-            text: '🧬 快來看看我的肌膚年齡！',
-            files: [file],
-          });
-        } else {
-          alert("❌ 你的裝置或瀏覽器不支援原生分享功能，請手動保存或截圖分享");
-        }
-      }, 'image/png');
-    } catch (err) {
-      console.error(err);
-      alert("❌ 分享失敗，請稍後再試");
-    }
-  };
+  const shareCard = document.getElementById('resultShareCard');
+  shareCard.style.display = 'block'; // 顯示卡片才能轉圖
+
+  try {
+    const canvas = await html2canvas(shareCard, {
+      backgroundColor: '#0f0f0f',
+      scale: 2
+    });
+
+    canvas.toBlob(async (blob) => {
+      shareCard.style.display = 'none'; // 分享完後隱藏回去
+
+      if (!blob) {
+        alert("❌ 生成圖片失敗，請稍後重試");
+        return;
+      }
+
+      const file = new File([blob], '逆齡評估結果.png', { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: '我的逆齡評估結果',
+          text: '🧬 快來看看我的逆齡評估！',
+          files: [file],
+        });
+      } else {
+        alert("❌ 你的裝置或瀏覽器不支援原生分享功能，請手動保存或截圖分享");
+      }
+    }, 'image/png');
+
+  } catch (err) {
+    shareCard.style.display = 'none';
+    console.error(err);
+    alert("❌ 分享失敗，請稍後再試");
+  }
+};
+
 </script>
 
 </body>
