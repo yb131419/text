@@ -328,8 +328,13 @@
     <p id="resultText"></p>
     <div id="aiSuggestion"></div>
   </div>
-  <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的評估結果</button>
+  <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的逆齡評估</button>
 </div>
+  <div class="line-official">
+    彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank" rel="noopener noreferrer">點我加入</a>
+    <p>📲 填完表單後，立即獲得 AI 專屬建議卡</p>
+  </div>
+  
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
@@ -451,7 +456,7 @@
     params.set("totalScore", skinAge);
 
     // 顯示評估結果
-    basicInfoText.innerHTML = `👤 <strong>${name}</strong>（${gender}｜${ageRange}）`;
+    basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
     scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
     resultText.textContent = result;
     resultDiv.style.display = "block";
@@ -521,7 +526,7 @@
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: '我的逆齡評估結果',
-            text: '🧬 快來看看我的肌膚年齡！',
+            text: '🧬 快來看看我的逆齡評估！',
             files: [file],
           });
         } else {
