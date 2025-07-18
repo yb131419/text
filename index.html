@@ -394,6 +394,7 @@ button:active {
 
   const submitBtn = document.getElementById("submitBtn");
   const shareBtn = document.getElementById("shareBtn");
+  let isSharing = false; // 防止重複分享
 
   submitBtn.addEventListener("click", calculateAndSubmit);
 
@@ -432,18 +433,10 @@ button:active {
 
     let score = 0;
 
-    const sleepMap = {
-      "0": "0天", "1": "1–2天", "2": "3–4天", "3": "5天以上"
-    };
-    const waterMap = {
-      "0": "足夠（≥2000cc）", "1": "普通（1500–1999cc）", "2": "偏少（1000–1499cc）", "3": "很少（<1000cc）"
-    };
-    const fruitMap = {
-      "0": "每天都有", "1": "2–3次/週", "2": "幾乎沒有"
-    };
-    const tiredMap = {
-      "0": "沒有", "1": "偶爾", "2": "會"
-    };
+    const sleepMap = { "0": "0天", "1": "1–2天", "2": "3–4天", "3": "5天以上" };
+    const waterMap = { "0": "足夠（≥2000cc）", "1": "普通（1500–1999cc）", "2": "偏少（1000–1499cc）", "3": "很少（<1000cc）" };
+    const fruitMap = { "0": "每天都有", "1": "2–3次/週", "2": "幾乎沒有" };
+    const tiredMap = { "0": "沒有", "1": "偶爾", "2": "會" };
 
     const sleep = form["sleep"].value;
     const water = form["water"].value;
@@ -460,11 +453,9 @@ button:active {
     params.set("fruit", fruitMap[fruit]);
     params.set("tired", tiredMap[tired]);
 
-    // 處理「肌膚困擾」
     const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
     const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
 
-    // 如果有「其他」就把它換成「其他：使用者填的文字」
     const skinOtherText = document.getElementById("skinOtherText").value.trim();
     if (skin.includes("其他") && skinOtherText) {
       skin[skin.indexOf("其他")] = `其他：${skinOtherText}`;
@@ -475,12 +466,10 @@ button:active {
     params.set("skin", skin.join(","));
     params.set("wish", wish.join(","));
 
-    // 分數對應狀態
     const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
     params.set("result", result);
     params.set("callback", "handleResponse");
 
-    // 肌膚年齡計算
     const ageRangeMidMap = {
       "18以下": 18, "18-24": 21, "25-29": 27, "30-34": 32, "35-39": 37,
       "40-44": 42, "45-49": 47, "50-54": 52, "55-59": 57, "60-64": 62, "65以上": 68
@@ -494,16 +483,12 @@ button:active {
     const skinAge = Math.round(baseAge + diff);
     params.set("totalScore", skinAge);
 
-    // 顯示評估結果
     basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
     scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
     resultText.textContent = result;
     resultDiv.style.display = "block";
-
-    // 顯示分享按鈕
     shareBtn.style.display = "inline-block";
 
-    // 傳送資料到 Google Sheets
     const script = document.createElement("script");
     script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
     document.body.appendChild(script);
@@ -525,21 +510,15 @@ button:active {
     }
   }
 
-  // 其他肌膚困擾輸入框切換
   const otherCheckbox = document.getElementById('skinOtherCheckbox');
   const otherInput = document.getElementById('skinOtherText');
 
   otherCheckbox.addEventListener('change', () => {
-    if (otherCheckbox.checked) {
-      otherInput.style.display = 'inline-block';
-      otherInput.focus();
-    } else {
-      otherInput.style.display = 'none';
-      otherInput.value = '';
-    }
+    otherInput.style.display = otherCheckbox.checked ? 'inline-block' : 'none';
+    if (otherCheckbox.checked) otherInput.focus();
+    else otherInput.value = '';
   });
 
-  // 送出前檢查其他肌膚困擾是否填寫
   document.getElementById('quizForm').addEventListener('submit', (e) => {
     if (otherCheckbox.checked && otherInput.value.trim() === '') {
       e.preventDefault();
@@ -548,27 +527,24 @@ button:active {
     }
   });
 
-  // 分享按鈕點擊事件
-shareBtn.onclick = async () => {
-  const resultElement = document.getElementById('result');
+  shareBtn.onclick = async () => {
+    if (isSharing) return;
+    isSharing = true;
 
-  // 按鈕進入 loading 狀態
-  shareBtn.disabled = true;
-  const originalText = shareBtn.innerText;
-  shareBtn.innerText = "⏳ 生成與上傳中…";
+    const resultElement = document.getElementById('result');
+    shareBtn.disabled = true;
+    const originalText = shareBtn.innerText;
+    shareBtn.innerText = "⏳ 生成與上傳中…";
 
-  try {
-    const canvas = await html2canvas(resultElement, {
-      backgroundColor: '#0f0f0f',
-      scale: 1.5,
-      useCORS: true
-    });
+    try {
+      const canvas = await html2canvas(resultElement, {
+        backgroundColor: '#0f0f0f',
+        scale: 1.5,
+        useCORS: true
+      });
 
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        alert("❌ 圖片轉換失敗，請稍後重試");
-        return;
-      }
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+      if (!blob) throw new Error("無法轉換圖片");
 
       const formData = new FormData();
       formData.append("key", "2a6ef6a407b7acde9c7fd1183023d8f1");
@@ -580,15 +556,10 @@ shareBtn.onclick = async () => {
       });
 
       const uploadData = await uploadRes.json();
-
-      if (!uploadData.success) {
-        alert("❌ 圖片上傳失敗，請稍後重試");
-        return;
-      }
+      if (!uploadData.success) throw new Error("圖片上傳失敗");
 
       const imageUrl = uploadData.data.url;
 
-      // 原生分享或開新頁
       if (navigator.share) {
         await navigator.share({
           title: "我的逆齡評估結果",
@@ -600,18 +571,15 @@ shareBtn.onclick = async () => {
         alert("✅ 圖片已上傳，可透過新頁面分享");
       }
 
-    }, 'image/jpeg', 0.8); // 使用 JPEG + 壓縮 80%
-
-  } catch (err) {
-    console.error(err);
-    alert("❌ 分享失敗，請稍後再試");
-  } finally {
-    // 恢復按鈕狀態
-    shareBtn.disabled = false;
-    shareBtn.innerText = originalText;
-  }
-};
-
+    } catch (err) {
+      console.error(err);
+      alert("❌ 分享失敗：" + err.message);
+    } finally {
+      shareBtn.disabled = false;
+      shareBtn.innerText = originalText;
+      isSharing = false;
+    }
+  };
 </script>
 
 </body>
