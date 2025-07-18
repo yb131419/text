@@ -196,19 +196,23 @@
 }
     
 #result {
-  background-color: #2a2a2a; /* 深色底卡片 */
-  color: #ffffff;            /* 白色文字 */
-  padding: 20px;
-  border-radius: 12px;       /* 卡片圓角 */
-  margin: 16px;
-  text-align: left;          /* 文字靠左 */
-  border: 1.5px solid #444;  /* 卡片邊框 */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* 陰影層次 */
-  z-index: 1;
-  position: relative;
+  background: linear-gradient(145deg, #1e1e1e, #292929); /* 暗黑漸層背景 */
+  color: #e0e0e0;                /* 柔和白色文字 */
+  padding: 24px;
+  border-radius: 16px;           /* 更圓潤的角落 */
+  margin: 20px;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.08); /* 低透明度白邊 */
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.6),              /* 下方陰影 */
+    0 0 1px rgba(255, 255, 255, 0.05);          /* 顯示卡片邊緣質感 */
+  backdrop-filter: blur(3px);                  /* 模糊背景層玻璃感 */
+  -webkit-backdrop-filter: blur(3px);          /* Safari 支援 */
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.7;
+  transition: all 0.3s ease-in-out;
 }
+
 
     
   }
