@@ -586,10 +586,14 @@ button:active {
 
     const shareText = `🧬快來看看我的逆齡評估👇
 
-👑 姓名：${name}
-📌 年齡範圍：${ageRange}
-🌸 肌膚年齡：${skinAge} 歲
-👀 逆齡分析：${imageUrl}`;
+👑 姓名：${name}  
+📌 年齡範圍：${ageRange}  
+🌸 肌膚年齡：${skinAge} 歲  
+
+🔍 逆齡分析建議：  
+${advice}
+
+🖼️ 評估圖：${imageUrl}
 
     if (navigator.share) {
       await navigator.share({
