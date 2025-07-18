@@ -194,8 +194,8 @@
   height: 18px;
   cursor: pointer;
 }
-
-    #result {
+    
+#result {
   background-color: #1a1a1a;
   color: white;
   padding: 20px;
@@ -205,6 +205,7 @@
   z-index: 1;
   position: relative;
 }
+    
   }
 </style>
 
@@ -327,7 +328,7 @@
     <p id="resultText"></p>
     <div id="aiSuggestion"></div>
   </div>
-  <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的逆齡評估</button>
+  <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的評估結果</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -520,7 +521,7 @@
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: '我的逆齡評估結果',
-            text: '🧬 快來看看我的逆齡評估！',
+            text: '🧬 快來看看我的肌膚年齡！',
             files: [file],
           });
         } else {
