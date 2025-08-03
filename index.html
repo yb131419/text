@@ -3,618 +3,737 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🧬 3分鐘逆齡評估</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
- <style>
-  * {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+  <title>彥彬🌿試算系統</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root {
+    --bg-color: #0f0f0f;
+    --panel-bg: #1a1a1a;
+    --text-color: #e0e0e0;
+    --accent: #00d1b2;
+    --highlight: #40c4ff;
+    --error: #ff5252;
+    --button-green: #00bfa5;
+    --button-grey: #3a3a3a;
   }
 
   body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Segoe UI', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
     margin: 0;
-    padding: 0;
-    font-family: "Helvetica Neue", "PingFang TC", "Segoe UI", sans-serif;
-    background-color: #0a0f1d;
-    color: #ffffff;
+    padding: 20px;
+  }
+
+  #captureArea {
+    background: linear-gradient(145deg, #1c1c1c, #141414);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05),
+                0 4px 20px rgba(0, 0, 0, 0.6);
+    color: var(--text-color);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+
+#captureArea h2 {
+  text-align: center;
+  font-size: 2rem; /* 原本是 1.6rem，可視情況調整更大 */
+  font-weight: bold;
+  color: #ffffff;  /* 改為白色 */
+  margin-bottom: 15px;
+}
+
+
+  .userInputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+
+  .userInputs .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .userInputs label {
+    flex: 0 0 150px;
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    color: #bbb;
+  }
+
+  .userInputs input {
+    padding: 8px;
+    font-size: 18px;
+    background: #333;
+    color: var(--text-color);
+    border: none;
+    border-radius: 6px;
+    margin-top: 4px;
+    width: 150px;
+    box-sizing: border-box;
+  }
+
+  #nameInput option {
+    padding: 12px 10px;
     line-height: 1.6;
     font-size: 16px;
+    height: auto;
+    white-space: normal;
   }
 
-  .container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 24px;
-    background: #111827;
-    border-radius: 12px;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+  #reportTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: fixed;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #f9fafb;
+    color: #374151;
   }
 
-  label {
+  #reportTable th:nth-child(1),
+  #reportTable td:nth-child(1) { width: 25%; }
+  #reportTable th:nth-child(2),
+  #reportTable td:nth-child(2) { width: 13%; }
+  #reportTable th:nth-child(3),
+  #reportTable td:nth-child(3) { width: 13%; }
+  #reportTable th:nth-child(4),
+  #reportTable td:nth-child(4) { width: 13%; }
+  #reportTable th:nth-child(5),
+  #reportTable td:nth-child(5) { width: 15%; }
+  #reportTable th:nth-child(6),
+  #reportTable td:nth-child(6) { width: 14%; }
+  #reportTable th:nth-child(7),
+  #reportTable td:nth-child(7) { width: 7%; }
+
+  #reportTable th,
+  #reportTable td {
+    border: 1px solid #d1d5db;
+    padding: 5px;
+    text-align: center;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+  }
+
+  #reportTable thead {
+    background: linear-gradient(90deg, #2b6cb0, #3182ce);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  #reportTable tbody tr:nth-child(odd) { background-color: #f3f4f6; }
+  #reportTable tbody tr:nth-child(even) { background-color: #e5e7eb; }
+
+  #reportTable tbody tr:hover {
+    background-color: #1e88e5;
+    color: #fff;
+    font-weight: bold;
+    transform: scale(1.01);
+  }
+
+  .deleteBtn {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    background-color: var(--error);
+    border: none;
+    color: white;
+    border-radius: 4px;
+    padding: 2px;
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-block;
+    height: auto;
+    width: auto;
+  }
+
+
+  .summaryBox {
+    text-align: center;
+    margin-top: 13px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--highlight);
+  }
+
+  .summaryBox .extra {
     display: block;
-    margin-bottom: 8px;
-    color: #c0c9ff;
+    font-size: 0.95rem;
+    color: var(--accent);
+    margin-top: 6px;
+  }
+
+  .summaryBox .done {
+    color: #4caf50;
+    font-weight: bold;
+  }
+
+  #inputArea {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  #nameInput,
+  #qtyInput,
+  #addBtn {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+  }
+
+  #nameInput,
+  #qtyInput {
+    background-color: #2c2c2c;
+    color: var(--text-color);
+  }
+
+  #addBtn,
+  #exportBtn,
+  #shareToLineBtn,
+  #nativeShareBtn,
+  #clearImageBtn {
+    background: linear-gradient(145deg, #00bfa5, #009e8a);
+    box-shadow: 0 4px 8px rgba(0, 191, 165, 0.3);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  #addBtn:hover,
+  #exportBtn:hover,
+  #shareToLineBtn:hover,
+  #nativeShareBtn:hover {
+    background: linear-gradient(145deg, #00ccb2, #00a98e);
+    transform: translateY(-2px);
+  }
+
+  #exportBtn,
+  #shareToLineBtn,
+  #nativeShareBtn,
+  #clearImageBtn {
+    margin: 10px auto;
+    display: block;
+    padding: 10px 0;
+    width: 30%;
+    font-size: 16px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  #clearImageBtn {
+    background: var(--button-grey);
+  }
+
+  #clearImageBtn:hover {
+    background: #555;
+  }
+
+  #previewImage {
+    display: none;
+    max-width: 100%;
+    border: 2px solid #888;
+    border-radius: 10px;
+    margin: 20px auto;
+  }
+
+  #shareToLineBtn,
+  #nativeShareBtn,
+  #clearImageBtn {
+    display: none;
+  }
+
+  #buyerInput,
+  #calculatorInput {
+    background-color: #f9fafb;
+    border: 1.5px solid #d1d5db;
+    color: #374151;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 16px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
     font-weight: 500;
   }
 
-  input[type="text"],
-  select {
-    width: 100%;
-    padding: 12px 14px;
-    margin-bottom: 18px;
-    background-color: #1a2138;
-    border: 1.5px solid #5a75ff;
-    border-radius: 8px;
-    color: #ffffff;
-    font-size: 16px;
-    transition: all 0.25s ease;
-  }
-
-  input[type="text"]:focus,
-  select:focus {
+  #buyerInput:focus,
+  #calculatorInput:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 8px 2px rgba(37, 99, 235, 0.3);
     outline: none;
-    background-color: #1f2947;
-    border-color: #7ea3ff;
-    box-shadow: 0 0 0 2px rgba(126, 163, 255, 0.3);
+    background-color: #ffffff;
   }
 
-  .checkbox-item {
-    display: block;
-    background: #1a1f33;
-    border: 1.5px solid #5a75ff;
-    padding: 10px 14px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    color: #ffffff;
-    transition: background 0.3s, border 0.3s;
+  #buyerInput::placeholder,
+  #calculatorInput::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
   }
 
-  .checkbox-item:hover {
-    background-color: #2c365d;
-    border-color: #7ea3ff;
-  }
-
-  button {
-    display: block;
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #7ea3ff, #5a75ff);
-    color: #0a0f1d;
-    font-weight: bold;
-    font-size: 18px;
-    border: none;
-    border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(126, 163, 255, 0.4);
-    cursor: pointer;
-    transition: background 0.25s ease, transform 0.1s;
-  }
-
-  button:active {
-    background-color: #5a7dcc;
-    transform: scale(0.98);
-  }
-
-  .line-official {
+  #uploadSuccessMessage {
+    color: #4caf50;
     text-align: center;
-    margin-top: 18px;
-    color: #b0bbff;
-    font-size: 15px;
+    margin-top: 10px;
+    display: none;
+    font-weight: bold;
   }
 
-  #result {
-    background: #1b2237;
-    border: 1.5px solid #5a75ff;
-    padding: 18px;
-    border-radius: 10px;
-    margin-top: 24px;
-    color: #f0f0f0;
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #4caf50;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    z-index: 1000;
   }
 
-  #result h3 {
-    color: #c0c9ff;
-    margin-bottom: 12px;
-    font-size: 20px;
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-10px);
   }
 
-  #aiSuggestion {
-    margin-top: 12px;
-    color: #d8e0ff;
-    font-size: 16px;
-    line-height: 1.5;
+  @media (min-width: 600px) {
+    #inputArea {
+      flex-direction: row;
+      align-items: center;
+    }
+
+    #nameInput,
+    #qtyInput {
+      flex: 1;
+    }
+
+    #addBtn {
+      width: 120px;
+    }
   }
 
-  @media (max-width: 480px) {
+  @media print {
     body {
-      font-size: 15px;
+      background: #fff;
+      color: #000;
     }
 
-    .container {
-      padding: 18px;
-      margin: 12px;
+    #inputArea,
+    #addBtn,
+    #exportBtn,
+    #shareToLineBtn,
+    #clearImageBtn,
+    #nativeShareBtn {
+      display: none !important;
     }
 
-    button {
-      font-size: 16px;
-      padding: 12px;
+    #captureArea {
+      box-shadow: none;
+      background: #fff;
+      color: #000;
     }
 
-    #result {
-      font-size: 15px;
+    #reportTable th {
+      background: #ccc !important;
+      color: #000 !important;
+    }
+
+    .deleteBtn {
+      display: none !important;
+    }
+
+    .summaryBox {
+      color: #000 !important;
     }
     
-    .title {
-  text-align: center;
-  color: white; /* 如果背景是深色 */
-  font-size: 1.8rem;
-  font-weight: bold;
-  margin-top: 20px;
-  margin-bottom: 10px;
+.payment-options {
+  display: flex;
+  flex-direction: column;  /* 垂直排列 */
+  align-items: center;     /* 置中對齊（你也可以改成 flex-start 靠左） */
+  margin-top: 10px;
+  color: white;
+  font-size: 0.95rem;
 }
-
-    .line-official {
-  text-align: center;
-  color: #ffffff;
-  margin: 10px 0;
-}
-
-.line-official a {
-  color: #ffffff;
-  text-decoration: underline;
-  font-weight: bold;
-}
-    .checkbox-group {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 一行兩個 */
-  gap: 12px 16px; /* 行間距12px，列間距16px */
-}
-
-.checkbox-item {
-  font-size: 15px;       /* 文字大小稍微調整 */
-  line-height: 1.4;
-  padding: 8px 12px;     /* 內距稍微縮小 */
-  border-radius: 8px;
-  background: #1a1f33;
-  border: 1.5px solid #5a75ff;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.3s, border-color 0.3s;
+.payment-options label {
   display: flex;
   align-items: center;
-  gap: 8px;              /* 勾選框與文字間距 */
+  gap: 6px;
+  color: white; /* ⬅ 更改 現金、刷卡 字體顏色 */
+  font-weight: 500;
 }
 
-.checkbox-item:hover {
-  background-color: #2c365d;
-  border-color: #7ea3ff;
-}
-
-.checkbox-item input[type="checkbox"] {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-    
-#result {
-  background: linear-gradient(145deg, #0f1b2d, #1c2a3a); /* 深藍漸層 */
-  color: #d6e4f0;                 /* 柔和的亮藍灰文字 */
-  padding: 24px;
-  border-radius: 16px;
-  margin: 20px;
-  text-align: left;
-  border: 1px solid rgba(88, 158, 255, 0.15); /* 淡藍邊框 */
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.7),              /* 底部陰影 */
-    0 0 8px rgba(88, 158, 255, 0.08);           /* 藍光外圈 */
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  font-size: 1rem;
-  line-height: 1.7;
-  transition: all 0.3s ease-in-out;
-}
-
-    button {
-  display: block;
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #7ea3ff, #5a75ff);
-  color: #0a0f1d;
-  font-weight: bold;
-  font-size: 18px;
+.slimQty {
+  background-color: transparent;
+  font-size: 14px;
+  color: #333;
+  padding: 2px 6px;
   border: none;
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(126, 163, 255, 0.4);
-  cursor: pointer;
-  transition:
-    background 0.25s ease,
-    transform 0.1s ease-in-out,
-    box-shadow 0.2s ease-in-out;
-}
-
-button:hover {
-  background: linear-gradient(135deg, #8fb4ff, #6a86ff);
-  box-shadow: 0 8px 24px rgba(126, 163, 255, 0.5);
-}
-
-button:active {
-  transform: scale(0.96);
-  background: linear-gradient(135deg, #6a86ff, #4f65cc);
-  box-shadow: 0 4px 12px rgba(88, 120, 255, 0.3);
-}
-
-    h1 {
+  width: auto;
+  min-width: 38px;
   text-align: center;
-  margin: 20px 0;
-  font-weight: bold;
-  line-height: 1.4;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-image: none; /* 移除下拉箭頭圖示 */
 }
 
-.title-line1 {
-  display: block;
-  font-size: 1.8rem;
-  color: #00e676; /* 綠色強調 */
+select::-ms-expand {
+  display: none;
 }
 
-.title-line2 {
-  display: block;
-  font-size: 1.6rem;
-  color: white;
+#reportTable th, #reportTable td {
+  padding: 10px;
+  font-size: 14px;
 }
 
+#buyerInput,
+#calculatorInput {
+  font-size: 20px;
+  text-align: center;
+  font-weight: 600;
+}
 
-
-
-    
   }
 </style>
 
+
+
 </head>
 <body>
-
-<div class="container">
- <h1><span class="title-line1">彥彬</span><span class="title-line2">🧬 3分鐘逆齡評估</span></h1>
-  <div class="line-official">
-    彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank" rel="noopener noreferrer">點我加入</a>
-    <p>📲 填完表單後，立即獲得 AI 專屬建議卡</p>
-  </div>
-
-  <form id="quizForm">
-    <input type="hidden" name="userId" id="userId" />
-    <input type="hidden" name="username" id="username" />
-
-    <div class="form-group">
-      <label>姓名</label>
-      <input type="text" name="name" required />
-    </div>
-
-    <div class="form-group">
-      <label>性別</label>
-      <div class="checkbox-group">
-        <label class="checkbox-item"><input type="radio" name="gender" value="男" required />男</label>
-        <label class="checkbox-item"><input type="radio" name="gender" value="女" required />女</label>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>年齡範圍</label>
-      <select name="ageRange" required>
-        <option value="">請選擇</option>
-        <option value="18以下">18歲以下</option>
-        <option value="18-24">18-24歲</option>
-        <option value="25-29">25-29歲</option>
-        <option value="30-34">30-34歲</option>
-        <option value="35-39">35-39歲</option>
-        <option value="40-44">40-44歲</option>
-        <option value="45-49">45-49歲</option>
-        <option value="50-54">50-54歲</option>
-        <option value="55-59">55-59歲</option>
-        <option value="60-64">60-64歲</option>
-        <option value="65以上">65歲以上</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>LINE ID 或 手機號碼</label>
-      <input type="text" name="lineId" required />
-    </div>
-
-    <div class="form-group">
-      <label>1. 每週睡眠不足6小時的天數？</label>
-      <select name="sleep">
-        <option value="0">0天</option>
-        <option value="1">1-2天</option>
-        <option value="2">3-4天</option>
-        <option value="3">5天以上</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>2. 平常喝水量是否足夠？</label>
-      <select name="water">
-        <option value="0">足夠（≥2000cc）</option>
-        <option value="1">普通（1500–1999cc）</option>
-        <option value="2">偏少（1000–1499cc）</option>
-        <option value="3">很少（<1000cc）</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>3. 肌膚困擾（可複選）</label>
-      <div class="checkbox-group">
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="乾燥粗糙" />乾燥粗糙</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="出油" />出油</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="痘痘／粉刺" />痘痘／粉刺</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="敏感泛紅" />敏感泛紅</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="暗沉膚色不均" />暗沉膚色不均</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="毛孔粗大" />毛孔粗大</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="細紋／鬆弛" />細紋／鬆弛</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="斑點／黑斑" />斑點／黑斑</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="黑眼圈／眼袋" />黑眼圈／眼袋</label>
-
-        <label class="checkbox-item checkbox-other">
-          <input type="checkbox" id="skinOtherCheckbox" name="skin" value="其他" />其他
-          <input type="text" id="skinOtherText" name="skinOther" placeholder="請輸入其他困擾" style="display:none; margin-left:8px; padding:6px 10px; border-radius:6px; border:1.5px solid #5a75ff; background:#1a2138; color:#fff; width:130px; font-size:14px;" />
+  <div id="captureArea">
+<h2>
+  🌿 『購物節』試算
+  <br />
+  <span class="payment-options">
+    <label><input type="checkbox" id="cashOption" /> 現金</label>
+    <label><input type="checkbox" id="cardOption" /> 刷卡</label>
+  </span>
+</h2>
+    <div class="userInputs">  
+      <div class="row">
+        <label>購買者：
+          <input type="text" placeholder="輸入購買者" id="buyerInput" />
+        </label>
+        <label>試算者：
+          <input type="text" placeholder="輸入試算者" id="calculatorInput" />
         </label>
       </div>
     </div>
 
-    <div class="form-group">
-      <label>4. 每週運動頻率？</label>
-      <select name="fruit">
-        <option value="0">每天都有</option>
-        <option value="1">2–3次/週</option>
-        <option value="2">幾乎沒有</option>
-      </select>
+    <table id="reportTable" aria-label="試算報表">
+      <thead>
+        <tr>
+          <th>品項<br>名稱</th>
+          <th>數量</th>
+          <th>單<br>價</th>
+          <th>PV</th>
+          <th>小計<br>金額</th>
+          <th>小計<br>PV</th>
+          <th>操<br>作</th>
+        </tr>
+      </thead>
+      <tbody id="reportBody"></tbody>
+    </table>
+
+    <div class="summaryBox" aria-live="polite">
+      總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
+      <span class="extra">距 11.2萬 PV ：<span id="pvDiff">112000</span> <span id="pvMessage1"></span></span>
+      <span class="extra">距 22.0萬 PV ：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
     </div>
-
-    <div class="form-group">
-      <label>5. 是否常感到疲勞？</label>
-      <select name="tired">
-        <option value="0">沒有</option>
-        <option value="1">偶爾</option>
-        <option value="2">會</option>
-      </select>
-    </div>
-
-    <button type="button" id="submitBtn">🧬 送出逆齡評估</button>
-    <div style="height: 100px;"></div>
-  </form>
-
-  <div id="result" style="display:none;">
-    <h3>✨ 逆齡評估 ✨</h3>
-    <p id="basicInfoText"></p>
-    <p id="scoreText"></p>
-    <p id="resultText"></p>
-    <div id="aiSuggestion"></div>
   </div>
-  <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的逆齡評估</button>
-</div>
-  <div class="line-official">
-    彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank" rel="noopener noreferrer">點我加入</a>
-    <p>📲 填完表單後，立即獲得 AI 專屬建議卡</p>
-  </div>
+
+  <img id="previewImage" alt="預覽匯出圖片" />
+  <button id="shareToLineBtn">📩 上傳備份</button>
+  <button id="clearImageBtn">❌ 清除圖片</button>
+  <button id="nativeShareBtn">📱 分享圖片</button>
   
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script>
-  const liffId = "2007475335-OaAdKYr9";
+  <!-- ✅ 浮窗提示 -->
+  <div id="toast" class="toast">✅ 圖片已上傳備份</div>
 
-  window.onload = async () => {
-    await liff.init({ liffId });
-    if (!liff.isLoggedIn()) {
-      liff.login();
-    } else {
-      const profile = await liff.getProfile();
-      document.getElementById("userId").value = profile.userId;
-      document.getElementById("username").value = profile.displayName;
-      const nameInput = document.querySelector('input[name="name"]');
-      if (!nameInput.value) nameInput.value = profile.displayName;
-    }
-  };
+  <div id="inputArea">
+    <select id="nameInput"></select>
+    <select id="qtyInput"></select>
+    <button id="addBtn">➕ 新增品項</button>
+  </div>
 
-  const submitBtn = document.getElementById("submitBtn");
-  const shareBtn = document.getElementById("shareBtn");
-  let isSharing = false; // 防止重複分享
+   <button id="exportBtn">📤 報表轉圖片</button>
 
-  submitBtn.addEventListener("click", calculateAndSubmit);
+ <!-- 新增這段留白用的區塊 -->
+  <div style="height: 100px;"></div>
 
-  function calculateAndSubmit() {
-    const form = document.forms["quizForm"];
-    const btn = submitBtn;
-    const resultDiv = document.getElementById("result");
-    const scoreText = document.getElementById("scoreText");
-    const resultText = document.getElementById("resultText");
-    const aiDiv = document.getElementById("aiSuggestion");
-    const basicInfoText = document.getElementById("basicInfoText");
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzQmtZqi-ueTI1yVNQ7CcQGJRfQLDsyiEZMWrYG5q4e7zepU9Ir4DimPZnoLdVuDezd/exec";
+    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
 
-    const name = form["name"].value.trim();
-    const gender = form["gender"].value;
-    const ageRange = form["ageRange"].value;
+    let allProducts = [];
+    let selectedProducts = [];
 
-    if (!name || !ageRange) {
-      alert("⚠️ 請填寫完整：姓名與年齡範圍 為必填！");
-      return;
-    }
+    const nameInput = document.getElementById("nameInput");
+    const qtyInput = document.getElementById("qtyInput");
+    const addBtn = document.getElementById("addBtn");
+    const reportBody = document.getElementById("reportBody");
+    const totalPriceCellDup = document.getElementById("totalPriceCellDup");
+    const totalPvCellDup = document.getElementById("totalPvCellDup");
+    const pvDiff = document.getElementById("pvDiff");
+    const pvDiff2 = document.getElementById("pvDiff2");
+    const pvMessage1 = document.getElementById("pvMessage1");
+    const pvMessage2 = document.getElementById("pvMessage2");
 
-    btn.disabled = true;
-    btn.innerText = "🧬 分析中…";
-    aiDiv.textContent = "";
-    resultDiv.style.display = "none";
-    shareBtn.style.display = "none";
+    const exportBtn = document.getElementById("exportBtn");
+    const previewImage = document.getElementById("previewImage");
+    const shareToLineBtn = document.getElementById("shareToLineBtn");
+    const nativeShareBtn = document.getElementById("nativeShareBtn");
+    const clearImageBtn = document.getElementById("clearImageBtn");
+    const buyerInput = document.getElementById("buyerInput");
+    const calculatorInput = document.getElementById("calculatorInput");
+    const toast = document.getElementById("toast");
 
-    const params = new URLSearchParams();
-    params.set("name", name);
-    params.set("gender", gender);
-    params.set("ageRange", ageRange);
-
-    ["lineId", "userId", "username"].forEach(k => {
-      params.set(k, form[k].value.trim() || form[k].value);
-    });
-
-    let score = 0;
-
-    const sleepMap = { "0": "0天", "1": "1–2天", "2": "3–4天", "3": "5天以上" };
-    const waterMap = { "0": "足夠（≥2000cc）", "1": "普通（1500–1999cc）", "2": "偏少（1000–1499cc）", "3": "很少（<1000cc）" };
-    const fruitMap = { "0": "每天都有", "1": "2–3次/週", "2": "幾乎沒有" };
-    const tiredMap = { "0": "沒有", "1": "偶爾", "2": "會" };
-
-    const sleep = form["sleep"].value;
-    const water = form["water"].value;
-    const fruit = form["fruit"].value;
-    const tired = form["tired"].value;
-
-    score += parseInt(sleep, 10);
-    score += parseInt(water, 10);
-    score += parseInt(fruit, 10);
-    score += parseInt(tired, 10);
-
-    params.set("sleep", sleepMap[sleep]);
-    params.set("water", waterMap[water]);
-    params.set("fruit", fruitMap[fruit]);
-    params.set("tired", tiredMap[tired]);
-
-    const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
-    const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
-
-    const skinOtherText = document.getElementById("skinOtherText").value.trim();
-    if (skin.includes("其他") && skinOtherText) {
-      skin[skin.indexOf("其他")] = `其他：${skinOtherText}`;
+    for (let i = 1; i <= 20; i++) {
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent = i;
+      qtyInput.appendChild(option);
     }
 
-    score += skin.length + wish.length;
+    async function loadProducts() {
+      try {
+        const res = await fetch(API_URL + "?action=all");
+        const data = await res.json();
+        allProducts = data;
+        nameInput.innerHTML = "";
+        data.forEach(item => {
+          const opt = document.createElement("option");
+          opt.value = item.name;
+          opt.textContent = item.name;
+          nameInput.appendChild(opt);
+        });
+      } catch (error) {
+        alert("讀取商品失敗: " + error);
+      }
+    }
 
-    params.set("skin", skin.join(","));
-    params.set("wish", wish.join(","));
+ function renderTable() {
+  reportBody.innerHTML = "";
+  let totalPrice = 0;
+  let totalPv = 0;
 
-    const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
-    params.set("result", result);
-    params.set("callback", "handleResponse");
+  selectedProducts.forEach((item, idx) => {
+    const subtotalPrice = item.price * item.qty;
+    const subtotalPv = item.pv * item.qty;
+    totalPrice += subtotalPrice;
+    totalPv += subtotalPv;
 
-    const ageRangeMidMap = {
-      "18以下": 18, "18-24": 21, "25-29": 27, "30-34": 32, "35-39": 37,
-      "40-44": 42, "45-49": 47, "50-54": 52, "55-59": 57, "60-64": 62, "65以上": 68
+    const tr = document.createElement("tr");
+    const qtyOptions = Array.from({ length: 20 }, (_, i) => {
+      const val = i + 1;
+      return `<option value="${val}" ${val === item.qty ? "selected" : ""}>${val}</option>`;
+    }).join("");
+
+    tr.innerHTML = `
+      <td>${item.name}</td>
+      <td>
+        <select class="qtySelect" data-index="${idx}">
+          ${qtyOptions}
+        </select>
+      </td>
+      <td>${item.price}</td>
+      <td>${item.pv}</td>
+      <td>${subtotalPrice}</td>
+      <td>${subtotalPv}</td>
+      <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
+    `;
+    reportBody.appendChild(tr);
+  });
+
+  totalPriceCellDup.textContent = totalPrice;
+  totalPvCellDup.textContent = totalPv;
+  const diff1 = 112000 - totalPv;
+  const diff2 = 220000 - totalPv;
+
+  pvDiff.textContent = diff1 > 0 ? diff1 : 0;
+  pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
+  pvMessage1.innerHTML = totalPv >= 112000 ? '<span class="done">🎉 已達標</span>' : '';
+  pvMessage2.innerHTML = totalPv >= 220000 ? '<span class="done">🎉 已達標</span>' : '';
+
+  // 刪除按鈕事件
+  document.querySelectorAll(".deleteBtn").forEach(btn => {
+    btn.onclick = e => {
+      const idx = parseInt(e.target.dataset.index);
+      selectedProducts.splice(idx, 1);
+      renderTable();
     };
-    const baseAge = ageRangeMidMap[ageRange] || 30;
-    const maxScore = 15;
-    const minDiff = -5;
-    const maxDiff = 10;
-    const ratio = Math.min(score / maxScore, 1);
-    const diff = minDiff + ratio * (maxDiff - minDiff);
-    const skinAge = Math.round(baseAge + diff);
-    params.set("totalScore", skinAge);
-
-    basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
-    scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
-    resultText.textContent = result;
-    resultDiv.style.display = "block";
-    shareBtn.style.display = "inline-block";
-
-    const script = document.createElement("script");
-    script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
-    document.body.appendChild(script);
-  }
-
-  function handleResponse(res) {
-    const aiDiv = document.getElementById("aiSuggestion");
-    submitBtn.disabled = false;
-    submitBtn.innerText = "🧬 送出逆齡評估";
-
-    if (res.success && res.combinedAdvice) {
-      const formatted = res.combinedAdvice
-        .replace(/。/g, "。<br><br>")
-        .replace(/\. /g, ".<br><br>");
-      aiDiv.innerHTML = `🧬 <strong>AI 專屬建議：</strong><br><br>${formatted}`;
-    } else {
-      alert("❌ 無法取得建議：" + (res.error || "未知錯誤"));
-      aiDiv.textContent = "⚠️ 請稍後再試。";
-    }
-  }
-
-  const otherCheckbox = document.getElementById('skinOtherCheckbox');
-  const otherInput = document.getElementById('skinOtherText');
-
-  otherCheckbox.addEventListener('change', () => {
-    otherInput.style.display = otherCheckbox.checked ? 'inline-block' : 'none';
-    if (otherCheckbox.checked) otherInput.focus();
-    else otherInput.value = '';
   });
 
-  document.getElementById('quizForm').addEventListener('submit', (e) => {
-    if (otherCheckbox.checked && otherInput.value.trim() === '') {
-      e.preventDefault();
-      alert('請填寫「其他」肌膚困擾內容，或取消勾選。');
-      otherInput.focus();
-    }
+  // 數量下拉變更事件
+  document.querySelectorAll(".qtySelect").forEach(select => {
+    select.onchange = e => {
+      const idx = parseInt(e.target.dataset.index);
+      const newQty = parseInt(e.target.value);
+      selectedProducts[idx].qty = newQty;
+      renderTable();
+    };
   });
+}
 
-  shareBtn.onclick = async () => {
-  if (isSharing) return;
-  isSharing = true;
 
-  const resultElement = document.getElementById('result');
-  const name = document.forms["quizForm"]["name"].value.trim();
-  const ageRange = document.forms["quizForm"]["ageRange"].value;
-  const skinAge = document.getElementById("scoreText").textContent.replace(/[^\d]/g, '');
+    function addProduct() {
+      const selectedName = nameInput.value;
+      const qty = parseInt(qtyInput.value);
+      if (!selectedName || qty <= 0) {
+        alert("請選擇品項與數量");
+        return;
+      }
 
-  shareBtn.disabled = true;
-  const originalText = shareBtn.innerText;
-  shareBtn.innerText = "⏳ 生成與上傳中…";
+      const product = allProducts.find(p => p.name === selectedName);
+      if (!product) {
+        alert("找不到該品項");
+        return;
+      }
+
+      const exists = selectedProducts.find(p => p.name === selectedName);
+      if (exists) {
+        exists.qty += qty;
+      } else {
+        selectedProducts.push({ ...product, qty });
+      }
+
+      renderTable();
+    }
+
+    exportBtn.addEventListener("click", async () => {
+  if (selectedProducts.length === 0) {
+    alert("請先新增至少一個品項，才能匯出圖片！");
+    return;
+  }
+
+  exportBtn.disabled = true;
+  exportBtn.textContent = "匯出中...";
+
+  // ✅ 暫時隱藏「操作」欄
+  const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
+  opCells.forEach(el => el.style.display = "none");
 
   try {
-    const canvas = await html2canvas(resultElement, {
-      backgroundColor: '#0f0f0f',
-      scale: 1.5,
-      useCORS: true
+    const canvas = await html2canvas(document.getElementById("captureArea"), {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: null,
+      logging: false,
+    });
+    const dataUrl = canvas.toDataURL("image/png");
+    previewImage.src = dataUrl;
+    previewImage.style.display = "block";
+    shareToLineBtn.style.display = "inline-block";
+    nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
+    clearImageBtn.style.display = "inline-block";
+  } catch (error) {
+    alert("匯出失敗：" + error);
+  } finally {
+    // ✅ 還原顯示「操作」欄
+    opCells.forEach(el => el.style.display = "");
+    exportBtn.disabled = false;
+    exportBtn.textContent = "📤 報表轉圖片";
+  }
+});
+
+    shareToLineBtn.addEventListener("click", async () => {
+      if (!previewImage.src) {
+        alert("請先匯出圖片");
+        return;
+      }
+
+      shareToLineBtn.disabled = true;
+      shareToLineBtn.textContent = "上傳中...";
+
+      try {
+        const base64Data = previewImage.src.split(",")[1];
+        const formData = new FormData();
+        formData.append("image", base64Data);
+        formData.append("key", IMGBB_API_KEY);
+
+        const res = await fetch("https://api.imgbb.com/1/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await res.json();
+        if (result.success) {
+          const imageUrl = result.data.url;
+          const buyerName = buyerInput.value.trim() || "未填";
+          const calculatorName = calculatorInput.value.trim() || "未填";
+          const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(
+          `康園試算報表\n\n購買者：${buyerName}\n試算者：${calculatorName}\n${imageUrl}`
+      )}`;
+
+          window.open(lineShareUrl, "_blank");
+          showToast("✅ 圖片已上傳備份");
+        } else {
+          alert("圖片上傳失敗，請稍後再試");
+        }
+      } catch (error) {
+        alert("圖片上傳錯誤: " + error);
+      } finally {
+        shareToLineBtn.disabled = false;
+        shareToLineBtn.textContent = "📩 上傳備份";
+      }
     });
 
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
-    if (!blob) throw new Error("無法轉換圖片");
+    nativeShareBtn.addEventListener("click", async () => {
+      if (!navigator.share || !previewImage.src) {
+        alert("無法使用原生分享");
+        return;
+      }
 
-    const formData = new FormData();
-    formData.append("key", "2a6ef6a407b7acde9c7fd1183023d8f1");
-    formData.append("image", blob);
+      try {
+        const response = await fetch(previewImage.src);
+        const blob = await response.blob();
+        const filesArray = [new File([blob], "康園試算報表.png", { type: blob.type })];
 
-    const uploadRes = await fetch("https://api.imgbb.com/1/upload", {
-      method: "POST",
-      body: formData
+        const buyer = buyerInput.value.trim() || "未填";
+        const calculator = calculatorInput.value.trim() || "未填";
+        const shareText = `康園試算報表\n購買者：${buyer}\n試算者：${calculator}`;
+
+        await navigator.share({
+          files: filesArray,
+          title: "康園試算報表",
+          text: shareText,
+        });
+      } catch (error) {
+        alert("分享失敗: " + error);
+      }
     });
 
-    const uploadData = await uploadRes.json();
-    if (!uploadData.success) throw new Error("圖片上傳失敗");
+    clearImageBtn.addEventListener("click", () => {
+      previewImage.style.display = "none";
+      previewImage.src = "";
+      shareToLineBtn.style.display = "none";
+      nativeShareBtn.style.display = "none";
+      clearImageBtn.style.display = "none";
+    });
 
-    const imageUrl = uploadData.data.url;
-
-    const shareText = `🧬快來看看我的逆齡評估👇
-
-👑 姓名：${name}
-📌 年齡範圍：${ageRange}
-🌸 肌膚年齡：${skinAge} 歲
-👀 逆齡分析：
-${imageUrl}`;
-
-    if (navigator.share) {
-      await navigator.share({
-        title: "我的逆齡評估結果",
-        text: shareText
-        // 不加 url，因已合併至 text 內容中
-      });
-    } else {
-      window.open(imageUrl, "_blank");
-      alert("✅ 圖片已上傳，可透過新頁面分享\n\n" + shareText);
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-  } catch (err) {
-    console.error(err);
-    alert("❌ 分享失敗：" + err.message);
-  } finally {
-    shareBtn.disabled = false;
-    shareBtn.innerText = originalText;
-    isSharing = false;
-  }
-};
+    addBtn.addEventListener("click", addProduct);
 
-</script>
-
+    window.onload = () => {
+      loadProducts();
+    };
+  </script>
 </body>
-
 </html>
