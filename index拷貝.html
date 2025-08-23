@@ -1,0 +1,142 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>祭改報名表</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Arial", sans-serif;
+      background-color: #f6f8fb;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background-color: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    h2 {
+      color: #444;
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      margin: 1rem 0 0.25rem;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 1.5rem;
+      padding: 0.75rem 1.5rem;
+      background-color: #007aff;
+      color: white;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #005fcc;
+    }
+
+    .message {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+    }
+  </style>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>📿 祭改報名表</h2>
+    <form id="signup-form">
+      <label for="name">姓名</label>
+      <input type="text" id="name" placeholder="請輸入姓名" required />
+
+      <label for="wish">祭改項目（可填多項）</label>
+      <textarea id="wish" rows="3" placeholder="例如：補財庫、冤親債主" required></textarea>
+
+      <button type="submit">✅ 送出報名</button>
+    </form>
+    <div class="message" id="responseMsg"></div>
+  </div>
+
+  <script>
+    const LIFF_ID = '2007416974-JzvPy6DZ';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyGV6eumKX2n3McquVS1LYtqn8iMr9stzwQ8uUkSoWQyKgz6CgXWVN5IIWsK9e-sHIL/exec';
+
+    async function main() {
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) liff.login();
+
+      const userId = (await liff.getProfile()).userId;
+
+      document.getElementById('signup-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        const wish = document.getElementById('wish').value.trim();
+        const msgBox = document.getElementById('responseMsg');
+
+        if (!name || !wish) {
+          msgBox.textContent = '⚠️ 請填寫所有欄位';
+          msgBox.style.color = 'red';
+          return;
+        }
+
+        const payload = {
+          name,
+          wish,
+          userId
+        };
+
+        try {
+          const res = await fetch(GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const text = await res.text();
+          if (text.includes('Success')) {
+            msgBox.textContent = '✅ 報名成功！感謝填寫。';
+            msgBox.style.color = 'green';
+            document.getElementById('signup-form').reset();
+          } else {
+            msgBox.textContent = '⚠️ 發生錯誤，請稍後再試。';
+            msgBox.style.color = 'red';
+          }
+        } catch (err) {
+          msgBox.textContent = '❌ 無法連線到伺服器';
+          msgBox.style.color = 'red';
+        }
+      });
+    }
+
+    main();
+  </script>
+</body>
+</html>
