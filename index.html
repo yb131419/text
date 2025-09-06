@@ -1,620 +1,85 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🧬 3分鐘逆齡評估</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
- <style>
-  * {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  body {
-    margin: 0;
-    padding: 0;
-    font-family: "Helvetica Neue", "PingFang TC", "Segoe UI", sans-serif;
-    background-color: #0a0f1d;
-    color: #ffffff;
-    line-height: 1.6;
-    font-size: 16px;
-  }
-
-  .container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 24px;
-    background: #111827;
-    border-radius: 12px;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
-  }
-
-  label {
-    display: block;
-    margin-bottom: 8px;
-    color: #c0c9ff;
-    font-weight: 500;
-  }
-
-  input[type="text"],
-  select {
-    width: 100%;
-    padding: 12px 14px;
-    margin-bottom: 18px;
-    background-color: #1a2138;
-    border: 1.5px solid #5a75ff;
-    border-radius: 8px;
-    color: #ffffff;
-    font-size: 16px;
-    transition: all 0.25s ease;
-  }
-
-  input[type="text"]:focus,
-  select:focus {
-    outline: none;
-    background-color: #1f2947;
-    border-color: #7ea3ff;
-    box-shadow: 0 0 0 2px rgba(126, 163, 255, 0.3);
-  }
-
-  .checkbox-item {
-    display: block;
-    background: #1a1f33;
-    border: 1.5px solid #5a75ff;
-    padding: 10px 14px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    color: #ffffff;
-    transition: background 0.3s, border 0.3s;
-  }
-
-  .checkbox-item:hover {
-    background-color: #2c365d;
-    border-color: #7ea3ff;
-  }
-
-  button {
-    display: block;
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #7ea3ff, #5a75ff);
-    color: #0a0f1d;
-    font-weight: bold;
-    font-size: 18px;
-    border: none;
-    border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(126, 163, 255, 0.4);
-    cursor: pointer;
-    transition: background 0.25s ease, transform 0.1s;
-  }
-
-  button:active {
-    background-color: #5a7dcc;
-    transform: scale(0.98);
-  }
-
-  .line-official {
-    text-align: center;
-    margin-top: 18px;
-    color: #b0bbff;
-    font-size: 15px;
-  }
-
-  #result {
-    background: #1b2237;
-    border: 1.5px solid #5a75ff;
-    padding: 18px;
-    border-radius: 10px;
-    margin-top: 24px;
-    color: #f0f0f0;
-  }
-
-  #result h3 {
-    color: #c0c9ff;
-    margin-bottom: 12px;
-    font-size: 20px;
-  }
-
-  #aiSuggestion {
-    margin-top: 12px;
-    color: #d8e0ff;
-    font-size: 16px;
-    line-height: 1.5;
-  }
-
-  @media (max-width: 480px) {
-    body {
-      font-size: 15px;
-    }
-
-    .container {
-      padding: 18px;
-      margin: 12px;
-    }
-
-    button {
-      font-size: 16px;
-      padding: 12px;
-    }
-
-    #result {
-      font-size: 15px;
-    }
-    
-    .title {
-  text-align: center;
-  color: white; /* 如果背景是深色 */
-  font-size: 1.8rem;
-  font-weight: bold;
-  margin-top: 20px;
-  margin-bottom: 10px;
-}
-
-    .line-official {
-  text-align: center;
-  color: #ffffff;
-  margin: 10px 0;
-}
-
-.line-official a {
-  color: #ffffff;
-  text-decoration: underline;
-  font-weight: bold;
-}
-    .checkbox-group {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 一行兩個 */
-  gap: 12px 16px; /* 行間距12px，列間距16px */
-}
-
-.checkbox-item {
-  font-size: 15px;       /* 文字大小稍微調整 */
-  line-height: 1.4;
-  padding: 8px 12px;     /* 內距稍微縮小 */
-  border-radius: 8px;
-  background: #1a1f33;
-  border: 1.5px solid #5a75ff;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.3s, border-color 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 8px;              /* 勾選框與文字間距 */
-}
-
-.checkbox-item:hover {
-  background-color: #2c365d;
-  border-color: #7ea3ff;
-}
-
-.checkbox-item input[type="checkbox"] {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-    
-#result {
-  background: linear-gradient(145deg, #0f1b2d, #1c2a3a); /* 深藍漸層 */
-  color: #d6e4f0;                 /* 柔和的亮藍灰文字 */
-  padding: 24px;
-  border-radius: 16px;
-  margin: 20px;
-  text-align: left;
-  border: 1px solid rgba(88, 158, 255, 0.15); /* 淡藍邊框 */
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.7),              /* 底部陰影 */
-    0 0 8px rgba(88, 158, 255, 0.08);           /* 藍光外圈 */
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  font-size: 1rem;
-  line-height: 1.7;
-  transition: all 0.3s ease-in-out;
-}
-
-    button {
-  display: block;
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #7ea3ff, #5a75ff);
-  color: #0a0f1d;
-  font-weight: bold;
-  font-size: 18px;
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(126, 163, 255, 0.4);
-  cursor: pointer;
-  transition:
-    background 0.25s ease,
-    transform 0.1s ease-in-out,
-    box-shadow 0.2s ease-in-out;
-}
-
-button:hover {
-  background: linear-gradient(135deg, #8fb4ff, #6a86ff);
-  box-shadow: 0 8px 24px rgba(126, 163, 255, 0.5);
-}
-
-button:active {
-  transform: scale(0.96);
-  background: linear-gradient(135deg, #6a86ff, #4f65cc);
-  box-shadow: 0 4px 12px rgba(88, 120, 255, 0.3);
-}
-
-    h1 {
-  text-align: center;
-  margin: 20px 0;
-  font-weight: bold;
-  line-height: 1.4;
-}
-
-.title-line1 {
-  display: block;
-  font-size: 1.8rem;
-  color: #00e676; /* 綠色強調 */
-}
-
-.title-line2 {
-  display: block;
-  font-size: 1.6rem;
-  color: white;
-}
-
-
-
-
-    
-  }
-</style>
-
+  <meta charset="utf-8">
+  <title>LINE 自動登入 + 授權檢查</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; }
+    .result { margin-top: 1em; padding: 1em; border: 1px solid #ccc; white-space: pre-wrap; }
+    button { padding: 0.6em 1em; font-size: 1em; }
+  </style>
 </head>
 <body>
+  <h2>LINE 登入測試</h2>
+  <button onclick="loginWithLine()">使用 LINE 登入</button>
 
-<div class="container">
- <h1><span class="title-line1">彥彬</span><span class="title-line2">🧬 3分鐘逆齡評估</span></h1>
-  <div class="line-official">
-    彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank" rel="noopener noreferrer">點我加入</a>
-    <p>📲 填完表單後，立即獲得 AI 專屬建議卡</p>
-  </div>
+  <div class="result" id="result">尚未登入</div>
 
-  <form id="quizForm">
-    <input type="hidden" name="userId" id="userId" />
-    <input type="hidden" name="username" id="username" />
+  <script>
+    // ===== 配置 =====
+    const LINE_CHANNEL_ID = "你的 LINE Channel ID"; // 換成你在 LINE Developers 建的 Channel ID
+    const REDIRECT_URI = window.location.origin + window.location.pathname; // 自己這頁
+    const GAS_URL = "你的 GAS 部署網址"; // 換成你實際的 GAS Web App URL
+    const SCOPE = "openid profile"; // 需要 email 就加上 email
+    const STATE = Math.random().toString(36).substring(2);
 
-    <div class="form-group">
-      <label>姓名</label>
-      <input type="text" name="name" required />
-    </div>
-
-    <div class="form-group">
-      <label>性別</label>
-      <div class="checkbox-group">
-        <label class="checkbox-item"><input type="radio" name="gender" value="男" required />男</label>
-        <label class="checkbox-item"><input type="radio" name="gender" value="女" required />女</label>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>年齡範圍</label>
-      <select name="ageRange" required>
-        <option value="">請選擇</option>
-        <option value="18以下">18歲以下</option>
-        <option value="18-24">18-24歲</option>
-        <option value="25-29">25-29歲</option>
-        <option value="30-34">30-34歲</option>
-        <option value="35-39">35-39歲</option>
-        <option value="40-44">40-44歲</option>
-        <option value="45-49">45-49歲</option>
-        <option value="50-54">50-54歲</option>
-        <option value="55-59">55-59歲</option>
-        <option value="60-64">60-64歲</option>
-        <option value="65以上">65歲以上</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>LINE ID 或 手機號碼</label>
-      <input type="text" name="lineId" required />
-    </div>
-
-    <div class="form-group">
-      <label>1. 每週睡眠不足6小時的天數？</label>
-      <select name="sleep">
-        <option value="0">0天</option>
-        <option value="1">1-2天</option>
-        <option value="2">3-4天</option>
-        <option value="3">5天以上</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>2. 平常喝水量是否足夠？</label>
-      <select name="water">
-        <option value="0">足夠（≥2000cc）</option>
-        <option value="1">普通（1500–1999cc）</option>
-        <option value="2">偏少（1000–1499cc）</option>
-        <option value="3">很少（<1000cc）</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>3. 肌膚困擾（可複選）</label>
-      <div class="checkbox-group">
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="乾燥粗糙" />乾燥粗糙</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="出油" />出油</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="痘痘／粉刺" />痘痘／粉刺</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="敏感泛紅" />敏感泛紅</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="暗沉膚色不均" />暗沉膚色不均</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="毛孔粗大" />毛孔粗大</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="細紋／鬆弛" />細紋／鬆弛</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="斑點／黑斑" />斑點／黑斑</label>
-        <label class="checkbox-item"><input type="checkbox" name="wish" value="黑眼圈／眼袋" />黑眼圈／眼袋</label>
-
-        <label class="checkbox-item checkbox-other">
-          <input type="checkbox" id="skinOtherCheckbox" name="skin" value="其他" />其他
-          <input type="text" id="skinOtherText" name="skinOther" placeholder="請輸入其他困擾" style="display:none; margin-left:8px; padding:6px 10px; border-radius:6px; border:1.5px solid #5a75ff; background:#1a2138; color:#fff; width:130px; font-size:14px;" />
-        </label>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>4. 每週運動頻率？</label>
-      <select name="fruit">
-        <option value="0">每天都有</option>
-        <option value="1">2–3次/週</option>
-        <option value="2">幾乎沒有</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>5. 是否常感到疲勞？</label>
-      <select name="tired">
-        <option value="0">沒有</option>
-        <option value="1">偶爾</option>
-        <option value="2">會</option>
-      </select>
-    </div>
-
-    <button type="button" id="submitBtn">🧬 送出逆齡評估</button>
-    <div style="height: 100px;"></div>
-  </form>
-
-  <div id="result" style="display:none;">
-    <h3>✨ 逆齡評估 ✨</h3>
-    <p id="basicInfoText"></p>
-    <p id="scoreText"></p>
-    <p id="resultText"></p>
-    <div id="aiSuggestion"></div>
-  </div>
-  <button id="shareBtn" style="display:none; margin-top:10px;">📤 分享我的逆齡評估</button>
-</div>
-  <div class="line-official">
-    彥彬 LINE：<a href="https://line.me/ti/p/HahcJAF8rk" target="_blank" rel="noopener noreferrer">點我加入</a>
-    <p>📲 填完表單後，立即獲得 AI 專屬建議卡</p>
-  </div>
-  
-
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script>
-  const liffId = "2007475335-OaAdKYr9";
-
-  window.onload = async () => {
-    await liff.init({ liffId });
-    if (!liff.isLoggedIn()) {
-      liff.login();
-    } else {
-      const profile = await liff.getProfile();
-      document.getElementById("userId").value = profile.userId;
-      document.getElementById("username").value = profile.displayName;
-      const nameInput = document.querySelector('input[name="name"]');
-      if (!nameInput.value) nameInput.value = profile.displayName;
-    }
-  };
-
-  const submitBtn = document.getElementById("submitBtn");
-  const shareBtn = document.getElementById("shareBtn");
-  let isSharing = false; // 防止重複分享
-
-  submitBtn.addEventListener("click", calculateAndSubmit);
-
-  function calculateAndSubmit() {
-    const form = document.forms["quizForm"];
-    const btn = submitBtn;
-    const resultDiv = document.getElementById("result");
-    const scoreText = document.getElementById("scoreText");
-    const resultText = document.getElementById("resultText");
-    const aiDiv = document.getElementById("aiSuggestion");
-    const basicInfoText = document.getElementById("basicInfoText");
-
-    const name = form["name"].value.trim();
-    const gender = form["gender"].value;
-    const ageRange = form["ageRange"].value;
-
-    if (!name || !ageRange) {
-      alert("⚠️ 請填寫完整：姓名與年齡範圍 為必填！");
-      return;
+    // ===== 登入流程 =====
+    function loginWithLine() {
+      const authUrl =
+        "https://access.line.me/oauth2/v2.1/authorize" +
+        `?response_type=token%20id_token` +
+        `&client_id=${LINE_CHANNEL_ID}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&state=${STATE}` +
+        `&scope=${encodeURIComponent(SCOPE)}` +
+        `&nonce=${STATE}`;
+      window.location.href = authUrl;
     }
 
-    btn.disabled = true;
-    btn.innerText = "🧬 分析中…";
-    aiDiv.textContent = "";
-    resultDiv.style.display = "none";
-    shareBtn.style.display = "none";
+    // ===== 檢查 URL Hash (LINE redirect 回來會帶 access_token, id_token) =====
+    window.onload = () => {
+      const hash = window.location.hash.substr(1);
+      if (!hash) return;
+      const params = new URLSearchParams(hash);
 
-    const params = new URLSearchParams();
-    params.set("name", name);
-    params.set("gender", gender);
-    params.set("ageRange", ageRange);
+      const idToken = params.get("id_token");
+      if (!idToken) return;
 
-    ["lineId", "userId", "username"].forEach(k => {
-      params.set(k, form[k].value.trim() || form[k].value);
-    });
+      const payload = parseJwt(idToken);
+      const userId = payload.sub;
+      const name = payload.name;
 
-    let score = 0;
+      document.getElementById("result").innerText =
+        `LINE 登入成功！\n使用者：${name}\nuserId: ${userId}\n\n正在檢查授權...`;
 
-    const sleepMap = { "0": "0天", "1": "1–2天", "2": "3–4天", "3": "5天以上" };
-    const waterMap = { "0": "足夠（≥2000cc）", "1": "普通（1500–1999cc）", "2": "偏少（1000–1499cc）", "3": "很少（<1000cc）" };
-    const fruitMap = { "0": "每天都有", "1": "2–3次/週", "2": "幾乎沒有" };
-    const tiredMap = { "0": "沒有", "1": "偶爾", "2": "會" };
-
-    const sleep = form["sleep"].value;
-    const water = form["water"].value;
-    const fruit = form["fruit"].value;
-    const tired = form["tired"].value;
-
-    score += parseInt(sleep, 10);
-    score += parseInt(water, 10);
-    score += parseInt(fruit, 10);
-    score += parseInt(tired, 10);
-
-    params.set("sleep", sleepMap[sleep]);
-    params.set("water", waterMap[water]);
-    params.set("fruit", fruitMap[fruit]);
-    params.set("tired", tiredMap[tired]);
-
-    const skin = Array.from(form.querySelectorAll('input[name="skin"]:checked')).map(cb => cb.value);
-    const wish = Array.from(form.querySelectorAll('input[name="wish"]:checked')).map(cb => cb.value);
-
-    const skinOtherText = document.getElementById("skinOtherText").value.trim();
-    if (skin.includes("其他") && skinOtherText) {
-      skin[skin.indexOf("其他")] = `其他：${skinOtherText}`;
-    }
-
-    score += skin.length + wish.length;
-
-    params.set("skin", skin.join(","));
-    params.set("wish", wish.join(","));
-
-    const result = score <= 5 ? "💚 年輕穩定" : score <= 10 ? "🟡 輕度老化" : "🔴 快速老化";
-    params.set("result", result);
-    params.set("callback", "handleResponse");
-
-    const ageRangeMidMap = {
-      "18以下": 18, "18-24": 21, "25-29": 27, "30-34": 32, "35-39": 37,
-      "40-44": 42, "45-49": 47, "50-54": 52, "55-59": 57, "60-64": 62, "65以上": 68
+      checkAuth(userId);
     };
-    const baseAge = ageRangeMidMap[ageRange] || 30;
-    const maxScore = 15;
-    const minDiff = -5;
-    const maxDiff = 10;
-    const ratio = Math.min(score / maxScore, 1);
-    const diff = minDiff + ratio * (maxDiff - minDiff);
-    const skinAge = Math.round(baseAge + diff);
-    params.set("totalScore", skinAge);
 
-    basicInfoText.innerHTML = `👑 <strong>${name}</strong>（${gender}｜${ageRange}）`;
-    scoreText.textContent = `🌸 肌膚年齡：${skinAge} 歲`;
-    resultText.textContent = result;
-    resultDiv.style.display = "block";
-    shareBtn.style.display = "inline-block";
-
-    const script = document.createElement("script");
-    script.src = `https://script.google.com/macros/s/AKfycbz2PZUyXK8nB_KM-P0n4-zkRcQjf4MzSIkUP4Zh7S2_BxFFyegYXSuWO0jUFnksLWAF/exec?${params.toString()}`;
-    document.body.appendChild(script);
-  }
-
-  function handleResponse(res) {
-    const aiDiv = document.getElementById("aiSuggestion");
-    submitBtn.disabled = false;
-    submitBtn.innerText = "🧬 送出逆齡評估";
-
-    if (res.success && res.combinedAdvice) {
-      const formatted = res.combinedAdvice
-        .replace(/。/g, "。<br><br>")
-        .replace(/\. /g, ".<br><br>");
-      aiDiv.innerHTML = `🧬 <strong>AI 專屬建議：</strong><br><br>${formatted}`;
-    } else {
-      alert("❌ 無法取得建議：" + (res.error || "未知錯誤"));
-      aiDiv.textContent = "⚠️ 請稍後再試。";
-    }
-  }
-
-  const otherCheckbox = document.getElementById('skinOtherCheckbox');
-  const otherInput = document.getElementById('skinOtherText');
-
-  otherCheckbox.addEventListener('change', () => {
-    otherInput.style.display = otherCheckbox.checked ? 'inline-block' : 'none';
-    if (otherCheckbox.checked) otherInput.focus();
-    else otherInput.value = '';
-  });
-
-  document.getElementById('quizForm').addEventListener('submit', (e) => {
-    if (otherCheckbox.checked && otherInput.value.trim() === '') {
-      e.preventDefault();
-      alert('請填寫「其他」肌膚困擾內容，或取消勾選。');
-      otherInput.focus();
-    }
-  });
-
-  shareBtn.onclick = async () => {
-  if (isSharing) return;
-  isSharing = true;
-
-  const resultElement = document.getElementById('result');
-  const name = document.forms["quizForm"]["name"].value.trim();
-  const ageRange = document.forms["quizForm"]["ageRange"].value;
-  const skinAge = document.getElementById("scoreText").textContent.replace(/[^\d]/g, '');
-
-  shareBtn.disabled = true;
-  const originalText = shareBtn.innerText;
-  shareBtn.innerText = "⏳ 生成與上傳中…";
-
-  try {
-    const canvas = await html2canvas(resultElement, {
-      backgroundColor: '#0f0f0f',
-      scale: 1.5,
-      useCORS: true
-    });
-
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
-    if (!blob) throw new Error("無法轉換圖片");
-
-    const formData = new FormData();
-    formData.append("key", "2a6ef6a407b7acde9c7fd1183023d8f1");
-    formData.append("image", blob);
-
-    const uploadRes = await fetch("https://api.imgbb.com/1/upload", {
-      method: "POST",
-      body: formData
-    });
-
-    const uploadData = await uploadRes.json();
-    if (!uploadData.success) throw new Error("圖片上傳失敗");
-
-    const imageUrl = uploadData.data.url;
-
-    const shareText = `🧬快來看看我的逆齡評估👇
-
-👑 姓名：${name}
-📌 年齡範圍：${ageRange}
-🌸 肌膚年齡：${skinAge} 歲
-👀 逆齡分析：
-${imageUrl}`;
-
-    if (navigator.share) {
-      await navigator.share({
-        title: "我的逆齡評估結果",
-        text: shareText
-        // 不加 url，因已合併至 text 內容中
-      });
-    } else {
-      window.open(imageUrl, "_blank");
-      alert("✅ 圖片已上傳，可透過新頁面分享\n\n" + shareText);
+    // ===== 呼叫 GAS API 檢查授權 =====
+    async function checkAuth(userId) {
+      try {
+        const resp = await fetch(GAS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId })
+        });
+        const data = await resp.json();
+        document.getElementById("result").innerText +=
+          "\n\n授權檢查結果：\n" + JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById("result").innerText += "\n\n檢查失敗：" + err;
+      }
     }
 
-  } catch (err) {
-    console.error(err);
-    alert("❌ 分享失敗：" + err.message);
-  } finally {
-    shareBtn.disabled = false;
-    shareBtn.innerText = originalText;
-    isSharing = false;
-  }
-};
-
-</script>
-
+    // ===== 解碼 JWT (id_token) =====
+    function parseJwt(token) {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(atob(base64).split("").map(function(c) {
+        return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(""));
+      return JSON.parse(jsonPayload);
+    }
+  </script>
 </body>
-
 </html>
