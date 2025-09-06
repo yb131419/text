@@ -1,85 +1,229 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
-  <title>LINE 自動登入 + 授權檢查</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1e1e1e" />
+  <title>LINE 登入範例</title>
   <style>
-    body { font-family: sans-serif; padding: 2em; }
-    .result { margin-top: 1em; padding: 1em; border: 1px solid #ccc; white-space: pre-wrap; }
-    button { padding: 0.6em 1em; font-size: 1em; }
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+      padding: 24px;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #222222);
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      flex-direction: column;
+      gap: 12px;
+    }
+    main.card {
+      background: rgba(30, 30, 30, 0.9);
+      border-radius: 20px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.9);
+      max-width: 400px;
+      width: 100%;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #userInfo {
+      width: 100%;
+      padding: 18px 24px;
+      background: linear-gradient(135deg, #0f1c3f, #2a5298);
+      border-radius: 20px;
+      color: #e0f7ff;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    #userInfo .name { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    #userInfo .daysWrapper { display: inline-block; padding: 8px 20px; border-radius: 20px; background: #444; margin-top: 8px; }
+    #userInfo .daysWrapper.danger { background: #ff6f61; color: #fff; }
+    .status { font-size: 14px; margin-top: 12px; color: #b0b0b0; }
+    .error { color: #ff6b6b; font-weight: 700; margin-top: 12px; }
+    .success { color: #4cd964; font-weight: 700; margin-top: 12px; }
   </style>
 </head>
 <body>
-  <h2>LINE 登入測試</h2>
-  <button onclick="loginWithLine()">使用 LINE 登入</button>
+  <main class="card">
+    <div id="userInfo">⏳ 取得使用者資訊中...</div>
+  </main>
 
-  <div class="result" id="result">尚未登入</div>
-
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    // ===== 配置 =====
-    const LINE_CHANNEL_ID = "2007488640"; // 換成你在 LINE Developers 建的 Channel ID
-    const REDIRECT_URI = window.location.origin + window.location.pathname; // 自己這頁
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxsl-llg3RMZZkLnje8Qq4eQNg6lK869zq5f44EMATyHMmnV_5K_6RnSbzUUGbOevqm/exec"; // 換成你實際的 GAS Web App URL
-    const SCOPE = "openid profile"; // 需要 email 就加上 email
-    const STATE = Math.random().toString(36).substring(2);
+    // 配置參數
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxsl-llg3RMZZkLnje8Qq4eQNg6lK869zq5f44EMATyHMmnV_5K_6RnSbzUUGbOevqm/exec";
+    const LIFF_ID = "2007488640-PbB48ELN";
+    const SHEET_ID = "1LXeXS2NCIQKCB0aJnOmaKcs3fVow_9bDfjmyMeAm-Qo"; // 目標工作表ID
+    
+    let liffUserId = "", hasPermission = false;
 
-    // ===== 登入流程 =====
-    function loginWithLine() {
-      const authUrl =
-        "https://access.line.me/oauth2/v2.1/authorize" +
-        `?response_type=token%20id_token` +
-        `&client_id=${LINE_CHANNEL_ID}` +
-        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-        `&state=${STATE}` +
-        `&scope=${encodeURIComponent(SCOPE)}` +
-        `&nonce=${STATE}`;
-      window.location.href = authUrl;
-    }
+    window.onload = async () => {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        
+        // 如果未登入，進行LINE登入
+        if (!liff.isLoggedIn()) {
+          return liff.login();
+        }
 
-    // ===== 檢查 URL Hash (LINE redirect 回來會帶 access_token, id_token) =====
-    window.onload = () => {
-      const hash = window.location.hash.substr(1);
-      if (!hash) return;
-      const params = new URLSearchParams(hash);
+        let profile = null, idToken = null;
+        try {
+          // 取得使用者資料
+          profile = await liff.getProfile();
+          idToken = liff.getDecodedIDToken();
+        } catch (e) {
+          document.getElementById("userInfo").innerHTML = `<div class="error">❌ 無法取得使用者資訊，請重新登入。</div>`;
+          return;
+        }
 
-      const idToken = params.get("id_token");
-      if (!idToken) return;
+        // 提取使用者ID
+        liffUserId = (idToken?.sub) || (profile?.userId) || "";
+        if (!liffUserId) {
+          document.getElementById("userInfo").innerHTML = `<div class="error">❌ 無法取得使用者 ID，請確認已登入 LINE。</div>`;
+          return;
+        }
 
-      const payload = parseJwt(idToken);
-      const userId = payload.sub;
-      const name = payload.name;
+        // 顯示基本用戶資訊
+        const userName = profile?.displayName || "未知使用者";
+        const userInfoDiv = document.getElementById("userInfo");
+        userInfoDiv.innerHTML = `
+          <div class="name">👤 ${userName}</div>
+          <div class="status">正在同步資料到工作表...</div>
+        `;
 
-      document.getElementById("result").innerText =
-        `LINE 登入成功！\n使用者：${name}\nuserId: ${userId}\n\n正在檢查授權...`;
+        // 先將用戶資訊傳送到指定工作表
+        await sendUserToSheet(liffUserId, userName);
+        
+        // 再檢查權限
+        checkPermission(liffUserId, userName);
 
-      checkAuth(userId);
+      } catch (err) {
+        document.getElementById("userInfo").innerHTML = `<div class="error">❌ LIFF 初始化失敗，請稍後重試。</div>`;
+        console.error("LIFF 初始化錯誤", err);
+      }
     };
 
-    // ===== 呼叫 GAS API 檢查授權 =====
-    async function checkAuth(userId) {
-      try {
-        const resp = await fetch(GAS_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId })
+    /**
+     * 將用戶信息發送到指定的Google工作表
+     */
+    function sendUserToSheet(userId, userName) {
+      return new Promise((resolve, reject) => {
+        // 創建唯一的回調函數名稱
+        const callbackName = `sheetCallback_${Date.now()}`;
+        
+        // 構建請求URL，包含工作表ID、用戶ID和用戶名
+        const url = `${SCRIPT_URL}?` + new URLSearchParams({
+          callback: callbackName,
+          action: "addUser",
+          sheetId: SHEET_ID,
+          userId: userId,
+          userName: userName,
+          timestamp: new Date().toISOString()
         });
-        const data = await resp.json();
-        document.getElementById("result").innerText +=
-          "\n\n授權檢查結果：\n" + JSON.stringify(data, null, 2);
-      } catch (err) {
-        document.getElementById("result").innerText += "\n\n檢查失敗：" + err;
-      }
+        
+        // 創建script標籤進行JSONP請求
+        const script = document.createElement("script");
+        script.src = url;
+        script.type = "text/javascript";
+        
+        // 設置超時
+        const timeout = setTimeout(() => {
+          document.getElementById("userInfo").innerHTML += `<div class="error">⚠️ 資料同步超時</div>`;
+          cleanup();
+          resolve(); // 即使超時也繼續後續流程
+        }, 10000);
+        
+        // 回調函數
+        window[callbackName] = function(response) {
+          clearTimeout(timeout);
+          const userInfoDiv = document.getElementById("userInfo");
+          
+          if (response?.success) {
+            userInfoDiv.innerHTML += `<div class="success">✅ 資料已同步到工作表</div>`;
+          } else {
+            userInfoDiv.innerHTML += `<div class="error">⚠️ 資料同步失敗: ${response?.error || "未知錯誤"}</div>`;
+          }
+          
+          cleanup();
+          resolve();
+        };
+        
+        // 錯誤處理
+        script.onerror = function() {
+          clearTimeout(timeout);
+          document.getElementById("userInfo").innerHTML += `<div class="error">⚠️ 同步請求失敗</div>`;
+          cleanup();
+          resolve(); // 即使錯誤也繼續後續流程
+        };
+        
+        // 清理函數
+        function cleanup() {
+          document.body.removeChild(script);
+          delete window[callbackName];
+        }
+        
+        // 發送請求
+        document.body.appendChild(script);
+      });
     }
 
-    // ===== 解碼 JWT (id_token) =====
-    function parseJwt(token) {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(atob(base64).split("").map(function(c) {
-        return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(""));
-      return JSON.parse(jsonPayload);
+    /**
+     * 檢查用戶權限
+     */
+    function checkPermission(userId, displayName = "使用者") {
+      window.handlePermission = res => {
+        const infoDiv = document.getElementById("userInfo");
+        if (res?.auth) {
+          hasPermission = true;
+          const days = calcDaysLeft(res.expiryDate);
+          const danger = typeof days === "number" && days <= 3;
+          
+          // 添加權限信息
+          infoDiv.innerHTML += `
+            <div class="daysWrapper ${danger ? "danger" : ""}">剩餘日：${typeof days === "number" ? days + " 天" : days}</div>
+            <div>到期日：${formatTaipeiDate(res.expiryDate)}</div>
+          `;
+        } else {
+          infoDiv.innerHTML += `
+            <div class="daysWrapper">無權限</div>
+            <div class="error">⛔ 尚未開通使用權限</div>
+          `;
+        }
+      };
+      
+      // 發送權限檢查請求
+      const s = document.createElement("script");
+      s.src = `${SCRIPT_URL}?userId=${userId}&checkAuth=1&callback=handlePermission`;
+      s.onerror = () => document.getElementById("userInfo").innerHTML += `<div class="error">❌ 權限驗證失敗</div>`;
+      document.body.appendChild(s);
+    }
+
+    /**
+     * 計算剩餘天數
+     */
+    function calcDaysLeft(dateStr) {
+      const d = new Date(dateStr?.trim()), now = new Date();
+      const diff = Math.floor((d - now) / (1000 * 60 * 60 * 24));
+      return isNaN(diff) ? "無效日期" : diff < 0 ? "已過期" : diff;
+    }
+
+    /**
+     * 格式化台北時間的日期
+     */
+    function formatTaipeiDate(dateStr) {
+      const d = new Date(dateStr?.trim());
+      return isNaN(d.getTime()) ? "無效日期" : d.toLocaleDateString('zh-TW', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit', 
+        timeZone: 'Asia/Taipei' 
+      });
     }
   </script>
 </body>
 </html>
+    
