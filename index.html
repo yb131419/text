@@ -202,7 +202,7 @@
     
     <div class="grid md:grid-cols-2 gap-6 mb-6">
 
-            <div>
+      <div>
         <label for="lineUserId" class="block text-sm font-medium text-neutral-dark/80 mb-1">Line 用戶ID</label>
         <input type="text" id="lineUserId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" placeholder="Line用戶ID">
       </div>
@@ -212,7 +212,6 @@
         <input type="text" id="lineUserName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" placeholder="Line用戶名稱">
       </div>
 
-    </div>
       <div>
         <label for="name" class="block text-sm font-medium text-neutral-dark/80 mb-1">姓名 <span class="text-warning">*</span></label>
         <input type="text" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" placeholder="請輸入您的姓名">
@@ -2463,7 +2462,7 @@
     </div>
   </div>
 
-     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+     <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
      
 <script>
 // 首先定义showToast函数，确保在任何地方都能调用
@@ -2484,6 +2483,8 @@ function showToast(message, type = 'success') {
     toast.style.background = '#ff4d4f';
   } else if (type === 'info') {
     toast.style.background = '#1890ff';
+  } else if (type === 'warning') {
+    toast.style.background = '#faad14';
   } else {
     toast.style.background = '#52c41a';
   }
@@ -2511,7 +2512,6 @@ async function initLiff() {
     }
     
     // 请替换为您的有效LIFF ID
-    // 注意：LIFF ID格式通常为"165xxxxxxxxx-xxxxxxxx"
     const liffId = "2007488640-ReVrMPKg"; // 这里需要替换为有效的LIFF ID
     
     // 显示初始化状态
@@ -2527,36 +2527,74 @@ async function initLiff() {
     } else {
       // 已登录则获取用户信息
       try {
+        // 获取LINE用户ID和名称的元素引用
+        const lineUserIdInput = document.getElementById('lineUserId');
+        const lineUserNameInput = document.getElementById('lineUserName');
+        
+        // 确保元素存在
+        if (!lineUserIdInput || !lineUserNameInput) {
+          throw new Error('未找到LINE用户信息输入框');
+        }
+        
+        // 获取用户资料
         const profile = await liff.getProfile();
         showToast(`LINE登录成功，欢迎 ${profile.displayName}`, 'success');
         
         // 填充用户信息到表单
-        const lineUserIdInput = document.getElementById('lineUserId');
-        const lineUserNameInput = document.getElementById('lineUserName');
+        lineUserIdInput.value = profile.userId || '无法获取用户ID';
+        lineUserIdInput.readOnly = true; // 设置为只读，防止修改
         
-        if (lineUserIdInput) {
-          lineUserIdInput.value = profile.userId || '无法获取用户ID';
-          lineUserIdInput.readOnly = true; // 设置为只读，防止修改
-        }
+        lineUserNameInput.value = profile.displayName || '无法获取用户名';
+        lineUserNameInput.readOnly = true; // 设置为只读，防止修改
         
-        if (lineUserNameInput) {
-          lineUserNameInput.value = profile.displayName || '无法获取用户名';
-          lineUserNameInput.readOnly = true; // 设置为只读，防止修改
-        }
+        // 存储到本地，确保即使表单元素有问题也能获取到
+        localStorage.setItem('lineUserId', profile.userId || '');
+        localStorage.setItem('lineUserName', profile.displayName || '');
+        
       } catch (profileError) {
         console.error('获取用户信息失败:', profileError);
         showToast('已登录但无法获取用户信息', 'error');
+        
         // 仍然尝试显示用户ID（如果可用）
+        const lineUserIdInput = document.getElementById('lineUserId');
+        const lineUserNameInput = document.getElementById('lineUserName');
+        
         if (liff.getDecodedIDToken) {
           try {
             const idToken = liff.getDecodedIDToken();
-            const lineUserIdInput = document.getElementById('lineUserId');
             if (lineUserIdInput && idToken.sub) {
               lineUserIdInput.value = idToken.sub;
               lineUserIdInput.readOnly = true;
+              localStorage.setItem('lineUserId', idToken.sub);
+            }
+            
+            // 尝试从ID Token获取用户名
+            if (lineUserNameInput && idToken.name) {
+              lineUserNameInput.value = idToken.name;
+              lineUserNameInput.readOnly = true;
+              localStorage.setItem('lineUserName', idToken.name);
             }
           } catch (tokenError) {
             console.error('获取ID Token失败:', tokenError);
+            // 最后的备选方案 - 确保字段可编辑
+            if (lineUserIdInput) {
+              lineUserIdInput.readOnly = false;
+              lineUserIdInput.placeholder = '请输入LINE用户ID';
+            }
+            if (lineUserNameInput) {
+              lineUserNameInput.readOnly = false;
+              lineUserNameInput.placeholder = '请输入LINE用户名';
+            }
+          }
+        } else {
+          // 如果没有getDecodedIDToken方法，允许手动输入
+          if (lineUserIdInput) {
+            lineUserIdInput.readOnly = false;
+            lineUserIdInput.placeholder = '请输入LINE用户ID';
+          }
+          if (lineUserNameInput) {
+            lineUserNameInput.readOnly = false;
+            lineUserNameInput.placeholder = '请输入LINE用户名';
           }
         }
       }
@@ -2569,6 +2607,8 @@ async function initLiff() {
       errorMsg += '无效的LIFF ID，请检查并更新';
     } else if (error.message.includes('permission denied')) {
       errorMsg += '没有访问权限，请检查LIFF应用设置';
+    } else if (error.message.includes('未找到LINE用户信息输入框')) {
+      errorMsg += '页面中未找到LINE用户ID和名称的输入框';
     } else {
       errorMsg += error.message;
     }
@@ -2577,8 +2617,14 @@ async function initLiff() {
     // 提供手动输入选项
     const lineUserIdInput = document.getElementById('lineUserId');
     const lineUserNameInput = document.getElementById('lineUserName');
-    if (lineUserIdInput) lineUserIdInput.readOnly = false;
-    if (lineUserNameInput) lineUserNameInput.readOnly = false;
+    if (lineUserIdInput) {
+      lineUserIdInput.readOnly = false;
+      lineUserIdInput.placeholder = 'LINE登录失败，请手动输入用户ID';
+    }
+    if (lineUserNameInput) {
+      lineUserNameInput.readOnly = false;
+      lineUserNameInput.placeholder = 'LINE登录失败，请手动输入用户名';
+    }
   }
 }
 
@@ -2615,9 +2661,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const aiEvaluationContainer = document.getElementById('aiEvaluationContainer') || createAiContainer();
     const healthRecommendations = document.getElementById('healthRecommendations');
 
-    // 新增：Line用戶信息元素
+    // 新增：Line用戶信息元素 - 确保获取到这些元素
     const lineUserIdInput = document.getElementById('lineUserId');
     const lineUserNameInput = document.getElementById('lineUserName');
+
+    // 检查LINE用户信息字段是否存在
+    if (!lineUserIdInput || !lineUserNameInput) {
+      console.warn('LINE用户信息输入框未找到，可能影响功能');
+      showToast('页面配置不完整，LINE用户信息字段缺失', 'warning');
+    }
 
     // 3. 性別相關元素
     const genderRadios = document.querySelectorAll('input[name="gender"]');
@@ -2733,6 +2785,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!name) { showError('name', '請輸入您的姓名'); isValid = false; }
         if (!age || isNaN(age) || age < 1 || age > 120) { showError('age', '請輸入有效的年齡（1-120歲）'); isValid = false; }
         if (!genderSelected) { showError('gender', '請選擇您的性別'); isValid = false; }
+        
+        // 对LINE用户信息进行验证（如果字段存在）
+        if (lineUserIdInput && lineUserIdInput.readOnly && !lineUserIdInput.value.trim()) {
+          showError('lineUserId', 'LINE用户ID获取失败，请刷新页面重试');
+          isValid = false;
+        }
       }
 
       // 步驟4：健康評估驗證
@@ -2996,10 +3054,14 @@ document.addEventListener('DOMContentLoaded', function() {
       // 重置AI評估容器
       aiEvaluationContainer.innerHTML = '';
 
-      // 重置表單元素（包括新增的Line字段）
+      // 重置表單元素（保留LINE用戶信息）
       document.querySelectorAll('input, textarea, select').forEach(el => {
+        if ((el.id === 'lineUserId' || el.id === 'lineUserName') && el.readOnly) {
+          // 保留LINE用户信息
+          return;
+        }
         if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
-        else if (el.id !== 'lineUserId' && el.id !== 'lineUserName') el.value = ''; // 保留LINE用戶信息
+        else el.value = '';
         el.classList.remove('error-input');
       });
 
@@ -3108,6 +3170,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // -------------------------- 13. 工具函數：收集AI所需精簡健康數據
     function collectHealthData() {
+      // 获取LINE用户信息的增强逻辑
+      let lineUserId = '';
+      let lineUserName = '';
+      
+      // 优先从输入框获取
+      if (lineUserIdInput) lineUserId = lineUserIdInput.value || '';
+      if (lineUserNameInput) lineUserName = lineUserNameInput.value || '';
+      
+      // 如果输入框没有，则从localStorage获取
+      if (!lineUserId) lineUserId = localStorage.getItem('lineUserId') || '';
+      if (!lineUserName) lineUserName = localStorage.getItem('lineUserName') || '';
+      
       const selectedGender = document.querySelector('input[name="gender"]:checked');
       return {
         basicInfo: {
@@ -3117,8 +3191,8 @@ document.addEventListener('DOMContentLoaded', function() {
           bmi: calculateBMI(),
           bloodPressure: document.getElementById('bloodPressure').value || '未填寫',
           // 新增：Line用戶信息
-          lineUserId: lineUserIdInput ? lineUserIdInput.value || '未填寫' : '未填寫',
-          lineUserName: lineUserNameInput ? lineUserNameInput.value || '未填寫' : '未填寫'
+          lineUserId: lineUserId || '未填寫',
+          lineUserName: lineUserName || '未填寫'
         },
         symptoms: globalUniqueSymptoms.join('; '),
         symptomCount: globalUniqueSymptoms.length,
@@ -3133,6 +3207,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // -------------------------- 14. 工具函數：收集全量表單數據
     function collectFullFormData() {
+      // 获取LINE用户信息的增强逻辑
+      let lineUserId = '';
+      let lineUserName = '';
+      
+      // 优先从输入框获取
+      if (lineUserIdInput) lineUserId = lineUserIdInput.value || '';
+      if (lineUserNameInput) lineUserName = lineUserNameInput.value || '';
+      
+      // 如果输入框没有，则从localStorage获取
+      if (!lineUserId) lineUserId = localStorage.getItem('lineUserId') || '';
+      if (!lineUserName) lineUserName = localStorage.getItem('lineUserName') || '';
+      
       const selectedGender = document.querySelector('input[name="gender"]:checked');
       return {
         submitTime: new Date().toLocaleString('zh-Hant', {
@@ -3145,8 +3231,8 @@ document.addEventListener('DOMContentLoaded', function() {
           gender: selectedGender ? (selectedGender.value === 'male' ? '男' : '女') : '未填寫',
           phone: document.getElementById('phone').value || '未填寫',
           // 新增：Line用戶信息
-          lineUserId: lineUserIdInput ? lineUserIdInput.value || '未填寫' : '未填寫',
-          lineUserName: lineUserNameInput ? lineUserNameInput.value || '未填寫' : '未填寫',
+          lineUserId: lineUserId || '未填寫',
+          lineUserName: lineUserName || '未填寫',
           height: document.getElementById('height').value ? `${document.getElementById('height').value} cm` : '未填寫',
           weight: document.getElementById('weight').value ? `${document.getElementById('weight').value} kg` : '未填寫',
           bmi: calculateBMI(),
@@ -3227,8 +3313,13 @@ document.addEventListener('DOMContentLoaded', function() {
       const gender = selectedGender ? (selectedGender.value === 'male' ? '男' : '女') : '未填寫';
       const phone = document.getElementById('phone').value || '未填寫';
       // 新增：Line用戶信息
-      const lineUserId = lineUserIdInput ? lineUserIdInput.value || '未填寫' : '未填寫';
-      const lineUserName = lineUserNameInput ? lineUserNameInput.value || '未填寫' : '未填寫';
+      let lineUserId = lineUserIdInput ? lineUserIdInput.value || '未填寫' : '未填寫';
+      let lineUserName = lineUserNameInput ? lineUserNameInput.value || '未填寫' : '未填寫';
+      
+      // 从localStorage补充LINE用户信息
+      if (!lineUserId) lineUserId = localStorage.getItem('lineUserId') || '未填寫';
+      if (!lineUserName) lineUserName = localStorage.getItem('lineUserName') || '未填寫';
+      
       const height = document.getElementById('height').value ? `${document.getElementById('height').value} cm` : '未填寫';
       const weight = document.getElementById('weight').value ? `${document.getElementById('weight').value} kg` : '未填寫';
       const waist = document.getElementById('waist').value ? `${document.getElementById('waist').value} cm` : '未填寫';
@@ -4082,7 +4173,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
 </script>
-    
+
 
 
 
