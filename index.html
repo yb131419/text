@@ -2503,8 +2503,26 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
-// 初始化LIFF
-async function initLiff() {
+// 全局变量定义
+let globalUniqueSymptoms = [];
+let globalUniqueHabits = [];
+let globalAiComment = '';
+let localImageBlob = null;
+let localImageName = '';
+let imgbbImageUrl = '';
+let imgbbDeleteUrl = '';
+let currentStep = 1;
+let windowHealthChart = null;
+const totalSteps = 4;
+const REQUEST_TIMEOUT = 30000;
+const MAX_RETRIES = 3;
+const BACKEND_GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwFqZ0p2F0nBtB8wX7q6bGwB8X7q6bGwB8X7q6bGwB8X7q6bGwB8X7q6bGwB/exec';
+const IMGBB_API_KEY = '60691c91e77a7ad5a7eabaf332fbdffe';
+const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload';
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+// 初始化LIFF - 仅在LIFF SDK加载后调用
+function initLiff() {
   try {
     // 检查liff是否存在
     if (typeof liff === 'undefined') {
@@ -2517,525 +2535,1588 @@ async function initLiff() {
     // 显示初始化状态
     showToast('正在初始化LINE登录...', 'info');
     
-    await liff.init({ liffId: liffId });
-    
-    // 检查是否已登录
-    if (!liff.isLoggedIn()) {
-      // 未登录则进行登录
-      showToast('请使用LINE账号登录...', 'info');
-      liff.login();
-    } else {
-      // 已登录则获取用户信息
-      try {
-        // 获取LINE用户ID和名称的元素引用
-        const lineUserIdInput = document.getElementById('lineUserId');
-        const lineUserNameInput = document.getElementById('lineUserName');
-        
-        // 确保元素存在
-        if (!lineUserIdInput || !lineUserNameInput) {
-          throw new Error('未找到LINE用户信息输入框');
-        }
-        
-        // 获取用户资料
-        const profile = await liff.getProfile();
-        showToast(`LINE登录成功，欢迎 ${profile.displayName}`, 'success');
-        
-        // 填充用户信息到表单
-        lineUserIdInput.value = profile.userId || '无法获取用户ID';
-        lineUserIdInput.readOnly = true; // 设置为只读，防止修改
-        
-        lineUserNameInput.value = profile.displayName || '无法获取用户名';
-        lineUserNameInput.readOnly = true; // 设置为只读，防止修改
-        
-        // 存储到本地，确保即使表单元素有问题也能获取到
-        localStorage.setItem('lineUserId', profile.userId || '');
-        localStorage.setItem('lineUserName', profile.displayName || '');
-        
-      } catch (profileError) {
-        console.error('获取用户信息失败:', profileError);
-        showToast('已登录但无法获取用户信息', 'error');
-        
-        // 仍然尝试显示用户ID（如果可用）
-        const lineUserIdInput = document.getElementById('lineUserId');
-        const lineUserNameInput = document.getElementById('lineUserName');
-        
-        if (liff.getDecodedIDToken) {
+    liff.init({ liffId: liffId })
+      .then(() => {
+        // 检查是否已登录
+        if (!liff.isLoggedIn()) {
+          // 未登录则进行登录
+          showToast('请使用LINE账号登录...', 'info');
+          liff.login();
+        } else {
+          // 已登录则获取用户信息
           try {
-            const idToken = liff.getDecodedIDToken();
-            if (lineUserIdInput && idToken.sub) {
-              lineUserIdInput.value = idToken.sub;
-              lineUserIdInput.readOnly = true;
-              localStorage.setItem('lineUserId', idToken.sub);
+            // 获取LINE用户ID和名称的元素引用
+            const lineUserIdInput = document.getElementById('lineUserId');
+            const lineUserNameInput = document.getElementById('lineUserName');
+            
+            // 确保元素存在
+            if (!lineUserIdInput || !lineUserNameInput) {
+              throw new Error('未找到LINE用户信息输入框');
             }
             
-            // 尝试从ID Token获取用户名
-            if (lineUserNameInput && idToken.name) {
-              lineUserNameInput.value = idToken.name;
-              lineUserNameInput.readOnly = true;
-              localStorage.setItem('lineUserName', idToken.name);
-            }
-          } catch (tokenError) {
-            console.error('获取ID Token失败:', tokenError);
-            // 最后的备选方案 - 确保字段可编辑
-            if (lineUserIdInput) {
-              lineUserIdInput.readOnly = false;
-              lineUserIdInput.placeholder = '请输入LINE用户ID';
-            }
-            if (lineUserNameInput) {
-              lineUserNameInput.readOnly = false;
-              lineUserNameInput.placeholder = '请输入LINE用户名';
-            }
-          }
-        } else {
-          // 如果没有getDecodedIDToken方法，允许手动输入
-          if (lineUserIdInput) {
-            lineUserIdInput.readOnly = false;
-            lineUserIdInput.placeholder = '请输入LINE用户ID';
-          }
-          if (lineUserNameInput) {
-            lineUserNameInput.readOnly = false;
-            lineUserNameInput.placeholder = '请输入LINE用户名';
+            // 获取用户资料
+            liff.getProfile()
+              .then(profile => {
+                showToast(`LINE登录成功，欢迎 ${profile.displayName}`, 'success');
+                
+                // 填充用户信息到表单
+                lineUserIdInput.value = profile.userId || '无法获取用户ID';
+                lineUserIdInput.readOnly = true; // 设置为只读，防止修改
+                
+                lineUserNameInput.value = profile.displayName || '无法获取用户名';
+                lineUserNameInput.readOnly = true; // 设置为只读，防止修改
+                
+                // 存储到本地，确保即使表单元素有问题也能获取到
+                localStorage.setItem('lineUserId', profile.userId || '');
+                localStorage.setItem('lineUserName', profile.displayName || '');
+              })
+              .catch(profileError => {
+                handleProfileError(profileError);
+              });
+          } catch (profileError) {
+            handleProfileError(profileError);
           }
         }
-      }
-    }
+      })
+      .catch(error => {
+        console.error('LIFF初始化失败:', error);
+        handleLiffInitError(error);
+      });
   } catch (error) {
     console.error('LIFF初始化失败:', error);
-    // 详细的错误提示
-    let errorMsg = 'LINE登录功能初始化失败: ';
-    if (error.message.includes('was not found')) {
-      errorMsg += '无效的LIFF ID，请检查并更新';
-    } else if (error.message.includes('permission denied')) {
-      errorMsg += '没有访问权限，请检查LIFF应用设置';
-    } else if (error.message.includes('未找到LINE用户信息输入框')) {
-      errorMsg += '页面中未找到LINE用户ID和名称的输入框';
-    } else {
-      errorMsg += error.message;
-    }
-    showToast(errorMsg, 'error');
-    
-    // 提供手动输入选项
-    const lineUserIdInput = document.getElementById('lineUserId');
-    const lineUserNameInput = document.getElementById('lineUserName');
-    if (lineUserIdInput) {
-      lineUserIdInput.readOnly = false;
-      lineUserIdInput.placeholder = 'LINE登录失败，请手动输入用户ID';
-    }
-    if (lineUserNameInput) {
-      lineUserNameInput.readOnly = false;
-      lineUserNameInput.placeholder = 'LINE登录失败，请手动输入用户名';
-    }
+    handleLiffInitError(error);
   }
 }
 
-// 在页面加载完成后初始化LIFF
-document.addEventListener('DOMContentLoaded', function() {
-  // 先初始化LIFF再加载其他功能
-  initLiff().then(() => {
-    // 1. 全域狀態與配置 - 增加超時設置
-    let currentStep = 1;
-    const totalSteps = 4;
-    const OPENAI_MODEL = 'gpt-4o-mini';//gpt-4o-mini//gpt-3.5-turbo
-    const BACKEND_GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGGwPXWAotqM25K_34SgCU7GsPX5c4S8_OkAS8mttCEYGQCVirLWxE694rI8vDc-d4KA/exec';
-    const IMGBB_API_KEY = '60691c91e77a7ad5a7eabaf332fbdffe';
-    const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload';
-    let globalAiComment = '';
+// 处理用户信息获取错误
+function handleProfileError(profileError) {
+  console.error('获取用户信息失败:', profileError);
+  showToast('已登录但无法获取用户信息', 'error');
+  
+  // 仍然尝试显示用户ID（如果可用）
+  const lineUserIdInput = document.getElementById('lineUserId');
+  const lineUserNameInput = document.getElementById('lineUserName');
+  
+  if (liff.getDecodedIDToken) {
+    try {
+      const idToken = liff.getDecodedIDToken();
+      if (lineUserIdInput && idToken.sub) {
+        lineUserIdInput.value = idToken.sub;
+        lineUserIdInput.readOnly = true;
+        localStorage.setItem('lineUserId', idToken.sub);
+      }
+      
+      // 尝试从ID Token获取用户名
+      if (lineUserNameInput && idToken.name) {
+        lineUserNameInput.value = idToken.name;
+        lineUserNameInput.readOnly = true;
+        localStorage.setItem('lineUserName', idToken.name);
+      }
+    } catch (tokenError) {
+      console.error('获取ID Token失败:', tokenError);
+      enableManualInput();
+    }
+  } else {
+    // 如果没有getDecodedIDToken方法，允许手动输入
+    enableManualInput();
+  }
+}
+
+// 处理LIFF初始化错误
+function handleLiffInitError(error) {
+  // 详细的错误提示
+  let errorMsg = 'LINE登录功能初始化失败: ';
+  if (error.message.includes('was not found')) {
+    errorMsg += '无效的LIFF ID，请检查并更新';
+  } else if (error.message.includes('permission denied')) {
+    errorMsg += '没有访问权限，请检查LIFF应用设置';
+  } else if (error.message.includes('未找到LINE用户信息输入框')) {
+    errorMsg += '页面中未找到LINE用户ID和名称的输入框';
+  } else {
+    errorMsg += error.message;
+  }
+  showToast(errorMsg, 'error');
+  
+  // 提供手动输入选项
+  enableManualInput();
+}
+
+// 允许手动输入LINE信息
+function enableManualInput() {
+  const lineUserIdInput = document.getElementById('lineUserId');
+  const lineUserNameInput = document.getElementById('lineUserName');
+  if (lineUserIdInput) {
+    lineUserIdInput.readOnly = false;
+    lineUserIdInput.placeholder = 'LINE登录失败，请手动输入用户ID';
+  }
+  if (lineUserNameInput) {
+    lineUserNameInput.readOnly = false;
+    lineUserNameInput.placeholder = 'LINE登录失败，请手动输入用户名';
+  }
+}
+
+// 收集AI所需精簡健康數據（增强LINE用户信息处理）
+function collectHealthData() {
+  // 获取LINE用户信息的增强逻辑
+  let lineUserId = '';
+  let lineUserName = '';
+  
+  // 优先从输入框获取
+  const lineUserIdInput = document.getElementById('lineUserId');
+  const lineUserNameInput = document.getElementById('lineUserName');
+  
+  if (lineUserIdInput) lineUserId = lineUserIdInput.value || '';
+  if (lineUserNameInput) lineUserName = lineUserNameInput.value || '';
+  
+  // 如果输入框没有，则从localStorage获取
+  if (!lineUserId) lineUserId = localStorage.getItem('lineUserId') || '';
+  if (!lineUserName) lineUserName = localStorage.getItem('lineUserName') || '';
+  
+  const selectedGender = document.querySelector('input[name="gender"]:checked');
+  return {
+    basicInfo: {
+      name: document.getElementById('name').value || '未填寫',
+      age: document.getElementById('age').value || '未填寫',
+      gender: selectedGender ? (selectedGender.value === 'male' ? '男' : '女') : '未填寫',
+      bmi: calculateBMI(),
+      bloodPressure: document.getElementById('bloodPressure').value || '未填寫',
+      // 新增：Line用戶信息
+      lineUserId: lineUserId || '未填寫',
+      lineUserName: lineUserName || '未填寫'
+    },
+    symptoms: globalUniqueSymptoms.join('; '),
+    symptomCount: globalUniqueSymptoms.length,
+    habits: globalUniqueHabits.join('; '),
+    habitCount: globalUniqueHabits.length,
+    healthIssues: {
+      mainConcern: document.getElementById('mainConcern').value || '未明確說明',
+      symptomDuration: document.getElementById('symptomDuration').value || '未說明'
+    }
+  };
+}
+
+// 收集全量表單數據（已修正LINE用戶信息收集）
+function collectFullFormData() {
+  // 获取LINE用户信息的增强逻辑
+  let lineUserId = '';
+  let lineUserName = '';
+  
+  // 优先从输入框获取
+  const lineUserIdInput = document.getElementById('lineUserId');
+  const lineUserNameInput = document.getElementById('lineUserName');
+  
+  if (lineUserIdInput) lineUserId = lineUserIdInput.value || '';
+  if (lineUserNameInput) lineUserName = lineUserNameInput.value || '';
+  
+  // 如果输入框没有，则从localStorage获取
+  if (!lineUserId) lineUserId = localStorage.getItem('lineUserId') || '';
+  if (!lineUserName) lineUserName = localStorage.getItem('lineUserName') || '';
+  
+  const selectedGender = document.querySelector('input[name="gender"]:checked');
+  return {
+    submitTime: new Date().toLocaleString('zh-Hant', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }),
+    basicInfo: {
+      name: document.getElementById('name').value || '未填寫',
+      age: document.getElementById('age').value || '未填寫',
+      gender: selectedGender ? (selectedGender.value === 'male' ? '男' : '女') : '未填寫',
+      phone: document.getElementById('phone').value || '未填寫',
+      // 确保LINE用户信息被包含
+      lineUserId: lineUserId || '未填寫',
+      lineUserName: lineUserName || '未填寫',
+      height: document.getElementById('height').value ? `${document.getElementById('height').value} cm` : '未填寫',
+      weight: document.getElementById('weight').value ? `${document.getElementById('weight').value} kg` : '未填寫',
+      bmi: calculateBMI(),
+      waist: document.getElementById('waist').value ? `${document.getElementById('waist').value} cm` : '未填寫',
+      bloodPressure: document.getElementById('bloodPressure').value || '未填寫',
+      bloodSugar: document.getElementById('bloodSugar').value ? `${document.getElementById('bloodSugar').value} mmol/l` : '未填寫',
+      occupation: document.getElementById('occupation').value || '未填寫'
+    },
+    symptoms: globalUniqueSymptoms.join('; '),
+    symptomCount: globalUniqueSymptoms.length,
+    habits: globalUniqueHabits.join('; '),
+    habitCount: globalUniqueHabits.length,
+    healthIssues: {
+      mainConcern: document.getElementById('mainConcern').value || '未明確說明',
+      symptomDuration: document.getElementById('symptomDuration').value || '未說明',
+      possibleCauses: document.getElementById('possibleCauses').value || '未說明',
+      allergyHistory: document.querySelector('input[name="allergyHistory"]:checked')?.value || '未選擇',
+      medicalHistory: document.querySelector('input[name="medicalHistory"]:checked')?.value || '未選擇'
+    },
+    aiComment: globalAiComment || 'AI評語生成失敗',
+    imgbb: {
+      imageUrl: imgbbImageUrl || '未上傳',
+      deleteUrl: imgbbDeleteUrl || '無'
+    }
+  };
+}
+
+// 工具函数：BMI计算
+function calculateBMI() {
+  const height = document.getElementById('height').value;
+  const weight = document.getElementById('weight').value;
+  if (!height || !weight) return '未計算';
+  
+  const h = parseFloat(height) / 100; // 转米单位
+  const w = parseFloat(weight);
+  if (h <= 0) return '未計算';
+  
+  const bmiValue = (w / (h * h)).toFixed(1);
+  let bmiStatus = '';
+  if (bmiValue < 18.5) bmiStatus = '（偏瘦）';
+  else if (bmiValue < 24) bmiStatus = '（正常）';
+  else if (bmiValue < 28) bmiStatus = '（超重）';
+  else bmiStatus = '（肥胖）';
+  return `${bmiValue} ${bmiStatus}`;
+}
+
+// 更新全局症状数据
+function updateGlobalSymptomData() {
+  globalUniqueSymptoms = [];
+  globalUniqueHabits = [];
+  
+  // 收集所有选中的症状
+  document.querySelectorAll('.symptom-item input[type="checkbox"]:checked').forEach(checkbox => {
+    const symptomText = checkbox.nextElementSibling.textContent.trim();
+    if (symptomText && !globalUniqueSymptoms.includes(symptomText)) {
+      globalUniqueSymptoms.push(symptomText);
+    }
+  });
+  
+  // 收集所有选中的习惯
+  document.querySelectorAll('.habit-item input[type="checkbox"]:checked').forEach(checkbox => {
+    const habitText = checkbox.nextElementSibling.textContent.trim();
+    if (habitText && !globalUniqueHabits.includes(habitText)) {
+      globalUniqueHabits.push(habitText);
+    }
+  });
+}
+
+// 根据性别更新UI
+function updateGenderBasedUI() {
+  const selectedGender = document.querySelector('input[name="gender"]:checked')?.value;
+  
+  // 更新症状显示
+  document.querySelectorAll('.symptom-item').forEach(item => {
+    const isFemaleSpecific = item.getAttribute('data-category') === 'female';
+    const isPostpartum = item.hasAttribute('data-special') && item.getAttribute('data-special') === 'postpartum';
     
-    // 新增：網路請求配置
-    const REQUEST_TIMEOUT = 15000; // 15秒超時
-    const MAX_RETRIES = 2; // 最大重試次數
+    if (selectedGender === 'male' && (isFemaleSpecific || isPostpartum)) {
+      item.style.display = 'none';
+    } else {
+      item.style.display = 'block';
+    }
+  });
+  
+  // 更新当前选中的标签页
+  const activeSymptomTab = document.querySelector('.symptom-tab.active');
+  if (activeSymptomTab) {
+    activeSymptomTab.click();
+  }
+  
+  const activeHabitTab = document.querySelector('.habit-tab.active');
+  if (activeHabitTab) {
+    activeHabitTab.click();
+  }
+}
 
-    // 2. DOM元素獲取（含AI評估容器）
-    const menuToggle = document.getElementById('menuToggle');
-    const mobileMenu = document.getElementById('mobileMenu');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    const viewResultBtn = document.getElementById('viewResultBtn');
-    const restartBtn = document.getElementById('restartBtn');
-    const downloadReportBtn = document.getElementById('downloadReportBtn');
-    const successModal = document.getElementById('successModal');
-    const resultSection = document.getElementById('result');
-    const healthDeclaration = document.getElementById('healthDeclaration');
-    const formContainer = document.getElementById('form');
-    const aiEvaluationContainer = document.getElementById('aiEvaluationContainer') || createAiContainer();
-    const healthRecommendations = document.getElementById('healthRecommendations');
+// 清除所有错误提示
+function clearAllErrors() {
+  document.querySelectorAll('.error-message').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('input, select, textarea').forEach(el => el.classList.remove('error-input'));
+}
 
-    // 新增：Line用戶信息元素 - 确保获取到这些元素
+// 显示单个错误提示
+function showError(fieldId, message) {
+  const errorElement = document.getElementById(`${fieldId}Error`);
+  if (errorElement) {
+    errorElement.textContent = message;
+    errorElement.classList.remove('hidden');
+  }
+  const inputElement = document.getElementById(fieldId);
+  if (inputElement) {
+    inputElement.classList.add('error-input');
+    inputElement.focus();
+    inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    const fieldGroup = document.querySelector(`input[name="${fieldId}"]`)?.closest('div');
+    if (fieldGroup) fieldGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// 步骤验证
+function validateStep(step) {
+  let isValid = true;
+  clearAllErrors();
+  
+  // 步骤1：基本信息验证
+  if (step === 1) {
+    const name = document.getElementById('name').value.trim();
+    const age = document.getElementById('age').value.trim();
+    const genderSelected = document.querySelector('input[name="gender"]:checked');
     const lineUserIdInput = document.getElementById('lineUserId');
-    const lineUserNameInput = document.getElementById('lineUserName');
-
-    // 检查LINE用户信息字段是否存在
-    if (!lineUserIdInput || !lineUserNameInput) {
-      console.warn('LINE用户信息输入框未找到，可能影响功能');
-      showToast('页面配置不完整，LINE用户信息字段缺失', 'warning');
-    }
-
-    // 3. 性別相關元素
-    const genderRadios = document.querySelectorAll('input[name="gender"]');
-    const femaleSymptomTab = document.querySelector('.symptom-tab[data-category="female"]');
-    const femaleSymptomItems = document.querySelectorAll('.symptom-item[data-category="female"]');
-    const postpartumSymptoms = document.querySelectorAll('.symptom-item[data-special="postpartum"]');
-
-    // 4. 核心全域數據
-    let globalUniqueSymptoms = [];
-    let globalUniqueHabits = [];
-    let windowHealthChart = null;
-    let localImageBlob = null;
-    let localImageName = '';
-    let imgbbImageUrl = '';
-    let imgbbDeleteUrl = '';
     
-    // 新增：設備檢測
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if (!name) {
+      showError('name', '请输入姓名');
+      isValid = false;
+    }
+    if (!age) {
+      showError('age', '请输入年龄');
+      isValid = false;
+    } else if (isNaN(age) || parseInt(age) <= 0 || parseInt(age) > 120) {
+      showError('age', '请输入有效的年龄（1-120）');
+      isValid = false;
+    }
+    if (!genderSelected) {
+      showError('gender', '请选择性别');
+      isValid = false;
+    }
+    
+    // 对LINE用户信息进行验证（如果字段存在）
+    if (lineUserIdInput && lineUserIdInput.readOnly && !lineUserIdInput.value.trim()) {
+      showError('lineUserId', 'LINE用户ID获取失败，请刷新页面重试');
+      isValid = false;
+    }
+  }
+  // 步骤4：健康评估验证
+  else if (step === 4) {
+    const mainConcern = document.getElementById('mainConcern').value.trim();
+    const symptomDuration = document.getElementById('symptomDuration').value;
+    const allergySelected = document.querySelector('input[name="allergyHistory"]:checked');
+    const medicalSelected = document.querySelector('input[name="medicalHistory"]:checked');
+    const declarationChecked = document.getElementById('healthDeclaration').checked;
+    
+    if (!mainConcern && globalUniqueSymptoms.length > 0) {
+      showError('mainConcern', `請描述您最關注的健康問題（可從選中症狀：${globalUniqueSymptoms.slice(0,2).join('、')}... 中選擇）`);
+      isValid = false;
+    } else if (!mainConcern) {
+      showError('mainConcern', '請描述您最關注的健康問題');
+      isValid = false;
+    }
+    if (!symptomDuration) { 
+      showError('symptomDuration', '請選擇症狀持續時間'); 
+      isValid = false; 
+    }
+    if (!allergySelected) { 
+      showError('allergyHistory', '請選擇是否有過敏史'); 
+      isValid = false; 
+    }
+    if (!medicalSelected) { 
+      showError('medicalHistory', '請選擇是否有手術史或既往病史'); 
+      isValid = false; 
+    }
+    if (!declarationChecked) { 
+      showError('declaration', '請閱讀並同意健康宣言'); 
+      isValid = false; 
+    }
+  }
+  return isValid;
+}
 
-    // 5. 動態創建AI評估容器
-    function createAiContainer() {
-      const container = document.createElement('div');
-      container.id = 'aiEvaluationContainer';
-      container.className = 'ai-evaluation-container';
-      const mainIssuesContainer = document.getElementById('mainHealthIssues');
-      if (mainIssuesContainer) {
-        mainIssuesContainer.parentNode.insertBefore(container, mainIssuesContainer.nextSibling);
-      } else if (document.getElementById('result')) {
-        document.getElementById('result').appendChild(container);
+// 通用JSONP请求函数（带重试机制）
+function jsonpRequest(url, callbackName, timeout = REQUEST_TIMEOUT) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.type = 'text/javascript';
+    script.async = true;
+    
+    // 超时处理
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('請求超時'));
+    }, timeout);
+    
+    // 成功回调
+    window[callbackName] = function(response) {
+      cleanup();
+      resolve(response);
+    };
+    
+    // 错误处理
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('網路錯誤'));
+    };
+    
+    // 清理函数
+    function cleanup() {
+      clearTimeout(timeoutId);
+      delete window[callbackName];
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    }
+    
+    document.body.appendChild(script);
+  });
+}
+
+// 带重试的请求函数
+async function requestWithRetry(requestFn, retries = MAX_RETRIES, delay = 1000) {
+  try {
+    return await requestFn();
+  } catch (error) {
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return requestWithRetry(requestFn, retries - 1, delay * 2); // 指数退避
+    }
+    throw error;
+  }
+}
+
+// 调用后端生成AI评语
+async function callOpenAIByBackend(healthData) {
+  const aiEvaluationContainer = document.getElementById('aiEvaluation');
+  if (!aiEvaluationContainer) return false;
+  
+  try {
+    // 显示加载状态
+    aiEvaluationContainer.innerHTML = `
+      <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4">
+        <h4 class="font-semibold text-primary mb-2 flex items-center">
+          <i class="fa fa-spinner fa-spin mr-2"></i> AI正在分析您的健康數據...
+        </h4>
+        <p class="text-sm text-gray-600">預計需要10-15秒，請稍候...</p>
+      </div>
+    `;
+    
+    // 构建完整请求数据（精简数据传输）
+    const formData = {
+      basicInfo: healthData.basicInfo,
+      symptoms: healthData.symptoms,
+      symptomCount: healthData.symptomCount,
+      habits: healthData.habits,
+      habitCount: healthData.habitCount,
+      healthIssues: healthData.healthIssues
+    };
+    
+    // 使用带重试的JSONP请求
+    const callbackName = `jsonpAiCallback_${Date.now()}`;
+    const params = new URLSearchParams({
+      data: JSON.stringify(formData),
+      callback: callbackName,
+      action: 'generateAiComment',
+      timestamp: Date.now() // 防止缓存
+    });
+    
+    const requestFn = () => jsonpRequest(
+      `${BACKEND_GOOGLE_SCRIPT_URL}?${params.toString()}`,
+      callbackName
+    );
+    
+    const response = await requestWithRetry(requestFn);
+    if (response?.status === 'success' && response.aiComment) {
+      globalAiComment = response.aiComment;
+      renderAiEvaluation();
+      return true;
+    } else {
+      throw new Error(response?.message || 'AI評語生成失敗，後端未返回有效數據');
+    }
+  } catch (error) {
+    console.error('AI評語生成失敗：', error);
+    // 显示错误+重试按钮
+    aiEvaluationContainer.innerHTML = `
+      <div class="bg-red-50 p-4 rounded-lg border border-red-100 mt-4">
+        <h4 class="font-semibold text-red-600 mb-2">AI評估生成失敗</h4>
+        <p class="text-sm text-gray-600 mb-3">原因：${error.message || '網路異常，請檢查網路後重試'}</p>
+        <button id="aiRetryBtn" class="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90">
+          <i class="fa fa-refresh mr-1"></i> 重新生成
+        </button>
+      </div>
+    `;
+    // 绑定重试事件
+    document.getElementById('aiRetryBtn')?.addEventListener('click', async () => {
+      const healthData = collectHealthData();
+      await callOpenAIByBackend(healthData);
+    });
+    return false;
+  }
+}
+
+// 渲染AI评估结果
+function renderAiEvaluation() {
+  const aiEvaluationContainer = document.getElementById('aiEvaluation');
+  if (!aiEvaluationContainer || !globalAiComment) return;
+  
+  // 格式化评语
+  const formattedComment = globalAiComment
+    .split('\n')
+    .filter(para => para.trim())
+    .map(para => `<p class="text-sm mb-2">${para}</p>`)
+    .join('');
+    
+  aiEvaluationContainer.innerHTML = `
+    <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mt-4">
+      <h3 class="text-lg font-semibold mb-4 text-primary">
+        <i class="fa fa-robot mr-2"></i>🟢 健康自檢表 AI評估
+      </h3>
+      <div class="text-gray-700">${formattedComment}</div>
+      <p class="text-xs text-gray-500 mt-3">
+        提示：此評語基於自檢表數據生成，僅供參考，不能替代醫生診斷
+      </p>
+    </div>
+  `;
+}
+
+// 提交数据到Google Sheets
+function submitToGoogleSheets() {
+  return requestWithRetry(() => {
+    const formData = collectFullFormData();
+    const callbackName = `jsonpSubmitCallback_${Date.now()}`;
+    const params = new URLSearchParams({
+      data: JSON.stringify(formData),
+      callback: callbackName,
+      action: 'saveToSheets',
+      timestamp: Date.now() // 防止缓存
+    });
+    
+    return jsonpRequest(
+      `${BACKEND_GOOGLE_SCRIPT_URL}?${params.toString()}`,
+      callbackName
+    ).then(response => {
+      if (response?.status === 'success') {
+        return true;
       } else {
-        document.body.appendChild(container);
+        throw new Error(response?.message || '數據提交失敗，後端未確認保存');
       }
-      return container;
-    }
-
-    // -------------------------- 1. 導航菜單切換（移動端）
-    menuToggle.addEventListener('click', () => {
-      mobileMenu.classList.toggle('hidden');
     });
+  });
+}
 
-    // -------------------------- 2. 性別選擇驅動UI變化
-    genderRadios.forEach(radio => {
-      radio.addEventListener('change', updateGenderBasedUI);
+// 更新表单步骤
+function updateFormSteps() {
+  // 切换步骤显示状态
+  document.querySelectorAll('.form-step').forEach(step => {
+    step.classList.add('hidden');
+    step.classList.remove('active');
+  });
+  
+  const currentStepEl = document.getElementById(`step${currentStep}`);
+  if (currentStepEl) {
+    currentStepEl.classList.remove('hidden');
+    currentStepEl.classList.add('active');
+  }
+  
+  // 更新步骤指示器
+  document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+    if (index + 1 < currentStep) {
+      indicator.classList.remove('bg-gray-200', 'text-gray-500');
+      indicator.classList.add('bg-primary', 'text-white');
+    } else if (index + 1 === currentStep) {
+      indicator.classList.remove('bg-gray-200', 'text-gray-500');
+      indicator.classList.add('bg-primary', 'text-white');
+    } else {
+      indicator.classList.remove('bg-primary', 'text-white');
+      indicator.classList.add('bg-gray-200', 'text-gray-500');
+    }
+  });
+  
+  // 更新进度条宽度
+  document.querySelectorAll('.step-progress').forEach((progress, index) => {
+    progress.style.width = index + 1 < currentStep ? '100%' : '0%';
+  });
+  
+  // 控制按钮显示隐藏
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  
+  if (prevBtn) prevBtn.classList.toggle('hidden', currentStep === 1);
+  if (nextBtn) nextBtn.classList.toggle('hidden', currentStep === totalSteps);
+  if (submitBtn) submitBtn.classList.toggle('hidden', currentStep !== totalSteps);
+  
+  // 滚动到当前表单区域
+  const formWrapper = document.getElementById('formWrapper') || document.getElementById('formContainer');
+  if (formWrapper) {
+    formWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// 生成评估结果
+function generateResult() {
+  const resultSection = document.getElementById('result');
+  if (!resultSection) return;
+  
+  // 1. 加载基本信息（包含新增的Line用户信息）
+  const name = document.getElementById('name').value || '未填寫';
+  const age = document.getElementById('age').value || '未填寫';
+  const selectedGender = document.querySelector('input[name="gender"]:checked');
+  const gender = selectedGender ? (selectedGender.value === 'male' ? '男' : '女') : '未填寫';
+  const phone = document.getElementById('phone').value || '未填寫';
+  
+  // 新增：Line用户信息
+  const lineUserIdInput = document.getElementById('lineUserId');
+  const lineUserNameInput = document.getElementById('lineUserName');
+  let lineUserId = lineUserIdInput ? lineUserIdInput.value || '未填寫' : '未填寫';
+  let lineUserName = lineUserNameInput ? lineUserNameInput.value || '未填寫' : '未填寫';
+  
+  // 从localStorage补充LINE用户信息
+  if (!lineUserId) lineUserId = localStorage.getItem('lineUserId') || '未填寫';
+  if (!lineUserName) lineUserName = localStorage.getItem('lineUserName') || '未填寫';
+  
+  const height = document.getElementById('height').value ? `${document.getElementById('height').value} cm` : '未填寫';
+  const weight = document.getElementById('weight').value ? `${document.getElementById('weight').value} kg` : '未填寫';
+  const waist = document.getElementById('waist').value ? `${document.getElementById('waist').value} cm` : '未填寫';
+  const bloodPressure = document.getElementById('bloodPressure').value || '未填寫';
+  const bloodSugar = document.getElementById('bloodSugar').value ? `${document.getElementById('bloodSugar').value} mmol/l` : '未填寫';
+  const occupation = document.getElementById('occupation').value || '未填寫';
+  const bmi = calculateBMI();
+  
+  // 2. 渲染基本信息卡片（新增Line用户信息显示）
+  const basicInfoContainer = document.getElementById('basicInfo');
+  if (basicInfoContainer) {
+    basicInfoContainer.style.display = 'block';
+    basicInfoContainer.innerHTML = `
+      <div class="grid grid-cols-2 gap-2">
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>姓名：</strong> ${name}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>年齡：</strong> ${age} 歲</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>性別：</strong> ${gender}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>電話：</strong> ${phone}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>Line用戶ID：</strong> ${lineUserId}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>Line用戶名稱：</strong> ${lineUserName}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>身高：</strong> ${height}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>體重：</strong> ${weight}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>BMI：</strong> ${bmi}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>腰圍：</strong> ${waist}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>血壓：</strong> ${bloodPressure}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>血糖：</strong> ${bloodSugar}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg col-span-2">
+          <p class="text-sm"><strong>職業：</strong> ${occupation}</p>
+        </div>
+      </div>
+    `;
+  } else {
+    const newBasicInfo = document.createElement('div');
+    newBasicInfo.id = 'basicInfo';
+    newBasicInfo.className = 'basic-info-container mt-6';
+    newBasicInfo.innerHTML = `
+      <h3 class="text-lg font-semibold mb-4">基本資料</h3>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>姓名：</strong> ${name}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>年齡：</strong> ${age} 歲</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>Line用戶ID：</strong> ${lineUserId}</p>
+        </div>
+        <div class="p-3 border border-gray-100 rounded-lg">
+          <p class="text-sm"><strong>Line用戶名稱：</strong> ${lineUserName}</p>
+        </div>
+      </div>
+    `;
+    
+    const resultHeader = resultSection.querySelector('h2') || resultSection.firstChild;
+    resultSection.insertBefore(newBasicInfo, resultHeader.nextSibling);
+  }
+  
+  // 3. 加载症状/习惯统计数据
+  const totalSymptomCount = globalUniqueSymptoms.length;
+  const habitCount = globalUniqueHabits.length;
+  
+  // 4. 六大调理方向得分计算
+  const adjustmentDirections = {
+    體質: [
+      '頭部畏冷', '四肢無力', '平衡能力差/容易跌倒', '思緒中斷', '反應遲鈍', '容易打哈欠',
+      '眼睛疲勞', '耳鳴/耳聾', '聽力減退', '嗅覺遲鈍', '咽喉異物感', '聲音沙啞',
+      '嘆氣/呼吸短促/喘氣', '打呼', '手足麻木/發紺', '手足發熱/冰涼/腫脹/出汗',
+      '胃痛/胃酸過多/腹脹/胃部畏寒', '惡心/打嗝/噯氣', '消化不良', '食慾不佳/容易飽脹',
+      '偏食/厭食', '食慾過盛', '嘴唇蒼白/發青/麻木', '嘴唇龜裂/咽喉乾燥',
+      '手足抽搐/手足顫抖', '關節疼痛/腫脹', '腰部酸痛/腰部畏寒', '容易落枕/頸部僵硬',
+      '肩膀酸脹/麻木/疼痛', '頸部疼痛/頸部畏寒', '頸部脂肪堆積', '游離性疼痛',
+      '脊椎僵硬/脊椎疼痛', '容易扭傷', '腳跟疼痛', '手足脫皮/凍瘡',
+      '月經期間下腹部畏寒', '月經期間下腹部墜脹', '月經期間腹脹/痛經', '月經期間腰痛/頭痛',
+      '月經期間嗜睡/失眠', '月經期間厭食/水腫', '月經期間煩躁/乳房脹痛',
+      '夜尿頻繁/尿頻/尿急', '尿不盡/尿失禁', '外陰瘙癢/外陰異味',
+      '大便不成形', '便溏不盡/便秘', '低燒37-38℃', '感冒久不愈', '容易感冒/不易感冒'
+    ],
+    免疫: [
+      '過敏性鼻炎', '眼睛癢/腫脹/突出/疼痛', '眼睛畏光/流淚', '眼睛乾澀/飛蚊症',
+      '咳嗽/氣喘', '支氣管炎', '痰液多/黃痰/痰液清稀', '白痰/黑痰/痰中帶血',
+      '口腔潰瘍/舌潰瘍', '淋巴結腫大', '各類過敏/濕疹', '皮膚癢/背部青春痘',
+      '銀屑病/白斑病', '黑痣增大/增多', '蜘蛛痣/魚鱗病', '扁桃腺炎', '皮膚容易瘀青/紅點'
+    ],
+    毒素: [
+      '眼糞多/麥粒腫', '耳朵內潮濕/化膿', '耳垢多/耳朵疼痛/癢', '鼻炎/鼻塞',
+      '流鼻水/流鼻血', '打噴嚏', '酒渣鼻', '口苦/口乾/口臭/口中腥味',
+      '口咸/口甜/口酸', '口臭明顯/口中辣味', '舌苔厚/黃苔/膩苔', '地圖舌/舌頭白斑',
+      '舌質紫暗/舌邊齒痕', '舌頭僵硬/舌頭前端不適', '腹脹/排氣多/排氣臭',
+      '血管瘤/脂肪瘤', '纖維瘤/皮脂腺囊腫', '膽結石/腎結石', '扁平疣/尋常疣',
+      '皮贅/雞眼', '頭部/面部油膩', '臉頰泛紅', '面色黃/蒼白/黝黑',
+      '痤瘡/青春痘/色素斑', '皮膚乾燥/接觸性皮炎', '脂肪粒', '身體異味',
+      '白帶增多/白帶帶血絲', '白帶顏色偏黃/黏稠', '白帶呈稀水狀/有腥臭味',
+      '月經期間長青春痘', '月經顏色暗/淡/深黑', '排尿疼痛/血尿', '尿分叉/排尿等待',
+      '尿液濃稠/尿液有異味', '尿液混濁/尿液泡沫多', '尿道口灼熱感/尿道口發炎'
+    ],
+    營養: [
+      '老花眼', '夜盲症', '視力模糊', '貧血/高血脂症', '身體消瘦', '肥胖/腹型肥胖',
+      '身高矮小/發育遲緩', '體重突然增加/減少10%', '指甲半月痕缺失/稀少',
+      '指甲易斷裂/手指倒刺', '指甲凹陷/指甲竪紋', '頭髮稀疏', '頭髮乾燥/掉發', '白髮/圓形禿'
+    ],
+    循環: [
+      '頭痛/頭暈', '頭部麻木/腦鳴', '嗜睡/易醒', '失眠/多夢', '偏頭痛/健忘',
+      '言語懶散/口吃', '暈車/暈機', '眉骨疼痛', '低血壓/高血壓', '心絞痛',
+      '心跳過快/過慢', '心悸/心律不整', '胸悶/胸痛', '右側肝區悶痛',
+      '頭暈/頭部麻木/容易打哈欠', '面色異常（蒼白/發青）', '低血糖/高血糖', '高血脂症',
+      '小腿水腫', '靜脈曲張', '下腹部悶痛', '睪丸腫塊/疝氣', '肛門瘙癢',
+      '便血/痔瘡', '脫肛/肛裂/肛瘻'
+    ],
+    內分泌: [
+      '甲狀腺機能亢進/甲狀腺機能低下', '甲狀腺結節', '肥胖/腹型肥胖', '身體消瘦',
+      '體重突然增加/減少10%', '低血糖/高血糖', '高血脂症', '低燒37-38℃',
+      '產後掉發/產後憂鬱', '產後色素沈澱', '不孕', '流產/死胎', '月經量少/月經有血塊',
+      '月經量多/子宮肌瘤', '月經提前/延後', '子宮腺肌症', '停經', '乳頭凹陷/乳頭溢膿',
+      '乳房腫塊/乳腺增生', '卵巢囊腫', '子宮頸息肉', '子宮頸肥大/子宮頸囊腫',
+      '性慾降低', '自汗/多汗/盜汗', '冒冷汗/後背畏寒'
+    ]
+  };
+  
+  // 计算得分
+  const calculateAdjustmentScores = () => {
+    const scores = {};
+    const allIssues = [...globalUniqueSymptoms, ...globalUniqueHabits];
+    
+    Object.entries(adjustmentDirections).forEach(([dir, relatedItems]) => {
+      const matchedCount = allIssues.filter(item => relatedItems.includes(item)).length;
+      const totalRelated = relatedItems.length || 1;
+      scores[dir] = Math.max(0, Math.round((1 - matchedCount / totalRelated) * 100));
     });
-
-    function updateGenderBasedUI() {
-      const selectedGender = document.querySelector('input[name="gender"]:checked')?.value;
-      if (!selectedGender) return;
-
-      // 控制女性專屬症狀標籤/項顯示
-      if (femaleSymptomTab) {
-        femaleSymptomTab.style.display = selectedGender === 'male' ? 'none' : 'inline-flex';
-      }
-      femaleSymptomItems.forEach(item => {
-        item.style.display = selectedGender === 'male' ? 'none' : 'block';
+    
+    return scores;
+  };
+  
+  const adjustmentScores = calculateAdjustmentScores();
+  const adjustmentLabels = Object.keys(adjustmentScores);
+  const adjustmentData = Object.values(adjustmentScores);
+  
+  // 5. 渲染雷达图
+  const ctx = document.getElementById('healthBarChart')?.getContext('2d');
+  if (ctx) {
+    if (windowHealthChart) windowHealthChart.destroy();
+    
+    // 空数据提示
+    if (adjustmentData.every(score => score === 100) && totalSymptomCount === 0) {
+      const chartParent = document.getElementById('healthBarChart').parentNode;
+      chartParent.innerHTML = '<p class="text-center text-gray-500 py-10">未選擇任何症狀，暫無法生成調理方向圖</p>';
+    } else {
+      // 使用requestAnimationFrame优化渲染
+      requestAnimationFrame(() => {
+        windowHealthChart = new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: adjustmentLabels,
+            datasets: [{
+              label: '調理優先級得分（越低需重點調理）',
+              data: adjustmentData,
+              backgroundColor: 'rgba(22, 93, 255, 0.2)',
+              borderColor: 'rgba(22, 93, 255, 1)',
+              borderWidth: 2,
+              pointBackgroundColor: 'rgba(22, 93, 255, 1)',
+              pointBorderColor: '#fff',
+              pointHoverBackgroundColor: '#fff',
+              pointHoverBorderColor: 'rgba(22, 93, 255, 1)',
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                angleLines: { display: true, color: 'rgba(0,0,0,0.1)' },
+                grid: { color: 'rgba(0,0,0,0.1)' },
+                pointLabels: { font: { size: 12, weight: 'bold' }, color: '#333', padding: 15 },
+                ticks: { backdropColor: 'transparent', color: '#666', stepSize: 20, max: 100, min: 0 }
+              }
+            },
+            plugins: {
+              legend: { position: 'top', labels: { font: { size: 11 }, padding: 20 } },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const dir = adjustmentLabels[context.dataIndex];
+                    const score = adjustmentData[context.dataIndex];
+                    let tip = score < 30 ? '（急需重點調理）' : score < 60 ? '（建議加強調理）' : '（狀態良好）';
+                    return `${dir}: ${score}分 ${tip}`;
+                  }
+                }
+              },
+              title: { display: true, text: '六大調理方向優先級分布', font: { size: 16, weight: 'bold' }, padding: { bottom: 20 } }
+            },
+            elements: { line: { tension: 0.2 } }
+          }
+        });
       });
-      postpartumSymptoms.forEach(item => {
-        item.style.display = selectedGender === 'male' ? 'none' : 'block';
+    }
+  }
+  
+  // 6. 渲染症状/习惯统计
+  const symptomCountEl = document.getElementById('symptomCount');
+  const habitCountEl = document.getElementById('habitCount');
+  const symptomScoreBarEl = document.getElementById('symptomScoreBar');
+  const habitScoreBarEl = document.getElementById('habitScoreBar');
+  
+  if (symptomCountEl) symptomCountEl.textContent = `${totalSymptomCount} 項症狀`;
+  if (habitCountEl) habitCountEl.textContent = `${habitCount} 項不良習慣`;
+  
+  // 进度条宽度计算
+  const symptomPercent = Math.min(100, (totalSymptomCount / 50) * 100);
+  const habitPercent = Math.min(100, (habitCount / 20) * 100);
+  
+  if (symptomScoreBarEl) symptomScoreBarEl.style.width = `${symptomPercent}%`;
+  if (habitScoreBarEl) habitScoreBarEl.style.width = `${habitPercent}%`;
+  
+  // 7. 渲染主要健康问题
+  const mainIssuesContainer = document.getElementById('mainHealthIssues');
+  let mainConcern = document.getElementById('mainConcern').value.trim();
+  
+  if (!mainConcern && totalSymptomCount > 0) {
+    const symptomCategoryCount = countSymptomCategories();
+    const topCategory = Object.entries(symptomCategoryCount).sort((a,b) => b[1]-a[1])[0]?.[0] || '全身不適';
+    mainConcern = `${topCategory}（${globalUniqueSymptoms.slice(0,3).join('、')}...）`;
+  } else if (!mainConcern) {
+    mainConcern = '未明確說明';
+  }
+  
+  const symptomDuration = document.getElementById('symptomDuration').value || '未說明';
+  const possibleCauses = document.getElementById('possibleCauses').value || '未說明';
+  const isFemale = gender === '女';
+  
+  // 症状分类映射
+  const symptomCategories = {
+    '頭部症狀': ['頭痛/頭暈', '頭部麻木/腦鳴', '嗜睡/易醒', '失眠/多夢', '偏頭痛/健忘', '言語懶散/口吃', '暈車/暈機', '頭部畏冷', '思緒中斷', '反應遲鈍', '容易打哈欠', '眉骨疼痛'],
+    '眼耳鼻喉': ['老花眼', '眼睛癢/腫脹/突出/疼痛', '眼睛畏光/流淚', '眼睛乾澀/飛蚊症', '眼糞多/麥粒腫', '眼睛疲勞', '夜盲症', '視力模糊', '耳朵內潮濕/化膿', '耳垢多/耳朵疼痛/癢', '耳鳴/耳聾', '聽力減退', '鼻炎/鼻塞', '流鼻水/流鼻血', '打噴嚏', '過敏性鼻炎', '酒渣鼻', '嗅覺遲鈍', '咽喉異物感', '聲音沙啞'],
+    '呼吸系統': ['咳嗽/氣喘', '支氣管炎', '感冒久不愈', '容易感冒/不易感冒', '痰液多/黃痰/痰液清稀', '白痰/黑痰/痰中帶血', '嘆氣/呼吸短促/喘氣', '打呼'],
+    '循環系統': ['低血壓/高血壓', '貧血/高血脂症', '心絞痛', '心跳過快/過慢', '心悸/心律不整', '胸悶/胸痛', '右側肝區悶痛', '手足麻木/發紺', '手足發熱/冰涼/腫脹/出汗', '頭暈/頭部麻木/容易打哈欠', '面色異常（蒼白/發青）'],
+    '消化系統': ['胃痛/胃酸過多/腹脹/胃部畏寒', '惡心/打嗝/噯氣', '消化不良', '食慾不佳/容易飽脹', '偏食/厭食', '食慾過盛', '腹脹/排氣多/排氣臭', '嘴唇蒼白/發青/麻木', '口苦/口乾/口臭/口中腥味', '口咸/口甜/口酸', '口臭明顯/口中辣味', '口腔潰瘍/舌潰瘍', '舌苔厚/黃苔/膩苔', '地圖舌/舌頭白斑', '舌質紫暗/舌邊齒痕', '舌頭僵硬/舌頭前端不適', '嘴唇龜裂/咽喉乾燥', '大便不成形', '便溏不盡/便秘'],
+    '內分泌與代謝': ['甲狀腺機能亢進/甲狀腺機能低下', '甲狀腺結節', '肥胖/腹型肥胖', '身體消瘦', '身高矮小/發育遲緩', '體重突然增加/減少10%', '指甲半月痕缺失/稀少', '指甲易斷裂/手指倒刺', '指甲凹陷/指甲竪紋', '血管瘤/脂肪瘤', '纖維瘤/皮脂腺囊腫', '膽結石/腎結石', '扁平疣/尋常疣', '皮贅/雞眼', '淋巴結腫大', '低燒37-38℃', '手足抽搐/手足顫抖', '低血糖/高血糖', '高血脂症'],
+    '肌肉骨骼與關節': ['四肢無力', '平衡能力差/容易跌倒', '手足脫皮/凍瘡', '小腿水腫', '關節疼痛/腫脹', '容易落枕/頸部僵硬', '肩膀酸脹/麻木/疼痛', '頸部疼痛/頸部畏寒', '頸部脂肪堆積', '腰部酸痛/腰部畏寒', '游離性疼痛', '脊椎僵硬/脊椎疼痛', '靜脈曲張', '容易扭傷', '腳跟疼痛'],
+    '皮膚與毛髮': ['頭髮稀疏', '頭髮乾燥/掉發', '白髮/圓形禿', '頭部/面部油膩', '臉頰泛紅', '面色黃/蒼白/黝黑', '痤瘡/青春痘/色素斑', '皮膚容易瘀青/紅點', '皮膚癢/背部青春痘', '皮膚乾燥/接觸性皮炎', '銀屑病/白斑病', '黑痣增大/增多', '蜘蛛痣/魚鱗病', '各類過敏/濕疹', '產後掉發/產後憂鬱', '產後色素沈澱', '脂肪粒', '身體異味'],
+    '女性症狀': ['不孕', '流產/死胎', '月經量少/月經有血塊', '月經量多/子宮肌瘤', '月經提前/延後', '月經期間煩躁/乳房脹痛', '月經期間厭食/水腫', '月經期間腰痛/頭痛', '月經期間嗜睡/失眠', '月經期間腹脹/痛經', '子宮腺肌症', '月經期間下腹部畏寒', '月經期間下腹部墜脹', '月經顏色暗/淡/深黑', '月經期間長青春痘', '月經期延長', '停經', '乳頭凹陷/乳頭溢膿', '乳房腫塊/乳腺增生', '卵巢囊腫', '子宮頸息肉', '子宮頸肥大/子宮頸囊腫', '白帶增多/白帶帶血絲', '白帶顏色偏黃/黏稠', '白帶呈稀水狀/有腥臭味'],
+    '泌尿生殖系統': ['夜尿頻繁/尿頻/尿急', '尿不盡/尿失禁', '排尿疼痛/血尿', '尿分叉/排尿等待', '尿液濃稠/尿液有異味', '尿液混濁/尿液泡沫多', '尿道口灼熱感/尿道口發炎', '外陰瘙癢/外陰異味', '下腹部悶痛', '睪丸腫塊/疝氣', '肛門瘙癢', '便血/痔瘡', '脫肛/肛裂/肛瘻', '性慾降低', '自汗/多汗/盜汗', '冒冷汗/後背畏寒']
+  };
+  
+  // 统计各分类下的症状数量
+  function countSymptomCategories() {
+    const count = {};
+    Object.keys(symptomCategories).forEach(category => {
+      count[category] = 0;
+      globalUniqueSymptoms.forEach(symptom => {
+        if (symptomCategories[category].includes(symptom)) count[category]++;
       });
+    });
+    return count;
+  }
+  
+  // 构建分类症状HTML
+  let symptomsHtml = '';
+  Object.keys(symptomCategories).forEach(category => {
+    if (!isFemale && category === '女性症狀') return;
+    const categorySymptoms = globalUniqueSymptoms.filter(sym => symptomCategories[category].includes(sym));
+    if (categorySymptoms.length > 0) {
+      symptomsHtml += `<div class="mt-2">
+        <p class="text-sm font-medium">${category}：</p>
+        <p class="text-sm ml-4">${categorySymptoms.join('、')}</p>
+      </div>`;
+    }
+  });
+  
+  // 渲染主要健康问题区域
+  if (mainIssuesContainer) {
+    mainIssuesContainer.style.display = 'block';
+    mainIssuesContainer.innerHTML = `
+      <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4 text-primary">主要健康問題</h3>
+        <p class="mb-3"><strong>主要關注問題：</strong> ${mainConcern}</p>
+        <p class="mb-3"><strong>症狀持續時間：</strong> ${symptomDuration}</p>
+        <p class="mb-3"><strong>可能原因：</strong> ${possibleCauses}</p>
+        ${totalSymptomCount > 0 ? 
+          `<div class="mt-3"><strong>詳細症狀：</strong>${symptomsHtml}</div>` : 
+          `<div class="mt-3 text-gray-500"><strong>詳細症狀：</strong>未選擇任何症狀</div>`
+        }
+      </div>
+    `;
+  } else {
+    const newMainIssues = document.createElement('div');
+    newMainIssues.id = 'mainHealthIssues';
+    newMainIssues.className = 'main-health-issues mt-6';
+    newMainIssues.innerHTML = `
+      <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4 text-primary">主要健康問題</h3>
+        <p class="mb-3"><strong>主要關注問題：</strong> ${mainConcern}</p>
+        <p class="mb-3"><strong>症狀持續時間：</strong> ${symptomDuration}</p>
+        <p class="mb-3"><strong>可能原因：</strong> ${possibleCauses}</p>
+        ${totalSymptomCount > 0 ? 
+          `<div class="mt-3"><strong>詳細症狀：</strong>${symptomsHtml}</div>` : 
+          `<div class="mt-3 text-gray-500"><strong>詳細症狀：</strong>未選擇任何症狀</div>`
+        }
+      </div>
+    `;
+    
+    const radarChartContainer = document.getElementById('healthBarChart')?.parentNode;
+    if (radarChartContainer) {
+      radarChartContainer.parentNode.insertBefore(newMainIssues, radarChartContainer.nextSibling);
+    } else {
+      resultSection.appendChild(newMainIssues);
+    }
+  }
+  
+  // 8. 渲染AI评估
+  const aiEvaluationContainer = document.getElementById('aiEvaluation');
+  if (aiEvaluationContainer) {
+    if (globalUniqueSymptoms.length > 0 && globalAiComment) {
+      renderAiEvaluation();
+    } else {
+      aiEvaluationContainer.innerHTML = `
+        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100 mt-4">
+          <h4 class="font-semibold text-yellow-600 mb-2 flex items-center">
+            <i class="fa fa-info-circle mr-2"></i> AI評估提示
+          </h4>
+          <p class="text-sm text-gray-600">${globalUniqueSymptoms.length === 0 ? '未選擇症狀，無法生成AI評語' : 'AI評語未生成，請點擊下方按鈕重新生成'}</p>
+          ${globalUniqueSymptoms.length > 0 ? `<button id="aiRetryBtn" class="mt-2 px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90">
+            <i class="fa fa-refresh mr-1"></i> 重新生成AI評語
+          </button>` : ''}
+        </div>
+      `;
+      document.getElementById('aiRetryBtn')?.addEventListener('click', async () => {
+        const healthData = collectHealthData();
+        await callOpenAIByBackend(healthData);
+      });
+    }
+  }
+  
+  // 9. 渲染健康调理建议
+  const recommendationsContainer = document.getElementById('healthRecommendations');
+  if (recommendationsContainer) {
+    const lowScoreDirections = Object.entries(adjustmentScores)
+      .filter(([_, score]) => score < 60)
+      .sort((a,b) => a[1]-b[1])
+      .map(([dir]) => dir);
+      
+    let recommendationsHtml = '';
+    if (lowScoreDirections.length > 0) {
+      recommendationsHtml += `<p class="text-sm font-medium text-primary mb-3">🔴 需重點調理方向：${lowScoreDirections.join('、')}</p>`;
+    }
+    
+    recommendationsHtml += `
+      <div class="health-guidance mt-4">
+        <h3 class="text-lg font-semibold mb-4 text-primary">健康六大核心調理方向</h3>
+        
+        <!-- ① 體質——健康的「基礎土壤」 -->
+        <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
+          <h4 class="font-semibold text-blue-600 mb-2">① 體質 —— 健康的「基礎土壤」</h4>
+          <p class="text-sm mb-2">👉體內寒濕氣如同陰暗潮濕環境，易滋生類似水木耳（腫瘤、囊腫等）的健康問題，且會反復出現。</p>
+          <p class="text-sm text-gray-700 italic">👉寓意：調體質需先排寒除濕、提升身體溫度，從根源斷掉「問題生長的溫床」。</p>
+        </div>
+        
+        <!-- ② 免疫——身體的「常駐軍隊」 -->
+        <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
+          <h4 class="font-semibold text-blue-600 mb-2">② 免疫 —— 身體的「常駐軍隊」</h4>
+          <p class="text-sm mb-2">👉藥物像「臨時外援」，雖能暫時控制疾病，但會損傷免疫力；而充足營養能強化身體「常駐防線」（免疫力），使其主動抵御病邪並產生抗體。</p>
+          <p class="text-sm text-gray-700 italic">👉寓意：真正的健康靠營養餵飽免疫力，而非依賴藥物。</p>
+        </div>
+        
+        <!-- ③ 毒素——疾病反復的「隱形根源」 -->
+        <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
+          <h4 class="font-semibold text-blue-600 mb-2">③ 毒素 —— 疾病反復的「隱形根源」</h4>
+          <p class="text-sm mb-2">👉體內毒素如垃圾，會引發發炎、潰瘍等「蒼蠅」般的問題，若不排毒只治症狀，問題會反復甚至蔓延。</p>
+          <p class="text-sm text-gray-700 italic">👉寓意：調健康第一步是打通腸道、皮膚等排毒通道，給身體「掃垃圾」。</p>
+        </div>
+        
+        <!-- ④ 營養——身體吸收的「原料密碼」 -->
+        <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
+          <h4 class="font-semibold text-blue-600 mb-2">④ 營養 —— 身體吸收的「原料密碼」</h4>
+          <p class="text-sm mb-2">👉人體需「對的原料」運轉，若脾胃虛弱（如生病的牛），吃補品也難吸收，反增負擔。</p>
+          <p class="text-sm text-gray-700 italic">👉寓意：補營養要先讓脾胃「有能力轉化」，再給對食物，才能變成身體能量。</p>
+        </div>
+        
+        <!-- ⑤ 循環——健康的「暢通管道」 -->
+        <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
+          <h4 class="font-semibold text-blue-600 mb-2">⑤ 循環 —— 健康的「暢通管道」</h4>
+          <p class="text-sm mb-2">👉血管循環似水溝，血脂、垃圾是「雜草」，高血壓是「水流壓力大」。降壓藥僅暫時「加寬管道」，沒清垃圾問題遲早反復。</p>
+          <p class="text-sm text-gray-700 italic">👉寓意：調循環關鍵是清理血管垃圾，讓血液順暢流動。</p>
+        </div>
+        
+        <!-- ⑥ 內分泌——身體的「總調度中心」 -->
+        <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
+          <h4 class="font-semibold text-blue-600 mb-2">⑥ 內分泌 —— 身體的「總調度中心」</h4>
+          <p class="text-sm mb-2">👉內分泌是身體「總電閘」，月經不調、失眠等單一問題，若沒解決內分泌失調的「總開關問題」，症狀遲早反復。</p>
+          <p class="text-sm text-gray-700 italic">👉寓意：只有調整內分泌平衡，身體所有系統才能正常運轉。</p>
+        </div>
+      </div>
+      
+      <div class="mt-4 text-sm text-neutral-dark/70 text-center p-3 bg-blue-50 rounded-lg">
+        六大調理邏輯：<br>體質是根基，循環是動力，<br>毒素要清除，免疫要增強，<br>營養要均衡，內分泌要穩定，<br>才能長久健康！
+      </div>
+    `;
+    
+    recommendationsContainer.innerHTML = recommendationsHtml;
+  }
+}
 
-      // 男性切換時自動選中"全部"標籤
-      const activeTab = document.querySelector('.symptom-tab.active');
-      if (selectedGender === 'male' && activeTab?.getAttribute('data-category') === 'female') {
-        document.querySelector('.symptom-tab[data-category="all"]')?.click();
+// 截图与分享功能
+async function handleImageDownload() {
+  try {
+    // 禁用按钮并显示加载状态
+    const downloadReportBtn = document.getElementById('downloadReportBtn');
+    if (downloadReportBtn) {
+      downloadReportBtn.disabled = true;
+      downloadReportBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 準備中...';
+    }
+    
+    // 创建进度提示
+    const progressIndicator = createProgressIndicator();
+    document.body.appendChild(progressIndicator);
+    
+    // 1. 依赖检查
+    if (typeof html2canvas === 'undefined') throw new Error('圖片處理庫未加載，請刷新頁面重試');
+    const resultSection = document.getElementById('result');
+    if (!resultSection) throw new Error('未找到健康評估結果頁容器，請先提交評估');
+    
+    updateProgress(progressIndicator, 20, '調整頁面樣式...');
+    
+    // 2. 临时调整样式
+    const originalStyles = {
+      resultPadding: resultSection.style.padding,
+      resultMargin: resultSection.style.margin,
+      resultBoxShadow: resultSection.style.boxShadow,
+      position: resultSection.style.position,
+      top: resultSection.style.top,
+      left: resultSection.style.left,
+      zIndex: resultSection.style.zIndex
+    };
+    
+    resultSection.style.padding = '20px';
+    resultSection.style.margin = '0 auto';
+    resultSection.style.boxShadow = 'none';
+    
+    const rect = resultSection.getBoundingClientRect();
+    resultSection.style.position = 'relative';
+    resultSection.style.top = `-${rect.top}px`;
+    resultSection.style.left = `-${rect.left}px`;
+    resultSection.style.zIndex = '1000';
+    
+    // 临时隐藏六大调理方向
+    const healthRecommendations = document.getElementById('healthRecommendations');
+    const originalHealthRecommendationsDisplay = healthRecommendations ? healthRecommendations.style.display : 'block';
+    if (healthRecommendations) {
+      healthRecommendations.style.display = 'none';
+    }
+    
+    // 额外隐藏可能包含六大调理方向的其他元素
+    const healthGuidance = document.querySelector('.health-guidance');
+    const originalHealthGuidanceDisplay = healthGuidance ? healthGuidance.style.display : 'block';
+    if (healthGuidance) {
+      healthGuidance.style.display = 'none';
+    }
+    
+    updateProgress(progressIndicator, 40, '準備截圖...');
+    
+    // 3. 执行截图（优化配置，确保排除不需要的元素）
+    const canvas = await html2canvas(resultSection, {
+      useCORS: true,
+      allowTaint: false,
+      scale: Math.min(window.devicePixelRatio || 2, 2),
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: resultSection.scrollWidth,
+      windowHeight: resultSection.scrollHeight,
+      ignoreElements: (el) => {
+        // 明确排除六大调理方向相关元素
+        return el.id === 'downloadReportBtn' || 
+               el.id === 'singleShareBtn' || 
+               el.id === 'restartBtn' || 
+               el === progressIndicator || 
+               el.id === 'healthRecommendations' ||
+               el.classList.contains('health-guidance');
       }
-
-      updateGlobalSymptomData();
+    });
+    
+    updateProgress(progressIndicator, 60, '處理圖片...');
+    
+    // 4. 恢复原始样式
+    Object.keys(originalStyles).forEach(key => {
+      resultSection.style[key] = originalStyles[key];
+    });
+    
+    // 恢复六大调理方向显示
+    if (healthRecommendations) {
+      healthRecommendations.style.display = originalHealthRecommendationsDisplay;
     }
-
-    // -------------------------- 3. 全域症狀/習慣數據更新
-    function updateGlobalSymptomData() {
-      // 症狀去重
-      const symptomElements = document.querySelectorAll('input[name="symptoms"]:checked');
-      globalUniqueSymptoms = [...new Set(Array.from(symptomElements).map(checkbox => checkbox.value))];
-
-      // 習慣去重
-      const habitElements = document.querySelectorAll('input[name="habits"]:checked');
-      globalUniqueHabits = [...new Set(Array.from(habitElements).map(checkbox => checkbox.value))];
+    if (healthGuidance) {
+      healthGuidance.style.display = originalHealthGuidanceDisplay;
     }
+    
+    // 5. 图片处理
+    const userName = document.getElementById('name').value.trim() || '未知用戶';
+    const currentDate = new Date();
+    const formattedDate = `${currentDate.getFullYear()}年${String(currentDate.getMonth() + 1).padStart(2, '0')}月${String(currentDate.getDate()).padStart(2, '0')}日`;
+    localImageName = `${userName}_健康評估結果_${formattedDate}.jpg`;
+    
+    // 转换Canvas为JPG Blob
+    localImageBlob = await new Promise((resolve, reject) => {
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('圖片Blob生成失敗')), 'image/jpeg', 0.8);
+    });
+    
+    updateProgress(progressIndicator, 75, '轉檔中...');
+    
+    // 6. 并行处理本地保存和ImgBB上传
+    const [saveResult, uploadResult] = await Promise.allSettled([
+      saveToGallery(localImageBlob, localImageName),
+      uploadToImgBB(localImageBlob, localImageName)
+    ]);
+    
+    // 处理上传结果
+    if (uploadResult.status === 'fulfilled' && uploadResult.value) {
+      imgbbImageUrl = uploadResult.value.url;
+      imgbbDeleteUrl = uploadResult.value.deleteUrl;
+      // 异步更新Google Sheets
+      submitToGoogleSheets().catch(err => console.log('更新圖片URL失敗:', err));
+    } else if (uploadResult.status === 'rejected') {
+      // 显示上传错误但不中断流程
+      console.warn('圖片上傳失敗:', uploadResult.reason);
+      showToast('圖片已保存到本地，但上傳至服務器失敗', 'error');
+    }
+    
+    // 检查保存结果
+    if (saveResult.status === 'rejected') {
+      throw new Error(`保存圖片失敗: ${saveResult.reason.message}`);
+    }
+    
+    updateProgress(progressIndicator, 90, '保存圖片...');
+    
+    // 7. 完成处理
+    document.body.removeChild(progressIndicator);
+    
+    if (downloadReportBtn) {
+      downloadReportBtn.disabled = false;
+      downloadReportBtn.innerHTML = '<i class="fa fa-download mr-2"></i> 重新轉檔操作';
+    }
+    
+    showToast(`圖片已成功保存！\n文件名：${localImageName}`);
+    showSingleShareButton(userName, formattedDate);
+  } catch (error) {
+    console.error('圖片處理失敗：', error);
+    const progressIndicator = document.getElementById('progressIndicator');
+    if (progressIndicator) document.body.removeChild(progressIndicator);
+    
+    const downloadReportBtn = document.getElementById('downloadReportBtn');
+    if (downloadReportBtn) {
+      downloadReportBtn.disabled = false;
+      downloadReportBtn.innerHTML = '<i class="fa fa-download mr-2"></i> 下載圖片';
+    }
+    
+    showToast(`操作失敗：${error.message}`, 'error');
+  }
+}
 
-    // -------------------------- 4. 表單步驟導航
+// 单独的ImgBB上传函数
+async function uploadToImgBB(blob, fileName) {
+  try {
+    const base64Image = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.readAsDataURL(blob);
+    });
+    
+    const formData = new FormData();
+    formData.append('key', IMGBB_API_KEY);
+    formData.append('image', base64Image);
+    formData.append('name', fileName);
+    
+    // 超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+    
+    const uploadResponse = await fetch(IMGBB_UPLOAD_URL, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!uploadResponse.ok) {
+      throw new Error(`HTTP錯誤: ${uploadResponse.status}`);
+    }
+    
+    const uploadResult = await uploadResponse.json();
+    if (!uploadResult.success) {
+      throw new Error(`上傳失敗：${uploadResult?.error?.message || '未知錯誤'}`);
+    }
+    
+    return {
+      url: uploadResult.data.url,
+      deleteUrl: uploadResult.data.delete_url
+    };
+  } catch (error) {
+    console.warn('ImgBB上傳失敗:', error);
+    // 不阻断主流程，仅返回错误
+    throw error;
+  }
+}
+
+// 创建进度指示器
+function createProgressIndicator() {
+  const indicator = document.createElement('div');
+  indicator.id = 'progressIndicator';
+  indicator.style.cssText = `
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 12px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15); z-index: 99999;
+    display: flex; flex-direction: column; align-items: center; min-width: 280px;
+  `;
+  
+  // 进度条容器
+  const progressContainer = document.createElement('div');
+  progressContainer.style.cssText = `
+    width: 100%; height: 6px; background: #f0f0f0; border-radius: 3px; margin: 15px 0;
+    overflow: hidden;
+  `;
+  
+  // 进度条
+  const progressBar = document.createElement('div');
+  progressBar.id = 'progressBar';
+  progressBar.style.cssText = `
+    height: 100%; background: #165DFF; width: 0%; transition: width 0.3s ease;
+  `;
+  
+  progressContainer.appendChild(progressBar);
+  
+  // 状态文本
+  const statusText = document.createElement('div');
+  statusText.id = 'progressStatus';
+  statusText.style.cssText = `
+    color: #333; font-size: 15px; text-align: center; margin-top: 10px;
+  `;
+  statusText.textContent = '準備中...';
+  
+  // 加载动画
+  const spinner = document.createElement('i');
+  spinner.className = 'fa fa-circle-o-notch fa-spin';
+  spinner.style.cssText = 'font-size: 30px; color: #165DFF;';
+  
+  indicator.appendChild(spinner);
+  indicator.appendChild(progressContainer);
+  indicator.appendChild(statusText);
+  
+  return indicator;
+}
+
+// 更新进度
+function updateProgress(indicator, percent, text) {
+  indicator.querySelector('#progressBar').style.width = `${percent}%`;
+  indicator.querySelector('#progressStatus').textContent = text;
+}
+
+// 保存图片到相册
+function saveToGallery(blob, fileName) {
+  // 新增：iPad特殊处理
+  if (isIOS) {
+    return new Promise((resolve) => {
+      const blobUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.download = fileName;
+      downloadLink.href = blobUrl;
+      downloadLink.style.display = 'none';
+      downloadLink.target = '_blank';
+      document.body.appendChild(downloadLink);
+      
+      // 模拟点击触发下载
+      const clickEvent = new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: true
+      });
+      downloadLink.dispatchEvent(clickEvent);
+      
+      // 清理临时资源
+      setTimeout(() => {
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(blobUrl);
+        resolve(true);
+      }, 1000);
+    });
+  }
+  
+  return new Promise((resolve, reject) => {
+    if (window.showSaveFilePicker) {
+      window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [{ description: '圖片文件', accept: { 'image/jpeg': ['.jpg'] } }]
+      })
+      .then(handle => handle.createWritable())
+      .then(writable => writable.write(blob).then(() => writable.close()))
+      .then(() => resolve(true))
+      .catch(err => saveWithAnchorTag(blob, fileName, resolve, reject));
+    } else {
+      saveWithAnchorTag(blob, fileName, resolve, reject);
+    }
+  });
+}
+
+// a标签兼容下载
+function saveWithAnchorTag(blob, fileName, resolve, reject) {
+  const blobUrl = URL.createObjectURL(blob);
+  const downloadLink = document.createElement('a');
+  downloadLink.download = fileName;
+  downloadLink.href = blobUrl;
+  downloadLink.style.display = 'none';
+  document.body.appendChild(downloadLink);
+  
+  requestAnimationFrame(() => {
+    downloadLink.click();
+    
+    // 清理临时资源
+    setTimeout(() => {
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(blobUrl);
+      resolve(true);
+    }, 1000);
+  });
+}
+
+// 显示分享按钮
+function showSingleShareButton(userName, date) {
+  // 移除旧的分享按钮
+  const existingShareBtn = document.getElementById('singleShareBtn');
+  if (existingShareBtn) document.body.removeChild(existingShareBtn);
+  
+  // 创建新的分享按钮
+  const shareBtn = document.createElement('button');
+  shareBtn.id = 'singleShareBtn';
+  shareBtn.style.cssText = `
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    padding: 12px 28px; border-radius: 30px; background: #165DFF; color: white;
+    border: none; box-shadow: 0 4px 15px rgba(22, 93, 255, 0.3);
+    font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 8px;
+    z-index: 9999; cursor: pointer; transition: background 0.2s ease;
+  `;
+  shareBtn.innerHTML = '<i class="fa fa-share-alt"></i> 分享健康自檢表';
+  document.body.appendChild(shareBtn);
+  
+  // 添加悬停效果
+  shareBtn.addEventListener('mouseover', () => {
+    shareBtn.style.background = '#0E42D2';
+  });
+  
+  shareBtn.addEventListener('mouseout', () => {
+    shareBtn.style.background = '#165DFF';
+  });
+  
+  // 绑定分享事件
+  shareBtn.addEventListener('click', async () => {
+    try {
+      // 增强的检查和错误处理
+      if (!localImageBlob && !imgbbImageUrl) {
+        showToast('分享資源不完整，請重新生成圖片', 'error');
+        return;
+      }
+      
+      // 若localImageBlob不存在但有imgbbImageUrl，仍然允许分享
+      if (!localImageBlob) {
+        showToast('使用網絡圖片進行分享', 'info');
+      }
+      
+      // 构建分享内容
+      let imageFile = null;
+      if (localImageBlob) {
+        imageFile = new File([localImageBlob], localImageName, { type: 'image/jpeg' });
+      }
+      
+      const shareText = `📋 『 ${userName} 』的健康自檢表\n🗓️ 自檢日期：${date}\n💡 包含：調理方向 + AI評估\n🔗 圖片鏈接：`;
+      const shareUrl = imgbbImageUrl || '';
+      
+      // 新增：iPad分享特殊处理
+      if (isIOS) {
+        if (navigator.share) {
+          shareBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 喚醒分享...';
+          
+          // 对iPad Safari使用不同的分享策略
+          const shareData = {
+            title: `${userName}的健康自檢表`,
+            text: shareText + (shareUrl ? shareUrl : ''),
+            url: shareUrl || window.location.href
+          };
+          
+          // 如果有图片文件且支持文件分享，才添加文件
+          if (imageFile && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+            shareData.files = [imageFile];
+          }
+          
+          await navigator.share(shareData);
+          showToast('分享成功！');
+          shareBtn.innerHTML = '<i class="fa fa-share-alt"></i> 分享健康自檢表';
+        } else {
+          // Safari不支持分享API时，复制链接
+          await navigator.clipboard.writeText(shareText + (shareUrl || window.location.href));
+          showToast('分享鏈接已複製到剪貼板');
+        }
+      } else if (navigator.share) {
+        // 其他设备的分享逻辑
+        shareBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 喚醒分享...';
+        
+        const shareData = {
+          title: `${userName}的健康自檢表`,
+          text: shareText,
+          url: shareUrl || window.location.href
+        };
+        
+        if (imageFile && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+          shareData.files = [imageFile];
+        }
+        
+        await navigator.share(shareData);
+        showToast('分享成功！');
+        shareBtn.innerHTML = '<i class="fa fa-share-alt"></i> 分享健康自檢表';
+      } else {
+        // 不支持分享API时，复制链接
+        await navigator.clipboard.writeText(shareText + (shareUrl || window.location.href));
+        showToast('分享內容已複製到剪貼板');
+      }
+    } catch (shareError) {
+      console.error('分享失敗:', shareError);
+      shareBtn.innerHTML = '<i class="fa fa-share-alt"></i> 分享健康自檢表';
+      if (shareError.name !== 'AbortError') {
+        showToast(`分享失敗，鏈接：${imgbbImageUrl || '無'}`, 'error');
+      } else {
+        showToast('分享已取消');
+      }
+    }
+  });
+}
+
+// 初始化函数 - 仅在DOM完全加载后执行
+document.addEventListener('DOMContentLoaded', function() {
+  // 确保所有DOM元素都已加载完成
+  
+  // 获取DOM元素
+  const formWrapper = document.getElementById('formWrapper') || document.getElementById('formContainer');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const successModal = document.getElementById('successModal');
+  const viewResultBtn = document.getElementById('viewResultBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const resultSection = document.getElementById('result');
+  const downloadReportBtn = document.getElementById('downloadReportBtn');
+  
+  // 检查LINE用户信息字段是否存在
+  const lineUserIdInput = document.getElementById('lineUserId');
+  const lineUserNameInput = document.getElementById('lineUserName');
+  if (!lineUserIdInput || !lineUserNameInput) {
+    console.warn('LINE用户信息输入框未找到，可能影响功能');
+    showToast('页面配置不完整，LINE用户信息字段缺失', 'warning');
+  }
+  
+  // 绑定按钮事件
+  if (prevBtn) {
     prevBtn.addEventListener('click', () => {
       if (currentStep > 1) {
         currentStep--;
         updateFormSteps();
-        if (currentStep === 1) updateGenderBasedUI();
       }
     });
-
+  }
+  
+  if (nextBtn) {
     nextBtn.addEventListener('click', () => {
       if (validateStep(currentStep)) {
-        if (currentStep === 2) updateGlobalSymptomData();
         if (currentStep < totalSteps) {
           currentStep++;
           updateFormSteps();
-          if (currentStep === 2) updateGenderBasedUI();
         }
       }
     });
-
-    // -------------------------- 5. 表單驗證邏輯
-    function validateStep(step) {
-      let isValid = true;
-      clearAllErrors();
-
-      // 步驟1：基本信息驗證
-      if (step === 1) {
-        const name = document.getElementById('name').value.trim();
-        const age = document.getElementById('age').value.trim();
-        const genderSelected = document.querySelector('input[name="gender"]:checked');
-
-        if (!name) { showError('name', '請輸入您的姓名'); isValid = false; }
-        if (!age || isNaN(age) || age < 1 || age > 120) { showError('age', '請輸入有效的年齡（1-120歲）'); isValid = false; }
-        if (!genderSelected) { showError('gender', '請選擇您的性別'); isValid = false; }
-        
-        // 对LINE用户信息进行验证（如果字段存在）
-        if (lineUserIdInput && lineUserIdInput.readOnly && !lineUserIdInput.value.trim()) {
-          showError('lineUserId', 'LINE用户ID获取失败，请刷新页面重试');
-          isValid = false;
-        }
-      }
-
-      // 步驟4：健康評估驗證
-      else if (step === 4) {
-        const mainConcern = document.getElementById('mainConcern').value.trim();
-        const symptomDuration = document.getElementById('symptomDuration').value;
-        const allergySelected = document.querySelector('input[name="allergyHistory"]:checked');
-        const medicalSelected = document.querySelector('input[name="medicalHistory"]:checked');
-        const declarationChecked = document.getElementById('healthDeclaration').checked;
-
-        if (!mainConcern && globalUniqueSymptoms.length > 0) {
-          showError('mainConcern', `請描述您最關注的健康問題（可從選中症狀：${globalUniqueSymptoms.slice(0,2).join('、')}... 中選擇）`);
-          isValid = false;
-        } else if (!mainConcern) {
-          showError('mainConcern', '請描述您最關注的健康問題');
-          isValid = false;
-        }
-        if (!symptomDuration) { showError('symptomDuration', '請選擇症狀持續時間'); isValid = false; }
-        if (!allergySelected) { showError('allergyHistory', '請選擇是否有過敏史'); isValid = false; }
-        if (!medicalSelected) { showError('medicalHistory', '請選擇是否有手術史或既往病史'); isValid = false; }
-        if (!declarationChecked) { showError('declaration', '請閱讀並同意健康宣言'); isValid = false; }
-      }
-
-      return isValid;
-    }
-
-    // 清除所有錯誤提示
-    function clearAllErrors() {
-      document.querySelectorAll('.error-message').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('input, select, textarea').forEach(el => el.classList.remove('error-input'));
-    }
-
-    // 顯示單個錯誤提示
-    function showError(fieldId, message) {
-      const errorElement = document.getElementById(`${fieldId}Error`);
-      if (errorElement) {
-        errorElement.textContent = message;
-        errorElement.classList.remove('hidden');
-      }
-
-      const inputElement = document.getElementById(fieldId);
-      if (inputElement) {
-        inputElement.classList.add('error-input');
-        inputElement.focus();
-        inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else {
-        const fieldGroup = document.querySelector(`input[name="${fieldId}"]`)?.closest('div');
-        if (fieldGroup) fieldGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-
-    // -------------------------- 6. 通用JSONP請求函數（帶重試機制）
-    function jsonpRequest(url, callbackName, timeout = REQUEST_TIMEOUT) {
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = url;
-        script.type = 'text/javascript';
-        script.async = true;
-        
-        // 超時處理
-        const timeoutId = setTimeout(() => {
-          cleanup();
-          reject(new Error('請求超時'));
-        }, timeout);
-        
-        // 成功回調
-        window[callbackName] = function(response) {
-          cleanup();
-          resolve(response);
-        };
-        
-        // 錯誤處理
-        script.onerror = function() {
-          cleanup();
-          reject(new Error('網路錯誤'));
-        };
-        
-        // 清理函數
-        function cleanup() {
-          clearTimeout(timeoutId);
-          delete window[callbackName];
-          if (document.body.contains(script)) {
-            document.body.removeChild(script);
-          }
-        }
-        
-        document.body.appendChild(script);
-      });
-    }
-    
-    // 帶重試的請求函數
-    async function requestWithRetry(requestFn, retries = MAX_RETRIES, delay = 1000) {
-      try {
-        return await requestFn();
-      } catch (error) {
-        if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return requestWithRetry(requestFn, retries - 1, delay * 2); // 指數退避
-        }
-        throw error;
-      }
-    }
-
-    // -------------------------- 7. 調用後端生成AI評語
-    async function callOpenAIByBackend(healthData) {
-      try {
-        // 顯示加載狀態
-        aiEvaluationContainer.innerHTML = `
-          <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4">
-            <h4 class="font-semibold text-primary mb-2 flex items-center">
-              <i class="fa fa-spinner fa-spin mr-2"></i> AI正在分析您的健康數據...
-            </h4>
-            <p class="text-sm text-gray-600">預計需要10-15秒，請稍候...</p>
-          </div>
-        `;
-
-        // 構建完整請求數據（精簡數據傳輸）
-        const formData = {
-          basicInfo: healthData.basicInfo,
-          symptoms: healthData.symptoms,
-          symptomCount: healthData.symptomCount,
-          habits: healthData.habits,
-          habitCount: healthData.habitCount,
-          healthIssues: healthData.healthIssues
-        };
-
-        // 使用帶重試的JSONP請求
-        const callbackName = `jsonpAiCallback_${Date.now()}`;
-        const params = new URLSearchParams({
-          data: JSON.stringify(formData),
-          callback: callbackName,
-          action: 'generateAiComment',
-          timestamp: Date.now() // 防止緩存
-        });
-        
-        const requestFn = () => jsonpRequest(
-          `${BACKEND_GOOGLE_SCRIPT_URL}?${params.toString()}`,
-          callbackName
-        );
-        
-        const response = await requestWithRetry(requestFn);
-
-        if (response?.status === 'success' && response.aiComment) {
-          globalAiComment = response.aiComment;
-          renderAiEvaluation();
-          return true;
-        } else {
-          throw new Error(response?.message || 'AI評語生成失敗，後端未返回有效數據');
-        }
-
-      } catch (error) {
-        console.error('AI評語生成失敗：', error);
-        // 顯示錯誤+重試按鈕
-        aiEvaluationContainer.innerHTML = `
-          <div class="bg-red-50 p-4 rounded-lg border border-red-100 mt-4">
-            <h4 class="font-semibold text-red-600 mb-2">AI評估生成失敗</h4>
-            <p class="text-sm text-gray-600 mb-3">原因：${error.message || '網路異常，請檢查網路後重試'}</p>
-            <button id="aiRetryBtn" class="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90">
-              <i class="fa fa-refresh mr-1"></i> 重新生成
-            </button>
-          </div>
-        `;
-        // 綁定重試事件
-        document.getElementById('aiRetryBtn')?.addEventListener('click', async () => {
-          const healthData = collectHealthData();
-          await callOpenAIByBackend(healthData);
-        });
-        return false;
-      }
-    }
-
-    // -------------------------- 8. 渲染AI評估結果
-    function renderAiEvaluation() {
-      if (!aiEvaluationContainer || !globalAiComment) return;
-
-      // 格式化評語
-      const formattedComment = globalAiComment
-        .split('\n')
-        .filter(para => para.trim())
-        .map(para => `<p class="text-sm mb-2">${para}</p>`)
-        .join('');
-
-      aiEvaluationContainer.innerHTML = `
-        <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mt-4">
-          <h3 class="text-lg font-semibold mb-4 text-primary">
-            <i class="fa fa-robot mr-2"></i>🟢 健康自檢表 AI評估
-          </h3>
-          <div class="text-gray-700">${formattedComment}</div>
-          <p class="text-xs text-gray-500 mt-3">
-            提示：此評語基於自檢表數據生成，僅供參考，不能替代醫生診斷
-          </p>
-        </div>
-      `;
-    }
-
-    // -------------------------- 9. 表單提交
+  }
+  
+  if (submitBtn) {
     submitBtn.addEventListener('click', async () => {
       updateGlobalSymptomData();
       if (!validateStep(4)) return;
-
-      successModal.classList.remove('hidden');
+      
+      if (successModal) successModal.classList.remove('hidden');
+      
       try {
-        // 並行執行AI評估和數據提交，提高速度
+        // 并行执行AI评估和数据提交，提高速度
         const healthData = collectHealthData();
         
-        // 使用Promise.allSettled確保兩個操作都完成
+        // 使用Promise.allSettled确保两个操作都完成
         const [aiResult, submitResult] = await Promise.allSettled([
           callOpenAIByBackend(healthData),
           submitToGoogleSheets()
         ]);
         
-        // 檢查是否有一個操作成功
+        // 检查是否有一个操作成功
         const aiSuccess = aiResult.status === 'fulfilled' && aiResult.value;
         const submitSuccess = submitResult.status === 'fulfilled' && submitResult.value;
         
         if (aiSuccess || submitSuccess) {
           generateResult();
         } else {
-          // 顯示具體錯誤信息
+          // 显示具体错误信息
           const errorMsg = [];
           if (aiResult.status === 'rejected') errorMsg.push(`AI評估: ${aiResult.reason.message}`);
           if (submitResult.status === 'rejected') errorMsg.push(`數據提交: ${submitResult.reason.message}`);
           
           alert(`操作失敗：\n${errorMsg.join('\n')}\n請稍後重試`);
-          successModal.classList.add('hidden');
+          if (successModal) successModal.classList.add('hidden');
         }
       } catch (error) {
         console.error('提交異常：', error);
         alert(`提交失敗：${error.message}`);
-        successModal.classList.add('hidden');
+        if (successModal) successModal.classList.add('hidden');
       }
     });
-
-    // -------------------------- 10. 查看結果/重新評估按鈕事件
+  }
+  
+  // 查看结果/重新评估按钮事件
+  if (viewResultBtn) {
     viewResultBtn.addEventListener('click', () => {
-      successModal.classList.add('hidden');
-      resultSection.classList.remove('hidden');
-      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (successModal) successModal.classList.add('hidden');
+      if (resultSection) {
+        resultSection.classList.remove('hidden');
+        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       if (globalAiComment) {
         renderAiEvaluation();
       }
     });
-
+  }
+  
+  if (restartBtn) {
     restartBtn.addEventListener('click', () => {
-      // 重置全域數據
+      // 重置全局数据
       globalUniqueSymptoms = [];
       globalUniqueHabits = [];
       globalAiComment = '';
@@ -3044,17 +4125,20 @@ document.addEventListener('DOMContentLoaded', function() {
       imgbbImageUrl = '';
       imgbbDeleteUrl = '';
       currentStep = 1;
-
-      // 重置雷達圖
+      
+      // 重置雷达图
       if (windowHealthChart) {
         windowHealthChart.destroy();
         windowHealthChart = null;
       }
-
-      // 重置AI評估容器
-      aiEvaluationContainer.innerHTML = '';
-
-      // 重置表單元素（保留LINE用戶信息）
+      
+      // 重置AI评估容器
+      const aiEvaluationContainer = document.getElementById('aiEvaluation');
+      if (aiEvaluationContainer) {
+        aiEvaluationContainer.innerHTML = '';
+      }
+      
+      // 重置表单元素（保留LINE用户信息）
       document.querySelectorAll('input, textarea, select').forEach(el => {
         if ((el.id === 'lineUserId' || el.id === 'lineUserName') && el.readOnly) {
           // 保留LINE用户信息
@@ -3064,1115 +4148,113 @@ document.addEventListener('DOMContentLoaded', function() {
         else el.value = '';
         el.classList.remove('error-input');
       });
-
-      // 重置UI狀態
+      
+      // 重置UI状态
       clearAllErrors();
       updateFormSteps();
       updateGenderBasedUI();
-      resultSection.classList.add('hidden');
-      formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
+      if (resultSection) resultSection.classList.add('hidden');
+      if (formWrapper) formWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-
-    // -------------------------- 11. 症狀/習慣分類篩選
-    document.querySelectorAll('.symptom-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        // 更新標籤樣式
-        document.querySelectorAll('.symptom-tab').forEach(t => {
-          t.classList.remove('active', 'bg-primary', 'text-white');
-          t.classList.add('bg-gray-200', 'hover:bg-gray-300');
-        });
-        tab.classList.add('active', 'bg-primary', 'text-white');
-        tab.classList.remove('bg-gray-200', 'hover:bg-gray-300');
-
-        const selectedCategory = tab.getAttribute('data-category');
-        const selectedGender = document.querySelector('input[name="gender"]:checked')?.value;
-
-        // 篩選症狀
-        document.querySelectorAll('.symptom-item').forEach(item => {
-          const itemCategory = item.getAttribute('data-category');
-          const isPostpartum = item.hasAttribute('data-special') && item.getAttribute('data-special') === 'postpartum';
-
-          if (selectedGender === 'male') {
-            if (itemCategory === 'female' || isPostpartum) { item.style.display = 'none'; return; }
-          }
-
-          item.style.display = (selectedCategory === 'all' || itemCategory === selectedCategory) ? 'block' : 'none';
-        });
-
-        updateGlobalSymptomData();
+  }
+  
+  // 症状/习惯分类筛选
+  document.querySelectorAll('.symptom-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      // 更新标签样式
+      document.querySelectorAll('.symptom-tab').forEach(t => {
+        t.classList.remove('active', 'bg-primary', 'text-white');
+        t.classList.add('bg-gray-200', 'hover:bg-gray-300');
       });
-    });
-
-    document.querySelectorAll('.habit-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        // 更新標籤樣式
-        document.querySelectorAll('.habit-tab').forEach(t => {
-          t.classList.remove('active', 'bg-primary', 'text-white');
-          t.classList.add('bg-gray-200', 'hover:bg-gray-300');
-        });
-        tab.classList.add('active', 'bg-primary', 'text-white');
-        tab.classList.remove('bg-gray-200', 'hover:bg-gray-300');
-
-        const selectedCategory = tab.getAttribute('data-category');
-        // 篩選習慣項
-        document.querySelectorAll('.habit-item').forEach(item => {
-          item.style.display = (selectedCategory === 'all' || item.getAttribute('data-category') === selectedCategory) ? 'block' : 'none';
-        });
-        // 篩選習慣分類標題
-        document.querySelectorAll('.habit-category-title').forEach(title => {
-          title.parentElement.style.display = (selectedCategory === 'all' || title.getAttribute('data-category') === selectedCategory) ? 'block' : 'none';
-        });
-
-        updateGlobalSymptomData();
+      tab.classList.add('active', 'bg-primary', 'text-white');
+      tab.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+      
+      const selectedCategory = tab.getAttribute('data-category');
+      const selectedGender = document.querySelector('input[name="gender"]:checked')?.value;
+      
+      // 筛选症状
+      document.querySelectorAll('.symptom-item').forEach(item => {
+        const itemCategory = item.getAttribute('data-category');
+        const isPostpartum = item.hasAttribute('data-special') && item.getAttribute('data-special') === 'postpartum';
+        
+        if (selectedGender === 'male') {
+          if (itemCategory === 'female' || isPostpartum) { 
+            item.style.display = 'none'; 
+            return; 
+          }
+        }
+        
+        item.style.display = (selectedCategory === 'all' || itemCategory === selectedCategory) ? 'block' : 'none';
       });
-    });
-
-    // -------------------------- 12. 表單步驟更新
-    function updateFormSteps() {
-      // 切換步驟顯示狀態
-      document.querySelectorAll('.form-step').forEach(step => {
-        step.classList.add('hidden');
-        step.classList.remove('active');
-      });
-      const currentStepEl = document.getElementById(`step${currentStep}`);
-      if (currentStepEl) {
-        currentStepEl.classList.remove('hidden');
-        currentStepEl.classList.add('active');
-      }
-
-      // 更新步驟指示器
-      document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
-        if (index + 1 < currentStep) {
-          indicator.classList.remove('bg-gray-200', 'text-gray-500');
-          indicator.classList.add('bg-primary', 'text-white');
-        } else if (index + 1 === currentStep) {
-          indicator.classList.remove('bg-gray-200', 'text-gray-500');
-          indicator.classList.add('bg-primary', 'text-white');
-        } else {
-          indicator.classList.remove('bg-primary', 'text-white');
-          indicator.classList.add('bg-gray-200', 'text-gray-500');
-        }
-      });
-
-      // 更新進度條寬度
-      document.querySelectorAll('.step-progress').forEach((progress, index) => {
-        progress.style.width = index + 1 < currentStep ? '100%' : '0%';
-      });
-
-      // 控制按鈕顯隱
-      prevBtn.classList.toggle('hidden', currentStep === 1);
-      nextBtn.classList.toggle('hidden', currentStep === totalSteps);
-      submitBtn.classList.toggle('hidden', currentStep !== totalSteps);
-
-      // 滾動到當前表單區域
-      formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    // -------------------------- 13. 工具函數：收集AI所需精簡健康數據
-    function collectHealthData() {
-      // 获取LINE用户信息的增强逻辑
-      let lineUserId = '';
-      let lineUserName = '';
       
-      // 优先从输入框获取
-      if (lineUserIdInput) lineUserId = lineUserIdInput.value || '';
-      if (lineUserNameInput) lineUserName = lineUserNameInput.value || '';
-      
-      // 如果输入框没有，则从localStorage获取
-      if (!lineUserId) lineUserId = localStorage.getItem('lineUserId') || '';
-      if (!lineUserName) lineUserName = localStorage.getItem('lineUserName') || '';
-      
-      const selectedGender = document.querySelector('input[name="gender"]:checked');
-      return {
-        basicInfo: {
-          name: document.getElementById('name').value || '未填寫',
-          age: document.getElementById('age').value || '未填寫',
-          gender: selectedGender ? (selectedGender.value === 'male' ? '男' : '女') : '未填寫',
-          bmi: calculateBMI(),
-          bloodPressure: document.getElementById('bloodPressure').value || '未填寫',
-          // 新增：Line用戶信息
-          lineUserId: lineUserId || '未填寫',
-          lineUserName: lineUserName || '未填寫'
-        },
-        symptoms: globalUniqueSymptoms.join('; '),
-        symptomCount: globalUniqueSymptoms.length,
-        habits: globalUniqueHabits.join('; '),
-        habitCount: globalUniqueHabits.length,
-        healthIssues: {
-          mainConcern: document.getElementById('mainConcern').value || '未明確說明',
-          symptomDuration: document.getElementById('symptomDuration').value || '未說明'
-        }
-      };
-    }
-
-    // -------------------------- 14. 工具函數：收集全量表單數據
-    function collectFullFormData() {
-      // 获取LINE用户信息的增强逻辑
-      let lineUserId = '';
-      let lineUserName = '';
-      
-      // 优先从输入框获取
-      if (lineUserIdInput) lineUserId = lineUserIdInput.value || '';
-      if (lineUserNameInput) lineUserName = lineUserNameInput.value || '';
-      
-      // 如果输入框没有，则从localStorage获取
-      if (!lineUserId) lineUserId = localStorage.getItem('lineUserId') || '';
-      if (!lineUserName) lineUserName = localStorage.getItem('lineUserName') || '';
-      
-      const selectedGender = document.querySelector('input[name="gender"]:checked');
-      return {
-        submitTime: new Date().toLocaleString('zh-Hant', {
-          year: 'numeric', month: '2-digit', day: '2-digit',
-          hour: '2-digit', minute: '2-digit', second: '2-digit'
-        }),
-        basicInfo: {
-          name: document.getElementById('name').value || '未填寫',
-          age: document.getElementById('age').value || '未填寫',
-          gender: selectedGender ? (selectedGender.value === 'male' ? '男' : '女') : '未填寫',
-          phone: document.getElementById('phone').value || '未填寫',
-          // 新增：Line用戶信息
-          lineUserId: lineUserId || '未填寫',
-          lineUserName: lineUserName || '未填寫',
-          height: document.getElementById('height').value ? `${document.getElementById('height').value} cm` : '未填寫',
-          weight: document.getElementById('weight').value ? `${document.getElementById('weight').value} kg` : '未填寫',
-          bmi: calculateBMI(),
-          waist: document.getElementById('waist').value ? `${document.getElementById('waist').value} cm` : '未填寫',
-          bloodPressure: document.getElementById('bloodPressure').value || '未填寫',
-          bloodSugar: document.getElementById('bloodSugar').value ? `${document.getElementById('bloodSugar').value} mmol/l` : '未填寫',
-          occupation: document.getElementById('occupation').value || '未填寫'
-        },
-        symptoms: globalUniqueSymptoms.join('; '),
-        symptomCount: globalUniqueSymptoms.length,
-        habits: globalUniqueHabits.join('; '),
-        habitCount: globalUniqueHabits.length,
-        healthIssues: {
-          mainConcern: document.getElementById('mainConcern').value || '未明確說明',
-          symptomDuration: document.getElementById('symptomDuration').value || '未說明',
-          possibleCauses: document.getElementById('possibleCauses').value || '未說明',
-          allergyHistory: document.querySelector('input[name="allergyHistory"]:checked')?.value || '未選擇',
-          medicalHistory: document.querySelector('input[name="medicalHistory"]:checked')?.value || '未選擇'
-        },
-        aiComment: globalAiComment || 'AI評語生成失敗',
-        imgbb: {
-          imageUrl: imgbbImageUrl || '未上傳',
-          deleteUrl: imgbbDeleteUrl || '無'
-        }
-      };
-    }
-
-    // -------------------------- 15. 工具函數：BMI計算
-    function calculateBMI() {
-      const height = document.getElementById('height').value;
-      const weight = document.getElementById('weight').value;
-      if (!height || !weight) return '未計算';
-      
-      const h = parseFloat(height) / 100; // 轉米單位
-      const w = parseFloat(weight);
-      if (h <= 0) return '未計算';
-      
-      const bmiValue = (w / (h * h)).toFixed(1);
-      let bmiStatus = '';
-      if (bmiValue < 18.5) bmiStatus = '（偏瘦）';
-      else if (bmiValue < 24) bmiStatus = '（正常）';
-      else if (bmiValue < 28) bmiStatus = '（超重）';
-      else bmiStatus = '（肥胖）';
-      return `${bmiValue} ${bmiStatus}`;
-    }
-
-    // -------------------------- 16. 提交數據到Google Sheets
-    function submitToGoogleSheets() {
-      return requestWithRetry(() => {
-        const formData = collectFullFormData();
-        const callbackName = `jsonpSubmitCallback_${Date.now()}`;
-        const params = new URLSearchParams({
-          data: JSON.stringify(formData),
-          callback: callbackName,
-          action: 'saveToSheets',
-          timestamp: Date.now() // 防止緩存
-        });
-
-        return jsonpRequest(
-          `${BACKEND_GOOGLE_SCRIPT_URL}?${params.toString()}`,
-          callbackName
-        ).then(response => {
-          if (response?.status === 'success') {
-            return true;
-          } else {
-            throw new Error(response?.message || '數據提交失敗，後端未確認保存');
-          }
-        });
-      });
-    }
-
-    // -------------------------- 17. 生成評估結果
-    function generateResult() {
-      // 1. 加載基本信息（包含新增的Line用戶信息）
-      const name = document.getElementById('name').value || '未填寫';
-      const age = document.getElementById('age').value || '未填寫';
-      const selectedGender = document.querySelector('input[name="gender"]:checked');
-      const gender = selectedGender ? (selectedGender.value === 'male' ? '男' : '女') : '未填寫';
-      const phone = document.getElementById('phone').value || '未填寫';
-      // 新增：Line用戶信息
-      let lineUserId = lineUserIdInput ? lineUserIdInput.value || '未填寫' : '未填寫';
-      let lineUserName = lineUserNameInput ? lineUserNameInput.value || '未填寫' : '未填寫';
-      
-      // 从localStorage补充LINE用户信息
-      if (!lineUserId) lineUserId = localStorage.getItem('lineUserId') || '未填寫';
-      if (!lineUserName) lineUserName = localStorage.getItem('lineUserName') || '未填寫';
-      
-      const height = document.getElementById('height').value ? `${document.getElementById('height').value} cm` : '未填寫';
-      const weight = document.getElementById('weight').value ? `${document.getElementById('weight').value} kg` : '未填寫';
-      const waist = document.getElementById('waist').value ? `${document.getElementById('waist').value} cm` : '未填寫';
-      const bloodPressure = document.getElementById('bloodPressure').value || '未填寫';
-      const bloodSugar = document.getElementById('bloodSugar').value ? `${document.getElementById('bloodSugar').value} mmol/l` : '未填寫';
-      const occupation = document.getElementById('occupation').value || '未填寫';
-      const bmi = calculateBMI();
-
-      // 2. 渲染基本信息卡片（新增Line用戶信息顯示）
-      const basicInfoContainer = document.getElementById('basicInfo');
-      if (basicInfoContainer) {
-        basicInfoContainer.style.display = 'block';
-        basicInfoContainer.innerHTML = `
-          <div class="grid grid-cols-2 gap-2">
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>姓名：</strong> ${name}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>年齡：</strong> ${age} 歲</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>性別：</strong> ${gender}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>電話：</strong> ${phone}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>Line用戶ID：</strong> ${lineUserId}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>Line用戶名稱：</strong> ${lineUserName}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>身高：</strong> ${height}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>體重：</strong> ${weight}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>BMI：</strong> ${bmi}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>腰圍：</strong> ${waist}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>血壓：</strong> ${bloodPressure}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>血糖：</strong> ${bloodSugar}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg col-span-2">
-              <p class="text-sm"><strong>職業：</strong> ${occupation}</p>
-            </div>
-          </div>
-        `;
-      } else {
-        const newBasicInfo = document.createElement('div');
-        newBasicInfo.id = 'basicInfo';
-        newBasicInfo.className = 'basic-info-container mt-6';
-        newBasicInfo.innerHTML = `
-          <h3 class="text-lg font-semibold mb-4">基本資料</h3>
-          <div class="grid grid-cols-2 gap-2">
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>姓名：</strong> ${name}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>年齡：</strong> ${age} 歲</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>Line用戶ID：</strong> ${lineUserId}</p>
-            </div>
-            <div class="p-3 border border-gray-100 rounded-lg">
-              <p class="text-sm"><strong>Line用戶名稱：</strong> ${lineUserName}</p>
-            </div>
-          </div>
-        `;
-        
-        const resultHeader = resultSection.querySelector('h2') || resultSection.firstChild;
-        resultSection.insertBefore(newBasicInfo, resultHeader.nextSibling);
-      }
-
-      // 3. 加載症狀/習慣統計數據
-      const totalSymptomCount = globalUniqueSymptoms.length;
-      const habitCount = globalUniqueHabits.length;
-
-      // 4. 六大調理方向得分計算
-      const adjustmentDirections = {
-        體質: [
-          '頭部畏冷', '四肢無力', '平衡能力差/容易跌倒', '思緒中斷', '反應遲鈍', '容易打哈欠',
-          '眼睛疲勞', '耳鳴/耳聾', '聽力減退', '嗅覺遲鈍', '咽喉異物感', '聲音沙啞',
-          '嘆氣/呼吸短促/喘氣', '打呼', '手足麻木/發紺', '手足發熱/冰涼/腫脹/出汗',
-          '胃痛/胃酸過多/腹脹/胃部畏寒', '惡心/打嗝/噯氣', '消化不良', '食慾不佳/容易飽脹',
-          '偏食/厭食', '食慾過盛', '嘴唇蒼白/發青/麻木', '嘴唇龜裂/咽喉乾燥',
-          '手足抽搐/手足顫抖', '關節疼痛/腫脹', '腰部酸痛/腰部畏寒', '容易落枕/頸部僵硬',
-          '肩膀酸脹/麻木/疼痛', '頸部疼痛/頸部畏寒', '頸部脂肪堆積', '游離性疼痛',
-          '脊椎僵硬/脊椎疼痛', '容易扭傷', '腳跟疼痛', '手足脫皮/凍瘡',
-          '月經期間下腹部畏寒', '月經期間下腹部墜脹', '月經期間腹脹/痛經', '月經期間腰痛/頭痛',
-          '月經期間嗜睡/失眠', '月經期間厭食/水腫', '月經期間煩躁/乳房脹痛',
-          '夜尿頻繁/尿頻/尿急', '尿不盡/尿失禁', '外陰瘙癢/外陰異味',
-          '大便不成形', '便溏不盡/便秘', '低燒37-38℃', '感冒久不愈', '容易感冒/不易感冒'
-        ],
-        免疫: [
-          '過敏性鼻炎', '眼睛癢/腫脹/突出/疼痛', '眼睛畏光/流淚', '眼睛乾澀/飛蚊症',
-          '咳嗽/氣喘', '支氣管炎', '痰液多/黃痰/痰液清稀', '白痰/黑痰/痰中帶血',
-          '口腔潰瘍/舌潰瘍', '淋巴結腫大', '各類過敏/濕疹', '皮膚癢/背部青春痘',
-          '銀屑病/白斑病', '黑痣增大/增多', '蜘蛛痣/魚鱗病', '扁桃腺炎', '皮膚容易瘀青/紅點'
-        ],
-        毒素: [
-          '眼糞多/麥粒腫', '耳朵內潮濕/化膿', '耳垢多/耳朵疼痛/癢', '鼻炎/鼻塞',
-          '流鼻水/流鼻血', '打噴嚏', '酒渣鼻', '口苦/口乾/口臭/口中腥味',
-          '口咸/口甜/口酸', '口臭明顯/口中辣味', '舌苔厚/黃苔/膩苔', '地圖舌/舌頭白斑',
-          '舌質紫暗/舌邊齒痕', '舌頭僵硬/舌頭前端不適', '腹脹/排氣多/排氣臭',
-          '血管瘤/脂肪瘤', '纖維瘤/皮脂腺囊腫', '膽結石/腎結石', '扁平疣/尋常疣',
-          '皮贅/雞眼', '頭部/面部油膩', '臉頰泛紅', '面色黃/蒼白/黝黑',
-          '痤瘡/青春痘/色素斑', '皮膚乾燥/接觸性皮炎', '脂肪粒', '身體異味',
-          '白帶增多/白帶帶血絲', '白帶顏色偏黃/黏稠', '白帶呈稀水狀/有腥臭味',
-          '月經期間長青春痘', '月經顏色暗/淡/深黑', '排尿疼痛/血尿', '尿分叉/排尿等待',
-          '尿液濃稠/尿液有異味', '尿液混濁/尿液泡沫多', '尿道口灼熱感/尿道口發炎'
-        ],
-        營養: [
-          '老花眼', '夜盲症', '視力模糊', '貧血/高血脂症', '身體消瘦', '肥胖/腹型肥胖',
-          '身高矮小/發育遲緩', '體重突然增加/減少10%', '指甲半月痕缺失/稀少',
-          '指甲易斷裂/手指倒刺', '指甲凹陷/指甲竪紋', '頭髮稀疏', '頭髮乾燥/掉發', '白髮/圓形禿'
-        ],
-        循環: [
-          '頭痛/頭暈', '頭部麻木/腦鳴', '嗜睡/易醒', '失眠/多夢', '偏頭痛/健忘',
-          '言語懶散/口吃', '暈車/暈機', '眉骨疼痛', '低血壓/高血壓', '心絞痛',
-          '心跳過快/過慢', '心悸/心律不整', '胸悶/胸痛', '右側肝區悶痛',
-          '頭暈/頭部麻木/容易打哈欠', '面色異常（蒼白/發青）', '低血糖/高血糖', '高血脂症',
-          '小腿水腫', '靜脈曲張', '下腹部悶痛', '睪丸腫塊/疝氣', '肛門瘙癢',
-          '便血/痔瘡', '脫肛/肛裂/肛瘻'
-        ],
-        內分泌: [
-          '甲狀腺機能亢進/甲狀腺機能低下', '甲狀腺結節', '肥胖/腹型肥胖', '身體消瘦',
-          '體重突然增加/減少10%', '低血糖/高血糖', '高血脂症', '低燒37-38℃',
-          '產後掉發/產後憂鬱', '產後色素沈澱', '不孕', '流產/死胎', '月經量少/月經有血塊',
-          '月經量多/子宮肌瘤', '月經提前/延後', '子宮腺肌症', '停經', '乳頭凹陷/乳頭溢膿',
-          '乳房腫塊/乳腺增生', '卵巢囊腫', '子宮頸息肉', '子宮頸肥大/子宮頸囊腫',
-          '性慾降低', '自汗/多汗/盜汗', '冒冷汗/後背畏寒'
-        ]
-      };
-
-      // 計算得分
-      const calculateAdjustmentScores = () => {
-        const scores = {};
-        const allIssues = [...globalUniqueSymptoms, ...globalUniqueHabits];
-        Object.entries(adjustmentDirections).forEach(([dir, relatedItems]) => {
-          const matchedCount = allIssues.filter(item => relatedItems.includes(item)).length;
-          const totalRelated = relatedItems.length || 1;
-          scores[dir] = Math.max(0, Math.round((1 - matchedCount / totalRelated) * 100));
-        });
-        return scores;
-      };
-
-      const adjustmentScores = calculateAdjustmentScores();
-      const adjustmentLabels = Object.keys(adjustmentScores);
-      const adjustmentData = Object.values(adjustmentScores);
-
-      // 5. 渲染雷達圖
-      const ctx = document.getElementById('healthBarChart')?.getContext('2d');
-      if (ctx) {
-        if (windowHealthChart) windowHealthChart.destroy();
-
-        // 空數據提示
-        if (adjustmentData.every(score => score === 100) && totalSymptomCount === 0) {
-          const chartParent = document.getElementById('healthBarChart').parentNode;
-          chartParent.innerHTML = '<p class="text-center text-gray-500 py-10">未選擇任何症狀，暫無法生成調理方向圖</p>';
-        } else {
-          // 使用requestAnimationFrame優化渲染
-          requestAnimationFrame(() => {
-            windowHealthChart = new Chart(ctx, {
-              type: 'radar',
-              data: {
-                labels: adjustmentLabels,
-                datasets: [{
-                  label: '調理優先級得分（越低需重點調理）',
-                  data: adjustmentData,
-                  backgroundColor: 'rgba(22, 93, 255, 0.2)',
-                  borderColor: 'rgba(22, 93, 255, 1)',
-                  borderWidth: 2,
-                  pointBackgroundColor: 'rgba(22, 93, 255, 1)',
-                  pointBorderColor: '#fff',
-                  pointHoverBackgroundColor: '#fff',
-                  pointHoverBorderColor: 'rgba(22, 93, 255, 1)',
-                  pointRadius: 4,
-                  pointHoverRadius: 6
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                  r: {
-                    angleLines: { display: true, color: 'rgba(0,0,0,0.1)' },
-                    grid: { color: 'rgba(0,0,0,0.1)' },
-                    pointLabels: { font: { size: 12, weight: 'bold' }, color: '#333', padding: 15 },
-                    ticks: { backdropColor: 'transparent', color: '#666', stepSize: 20, max: 100, min: 0 }
-                  }
-                },
-                plugins: {
-                  legend: { position: 'top', labels: { font: { size: 11 }, padding: 20 } },
-                  tooltip: {
-                    callbacks: {
-                      label: function(context) {
-                        const dir = adjustmentLabels[context.dataIndex];
-                        const score = adjustmentData[context.dataIndex];
-                        let tip = score < 30 ? '（急需重點調理）' : score < 60 ? '（建議加強調理）' : '（狀態良好）';
-                        return `${dir}: ${score}分 ${tip}`;
-                      }
-                    }
-                  },
-                  title: { display: true, text: '六大調理方向優先級分布', font: { size: 16, weight: 'bold' }, padding: { bottom: 20 } }
-                },
-                elements: { line: { tension: 0.2 } }
-              }
-            });
-          });
-        }
-      }
-
-      // 6. 渲染症狀/習慣統計
-      document.getElementById('symptomCount').textContent = `${totalSymptomCount} 項症狀`;
-      document.getElementById('habitCount').textContent = `${habitCount} 項不良習慣`;
-
-      // 進度條寬度計算
-      const symptomPercent = Math.min(100, (totalSymptomCount / 50) * 100);
-      const habitPercent = Math.min(100, (habitCount / 20) * 100);
-      document.getElementById('symptomScoreBar').style.width = `${symptomPercent}%`;
-      document.getElementById('habitScoreBar').style.width = `${habitPercent}%`;
-
-      // 7. 渲染主要健康問題
-      const mainIssuesContainer = document.getElementById('mainHealthIssues');
-      let mainConcern = document.getElementById('mainConcern').value.trim();
-      if (!mainConcern && totalSymptomCount > 0) {
-        const symptomCategoryCount = countSymptomCategories();
-        const topCategory = Object.entries(symptomCategoryCount).sort((a,b) => b[1]-a[1])[0]?.[0] || '全身不適';
-        mainConcern = `${topCategory}（${globalUniqueSymptoms.slice(0,3).join('、')}...）`;
-      } else if (!mainConcern) {
-        mainConcern = '未明確說明';
-      }
-
-      const symptomDuration = document.getElementById('symptomDuration').value || '未說明';
-      const possibleCauses = document.getElementById('possibleCauses').value || '未說明';
-      const isFemale = gender === '女';
-
-      // 症狀分類映射
-      const symptomCategories = {
-        '頭部症狀': ['頭痛/頭暈', '頭部麻木/腦鳴', '嗜睡/易醒', '失眠/多夢', '偏頭痛/健忘', '言語懶散/口吃', '暈車/暈機', '頭部畏冷', '思緒中斷', '反應遲鈍', '容易打哈欠', '眉骨疼痛'],
-        '眼耳鼻喉': ['老花眼', '眼睛癢/腫脹/突出/疼痛', '眼睛畏光/流淚', '眼睛乾澀/飛蚊症', '眼糞多/麥粒腫', '眼睛疲勞', '夜盲症', '視力模糊', '耳朵內潮濕/化膿', '耳垢多/耳朵疼痛/癢', '耳鳴/耳聾', '聽力減退', '鼻炎/鼻塞', '流鼻水/流鼻血', '打噴嚏', '過敏性鼻炎', '酒渣鼻', '嗅覺遲鈍', '咽喉異物感', '聲音沙啞'],
-        '呼吸系統': ['咳嗽/氣喘', '支氣管炎', '感冒久不愈', '容易感冒/不易感冒', '痰液多/黃痰/痰液清稀', '白痰/黑痰/痰中帶血', '嘆氣/呼吸短促/喘氣', '打呼'],
-        '循環系統': ['低血壓/高血壓', '貧血/高血脂症', '心絞痛', '心跳過快/過慢', '心悸/心律不整', '胸悶/胸痛', '右側肝區悶痛', '手足麻木/發紺', '手足發熱/冰涼/腫脹/出汗', '頭暈/頭部麻木/容易打哈欠', '面色異常（蒼白/發青）'],
-        '消化系統': ['胃痛/胃酸過多/腹脹/胃部畏寒', '惡心/打嗝/噯氣', '消化不良', '食慾不佳/容易飽脹', '偏食/厭食', '食慾過盛', '腹脹/排氣多/排氣臭', '嘴唇蒼白/發青/麻木', '口苦/口乾/口臭/口中腥味', '口咸/口甜/口酸', '口臭明顯/口中辣味', '口腔潰瘍/舌潰瘍', '舌苔厚/黃苔/膩苔', '地圖舌/舌頭白斑', '舌質紫暗/舌邊齒痕', '舌頭僵硬/舌頭前端不適', '嘴唇龜裂/咽喉乾燥', '大便不成形', '便溏不盡/便秘'],
-        '內分泌與代謝': ['甲狀腺機能亢進/甲狀腺機能低下', '甲狀腺結節', '肥胖/腹型肥胖', '身體消瘦', '身高矮小/發育遲緩', '體重突然增加/減少10%', '指甲半月痕缺失/稀少', '指甲易斷裂/手指倒刺', '指甲凹陷/指甲竪紋', '血管瘤/脂肪瘤', '纖維瘤/皮脂腺囊腫', '膽結石/腎結石', '扁平疣/尋常疣', '皮贅/雞眼', '淋巴結腫大', '低燒37-38℃', '手足抽搐/手足顫抖', '低血糖/高血糖', '高血脂症'],
-        '肌肉骨骼與關節': ['四肢無力', '平衡能力差/容易跌倒', '手足脫皮/凍瘡', '小腿水腫', '關節疼痛/腫脹', '容易落枕/頸部僵硬', '肩膀酸脹/麻木/疼痛', '頸部疼痛/頸部畏寒', '頸部脂肪堆積', '腰部酸痛/腰部畏寒', '游離性疼痛', '脊椎僵硬/脊椎疼痛', '靜脈曲張', '容易扭傷', '腳跟疼痛'],
-        '皮膚與毛髮': ['頭髮稀疏', '頭髮乾燥/掉發', '白髮/圓形禿', '頭部/面部油膩', '臉頰泛紅', '面色黃/蒼白/黝黑', '痤瘡/青春痘/色素斑', '皮膚容易瘀青/紅點', '皮膚癢/背部青春痘', '皮膚乾燥/接觸性皮炎', '銀屑病/白斑病', '黑痣增大/增多', '蜘蛛痣/魚鱗病', '各類過敏/濕疹', '產後掉發/產後憂鬱', '產後色素沈澱', '脂肪粒', '身體異味'],
-        '女性症狀': ['不孕', '流產/死胎', '月經量少/月經有血塊', '月經量多/子宮肌瘤', '月經提前/延後', '月經期間煩躁/乳房脹痛', '月經期間厭食/水腫', '月經期間腰痛/頭痛', '月經期間嗜睡/失眠', '月經期間腹脹/痛經', '子宮腺肌症', '月經期間下腹部畏寒', '月經期間下腹部墜脹', '月經顏色暗/淡/深黑', '月經期間長青春痘', '月經期延長', '停經', '乳頭凹陷/乳頭溢膿', '乳房腫塊/乳腺增生', '卵巢囊腫', '子宮頸息肉', '子宮頸肥大/子宮頸囊腫', '白帶增多/白帶帶血絲', '白帶顏色偏黃/黏稠', '白帶呈稀水狀/有腥臭味'],
-        '泌尿生殖系統': ['夜尿頻繁/尿頻/尿急', '尿不盡/尿失禁', '排尿疼痛/血尿', '尿分叉/排尿等待', '尿液濃稠/尿液有異味', '尿液混濁/尿液泡沫多', '尿道口灼熱感/尿道口發炎', '外陰瘙癢/外陰異味', '下腹部悶痛', '睪丸腫塊/疝氣', '肛門瘙癢', '便血/痔瘡', '脫肛/肛裂/肛瘻', '性慾降低', '自汗/多汗/盜汗', '冒冷汗/後背畏寒']
-      };
-
-      // 統計各分類下的症狀數量
-      function countSymptomCategories() {
-        const count = {};
-        Object.keys(symptomCategories).forEach(category => {
-          count[category] = 0;
-          globalUniqueSymptoms.forEach(symptom => {
-            if (symptomCategories[category].includes(symptom)) count[category]++;
-          });
-        });
-        return count;
-      }
-
-      // 構建分類症狀HTML
-      let symptomsHtml = '';
-      Object.keys(symptomCategories).forEach(category => {
-        if (!isFemale && category === '女性症狀') return;
-        const categorySymptoms = globalUniqueSymptoms.filter(sym => symptomCategories[category].includes(sym));
-        if (categorySymptoms.length > 0) {
-          symptomsHtml += `<div class="mt-2">
-            <p class="text-sm font-medium">${category}：</p>
-            <p class="text-sm ml-4">${categorySymptoms.join('、')}</p>
-          </div>`;
-        }
-      });
-
-      // 渲染主要健康問題區域
-      if (mainIssuesContainer) {
-        mainIssuesContainer.style.display = 'block';
-        mainIssuesContainer.innerHTML = `
-          <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
-            <h3 class="text-lg font-semibold mb-4 text-primary">主要健康問題</h3>
-            <p class="mb-3"><strong>主要關注問題：</strong> ${mainConcern}</p>
-            <p class="mb-3"><strong>症狀持續時間：</strong> ${symptomDuration}</p>
-            <p class="mb-3"><strong>可能原因：</strong> ${possibleCauses}</p>
-            ${totalSymptomCount > 0 ? 
-              `<div class="mt-3"><strong>詳細症狀：</strong>${symptomsHtml}</div>` : 
-              `<div class="mt-3 text-gray-500"><strong>詳細症狀：</strong>未選擇任何症狀</div>`
-            }
-          </div>
-        `;
-      } else {
-        const newMainIssues = document.createElement('div');
-        newMainIssues.id = 'mainHealthIssues';
-        newMainIssues.className = 'main-health-issues mt-6';
-        newMainIssues.innerHTML = `
-          <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
-            <h3 class="text-lg font-semibold mb-4 text-primary">主要健康問題</h3>
-            <p class="mb-3"><strong>主要關注問題：</strong> ${mainConcern}</p>
-            <p class="mb-3"><strong>症狀持續時間：</strong> ${symptomDuration}</p>
-            <p class="mb-3"><strong>可能原因：</strong> ${possibleCauses}</p>
-            ${totalSymptomCount > 0 ? 
-              `<div class="mt-3"><strong>詳細症狀：</strong>${symptomsHtml}</div>` : 
-              `<div class="mt-3 text-gray-500"><strong>詳細症狀：</strong>未選擇任何症狀</div>`
-            }
-          </div>
-        `;
-        
-        const radarChartContainer = document.getElementById('healthBarChart')?.parentNode;
-        if (radarChartContainer) {
-          radarChartContainer.parentNode.insertBefore(newMainIssues, radarChartContainer.nextSibling);
-        } else {
-          resultSection.appendChild(newMainIssues);
-        }
-      }
-
-      // 8. 渲染AI評估
-      if (globalUniqueSymptoms.length>0 && globalAiComment) {
-        renderAiEvaluation();
-      } else {
-        aiEvaluationContainer.innerHTML = `
-          <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100 mt-4">
-            <h4 class="font-semibold text-yellow-600 mb-2 flex items-center">
-              <i class="fa fa-info-circle mr-2"></i> AI評估提示
-            </h4>
-            <p class="text-sm text-gray-600">${globalUniqueSymptoms.length===0?'未選擇症狀，無法生成AI評語':'AI評語未生成，請點擊下方按鈕重新生成'}</p>
-            ${globalUniqueSymptoms.length>0?`<button id="aiRetryBtn" class="mt-2 px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90">
-              <i class="fa fa-refresh mr-1"></i> 重新生成AI評語
-            </button>`:''}
-          </div>
-        `;
-        document.getElementById('aiRetryBtn')?.addEventListener('click', async () => {
-          const healthData = collectHealthData();
-          await callOpenAIByBackend(healthData);
-        });
-      }
-
-      // 9. 渲染健康調理建議
-      const recommendationsContainer = document.getElementById('healthRecommendations');
-      if (recommendationsContainer) {
-        const lowScoreDirections = Object.entries(adjustmentScores)
-          .filter(([_, score]) => score < 60)
-          .sort((a,b) => a[1]-b[1])
-          .map(([dir]) => dir);
-
-        let recommendationsHtml = '';
-        if (lowScoreDirections.length > 0) {
-          recommendationsHtml += `<p class="text-sm font-medium text-primary mb-3">🔴 需重點調理方向：${lowScoreDirections.join('、')}</p>`;
-        }
-
-        recommendationsHtml += `
-    <div class="health-guidance mt-4">
-      <h3 class="text-lg font-semibold mb-4 text-primary">健康六大核心調理方向</h3>
-      
-      <!-- ① 體質——健康的「基礎土壤」 -->
-      <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
-        <h4 class="font-semibold text-blue-600 mb-2">① 體質 —— 健康的「基礎土壤」</h4>
-        <p class="text-sm mb-2">👉體內寒濕氣如同陰暗潮濕環境，易滋生類似水木耳（腫瘤、囊腫等）的健康問題，且會反復出現。</p>
-        <p class="text-sm text-gray-700 italic">👉寓意：調體質需先排寒除濕、提升身體溫度，從根源斷掉「問題生長的溫床」。</p>
-      </div>
-
-      <!-- ② 免疫——身體的「常駐軍隊」 -->
-      <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
-        <h4 class="font-semibold text-blue-600 mb-2">② 免疫 —— 身體的「常駐軍隊」</h4>
-        <p class="text-sm mb-2">👉藥物像「臨時外援」，雖能暫時控制疾病，但會損傷免疫力；而充足營養能強化身體「常駐防線」（免疫力），使其主動抵御病邪並產生抗體。</p>
-        <p class="text-sm text-gray-700 italic">👉寓意：真正的健康靠營養餵飽免疫力，而非依賴藥物。</p>
-      </div>
-
-      <!-- ③ 毒素——疾病反復的「隱形根源」 -->
-      <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
-        <h4 class="font-semibold text-blue-600 mb-2">③ 毒素 —— 疾病反復的「隱形根源」</h4>
-        <p class="text-sm mb-2">👉體內毒素如垃圾，會引發發炎、潰瘍等「蒼蠅」般的問題，若不排毒只治症狀，問題會反復甚至蔓延。</p>
-        <p class="text-sm text-gray-700 italic">👉寓意：調健康第一步是打通腸道、皮膚等排毒通道，給身體「掃垃圾」。</p>
-      </div>
-
-      <!-- ④ 營養——身體吸收的「原料密碼」 -->
-      <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
-        <h4 class="font-semibold text-blue-600 mb-2">④ 營養 —— 身體吸收的「原料密碼」</h4>
-        <p class="text-sm mb-2">👉人體需「對的原料」運轉，若脾胃虛弱（如生病的牛），吃補品也難吸收，反增負擔。</p>
-        <p class="text-sm text-gray-700 italic">👉寓意：補營養要先讓脾胃「有能力轉化」，再給對食物，才能變成身體能量。</p>
-      </div>
-
-      <!-- ⑤ 循環——健康的「暢通管道」 -->
-      <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
-        <h4 class="font-semibold text-blue-600 mb-2">⑤ 循環 —— 健康的「暢通管道」</h4>
-        <p class="text-sm mb-2">👉血管循環似水溝，血脂、垃圾是「雜草」，高血壓是「水流壓力大」。降壓藥僅暫時「加寬管道」，沒清垃圾問題遲早反復。</p>
-        <p class="text-sm text-gray-700 italic">👉寓意：調循環關鍵是清理血管垃圾，讓血液順暢流動。</p>
-      </div>
-
-      <!-- ⑥ 內分泌——身體的「總調度中心」 -->
-      <div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm mb-4">
-        <h4 class="font-semibold text-blue-600 mb-2">⑥ 內分泌 —— 身體的「總調度中心」</h4>
-        <p class="text-sm mb-2">👉內分泌是身體「總電閘」，月經不調、失眠等單一問題，若沒解決內分泌失調的「總開關問題」，症狀遲早反復。</p>
-        <p class="text-sm text-gray-700 italic">👉寓意：只有調整內分泌平衡，身體所有系統才能正常運轉。</p>
-      </div>
-    </div>
-      <div class="mt-4 text-sm text-neutral-dark/70 text-center p-3 bg-blue-50 rounded-lg">
-        六大調理邏輯：<br>體質是根基，循環是動力，<br>毒素要清除，免疫要增強，<br>營養要均衡，內分泌要穩定，<br>才能長久健康！
-      </div>
-    </div>
-          `;
-
-          recommendationsContainer.innerHTML = recommendationsHtml;
-        }
-      }
-
-      // -------------------------- 18. 截圖與分享功能
-      async function handleImageDownload() {
-        try {
-          // 禁用按鈕並顯示加載狀態
-          downloadReportBtn.disabled = true;
-          downloadReportBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 準備中...';
-          
-          // 創建進度提示
-          const progressIndicator = createProgressIndicator();
-          document.body.appendChild(progressIndicator);
-
-          // 1. 依賴檢查
-          if (typeof html2canvas === 'undefined') throw new Error('圖片處理庫未加載，請刷新頁面重試');
-          const resultSection = document.getElementById('result');
-          if (!resultSection) throw new Error('未找到健康評估結果頁容器，請先提交評估');
-
-          updateProgress(progressIndicator, 20, '調整頁面樣式...');
-
-          // 2. 臨時調整樣式
-          const originalStyles = {
-            resultPadding: resultSection.style.padding,
-            resultMargin: resultSection.style.margin,
-            resultBoxShadow: resultSection.style.boxShadow,
-            position: resultSection.style.position,
-            top: resultSection.style.top,
-            left: resultSection.style.left,
-            zIndex: resultSection.style.zIndex
-          };
-          
-          resultSection.style.padding = '20px';
-          resultSection.style.margin = '0 auto';
-          resultSection.style.boxShadow = 'none';
-          
-          const rect = resultSection.getBoundingClientRect();
-          resultSection.style.position = 'relative';
-          resultSection.style.top = `-${rect.top}px`;
-          resultSection.style.left = `-${rect.left}px`;
-          resultSection.style.zIndex = '1000';
-
-          // 臨時隱藏六大調理方向（重點修正部分）
-          const healthRecommendations = document.getElementById('healthRecommendations');
-          const originalHealthRecommendationsDisplay = healthRecommendations ? healthRecommendations.style.display : 'block';
-          if (healthRecommendations) {
-            healthRecommendations.style.display = 'none';
-          }
-          
-          // 額外隱藏可能包含六大調理方向的其他元素
-          const healthGuidance = document.querySelector('.health-guidance');
-          const originalHealthGuidanceDisplay = healthGuidance ? healthGuidance.style.display : 'block';
-          if (healthGuidance) {
-            healthGuidance.style.display = 'none';
-          }
-
-          updateProgress(progressIndicator, 40, '準備截圖...');
-
-          // 3. 執行截圖（優化配置，確保排除不需要的元素）
-          const canvas = await html2canvas(resultSection, {
-            useCORS: true,
-            allowTaint: false,
-            scale: Math.min(window.devicePixelRatio || 2, 2),
-            logging: false,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: resultSection.scrollWidth,
-            windowHeight: resultSection.scrollHeight,
-            ignoreElements: (el) => {
-              // 明確排除六大調理方向相關元素
-              return el.id === 'downloadReportBtn' || 
-                     el.id === 'singleShareBtn' || 
-                     el.id === 'restartBtn' || 
-                     el === progressIndicator || 
-                     el.id === 'healthRecommendations' ||
-                     el.classList.contains('health-guidance');
-            }
-          });
-
-          updateProgress(progressIndicator, 60, '處理圖片...');
-
-          // 4. 恢復原始樣式
-          Object.keys(originalStyles).forEach(key => {
-            resultSection.style[key] = originalStyles[key];
-          });
-          
-          // 恢復六大調理方向顯示
-          if (healthRecommendations) {
-            healthRecommendations.style.display = originalHealthRecommendationsDisplay;
-          }
-          if (healthGuidance) {
-            healthGuidance.style.display = originalHealthGuidanceDisplay;
-          }
-
-          // 5. 圖片處理
-          const userName = document.getElementById('name').value.trim() || '未知用戶';
-          const currentDate = new Date();
-          const formattedDate = `${currentDate.getFullYear()}年${String(currentDate.getMonth() + 1).padStart(2, '0')}月${String(currentDate.getDate()).padStart(2, '0')}日`;
-          localImageName = `${userName}_健康評估結果_${formattedDate}.jpg`;
-          
-          // 轉換Canvas為JPG Blob
-          localImageBlob = await new Promise((resolve, reject) => {
-            canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('圖片Blob生成失敗')), 'image/jpeg', 0.8);
-          });
-
-          updateProgress(progressIndicator, 75, '轉檔中...');
-
-          // 6. 並行處理本地保存和ImgBB上傳
-          const [saveResult, uploadResult] = await Promise.allSettled([
-            saveToGallery(localImageBlob, localImageName),
-            uploadToImgBB(localImageBlob, localImageName)
-          ]);
-          
-          // 處理上傳結果
-          if (uploadResult.status === 'fulfilled' && uploadResult.value) {
-            imgbbImageUrl = uploadResult.value.url;
-            imgbbDeleteUrl = uploadResult.value.deleteUrl;
-            // 異步更新Google Sheets
-            submitToGoogleSheets().catch(err => console.log('更新圖片URL失敗:', err));
-          } else if (uploadResult.status === 'rejected') {
-            // 顯示上傳錯誤但不中斷流程
-            console.warn('圖片上傳失敗:', uploadResult.reason);
-            showToast('圖片已保存到本地，但上傳至服務器失敗', 'error');
-          }
-          
-          // 檢查保存結果
-          if (saveResult.status === 'rejected') {
-            throw new Error(`保存圖片失敗: ${saveResult.reason.message}`);
-          }
-
-          updateProgress(progressIndicator, 90, '保存圖片...');
-
-          // 7. 完成處理
-          document.body.removeChild(progressIndicator);
-          downloadReportBtn.disabled = false;
-          downloadReportBtn.innerHTML = '<i class="fa fa-download mr-2"></i> 重新轉檔操作';
-          
-          showToast(`圖片已成功保存！\n文件名：${localImageName}`);
-          showSingleShareButton(userName, formattedDate);
-
-        } catch (error) {
-          console.error('圖片處理失敗：', error);
-          const progressIndicator = document.getElementById('progressIndicator');
-          if (progressIndicator) document.body.removeChild(progressIndicator);
-          
-          downloadReportBtn.disabled = false;
-          downloadReportBtn.innerHTML = '<i class="fa fa-download mr-2"></i> 下載圖片';
-          showToast(`操作失敗：${error.message}`, 'error');
-        }
-      }
-
-      
-      // 單獨的ImgBB上傳函數
-      async function uploadToImgBB(blob, fileName) {
-        try {
-          const base64Image = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.readAsDataURL(blob);
-          });
-
-          const formData = new FormData();
-          formData.append('key', IMGBB_API_KEY);
-          formData.append('image', base64Image);
-          formData.append('name', fileName);
-
-          // 超時控制
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-          
-          const uploadResponse = await fetch(IMGBB_UPLOAD_URL, {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-
-          if (!uploadResponse.ok) {
-            throw new Error(`HTTP錯誤: ${uploadResponse.status}`);
-          }
-
-          const uploadResult = await uploadResponse.json();
-          if (!uploadResult.success) {
-            throw new Error(`上傳失敗：${uploadResult?.error?.message || '未知錯誤'}`);
-          }
-
-          return {
-            url: uploadResult.data.url,
-            deleteUrl: uploadResult.data.delete_url
-          };
-        } catch (error) {
-          console.warn('ImgBB上傳失敗:', error);
-          // 不阻斷主流程，僅返回錯誤
-          throw error;
-        }
-      }
-
-      // 創建進度指示器
-      function createProgressIndicator() {
-        const indicator = document.createElement('div');
-        indicator.id = 'progressIndicator';
-        indicator.style.cssText = `
-          position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-          background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 12px;
-          box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15); z-index: 99999;
-          display: flex; flex-direction: column; align-items: center; min-width: 280px;
-        `;
-        
-        // 進度條容器
-        const progressContainer = document.createElement('div');
-        progressContainer.style.cssText = `
-          width: 100%; height: 6px; background: #f0f0f0; border-radius: 3px; margin: 15px 0;
-          overflow: hidden;
-        `;
-        
-        // 進度條
-        const progressBar = document.createElement('div');
-        progressBar.id = 'progressBar';
-        progressBar.style.cssText = `
-          height: 100%; background: #165DFF; width: 0%; transition: width 0.3s ease;
-        `;
-        
-        progressContainer.appendChild(progressBar);
-        
-        // 狀態文本
-        const statusText = document.createElement('div');
-        statusText.id = 'progressStatus';
-        statusText.style.cssText = `
-          color: #333; font-size: 15px; text-align: center; margin-top: 10px;
-        `;
-        statusText.textContent = '準備中...';
-        
-        // 加載動畫
-        const spinner = document.createElement('i');
-        spinner.className = 'fa fa-circle-o-notch fa-spin';
-        spinner.style.cssText = 'font-size: 30px; color: #165DFF;';
-        
-        indicator.appendChild(spinner);
-        indicator.appendChild(progressContainer);
-        indicator.appendChild(statusText);
-        
-        return indicator;
-      }
-
-      // 更新進度
-      function updateProgress(indicator, percent, text) {
-        indicator.querySelector('#progressBar').style.width = `${percent}%`;
-        indicator.querySelector('#progressStatus').textContent = text;
-      }
-
-      // 保存圖片到相冊
-      function saveToGallery(blob, fileName) {
-        // 新增：iPad特殊處理
-        if (isIOS) {
-          return new Promise((resolve) => {
-            const blobUrl = URL.createObjectURL(blob);
-            const downloadLink = document.createElement('a');
-            downloadLink.download = fileName;
-            downloadLink.href = blobUrl;
-            downloadLink.style.display = 'none';
-            downloadLink.target = '_blank';
-
-            document.body.appendChild(downloadLink);
-            
-            // 模擬點擊觸發下載
-            const clickEvent = new MouseEvent('click', {
-              view: window,
-              bubbles: true,
-              cancelable: true
-            });
-            downloadLink.dispatchEvent(clickEvent);
-            
-            // 清理臨時資源
-            setTimeout(() => {
-              document.body.removeChild(downloadLink);
-              URL.revokeObjectURL(blobUrl);
-              resolve(true);
-            }, 1000);
-          });
-        }
-
-        return new Promise((resolve, reject) => {
-          if (window.showSaveFilePicker) {
-            window.showSaveFilePicker({
-              suggestedName: fileName,
-              types: [{ description: '圖片文件', accept: { 'image/jpeg': ['.jpg'] } }]
-            })
-            .then(handle => handle.createWritable())
-            .then(writable => writable.write(blob).then(() => writable.close()))
-            .then(() => resolve(true))
-            .catch(err => saveWithAnchorTag(blob, fileName, resolve, reject));
-          } else {
-            saveWithAnchorTag(blob, fileName, resolve, reject);
-          }
-        });
-      }
-
-      // a標籤兼容下載
-      function saveWithAnchorTag(blob, fileName, resolve, reject) {
-        const blobUrl = URL.createObjectURL(blob);
-        const downloadLink = document.createElement('a');
-        downloadLink.download = fileName;
-        downloadLink.href = blobUrl;
-        downloadLink.style.display = 'none';
-
-        document.body.appendChild(downloadLink);
-        
-        requestAnimationFrame(() => {
-          downloadLink.click();
-          
-          // 清理臨時資源
-          setTimeout(() => {
-            document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(blobUrl);
-            resolve(true);
-          }, 1000);
-        });
-      }
-
-      // 顯示分享按鈕
-      function showSingleShareButton(userName, date) {
-        // 移除舊的分享按鈕
-        const existingShareBtn = document.getElementById('singleShareBtn');
-        if (existingShareBtn) document.body.removeChild(existingShareBtn);
-
-        // 創建新的分享按鈕
-        const shareBtn = document.createElement('button');
-        shareBtn.id = 'singleShareBtn';
-        shareBtn.style.cssText = `
-          position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-          padding: 12px 28px; border-radius: 30px; background: #165DFF; color: white;
-          border: none; box-shadow: 0 4px 15px rgba(22, 93, 255, 0.3);
-          font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 8px;
-          z-index: 9999; cursor: pointer; transition: background 0.2s ease;
-        `;
-        shareBtn.innerHTML = '<i class="fa fa-share-alt"></i> 分享健康自檢表';
-        document.body.appendChild(shareBtn);
-        
-        // 添加懸停效果
-        shareBtn.addEventListener('mouseover', () => {
-          shareBtn.style.background = '#0E42D2';
-        });
-        
-        shareBtn.addEventListener('mouseout', () => {
-          shareBtn.style.background = '#165DFF';
-        });
-
-        // 綁定分享事件
-        shareBtn.addEventListener('click', async () => {
-          try {
-            // 增強的檢查和錯誤處理
-            if (!localImageBlob && !imgbbImageUrl) {
-              showToast('分享資源不完整，請重新生成圖片', 'error');
-              return;
-            }
-            
-            // 若localImageBlob不存在但有imgbbImageUrl，仍然允許分享
-            if (!localImageBlob) {
-              showToast('使用網絡圖片進行分享', 'info');
-            }
-
-            // 構建分享內容
-            let imageFile = null;
-            if (localImageBlob) {
-              imageFile = new File([localImageBlob], localImageName, { type: 'image/jpeg' });
-            }
-            
-            const shareText = `📋 『 ${userName} 』的健康自檢表\n🗓️ 自檢日期：${date}\n💡 包含：調理方向 + AI評估\n🔗 圖片鏈接：`;
-            const shareUrl = imgbbImageUrl || '';
-
-            // 新增：iPad分享特殊處理
-            if (isIOS) {
-              if (navigator.share) {
-                shareBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 喚醒分享...';
-                
-                // 對iPad Safari使用不同的分享策略
-                const shareData = {
-                  title: `${userName}的健康自檢表`,
-                  text: shareText + (shareUrl ? shareUrl : ''),
-                  url: shareUrl || window.location.href
-                };
-                
-                // 如果有圖片文件且支持文件分享，才添加文件
-                if (imageFile && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
-                  shareData.files = [imageFile];
-                }
-                
-                await navigator.share(shareData);
-                showToast('分享成功！');
-                shareBtn.innerHTML = '<i class="fa fa-share-alt"></i> 分享健康自檢表';
-              } else {
-                // Safari不支持分享API時，複製鏈接
-                await navigator.clipboard.writeText(shareText + (shareUrl || window.location.href));
-                showToast('分享鏈接已複製到剪貼板');
-              }
-            } else if (navigator.share) {
-              // 其他設備的分享邏輯
-              shareBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 喚醒分享...';
-              
-              const shareData = {
-                title: `${userName}的健康自檢表`,
-                text: shareText,
-                url: shareUrl || window.location.href
-              };
-              
-              if (imageFile && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
-                shareData.files = [imageFile];
-              }
-              
-              await navigator.share(shareData);
-              showToast('分享成功！');
-              shareBtn.innerHTML = '<i class="fa fa-share-alt"></i> 分享健康自檢表';
-            } else {
-              // 不支持分享API時，複製鏈接
-              await navigator.clipboard.writeText(shareText + (shareUrl || window.location.href));
-              showToast('分享內容已複製到剪貼板');
-            }
-          } catch (shareError) {
-            console.error('分享失敗:', shareError);
-            shareBtn.innerHTML = '<i class="fa fa-share-alt"></i> 分享健康自檢表';
-            if (shareError.name !== 'AbortError') {
-              showToast(`分享失敗，鏈接：${imgbbImageUrl || '無'}`, 'error');
-            } else {
-              showToast('分享已取消');
-            }
-          }
-        });
-      }
-
-      // -------------------------- 19. 綁定事件與初始化
-      if (downloadReportBtn) {
-        downloadReportBtn.addEventListener('click', handleImageDownload);
-      }
-
-      // 頁面初始化
-      updateFormSteps();
-      updateGenderBasedUI();
+      updateGlobalSymptomData();
     });
   });
   
+  document.querySelectorAll('.habit-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      // 更新标签样式
+      document.querySelectorAll('.habit-tab').forEach(t => {
+        t.classList.remove('active', 'bg-primary', 'text-white');
+        t.classList.add('bg-gray-200', 'hover:bg-gray-300');
+      });
+      tab.classList.add('active', 'bg-primary', 'text-white');
+      tab.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+      
+      const selectedCategory = tab.getAttribute('data-category');
+      
+      // 筛选习惯项
+      document.querySelectorAll('.habit-item').forEach(item => {
+        item.style.display = (selectedCategory === 'all' || item.getAttribute('data-category') === selectedCategory) ? 'block' : 'none';
+      });
+      
+      // 筛选习惯分类标题
+      document.querySelectorAll('.habit-category-title').forEach(title => {
+        title.parentElement.style.display = (selectedCategory === 'all' || title.getAttribute('data-category') === selectedCategory) ? 'block' : 'none';
+      });
+      
+      updateGlobalSymptomData();
+    });
+  });
+  
+  // 绑定下载报告按钮事件
+  if (downloadReportBtn) {
+    downloadReportBtn.addEventListener('click', handleImageDownload);
+  }
+  
+  // 性别选择变化时更新UI
+  document.querySelectorAll('input[name="gender"]').forEach(radio => {
+    radio.addEventListener('change', updateGenderBasedUI);
+  });
+  
+  // 页面初始化
+  updateFormSteps();
+  updateGenderBasedUI();
+  
+  // 等待LIFF SDK加载完成后再初始化LIFF
+  if (typeof liff === 'undefined') {
+    // 检查LIFF SDK是否已加载，如未加载则等待
+    const checkLiffLoaded = setInterval(() => {
+      if (typeof liff !== 'undefined') {
+        clearInterval(checkLiffLoaded);
+        initLiff();
+      }
+    }, 100);
+    
+    // 设置超时，防止无限等待
+    setTimeout(() => {
+      clearInterval(checkLiffLoaded);
+      showToast('LINE LIFF SDK加载超时，将使用手动输入模式', 'warning');
+      enableManualInput();
+    }, 5000);
+  } else {
+    // 如果LIFF已加载，直接初始化
+    initLiff();
+  }
+});
 </script>
+    
 
 
 
