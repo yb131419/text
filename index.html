@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <title>LIFF 登錄系統</title>
+  <title>彥彬 自檢表系統</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
@@ -31,7 +31,7 @@
   <div class="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden fade-in">
     <div class="bg-primary p-6 text-white text-center">
       <i class="fa fa-line-chart text-4xl mb-3"></i>
-      <h1 class="text-2xl font-bold">LIFF 會員系統</h1>
+      <h1 class="text-2xl font-bold">彥彬 自檢表系統</h1>
     </div>
 
     <div class="p-6">
@@ -101,16 +101,17 @@
         data: { userId, displayName },
         success: function(resp) {
           if (resp.status === "error") {
+            // 顯示簡單錯誤訊息，不顯示原始 JSON
             showError(resp.message);
           } else {
-            renderResult(resp, displayName);
+            renderResult(resp);
           }
         },
         error: function() { showError('與伺服器通訊失敗'); }
       });
     }
 
-    function renderResult(resp, displayName) {
+    function renderResult(resp) {
       document.getElementById('status').classList.add('hidden');
 
       const card = document.getElementById('result-card');
@@ -119,18 +120,21 @@
       const redirectBtn = document.getElementById('redirect-btn');
       const note = document.getElementById('note');
 
+      // 管理員
       if (resp.isAdmin) {
-        main.innerHTML = `管理員：${displayName}`;
+        main.innerHTML = `管理員：${resp.displayName}`;
         details.innerHTML = resp.remainingDays != null
           ? `剩餘天數：${resp.remainingDays} 天`
           : `剩餘天數：無限制`;
       } else {
-        main.innerHTML = `普通用戶：${displayName}`;
+        // 普通用戶
+        main.innerHTML = `普通用戶：${resp.displayName}`;
         details.innerHTML = typeof resp.usageCount !== 'undefined'
           ? `剩餘次數：${3 - resp.usageCount}`
           : `剩餘次數：未知`;
       }
 
+      // 顯示手動跳轉按鈕
       if (resp.redirect && resp.redirectUrl) {
         redirectBtn.classList.remove('hidden');
         redirectBtn.onclick = () => attemptRedirect(resp.redirectUrl);
