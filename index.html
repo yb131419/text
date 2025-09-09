@@ -1,205 +1,171 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>LIFF 登錄系統</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Tailwind CSS -->
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome -->
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <!-- jQuery for JSONP -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  
+
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            primary: '#00B900', // LINE綠色
-            secondary: '#E8F4EA',
-          },
-          fontFamily: {
-            sans: ['Noto Sans TC', 'sans-serif'],
-          },
-        },
+          colors: { primary: '#00B900', secondary: '#E8F4EA' },
+          fontFamily: { sans: ['Noto Sans TC', 'sans-serif'] }
+        }
       }
-    }
+    };
   </script>
-  
+
   <style type="text/tailwindcss">
     @layer utilities {
-      .content-auto {
-        content-visibility: auto;
-      }
-      .fade-in {
-        animation: fadeIn 0.5s ease-in-out;
-      }
-      .pulse {
-        animation: pulse 1.5s infinite;
-      }
+      .fade-in { animation: fadeIn 0.45s ease-in-out; }
     }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.6; }
-      100% { opacity: 1; }
-    }
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
   <div class="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden fade-in">
     <div class="bg-primary p-6 text-white text-center">
       <i class="fa fa-line-chart text-4xl mb-3"></i>
-      <h2 class="text-2xl font-bold">LIFF 會員系統</h2>
+      <h1 class="text-2xl font-bold">LIFF 會員系統</h1>
     </div>
-    
+
     <div class="p-6">
-      <div id="status" class="flex items-center justify-center py-8 text-gray-700 text-center">
+      <div id="status" class="flex items-center justify-center py-6 text-gray-700 text-center">
         <div class="text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-3"></div>
-          <p>正在初始化 LIFF...</p>
+          <p id="status-text">正在初始化 LIFF...</p>
         </div>
       </div>
-      
+
       <div id="error-message" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
-      
-      <div id="redirecting" class="hidden text-center py-8">
-        <div class="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary mb-4"></div>
-        <p class="text-gray-700">驗證通過，正在跳轉至系統...</p>
-        <p class="text-gray-500 text-sm mt-2">如果沒有自動跳轉，請點擊下方按鈕</p>
-        <button id="redirect-btn" class="mt-4 bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-full transition duration-300">
-          手動跳轉
-        </button>
+
+      <div id="result-card" class="hidden border border-gray-100 rounded p-4 mb-3">
+        <div id="result-main" class="text-center mb-3"></div>
+        <div id="result-details" class="text-sm text-gray-600 mb-3"></div>
+        <div class="flex justify-center gap-3">
+          <button id="redirect-btn" class="hidden bg-primary text-white px-4 py-2 rounded-full hover:bg-primary/90 transition">手動跳轉</button>
+          <button id="show-raw-btn" class="text-primary underline hidden">顯示後端原始回傳</button>
+        </div>
+        <pre id="raw-json" class="mt-3 p-2 text-xs bg-gray-50 border rounded overflow-auto hidden"></pre>
+      </div>
+
+      <div id="note" class="text-xs text-gray-500 text-center hidden">
+        如果無法自動跳轉，請點選「手動跳轉」或重新整理頁面。
       </div>
     </div>
   </div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      // 初始化 LIFF
-      liff.init({ liffId: "2007488640-PbB48ELN" })
+    const LIFF_ID = "2007488640-PbB48ELN";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxsl-llg3RMZZkLnje8Qq4eQNg6lK869zq5f44EMATyHMmnV_5K_6RnSbzUUGbOevqm/exec";
+    const JSONP_TIMEOUT = 15000;
+
+    let gasResponse = null;
+
+    const setStatus = (text) => document.getElementById('status-text').textContent = text;
+
+    const showError = (msg) => {
+      console.error(msg);
+      document.getElementById('status').classList.add('hidden');
+      document.getElementById('result-card').classList.add('hidden');
+      const el = document.getElementById('error-message');
+      el.innerHTML = `<p>${msg}</p><div class="mt-3 flex justify-center">
+        <button onclick="window.location.reload()" class="text-primary hover:text-primary/80 font-medium">
+          <i class="fa fa-refresh mr-1"></i> 重新嘗試
+        </button></div>`;
+      el.classList.remove('hidden');
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      setStatus('正在初始化 LIFF...');
+      liff.init({ liffId: LIFF_ID })
         .then(() => {
-          if (!liff.isLoggedIn()) {
-            updateStatus("尚未登入，即將導向 LINE 登入...");
-            setTimeout(() => {
-              liff.login();
-            }, 1000);
-          } else {
-            updateStatus("已登入，正在驗證使用者資訊...");
-            
-            // 取得使用者資料
-            liff.getProfile().then(profile => {
-              const userId = profile.userId;
-              const displayName = profile.displayName;
-
-              updateStatus(`歡迎 ${displayName}，正在進行權限驗證...`);
-
-              // 呼叫 GAS 後端進行驗證
-              callGasBackend(userId, displayName);
-            }).catch(err => {
-              console.error("取得使用者資料錯誤:", err);
-              showError("取得使用者資料失敗: " + err.message);
-            });
-          }
+          if (!liff.isLoggedIn()) liff.login();
+          else getProfileAndVerify();
         })
-        .catch(err => {
-          console.error("LIFF 初始化錯誤:", err);
-          showError("系統初始化失敗: " + err.message);
-        });
+        .catch(err => showError('系統初始化失敗：' + err.message));
     });
 
-    // 呼叫 GAS 後端
+    function getProfileAndVerify() {
+      setStatus('已登入，正在驗證使用者資訊...');
+      liff.getProfile()
+        .then(profile => {
+          callGasBackend(profile.userId, profile.displayName || '');
+        })
+        .catch(err => showError('取得使用者資料失敗：' + err.message));
+    }
+
     function callGasBackend(userId, displayName) {
       $.ajax({
-        url: "https://script.google.com/macros/s/AKfycbxsl-llg3RMZZkLnje8Qq4eQNg6lK869zq5f44EMATyHMmnV_5K_6RnSbzUUGbOevqm/exec",
-        dataType: "jsonp",
-        data: {
-          callback: "handleGasResponse",
-          userId: userId,
-          displayName: displayName
+        url: GAS_URL,
+        dataType: 'jsonp',
+        jsonp: 'callback',
+        timeout: JSONP_TIMEOUT,
+        data: { userId, displayName },
+        success: function(resp) {
+          gasResponse = resp;
+          renderResult(resp);
+          // 立即跳轉
+          if (resp.redirect && resp.redirectUrl) attemptRedirect(resp.redirectUrl);
         },
-        timeout: 15000 // 15秒超時
-      }).fail(function(jqXHR, textStatus, errorThrown) {
-        console.error("呼叫後端失敗:", textStatus, errorThrown);
-        showError("與伺服器通訊失敗，請稍後再試");
+        error: function() { showError('與伺服器通訊失敗'); }
       });
     }
 
-    // 處理 GAS 回應
-    function handleGasResponse(response) {
-      console.log("後端回應:", response);
-      
-      if (response.status === "success") {
-        // 顯示跳轉畫面
-        document.getElementById("status").classList.add("hidden");
-        document.getElementById("redirecting").classList.remove("hidden");
-        
-        // 設置手動跳轉按鈕
-        document.getElementById("redirect-btn").addEventListener("click", function() {
-          redirectToTarget(response.redirectUrl);
-        });
-        
-        // 3秒後自動跳轉
-        setTimeout(() => {
-          redirectToTarget(response.redirectUrl);
-        }, 3000);
+    function renderResult(resp) {
+      document.getElementById('status').classList.add('hidden');
+      const card = document.getElementById('result-card');
+      const main = document.getElementById('result-main');
+      const details = document.getElementById('result-details');
+      const redirectBtn = document.getElementById('redirect-btn');
+      const showRawBtn = document.getElementById('show-raw-btn');
+      const rawJson = document.getElementById('raw-json');
+
+      rawJson.textContent = JSON.stringify(resp, null, 2);
+      showRawBtn.classList.remove('hidden');
+      showRawBtn.onclick = () => rawJson.classList.toggle('hidden');
+
+      if (resp.isAdmin) {
+        main.innerHTML = `<div class="text-green-700 font-medium">管理員驗證通過</div>`;
+        details.innerHTML = resp.remainingDays != null
+          ? `<div class="mt-1 text-sm text-gray-700">剩餘天數：<span class="font-medium">${resp.remainingDays} 天</span></div>`
+          : `<div>已確認為管理員</div>`;
       } else {
-        // 顯示錯誤訊息
-        showError(response.message);
+        main.innerHTML = `<div class="text-gray-800 font-medium">普通用戶</div>`;
+        details.innerHTML = typeof resp.usageCount !== 'undefined'
+          ? `<div>剩餘次數：<span class="font-medium">${3 - resp.usageCount}</span></div>`
+          : `<div>次數資訊不可用</div>`;
       }
+
+      // 顯示手動跳轉按鈕
+      if (resp.redirect && resp.redirectUrl) {
+        redirectBtn.classList.remove('hidden');
+        redirectBtn.onclick = () => attemptRedirect(resp.redirectUrl);
+        document.getElementById('note').classList.remove('hidden');
+      }
+
+      card.classList.remove('hidden');
     }
 
-    // 跳轉到目標頁面
-    function redirectToTarget(url) {
-      if (url && liff.isInClient()) {
-        // 在 LINE 客戶端內打開
-        liff.openWindow({
-          url: url,
-          external: false
-        });
-      } else if (url) {
-        // 在瀏覽器中打開
+    function attemptRedirect(url) {
+      try {
+        // 優先用 LIFF APP 開啟
+        if (liff && liff.isInClient()) {
+          liff.openWindow({ url, external: true })
+            .catch(() => { window.location.href = url; });
+        } else {
+          // 瀏覽器環境
+          window.location.href = url;
+        }
+      } catch {
         window.location.href = url;
-      } else {
-        showError("無效的目標頁面，請聯繫管理員");
       }
-    }
-
-    // 更新狀態訊息
-    function updateStatus(message) {
-      document.getElementById("status").innerHTML = `
-        <div class="text-center">
-          <div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary mb-2"></div>
-          <p>${message}</p>
-        </div>
-      `;
-    }
-
-    // 顯示錯誤訊息
-    function showError(message) {
-      document.getElementById("status").classList.add("hidden");
-      const errorEl = document.getElementById("error-message");
-      errorEl.textContent = message;
-      errorEl.classList.remove("hidden");
-      
-      // 提供重新載入按鈕
-      errorEl.innerHTML += `
-        <div class="mt-3 flex justify-center">
-          <button onclick="window.location.reload()" class="text-primary hover:text-primary/80 font-medium">
-            <i class="fa fa-refresh mr-1"></i> 重新嘗試
-          </button>
-        </div>
-      `;
     }
   </script>
 </body>
 </html>
-
