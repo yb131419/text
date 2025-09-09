@@ -35,7 +35,6 @@
     </div>
 
     <div class="p-6">
-      <!-- 狀態顯示 -->
       <div id="status" class="flex items-center justify-center py-6 text-gray-700 text-center">
         <div class="text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-3"></div>
@@ -43,10 +42,8 @@
         </div>
       </div>
 
-      <!-- 錯誤訊息 -->
       <div id="error-message" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
 
-      <!-- 結果顯示 -->
       <div id="result-card" class="hidden border border-gray-100 rounded p-4 mb-3 text-center">
         <div id="result-main" class="text-lg font-medium mb-2"></div>
         <div id="result-details" class="text-sm text-gray-700 mb-3"></div>
@@ -61,10 +58,9 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxsl-llg3RMZZkLnje8Qq4eQNg6lK869zq5f44EMATyHMmnV_5K_6RnSbzUUGbOevqm/exec";
     const JSONP_TIMEOUT = 15000;
 
-    const setStatus = (text) => document.getElementById('status-text').textContent = text;
+    const setStatus = text => document.getElementById('status-text').textContent = text;
 
-    const showError = (msg) => {
-      console.error(msg);
+    const showError = msg => {
       document.getElementById('status').classList.add('hidden');
       document.getElementById('result-card').classList.add('hidden');
       const el = document.getElementById('error-message');
@@ -101,7 +97,6 @@
         data: { userId, displayName },
         success: function(resp) {
           if (resp.status === "error") {
-            // 顯示簡單錯誤訊息，不顯示原始 JSON
             showError(resp.message);
           } else {
             renderResult(resp);
@@ -113,28 +108,24 @@
 
     function renderResult(resp) {
       document.getElementById('status').classList.add('hidden');
-
       const card = document.getElementById('result-card');
       const main = document.getElementById('result-main');
       const details = document.getElementById('result-details');
       const redirectBtn = document.getElementById('redirect-btn');
       const note = document.getElementById('note');
 
-      // 管理員
       if (resp.isAdmin) {
-        main.innerHTML = `管理員：${resp.displayName}`;
+        main.innerHTML = `專業用戶：${resp.displayName}`;
         details.innerHTML = resp.remainingDays != null
           ? `剩餘天數：${resp.remainingDays} 天`
           : `剩餘天數：無限制`;
       } else {
-        // 普通用戶
         main.innerHTML = `普通用戶：${resp.displayName}`;
         details.innerHTML = typeof resp.usageCount !== 'undefined'
           ? `剩餘次數：${3 - resp.usageCount}`
           : `剩餘次數：未知`;
       }
 
-      // 顯示手動跳轉按鈕
       if (resp.redirect && resp.redirectUrl) {
         redirectBtn.classList.remove('hidden');
         redirectBtn.onclick = () => attemptRedirect(resp.redirectUrl);
