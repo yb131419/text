@@ -35,6 +35,7 @@
     </div>
 
     <div class="p-6">
+      <!-- 狀態顯示 -->
       <div id="status" class="flex items-center justify-center py-6 text-gray-700 text-center">
         <div class="text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-3"></div>
@@ -42,20 +43,15 @@
         </div>
       </div>
 
+      <!-- 錯誤訊息 -->
       <div id="error-message" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
 
-      <div id="result-card" class="hidden border border-gray-100 rounded p-4 mb-3">
-        <div id="result-main" class="text-center mb-3"></div>
-        <div id="result-details" class="text-sm text-gray-600 mb-3"></div>
-        <div class="flex justify-center gap-3">
-          <button id="redirect-btn" class="hidden bg-primary text-white px-4 py-2 rounded-full hover:bg-primary/90 transition">手動跳轉</button>
-          <button id="show-raw-btn" class="text-primary underline hidden">顯示後端原始回傳</button>
-        </div>
-        <pre id="raw-json" class="mt-3 p-2 text-xs bg-gray-50 border rounded overflow-auto hidden"></pre>
-      </div>
-
-      <div id="note" class="text-xs text-gray-500 text-center hidden">
-        如果無法自動跳轉，請點選「手動跳轉」或重新整理頁面。
+      <!-- 結果顯示 -->
+      <div id="result-card" class="hidden border border-gray-100 rounded p-4 mb-3 text-center">
+        <div id="result-main" class="text-lg font-medium mb-2"></div>
+        <div id="result-details" class="text-sm text-gray-700 mb-3"></div>
+        <button id="redirect-btn" class="hidden bg-primary text-white px-4 py-2 rounded-full hover:bg-primary/90 transition">手動跳轉</button>
+        <div id="note" class="text-xs text-gray-500 mt-2 hidden">請點選「手動跳轉」以進入下一步。</div>
       </div>
     </div>
   </div>
@@ -64,8 +60,6 @@
     const LIFF_ID = "2007488640-PbB48ELN";
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxsl-llg3RMZZkLnje8Qq4eQNg6lK869zq5f44EMATyHMmnV_5K_6RnSbzUUGbOevqm/exec";
     const JSONP_TIMEOUT = 15000;
-
-    let gasResponse = null;
 
     const setStatus = (text) => document.getElementById('status-text').textContent = text;
 
@@ -94,9 +88,7 @@
     function getProfileAndVerify() {
       setStatus('已登入，正在驗證使用者資訊...');
       liff.getProfile()
-        .then(profile => {
-          callGasBackend(profile.userId, profile.displayName || '');
-        })
+        .then(profile => callGasBackend(profile.userId, profile.displayName || ''))
         .catch(err => showError('取得使用者資料失敗：' + err.message));
     }
 
@@ -108,45 +100,41 @@
         timeout: JSONP_TIMEOUT,
         data: { userId, displayName },
         success: function(resp) {
-          gasResponse = resp;
-          renderResult(resp);
-          // 立即跳轉
-          if (resp.redirect && resp.redirectUrl) attemptRedirect(resp.redirectUrl);
+          if (resp.status === "error") {
+            showError(resp.message);
+          } else {
+            renderResult(resp, displayName);
+          }
         },
         error: function() { showError('與伺服器通訊失敗'); }
       });
     }
 
-    function renderResult(resp) {
+    function renderResult(resp, displayName) {
       document.getElementById('status').classList.add('hidden');
+
       const card = document.getElementById('result-card');
       const main = document.getElementById('result-main');
       const details = document.getElementById('result-details');
       const redirectBtn = document.getElementById('redirect-btn');
-      const showRawBtn = document.getElementById('show-raw-btn');
-      const rawJson = document.getElementById('raw-json');
-
-      rawJson.textContent = JSON.stringify(resp, null, 2);
-      showRawBtn.classList.remove('hidden');
-      showRawBtn.onclick = () => rawJson.classList.toggle('hidden');
+      const note = document.getElementById('note');
 
       if (resp.isAdmin) {
-        main.innerHTML = `<div class="text-green-700 font-medium">管理員驗證通過</div>`;
+        main.innerHTML = `管理員：${displayName}`;
         details.innerHTML = resp.remainingDays != null
-          ? `<div class="mt-1 text-sm text-gray-700">剩餘天數：<span class="font-medium">${resp.remainingDays} 天</span></div>`
-          : `<div>已確認為管理員</div>`;
+          ? `剩餘天數：${resp.remainingDays} 天`
+          : `剩餘天數：無限制`;
       } else {
-        main.innerHTML = `<div class="text-gray-800 font-medium">普通用戶</div>`;
+        main.innerHTML = `普通用戶：${displayName}`;
         details.innerHTML = typeof resp.usageCount !== 'undefined'
-          ? `<div>剩餘次數：<span class="font-medium">${3 - resp.usageCount}</span></div>`
-          : `<div>次數資訊不可用</div>`;
+          ? `剩餘次數：${3 - resp.usageCount}`
+          : `剩餘次數：未知`;
       }
 
-      // 顯示手動跳轉按鈕
       if (resp.redirect && resp.redirectUrl) {
         redirectBtn.classList.remove('hidden');
         redirectBtn.onclick = () => attemptRedirect(resp.redirectUrl);
-        document.getElementById('note').classList.remove('hidden');
+        note.classList.remove('hidden');
       }
 
       card.classList.remove('hidden');
@@ -154,12 +142,10 @@
 
     function attemptRedirect(url) {
       try {
-        // 優先用 LIFF APP 開啟
         if (liff && liff.isInClient()) {
           liff.openWindow({ url, external: true })
             .catch(() => { window.location.href = url; });
         } else {
-          // 瀏覽器環境
           window.location.href = url;
         }
       } catch {
