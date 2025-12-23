@@ -19,6 +19,8 @@
     --button-green: #00bfa5;
     --button-grey: #3a3a3a;
     --warning: #ff9800;
+    --super-admin: #d4af37; /* 超级管理员金色 */
+    --vip-admin: #00bfa5;   /* 尊爵用户绿色 */
   }
 
   * {
@@ -53,8 +55,13 @@
     border: 1px solid rgba(0, 209, 178, 0.3);
   }
 
-  #authStatusBar .admin {
-    color: var(--accent);
+  #authStatusBar .super-admin {
+    color: var(--super-admin);
+    font-weight: bold;
+  }
+
+  #authStatusBar .vip-admin {
+    color: var(--vip-admin);
     font-weight: bold;
   }
 
@@ -719,19 +726,21 @@
   <div class="spacer"></div>
 
   <script>
-    // 配置參數（對齊自檢表）
+    // 配置參數（與後端完全對齊）
     const API_URL = "https://script.google.com/macros/s/AKfycbyETFQSpvVF0zCq24jLNkGD_lfm6yX44JUpW4cgkTyt3pJsg4G-38_uRbRzMl5xyMPs/exec";
     const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f"; // 若後續上傳失敗，請檢查API Key是否有效
     const LIFF_ID = "2007434020-Kf98vapi"; // 對應GAS後端的LIFF ID
     const JSONP_TIMEOUT = 12000;
     const PERMANENT_EXPIRY_DATE = "9999/12/31";
+    const TARGET_PV112 = 112000; // 與後端對齊
+    const TARGET_PV220 = 220000; // 與後端對齊
 
     // 全局變量
     let allProducts = [];
     let selectedProducts = [];
     let lineName = '';
     let userInfo = null; // 用戶信息 { userId, displayName }
-    let authStatus = null; // 權限狀態 { isAdmin, remainingDays, expiryDate, usageCount, remainingTimes, isExpired }
+    let authStatus = null; // 權限狀態 { isVip, isSuperAdmin, remainingDays, expiryDate, usageCount, remainingTimes, isExpired }
     let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {}; // 本地使用記錄
 
     // DOM元素
@@ -867,7 +876,7 @@
     function resetReport() {
       if (!authStatus) return;
       
-      // 普通用戶重置不消耗次數
+      // 特權用戶（超管/尊爵）與普通用戶重置均不消耗次數
       if (confirm('確定要清空所有品項記錄嗎？')) {
         selectedProducts = [];
         saveSelectedProducts();
@@ -959,13 +968,13 @@
 
       totalPriceCellDup.textContent = totalPrice;
       totalPvCellDup.textContent = totalPv;
-      const diff1 = 112000 - totalPv;
-      const diff2 = 220000 - totalPv;
+      const diff1 = TARGET_PV112 - totalPv;
+      const diff2 = TARGET_PV220 - totalPv;
 
       pvDiff.textContent = diff1 > 0 ? diff1 : 0;
       pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
-      pvMessage1.innerHTML = totalPv >= 112000 ? '<span class="done">🎉 已達標</span>' : '';
-      pvMessage2.innerHTML = totalPv >= 220000 ? '<span class="done">🎉 已達標</span>' : '';
+      pvMessage1.innerHTML = totalPv >= TARGET_PV112 ? '<span class="done">🎉 已達標</span>' : '';
+      pvMessage2.innerHTML = totalPv >= TARGET_PV220 ? '<span class="done">🎉 已達標</span>' : '';
 
       // 刪除按鈕事件
       document.querySelectorAll(".deleteBtn").forEach(btn => {
@@ -997,7 +1006,8 @@
       }
 
       // 普通用戶次數用完時禁用新增
-      if (!authStatus.isAdmin && authStatus.remainingTimes <= 0) {
+      const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
+      if (!isPrivilegeUser && authStatus.remainingTimes <= 0) {
         showToast('普通用戶使用次數已達上限，請聯繫管理員升級', 'error');
         return;
       }
@@ -1052,8 +1062,9 @@
     function checkUserRemainingTimes() {
       if (!authStatus) return false;
       
-      // 專業用戶不受限制
-      if (authStatus.isAdmin) return true;
+      // 特權用戶（超管/尊爵）不受限制
+      const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
+      if (isPrivilegeUser) return true;
       
       // 普通用戶檢查剩餘次數
       const userId = userInfo.userId;
@@ -1079,7 +1090,11 @@
 
     // 記錄用戶使用次數（匯出報表時計數）
     function recordUserUsage() {
-      if (!authStatus || authStatus.isAdmin) return;
+      if (!authStatus) return;
+      
+      // 特權用戶不受限制
+      const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
+      if (isPrivilegeUser) return;
       
       const userId = userInfo.userId;
       userUsageRecord[userId] = (userUsageRecord[userId] || 0) + 1;
@@ -1088,23 +1103,33 @@
       showToast(`已使用${userUsageRecord[userId]}/3次，剩餘${authStatus.remainingTimes}次`, 'warning');
     }
 
-    // 更新權限狀態欄
+    // 更新權限狀態欄（與後端身份對齊）
     function updateAuthStatusBar() {
       if (!authStatus || !userInfo) return;
       
       let statusHtml = '';
-      if (authStatus.isAdmin) {
-        // 專業用戶顯示有效期
+      if (authStatus.isSuperAdmin) {
+        // 超級管理員顯示
         const expiryText = authStatus.remainingDays === "永久有效" 
           ? "永久有效" 
           : `${authStatus.displayExpiryDate}（剩餘${authStatus.remainingDays}）`;
         statusHtml = `
-          <span class="admin">💎 尊爵用戶</span> | 
+          <span class="super-admin">👑 超級管理員</span> | 
           用戶名：${userInfo.displayName} | 
-          有效期：<span class="admin">${expiryText}</span>
+          有效期：<span class="super-admin">${expiryText}</span>
+        `;
+      } else if (authStatus.isVip) {
+        // 尊爵用戶顯示
+        const expiryText = authStatus.remainingDays === "永久有效" 
+          ? "永久有效" 
+          : `${authStatus.displayExpiryDate}（剩餘${authStatus.remainingDays}）`;
+        statusHtml = `
+          <span class="vip-admin">💎 尊爵用戶</span> | 
+          用戶名：${userInfo.displayName} | 
+          有效期：<span class="vip-admin">${expiryText}</span>
         `;
       } else {
-        // 普通用戶顯示剩餘次數
+        // 普通用戶顯示
         statusHtml = `
           <span class="normal">🙋 普通用戶</span> | 
           用戶名：${userInfo.displayName} | 
@@ -1319,17 +1344,17 @@
 
     // 顯示錯誤（對齊自檢表，修復隱藏方式）
     const showError = (msg) => {
-      authLoading.style.display = 'none'; // 替換classList.add('hidden')
-      captureArea.style.display = 'none'; // 替換classList.add('hidden')
-      inputArea.style.display = 'none'; // 替換classList.add('hidden')
-      buttonGroup.style.display = 'none'; // 替換classList.add('hidden')
+      authLoading.style.display = 'none';
+      captureArea.style.display = 'none';
+      inputArea.style.display = 'none';
+      buttonGroup.style.display = 'none';
       errorContent.innerHTML = `<p class="font-medium">${msg}</p>
         <div class="mt-3 flex justify-center">
           <button onclick="window.location.reload()" class="text-white hover:text-[#fff]">
             重新嘗試
           </button>
         </div>`;
-      errorMessage.style.display = 'block'; // 顯示錯誤提示
+      errorMessage.style.display = 'block';
     };
 
     // 驗證用戶（JSONP請求，對齊自檢表）
@@ -1394,7 +1419,7 @@
         authLoading.textContent = "正在初始化LINE登錄...";
         await liff.init({ 
           liffId: LIFF_ID,
-          withLoginOnExternalBrowser: true // 新增：外部瀏覽器自動登錄
+          withLoginOnExternalBrowser: true
         });
 
         // 未登錄則引導登錄
@@ -1416,7 +1441,7 @@
         const authData = await verifyUserFromBackend(profile);
 
         if (!authData) {
-          return; // 錯誤已由showError處理
+          return;
         }
 
         // 過期判斷攔截
@@ -1425,15 +1450,16 @@
           return;
         }
 
-        // 存儲權限狀態
+        // 存儲權限狀態（與後端字段對齊）
         authStatus = {
-          isAdmin: authData.isAdmin,
+          isVip: authData.isVip,
+          isSuperAdmin: authData.isSuperAdmin,
           remainingDays: authData.remainingDays,
           displayExpiryDate: authData.displayExpiryDate,
           expiryDate: authData.expiryDate,
           usageCount: authData.usageCount || 0,
           isExpired: authData.isExpired,
-          remainingTimes: 0 // 後續由checkUserRemainingTimes初始化
+          remainingTimes: 0
         };
 
         // 隱藏加載提示，顯示功能區域
