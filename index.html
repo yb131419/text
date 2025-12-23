@@ -2,7 +2,9 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>彥彬🌿試算系統（驗證版）</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -29,6 +31,7 @@
 
   * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; /* 去除手机端点击高亮 */
   }
 
   body {
@@ -43,23 +46,25 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
+    overflow-x: hidden; /* 禁止手机端横向滚动 */
   }
 
-  /* 高質感登錄驗證容器 */
+  /* 高質感登錄驗證容器 - 移动端适配优化 */
   #authContainer {
     width: 100%;
     max-width: 500px;
     background: var(--gradient-primary);
     border-radius: 16px;
     box-shadow: var(--shadow-soft);
-    padding: 40px 30px;
-    margin: 50px auto 20px;
+    padding: 30px 20px; /* 移动端减少内边距 */
+    margin: 20px auto 20px; /* 移动端减少上边距 */
     text-align: center;
     transition: all 0.5s ease;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    z-index: 999; /* 确保在最上层 */
   }
 
   #authContainer:hover {
@@ -68,20 +73,20 @@
 
   /* 驗證狀態圖標 */
   .auth-icon {
-    width: 80px;
-    height: 80px;
+    width: 70px; /* 移动端缩小图标 */
+    height: 70px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     position: relative;
   }
 
   .auth-icon svg {
-    width: 40px;
-    height: 40px;
+    width: 35px; /* 移动端缩小图标 */
+    height: 35px;
     fill: var(--accent);
   }
 
@@ -101,13 +106,13 @@
     margin: 0 auto 15px;
   }
 
-  /* 登錄按鈕 */
+  /* 登錄按鈕 - 移动端交互优化 */
   #loginBtn {
     background: var(--gradient-secondary);
     color: white;
     border: none;
     border-radius: 8px;
-    padding: 12px 30px;
+    padding: 14px 30px; /* 移动端增加上下内边距，方便点击 */
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -116,11 +121,13 @@
     width: 100%;
     max-width: 200px;
     box-shadow: 0 4px 12px rgba(0, 191, 165, 0.2);
+    touch-action: manipulation; /* 优化移动端触摸响应 */
   }
 
-  #loginBtn:hover {
+  #loginBtn:hover, #loginBtn:active { /* 增加active状态，适配移动端触摸 */
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 191, 165, 0.3);
+    background: linear-gradient(145deg, #00ccb2, #00a98e);
   }
 
   #loginBtn:disabled {
@@ -130,17 +137,18 @@
     box-shadow: none;
   }
 
-  /* 權限提示欄 */
+  /* 權限提示欄 - 移动端适配 */
   #authStatusBar {
     background: linear-gradient(145deg, #2d2d2d, #1f1f1f);
-    padding: 10px 15px;
+    padding: 10px 12px;
     border-radius: 8px;
     margin-bottom: 15px;
-    font-size: 14px;
+    font-size: 13px; /* 移动端缩小字体 */
     text-align: center;
     border: 1px solid rgba(0, 209, 178, 0.3);
     width: 100%;
     max-width: 800px;
+    overflow-wrap: break-word; /* 防止文字溢出 */
   }
 
   #authStatusBar .super-admin {
@@ -168,7 +176,7 @@
     box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05),
                 0 4px 20px rgba(0, 0, 0, 0.6);
     color: var(--text-color);
-    padding: 15px 10px;
+    padding: 15px 8px; /* 移动端减少左右内边距 */
     border-radius: 12px;
     margin-bottom: 15px;
     overflow-x: auto;
@@ -177,14 +185,14 @@
     max-width: 800px;
   }
 
-  /* 增大標題字體並確保居中 */
+  /* 增大標題字體並確保居中 - 移动端适配 */
   #captureArea h2 {
     text-align: center;
-    font-size: 2rem; /* 基礎字體更大 */
+    font-size: 1.6rem; /* 移动端缩小标题字体 */
     font-weight: bold;
     color: #ffffff;
     margin: 0 0 15px 0;
-    padding: 10px 0; /* 增加內邊距 */
+    padding: 8px 0; /* 移动端减少内边距 */
     line-height: 1.3;
     width: 100%; /* 確保全寬 */
   }
@@ -192,6 +200,21 @@
   @media (min-width: 768px) {
     #captureArea h2 {
       font-size: 2.4rem; /* 大屏幕字體更大 */
+    }
+    #authContainer {
+      padding: 40px 30px;
+      margin: 50px auto 20px;
+    }
+    .auth-icon {
+      width: 80px;
+      height: 80px;
+    }
+    .auth-icon svg {
+      width: 40px;
+      height: 40px;
+    }
+    #authStatusBar {
+      font-size: 14px;
     }
   }
 
@@ -204,12 +227,14 @@
 
   .userInputs .row {
     display: flex;
-    gap: 10px;
+    gap: 8px; /* 移动端缩小间距 */
     width: 100%;
+    flex-wrap: wrap; /* 极端小屏幕允许换行 */
   }
 
   .userInputs label {
     flex: 1;
+    min-width: 140px; /* 移动端设置最小宽度，避免挤压 */
     display: flex;
     flex-direction: column;
     font-size: 14px;
@@ -249,9 +274,10 @@
     font-size: 14px;
     flex-shrink: 0;
     width: 40px;
+    touch-action: manipulation;
   }
 
-  #resetCalculatorBtn:hover {
+  #resetCalculatorBtn:hover, #resetCalculatorBtn:active {
     background-color: #555;
   }
 
@@ -359,22 +385,36 @@
     height: auto;
     width: auto;
     margin: 0 auto;
+    touch-action: manipulation;
   }
 
   .summaryBox {
     text-align: center;
     margin-top: 13px;
-    font-size: 1rem;
+    font-size: 0.9rem; /* 移动端缩小字体 */
     font-weight: bold;
     color: var(--highlight);
     line-height: 1.6;
+    overflow-wrap: break-word;
+  }
+
+  @media (min-width: 768px) {
+    .summaryBox {
+      font-size: 1rem;
+    }
   }
 
   .summaryBox .extra {
     display: block;
-    font-size: 0.9rem;
+    font-size: 0.8rem; /* 移动端缩小字体 */
     color: var(--accent);
     margin-top: 4px;
+  }
+
+  @media (min-width: 768px) {
+    .summaryBox .extra {
+      font-size: 0.9rem;
+    }
   }
 
   .summaryBox .done {
@@ -412,6 +452,7 @@
     font-size: 16px;
     border-radius: 6px;
     border: none;
+    touch-action: manipulation;
   }
 
   #qtyInput {
@@ -424,6 +465,7 @@
     background-color: #2c2c2c;
     color: var(--text-color);
     flex: 1;
+    min-width: 100px; /* 移动端设置最小宽度 */
     text-align: center;
   }
 
@@ -440,13 +482,14 @@
     transition: all 0.3s ease;
     text-align: center;
     font-size: 15px;
+    touch-action: manipulation;
   }
 
-  #addBtn:hover,
-  #exportBtn:hover,
-  #shareToLineBtn:hover,
-  #nativeShareBtn:hover,
-  #resetReportBtn:hover {
+  #addBtn:hover, #addBtn:active,
+  #exportBtn:hover, #exportBtn:active,
+  #shareToLineBtn:hover, #shareToLineBtn:active,
+  #nativeShareBtn:hover, #nativeShareBtn:active,
+  #resetReportBtn:hover, #resetReportBtn:active {
     background: linear-gradient(145deg, #00ccb2, #00a98e);
     transform: translateY(-2px);
   }
@@ -487,18 +530,30 @@
   #clearImageBtn,
   #resetReportBtn {
     flex: 1;
-    min-width: 110px;
+    min-width: 90px; /* 移动端缩小最小宽度，方便适配 */
     margin: 0;
-    padding: 10px 0;
-    font-size: 15px;
+    padding: 12px 0; /* 移动端增加上下内边距，方便点击 */
+    font-size: 14px; /* 移动端缩小字体 */
     border-radius: 8px;
+  }
+
+  @media (min-width: 768px) {
+    #exportBtn,
+    #shareToLineBtn,
+    #nativeShareBtn,
+    #clearImageBtn,
+    #resetReportBtn {
+      font-size: 15px;
+      min-width: 110px;
+      padding: 10px 0;
+    }
   }
 
   #clearImageBtn {
     background: var(--button-grey);
   }
 
-  #clearImageBtn:hover {
+  #clearImageBtn:hover, #clearImageBtn:active {
     background: #555;
   }
 
@@ -511,7 +566,7 @@
     background: #ff9800;
   }
 
-  #resetReportBtn:hover {
+  #resetReportBtn:hover, #resetReportBtn:active {
     background: #ffa726;
   }
 
@@ -581,7 +636,7 @@
     transform: translateX(-50%);
     background-color: #4caf50;
     color: white;
-    padding: 10px 16px;
+    padding: 12px 16px; /* 移动端增加上下内边距 */
     border-radius: 6px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     opacity: 0;
@@ -589,7 +644,9 @@
     z-index: 1000;
     text-align: center;
     min-width: 180px;
-    font-size: 15px;
+    font-size: 14px; /* 移动端缩小字体 */
+    max-width: 90%; /* 防止超出屏幕 */
+    overflow-wrap: break-word;
   }
 
   .toast.show {
@@ -608,19 +665,20 @@
   .payment-options {
     display: flex;
     justify-content: center;
-    gap: 15px;
+    gap: 12px; /* 移动端缩小间距 */
     margin-top: 8px;
     color: white;
-    font-size: 1.1rem;
-    flex-wrap: wrap;
+    font-size: 1rem;
+    flex-wrap: wrap; /* 允许换行，避免挤压 */
   }
 
   .payment-options label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px; /* 移动端缩小间距 */
     color: white;
     font-weight: 500;
+    min-width: 80px; /* 移动端设置最小宽度 */
   }
 
   .payment-options input[type="checkbox"] {
@@ -684,8 +742,8 @@
 
   @media (max-width: 360px) {
     #authContainer {
-      padding: 30px 20px;
-      margin: 30px auto 20px;
+      padding: 25px 15px;
+      margin: 15px auto 20px;
     }
 
     .auth-icon {
@@ -723,39 +781,57 @@
     }
     
     .payment-options {
-      font-size: 1rem;
+      font-size: 0.9rem;
     }
 
     #authStatusBar {
       font-size: 12px;
     }
+
+    .button-group {
+      gap: 5px;
+    }
+
+    #exportBtn,
+    #shareToLineBtn,
+    #nativeShareBtn,
+    #clearImageBtn,
+    #resetReportBtn {
+      padding: 10px 0;
+      font-size: 13px;
+      min-width: 80px;
+    }
   }
 
-  /* 錯誤提示樣式（高質感優化） */
+  /* 錯誤提示樣式（高質感優化 - 移动端适配） */
   #error-message {
     display: none;
     background: linear-gradient(145deg, #450a0a, #2e0707);
     border: 1px solid #fee2e2;
     color: #fecdd3;
-    padding: 20px;
+    padding: 15px 12px; /* 移动端减少内边距 */
     border-radius: 12px;
     margin: 20px auto;
-    max-width: 500px;
+    max-width: 90%; /* 移动端适配屏幕宽度 */
     text-align: center;
     box-shadow: 0 4px 16px rgba(255, 82, 82, 0.2);
+    overflow-wrap: break-word;
   }
   #error-message button {
     background: linear-gradient(145deg, #dc2626, #b91c1c);
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 12px 20px; /* 移动端增加上下内边距，方便点击 */
     border-radius: 8px;
     cursor: pointer;
     margin-top: 15px;
     font-weight: 500;
     transition: all 0.3s ease;
+    touch-action: manipulation;
+    width: 100%;
+    max-width: 150px;
   }
-  #error-message button:hover {
+  #error-message button:hover, #error-message button:active {
     background: linear-gradient(145deg, #ef4444, #dc2626);
     transform: translateY(-2px);
   }
@@ -774,9 +850,9 @@
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
       </svg>
     </div>
-    <h2 style="color: white; margin: 0 0 10px; font-size: 1.8rem;">彥彬🌿試算系統</h2>
-    <p style="color: rgba(255,255,255,0.8); margin: 0 0 20px; font-size: 1rem;">請完成LINE授權驗證</p>
-    <div id="authStatusText" style="color: white; font-size: 1.1rem; margin-bottom: 15px;">正在初始化系統...</div>
+    <h2 style="color: white; margin: 0 0 10px; font-size: 1.6rem; overflow-wrap: break-word;">彥彬🌿試算系統</h2>
+    <p style="color: rgba(255,255,255,0.8); margin: 0 0 20px; font-size: 0.9rem; overflow-wrap: break-word;">請完成LINE授權驗證</p>
+    <div id="authStatusText" style="color: white; font-size: 1rem; margin-bottom: 15px; overflow-wrap: break-word;">正在初始化系統...</div>
     <div class="loading-spinner" id="authSpinner"></div>
     <button id="loginBtn" style="display: none;" disabled>使用LINE登錄</button>
   </div>
@@ -863,7 +939,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyETFQSpvVF0zCq24jLNkGD_lfm6yX44JUpW4cgkTyt3pJsg4G-38_uRbRzMl5xyMPs/exec";
     const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f"; // 若後續上傳失敗，請檢查API Key是否有效
     const LIFF_ID = "2007434020-Kf98vapi"; // 對應GAS後端的LIFF ID
-    const JSONP_TIMEOUT = 12000;
+    const JSONP_TIMEOUT = 15000; // 手机端网络不稳定，延长超时到15秒
     const PERMANENT_EXPIRY_DATE = "9999/12/31";
     const TARGET_PV112 = 112000; // 與後端對齊
     const TARGET_PV220 = 220000; // 與後端對齊
@@ -950,7 +1026,7 @@
         maxQty = 1;
       } else if (trimmedValue.includes('2711AB') && trimmedValue.includes('(4)')) {
         maxQty = 2;
-      } else if (trimmedValue.includes('777Ｑ') || trimmedValue.includes('(4)')) {
+      } else if (trimmedValue.includes('777Ｑ') && trimmedValue.includes('(4)')) {
         maxQty = 2;
       }
       
@@ -963,46 +1039,73 @@
       }
     }
 
-    // 從本地存儲加載選中的產品
+    // 從本地存儲加載選中的產品 - 增加容错处理
     function loadSelectedProducts() {
-      const saved = localStorage.getItem('selectedProducts');
-      if (saved) {
-        selectedProducts = JSON.parse(saved);
+      try {
+        const saved = localStorage.getItem('selectedProducts');
+        if (saved) {
+          selectedProducts = JSON.parse(saved);
+          // 过滤无效数据
+          selectedProducts = selectedProducts.filter(item => item && item.name && item.price && item.pv && item.qty);
+        }
+        renderTable();
+      } catch (e) {
+        console.error("加载选中产品失败：", e);
+        selectedProducts = [];
         renderTable();
       }
     }
 
-    // 保存選中的產品到本地存儲
+    // 保存選中的產品到本地存儲 - 增加容错处理
     function saveSelectedProducts() {
-      localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
+      try {
+        localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
+      } catch (e) {
+        console.error("保存选中产品失败：", e);
+        showToast("本地存儲失敗，刷新頁面後數據可能丟失", "warning");
+      }
     }
 
-    // 保存用戶使用記錄
+    // 保存用戶使用記錄 - 增加容错处理
     function saveUserUsageRecord() {
-      localStorage.setItem('userUsageRecord', JSON.stringify(userUsageRecord));
+      try {
+        localStorage.setItem('userUsageRecord', JSON.stringify(userUsageRecord));
+      } catch (e) {
+        console.error("保存使用記錄失敗：", e);
+      }
     }
 
     // 設置試算者名稱
     function setupLineName() {
-      lineName = localStorage.getItem('lineName') || userInfo?.displayName || '';
-      
-      if (!lineName || lineName === '未知用戶名') {
-        const input = prompt('請輸入您的『試算者名稱』\n（僅需輸入一次，可隨時重置）：');
-        if (input && input.trim()) {
-          lineName = input.trim();
-          localStorage.setItem('lineName', lineName);
-        } else {
-          lineName = '未設定';
+      try {
+        lineName = localStorage.getItem('lineName') || userInfo?.displayName || '';
+        
+        if (!lineName || lineName === '未知用戶名') {
+          const input = prompt('請輸入您的『試算者名稱』\n（僅需輸入一次，可隨時重置）：');
+          if (input && input.trim()) {
+            lineName = input.trim();
+            localStorage.setItem('lineName', lineName);
+          } else {
+            lineName = '未設定';
+          }
         }
+        
+        calculatorDisplay.value = lineName;
+      } catch (e) {
+        console.error("設置試算者名稱失敗：", e);
+        lineName = '未設定';
+        calculatorDisplay.value = lineName;
       }
-      
-      calculatorDisplay.value = lineName;
     }
 
     // 重置試算者名稱
     function resetLineName() {
       if (confirm('確定要重置試算者名稱嗎？')) {
-        localStorage.removeItem('lineName');
+        try {
+          localStorage.removeItem('lineName');
+        } catch (e) {
+          console.error("移除試算者名稱失敗：", e);
+        }
         setupLineName();
         showToast('試算者名稱已重置');
       }
@@ -1029,14 +1132,23 @@
       }
     }
 
-    // 加載產品數據
+    // 加載產品數據 - 增加超时处理
     async function loadProducts() {
       try {
-        const res = await fetch(`${API_URL}?action=all`);
+        // 设置请求超时
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        
+        const res = await fetch(`${API_URL}?action=all`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
         const data = await res.json();
-        allProducts = data;
+        allProducts = data || [];
+        // 过滤无效产品数据
+        allProducts = allProducts.filter(item => item && item.name && item.price && item.pv);
+        
         nameInput.innerHTML = "";
-        data.forEach(item => {
+        allProducts.forEach(item => {
           const opt = document.createElement("option");
           opt.value = item.name;
           opt.textContent = item.name;
@@ -1048,6 +1160,7 @@
         }, 300);
       } catch (error) {
         showToast(`讀取商品失敗: ${error.message || '未知錯誤'}`, 'error');
+        console.error("加载产品失败：", error);
       }
     }
 
@@ -1058,7 +1171,7 @@
       let totalPv = 0;
 
       selectedProducts.forEach((item, idx) => {
-        const trimmedName = item.name.trim();
+        const trimmedName = item.name ? item.name.trim() : '';
         let maxQty = 99;
         
         if (trimmedName.includes('新入會') || trimmedName.includes('新會員') || trimmedName.includes('入會')) {
@@ -1093,16 +1206,16 @@
         }).join("");
 
         tr.innerHTML = `
-          <td style="text-align:center;">${item.name}</td>
+          <td style="text-align:center;">${item.name || ''}</td>
           <td>
             <select class="qtySelect" data-index="${idx}" style="text-align:center;">
               ${qtyOptions}
             </select>
           </td>
-          <td style="text-align:center;">${item.price}</td>
-          <td style="text-align:center;">${item.pv}</td>
-          <td style="text-align:center;">${subtotalPrice}</td>
-          <td style="text-align:center;">${subtotalPv}</td>
+          <td style="text-align:center;">${item.price || 0}</td>
+          <td style="text-align:center;">${item.pv || 0}</td>
+          <td style="text-align:center;">${subtotalPrice || 0}</td>
+          <td style="text-align:center;">${subtotalPv || 0}</td>
           <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
         `;
         reportBody.appendChild(tr);
@@ -1126,6 +1239,8 @@
           saveSelectedProducts();
           renderTable();
         };
+        // 增加移动端触摸事件
+        btn.ontouchstart = btn.onclick;
       });
 
       // 數量下拉變更事件（保持限制檢查）
@@ -1215,7 +1330,7 @@
       if (isPrivilegeUser) return true;
       
       // 普通用戶檢查剩餘次數
-      const userId = userInfo.userId;
+      const userId = userInfo?.userId || '';
       const usedTimes = userUsageRecord[userId] || 0;
       authStatus.remainingTimes = 3 - usedTimes;
       
@@ -1244,7 +1359,7 @@
       const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
       if (isPrivilegeUser) return;
       
-      const userId = userInfo.userId;
+      const userId = userInfo?.userId || '';
       userUsageRecord[userId] = (userUsageRecord[userId] || 0) + 1;
       saveUserUsageRecord();
       checkUserRemainingTimes();
@@ -1263,7 +1378,7 @@
           : `${authStatus.displayExpiryDate}（剩餘${authStatus.remainingDays}）`;
         statusHtml = `
           <span class="super-admin">👑 超級管理員</span> | 
-          用戶名：${userInfo.displayName} | 
+          用戶名：${userInfo.displayName || '未知'} | 
           有效期：<span class="super-admin">${expiryText}</span>
         `;
       } else if (authStatus.isVip) {
@@ -1273,14 +1388,14 @@
           : `${authStatus.displayExpiryDate}（剩餘${authStatus.remainingDays}）`;
         statusHtml = `
           <span class="vip-admin">💎 尊爵用戶</span> | 
-          用戶名：${userInfo.displayName} | 
+          用戶名：${userInfo.displayName || '未知'} | 
           有效期：<span class="vip-admin">${expiryText}</span>
         `;
       } else {
         // 普通用戶顯示
         statusHtml = `
           <span class="normal">🪙 普通用戶</span> | 
-          用戶名：${userInfo.displayName} | 
+          用戶名：${userInfo.displayName || '未知'} | 
           剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/3次</span>
         `;
       }
@@ -1311,7 +1426,9 @@
           backgroundColor: null,
           logging: false,
           letterRendering: true,
-          useTransform: true
+          useTransform: true,
+          windowWidth: document.getElementById("captureArea").scrollWidth, // 适配移动端滚动宽度
+          windowHeight: document.getElementById("captureArea").scrollHeight
         });
         const dataUrl = canvas.toDataURL("image/png");
         previewImage.src = dataUrl;
@@ -1324,6 +1441,7 @@
         recordUserUsage();
       } catch (error) {
         showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
+        console.error("匯出圖片失敗：", error);
       } finally {
         opCells.forEach(el => el.style.display = "");
         exportBtn.disabled = false;
@@ -1369,6 +1487,7 @@
         }
       } catch (error) {
         showToast(`圖片上傳錯誤: ${error.message || '未知錯誤'}`, 'error');
+        console.error("上傳圖片失敗：", error);
       } finally {
         shareToLineBtn.disabled = false;
         shareToLineBtn.textContent = "📩 上傳備份";
@@ -1400,6 +1519,7 @@
         });
       } catch (error) {
         showToast(`分享失敗: ${error.message || '未知錯誤'}`, 'error');
+        console.error("原生分享失敗：", error);
       }
     });
 
@@ -1512,11 +1632,11 @@
         let userId = '';
         try {
           const decodedToken = liff.getDecodedIDToken();
-          userId = decodedToken?.sub || profile.userId || '';
+          userId = decodedToken?.sub || profile?.userId || '';
         } catch (e) {
-          userId = profile.userId || '';
+          userId = profile?.userId || '';
         }
-        const displayName = profile.displayName || 'LINE用戶';
+        const displayName = profile?.displayName || 'LINE用戶';
         
         if (!userId) {
           showError('無法獲取用戶ID，請重新登錄');
@@ -1525,215 +1645,184 @@
         }
 
         const data = {
-          action: 'verifyUser',
-          userId: userId,
-          displayName: displayName,
-          callback: 'verifyCallback',
-          dataType: 'userVerify'
+          action: 'verifyUser',userId: userId,displayName: displayName
         };
 
-        // 手動設置超時，增強兼容性
-        let timeoutTimer = setTimeout(() => {
-          $.ajax.abort();
-          showError('驗證請求超時，請檢查網絡後重新嘗試');
-          reject(new Error('JSONP request timeout'));
+        // JSONP回调函数名称
+        const callbackName = `jsonpCallback_${Date.now()}`;
+        
+        // 设置超时
+        const timeout = setTimeout(() => {
+          window[callbackName] = null;
+          delete window[callbackName];
+          const script = document.getElementById(`jsonp_script_${callbackName}`);
+          if (script) document.body.removeChild(script);
+          reject(new Error("用戶驗證請求超時，請檢查網絡"));
         }, JSONP_TIMEOUT);
 
-        $.ajax({
-          url: API_URL,
-          dataType: 'jsonp',
-          jsonp: 'callback',
-          jsonpCallback: 'verifyCallback',
-          data: data,
-          success: function (resp) {
-            clearTimeout(timeoutTimer);
-            if (resp.status === "success") {
-              // 補充有效期計算
-              const expiryData = calculateRemainingDaysByDate(resp.expiryDate || PERMANENT_EXPIRY_DATE);
-              resolve({
-                ...resp,
-                displayName: displayName,
-                remainingDays: expiryData.remainingDays,
-                displayExpiryDate: expiryData.displayDate,
-                isExpired: expiryData.isExpired
-              });
+        // 定义回调函数
+        window[callbackName] = (response) => {
+          clearTimeout(timeout);
+          // 清理script标签
+          const script = document.getElementById(`jsonp_script_${callbackName}`);
+          if (script) document.body.removeChild(script);
+
+          try {
+            if (response && response.success) {
+              resolve(response.data);
             } else {
-              showError(resp.message || "用戶驗證失敗");
-              resolve(null);
+              reject(new Error(response?.message || "用戶驗證失敗"));
             }
-          },
-          error: function (xhr, status, error) {
-            clearTimeout(timeoutTimer);
-            console.error("用戶驗證請求失敗：", status, error);
-            const errorMsg = status === 'timeout' 
-              ? '驗證超時，請檢查網絡後重新嘗試' 
-              : `驗證失敗：${error || '未知網絡錯誤'}`;
-            showError(errorMsg);
-            reject(new Error(errorMsg));
+          } catch (e) {
+            reject(e);
+          } finally {
+            // 清理回调函数
+            window[callbackName] = null;
+            delete window[callbackName];
           }
-        });
+        };
+
+        // 构建JSONP请求URL
+        const params = new URLSearchParams(data);
+        const jsonpUrl = `${API_URL}?${params.toString()}&callback=${callbackName}`;
+
+        // 创建script标签
+        const script = document.createElement("script");
+        script.id = `jsonp_script_${callbackName}`;
+        script.src = jsonpUrl;
+        script.async = true;
+        script.onerror = () => {
+          clearTimeout(timeout);
+          window[callbackName] = null;
+          delete window[callbackName];
+          document.body.removeChild(script);
+          reject(new Error("請求失敗，無法連接後端服務"));
+        };
+
+        document.body.appendChild(script);
       });
     };
 
-    // JSONP回調函數
-    window.verifyCallback = function (resp) {
-      console.log("用戶授權驗證返回：", resp);
-    };
-
-    // ==================== 初始化LIFF與驗證（修復登錄流程） ====================
-    async function initLiffAndAuth() {
+    // LIFF初始化核心逻辑
+    async function initLiff() {
       try {
-        // 步驟1：更新初始化狀態
-        updateAuthUI('正在初始化LINE系統...', true, false);
+        authStatusText.textContent = "正在初始化LIFF環境...";
+        await liff.init({ liffId: LIFF_ID });
 
-        // 驗證LIFF對象是否存在
-        if (typeof liff === 'undefined') {
-          throw new Error('LINE LIFF SDK加載失敗');
+        if (liff.isLoggedIn()) {
+          // 已登录，直接获取用户信息
+          authStatusText.textContent = "已登錄，正在驗證用戶權限...";
+          const profile = await liff.getProfile();
+          const decodedToken = liff.getDecodedIDToken();
+          userInfo = {
+            userId: decodedToken?.sub || profile?.userId,
+            displayName: profile?.displayName || "未知用戶"
+          };
+
+          // 验证用户权限
+          const userAuthData = await verifyUserFromBackend(profile);
+          if (!userAuthData) {
+            showError("用戶權限驗證失敗，請聯繫管理員");
+            return;
+          }
+
+          // 解析权限状态
+          const expiryResult = calculateRemainingDaysByDate(userAuthData.expiryDate || "");
+          authStatus = {
+            isVip: userAuthData.isVip || false,
+            isSuperAdmin: userAuthData.isSuperAdmin || false,
+            remainingDays: expiryResult.remainingDays,
+            expiryDate: userAuthData.expiryDate || "",
+            displayExpiryDate: expiryResult.displayDate,
+            usageCount: userAuthData.usageCount || 0,
+            remainingTimes: 3 - (userUsageRecord[userInfo.userId] || 0),
+            isExpired: expiryResult.isExpired
+          };
+
+          // 过期用户处理
+          if (authStatus.isExpired && !authStatus.isSuperAdmin) {
+            showError(`您的授權已過期（到期日：${authStatus.displayExpiryDate}），請聯繫管理員續期`);
+            return;
+          }
+
+          // 验证通过，初始化功能
+          authStatusText.textContent = "驗證通過！正在加載系統...";
+          setTimeout(() => {
+            // 隐藏验证容器，显示功能区域
+            authContainer.style.display = "none";
+            captureArea.style.display = "block";
+            inputArea.style.display = "flex";
+            buttonGroup.style.display = "flex";
+            
+            // 初始化各项功能
+            updateAuthStatusBar();
+            setupLineName();
+            loadProducts();
+            loadSelectedProducts();
+            checkUserRemainingTimes();
+          }, 1000);
+
+        } else {
+          // 未登录，显示登录按钮
+          authStatusText.textContent = "請點擊按鈕完成LINE登錄";
+          authSpinner.style.display = "none";
+          loginBtn.style.display = "block";
+          loginBtn.disabled = false;
         }
-
-        // 初始化LIFF：添加完整配置增強兼容性
-        await liff.init({ 
-          liffId: LIFF_ID,
-          withLoginOnExternalBrowser: true,
-          redirectUri: window.location.href
-        });
-
-        // 步驟2：檢查登錄狀態
-        if (!liff.isLoggedIn()) {
-          updateAuthUI('請點擊按鈕使用LINE登錄', false, true);
-          // 綁定登錄按鈕事件
-          loginBtn.addEventListener('click', () => {
-            loginBtn.disabled = true;
-            loginBtn.textContent = '跳轉登錄中...';
-            liff.login({
-              redirectUri: window.location.href,
-              scope: 'profile openid email'
-            });
-          });
-          return;
-        }
-
-        // 步驟3：獲取用戶信息
-        updateAuthUI('正在獲取用戶信息...', true, false);
-        let profile;
-        try {
-          profile = await liff.getProfile();
-        } catch (e) {
-          throw new Error('獲取用戶信息失敗，請重新登錄');
-        }
-
-        userInfo = {
-          userId: profile.userId,
-          displayName: profile.displayName
-        };
-
-        // 步驟4：調用後端驗證用戶
-        updateAuthUI('正在驗證授權狀態...', true, false);
-        const authData = await verifyUserFromBackend(profile);
-
-        if (!authData) {
-          return;
-        }
-
-        // 步驟5：過期判斷攔截
-        if (authData.isExpired) {
-          showError('您的賬號已過期，無法登錄試算系統，請聯繫管理員續期');
-          return;
-        }
-
-        // 步驟6：存儲權限狀態
-        authStatus = {
-          isVip: authData.isVip || false,
-          isSuperAdmin: authData.isSuperAdmin || false,
-          remainingDays: authData.remainingDays,
-          displayExpiryDate: authData.displayExpiryDate,
-          expiryDate: authData.expiryDate || PERMANENT_EXPIRY_DATE,
-          usageCount: authData.usageCount || 0,
-          isExpired: authData.isExpired || false,
-          remainingTimes: 0
-        };
-
-        // 步驟7：隱藏驗證容器，顯示功能區域
-        authContainer.style.display = 'none';
-        captureArea.style.display = 'block';
-        inputArea.style.display = 'flex';
-        buttonGroup.style.display = 'flex';
-
-        // 步驟8：初始化頁面
-        setupLineName();
-        loadProducts();
-        loadSelectedProducts();
-        checkUserRemainingTimes();
-        updateAuthStatusBar();
-
-        showToast(`歡迎回來，${userInfo.displayName}！`);
       } catch (error) {
-        const errorMsg = error.message || '未知初始化錯誤';
-        updateAuthUI(`初始化失敗：${errorMsg}`, false, false);
-        showToast(`初始化失敗：${errorMsg}`, 'error');
-        console.error('初始化錯誤：', error);
-        // 顯示重試按鈕
-        setTimeout(() => {
-          updateAuthUI('初始化失敗，請點擊重試', false, true);
-          loginBtn.textContent = '重新嘗試';
-          loginBtn.addEventListener('click', () => window.location.reload());
-        }, 2000);
+        console.error("LIFF初始化失敗：", error);
+        authStatusText.textContent = "初始化失敗，請稍後再試";
+        showError(`系統初始化錯誤：${error.message || '未知錯誤'}`);
       }
     }
 
-    // 更新驗證界面UI
-    function updateAuthUI(text, showSpinner, showLoginBtn) {
-      authStatusText.innerHTML = text;
-      authSpinner.style.display = showSpinner ? 'block' : 'none';
-      loginBtn.style.display = showLoginBtn ? 'block' : 'none';
-      if (showLoginBtn) {
-        loginBtn.disabled = false;
-        loginBtn.textContent = '使用LINE登錄';
-      }
-    }
-        // 事件監聽（補全中斷部分）
-    addBtn.addEventListener("click", addProduct);
-    resetCalculatorBtn.addEventListener("click", resetLineName);
-    resetReportBtn.addEventListener("click", resetReport);
+    // 绑定事件监听
+    function bindEvents() {
+      // 登录按钮点击事件
+      loginBtn.addEventListener("click", () => {
+        if (!liff.isLoggedIn()) {
+          liff.login({ redirectUri: window.location.href });
+        }
+      });
 
-    // 購買者名稱本地存儲（提升用戶體驗，可選）
-    const savedBuyerName = localStorage.getItem('lastBuyerName');
-    if (savedBuyerName) {
-      buyerInput.value = savedBuyerName;
-    }
-    buyerInput.addEventListener('blur', () => {
-      localStorage.setItem('lastBuyerName', buyerInput.value.trim());
-    });
-
-    // 鍵盤快捷鍵支持（提升操作效率，可選）
-    document.addEventListener('keydown', (e) => {
-      // Enter鍵快速新增品項
-      if (e.key === 'Enter' && (document.activeElement === nameInput || document.activeElement === qtyInput)) {
-        e.preventDefault();
-        addProduct();
-      }
-      // Ctrl+R重置報表（兼容Mac的Cmd+R）
-      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-        e.preventDefault();
-        resetReport();
-      }
-      // Ctrl+E匯出圖片
-      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-        e.preventDefault();
-        exportBtn.click();
-      }
-    });
-
-    // 頁面加載完成後初始化LIFF與授權
-    document.addEventListener('DOMContentLoaded', () => {
-      // 隱藏所有功能區域，只顯示驗證容器
-      captureArea.style.display = 'none';
-      inputArea.style.display = 'none';
-      buttonGroup.style.display = 'none';
-      errorMessage.style.display = 'none';
+      // 重置计算器名称按钮
+      resetCalculatorBtn.addEventListener("click", resetLineName);
       
-      // 初始化LIFF與用戶驗證
-      initLiffAndAuth();
+      // 重置报表按钮
+      resetReportBtn.addEventListener("click", resetReport);
+      
+      // 添加产品按钮
+      addBtn.addEventListener("click", addProduct);
+      
+      // 移动端触摸事件兼容（防止点击延迟）
+      addBtn.ontouchstart = addBtn.onclick;
+      resetReportBtn.ontouchstart = resetReportBtn.onclick;
+      loginBtn.ontouchstart = loginBtn.onclick;
+      
+      // 购买者输入框本地存储（刷新不丢失）
+      buyerInput.addEventListener("blur", () => {
+        try {
+          localStorage.setItem('buyerName', buyerInput.value.trim());
+        } catch (e) {
+          console.error("保存購買者名稱失敗：", e);
+        }
+      });
+      
+      // 加载保存的购买者名称
+      window.addEventListener("load", () => {
+        try {
+          const savedBuyer = localStorage.getItem('buyerName');
+          if (savedBuyer) buyerInput.value = savedBuyer;
+        } catch (e) {
+          console.error("加載購買者名稱失敗：", e);
+        }
+      });
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener("DOMContentLoaded", async () => {
+      bindEvents();
+      await initLiff();
     });
   </script>
 </body>
