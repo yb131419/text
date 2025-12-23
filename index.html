@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>彥彬🌿試算系統（驗證版）</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- 引入LINE LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -225,7 +226,8 @@
     
     #reportTable th:nth-child(2),
     #reportTable td:nth-child(2),
-    .qtySelect {
+    .qtySelect,
+    #qtyInput {
       font-size: 18px !important;
     }
   }
@@ -611,9 +613,39 @@
       font-size: 12px;
     }
   }
+
+  /* 錯誤提示樣式（對齊自檢表） */
+  #error-message {
+    display: none;
+    background: #fef2f2;
+    border: 1px solid #fee2e2;
+    color: #dc2626;
+    padding: 16px;
+    border-radius: 8px;
+    margin: 10px auto;
+    max-width: 500px;
+    text-align: center;
+  }
+  #error-message button {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  #error-message button:hover {
+    background: #b91c1c;
+  }
 </style>
 </head>
 <body>
+  <!-- 錯誤提示（對齊自檢表） -->
+  <div id="error-message">
+    <div id="error-content"></div>
+  </div>
+
   <!-- 驗證加載提示 -->
   <div id="authLoading">正在驗證用戶權限，請稍候...</div>
 
@@ -687,17 +719,19 @@
   <div class="spacer"></div>
 
   <script>
-    // 配置參數
+    // 配置參數（對齊自檢表）
     const API_URL = "https://script.google.com/macros/s/AKfycbxMK8aSmldCGKmXffbL5XU6IGuLbaKS1VABe9LuWXSF6hg2NtGLGZxS8fT-jqiFKy8_/exec";
     const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
     const LIFF_ID = "2008578880-NznKeG2a"; // 對應GAS後端的LIFF ID
+    const JSONP_TIMEOUT = 12000;
+    const PERMANENT_EXPIRY_DATE = "9999/12/31";
 
     // 全局變量
     let allProducts = [];
     let selectedProducts = [];
     let lineName = '';
     let userInfo = null; // 用戶信息 { userId, displayName }
-    let authStatus = null; // 權限狀態 { isAdmin, remainingDays, expiryDate, usageCount, remainingTimes }
+    let authStatus = null; // 權限狀態 { isAdmin, remainingDays, expiryDate, usageCount, remainingTimes, isExpired }
     let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {}; // 本地使用記錄
 
     // DOM元素
@@ -727,6 +761,8 @@
     const captureArea = document.getElementById("captureArea");
     const inputArea = document.getElementById("inputArea");
     const buttonGroup = document.querySelector(".button-group");
+    const errorMessage = document.getElementById("error-message");
+    const errorContent = document.getElementById("error-content");
 
     // 初始化數量選擇下拉框
     for (let i = 1; i <= 99; i++) {
@@ -1058,17 +1094,21 @@
       
       let statusHtml = '';
       if (authStatus.isAdmin) {
+        // 專業用戶顯示有效期
+        const expiryText = authStatus.remainingDays === "永久有效" 
+          ? "永久有效" 
+          : `${authStatus.displayExpiryDate}（剩餘${authStatus.remainingDays}）`;
         statusHtml = `
           <span class="admin">👑 專業用戶</span> | 
           用戶名：${userInfo.displayName} | 
-          有效期：${authStatus.expiryDate || '永久有效'} | 
-          剩餘天數：${authStatus.remainingDays || '永久有效'}
+          有效期：<span class="admin">${expiryText}</span>
         `;
       } else {
+        // 普通用戶顯示剩餘次數
         statusHtml = `
           <span class="normal">🙋 普通用戶</span> | 
           用戶名：${userInfo.displayName} | 
-          剩餘使用次數：${authStatus.remainingTimes || 0}/3次
+          剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/3次</span>
         `;
       }
       authStatusBar.innerHTML = statusHtml;
@@ -1208,15 +1248,155 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // 【核心】LINE LIFF初始化與用戶驗證
+    // ==================== 自檢表對齊的核心驗證函數 ====================
+    // 計算剩餘天數（含過期判斷）
+    const calculateRemainingDaysByDate = (expiryDateStr) => {
+      try {
+        if (expiryDateStr === PERMANENT_EXPIRY_DATE) return {
+          displayDate: "永久有效",
+          remainingDays: "永久有效",
+          isExpired: false
+        };
+        // 兼容橫槓/斜槓、補零/非補零日期
+        const dateReg = /^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/;
+        if (!dateReg.test(expiryDateStr)) return {
+          displayDate: "格式錯誤",
+          remainingDays: "格式錯誤",
+          isExpired: true
+        };
+
+        // 統一拆分日期部分
+        const dateParts = expiryDateStr.replace(/-/g, '/').split('/').map(Number);
+        const [year, month, day] = dateParts;
+
+        // 構造到期日最後一秒（當天全天有效）
+        const expiryDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+        const now = new Date();
+
+        if (isNaN(expiryDate.getTime())) return {
+          displayDate: "日期無效",
+          remainingDays: "日期無效",
+          isExpired: true
+        };
+
+        // 計算天數差
+        const oneDayMs = 1000 * 3600 * 24;
+        const timeDiff = expiryDate.getTime() - now.getTime();
+        let dayDiff = Math.ceil(timeDiff / oneDayMs);
+
+        // 格式化顯示日期
+        const fmtMonth = String(month).padStart(2, '0');
+        const fmtDay = String(day).padStart(2, '0');
+        const displayDate = `${year}/${fmtMonth}/${fmtDay}`;
+
+        // 判斷狀態
+        let remainingDaysText;
+        let isExpired = false;
+        if (timeDiff < 0) {
+          remainingDaysText = "<span class='expired'>已過期</span>";
+          isExpired = true;
+        } else if (dayDiff === 0) {
+          remainingDaysText = "<span class='warning'>最後1天</span>";
+          isExpired = false;
+        } else if (dayDiff <= 30) {
+          remainingDaysText = `<span class='warning'>${dayDiff} 天</span>`;
+          isExpired = false;
+        } else {
+          remainingDaysText = `${dayDiff} 天`;
+          isExpired = false;
+        }
+
+        return { displayDate, remainingDays, isExpired };
+      } catch (e) {
+        console.error("計算剩餘天數失敗：", e, expiryDateStr);
+        return {
+          displayDate: "計算錯誤",
+          remainingDays: "計算錯誤",
+          isExpired: true
+        };
+      }
+    };
+
+    // 顯示錯誤（對齊自檢表）
+    const showError = (msg) => {
+      authLoading.classList.add('hidden');
+      captureArea.classList.add('hidden');
+      inputArea.classList.add('hidden');
+      buttonGroup.classList.add('hidden');
+      errorContent.innerHTML = `<p class="font-medium">${msg}</p>
+        <div class="mt-3 flex justify-center">
+          <button onclick="window.location.reload()" class="text-white hover:text-[#fff]">
+            <i class="fa fa-refresh"></i> 重新嘗試
+          </button>
+        </div>`;
+      errorMessage.classList.remove('hidden');
+    };
+
+    // 驗證用戶（JSONP請求，對齊自檢表）
+    const verifyUserFromBackend = (profile) => {
+      return new Promise((resolve, reject) => {
+        const userId = liff.getDecodedIDToken()?.sub || profile.userId;
+        const displayName = profile.displayName || 'LINE用戶';
+        const data = {
+          action: 'verifyUser',
+          userId: userId,
+          displayName: displayName,
+          callback: 'verifyCallback',
+          dataType: 'userVerify'
+        };
+
+        $.ajax({
+          url: API_URL,
+          dataType: 'jsonp',
+          jsonp: 'callback',
+          jsonpCallback: 'verifyCallback',
+          timeout: JSONP_TIMEOUT,
+          data: data,
+          success: function (resp) {
+            if (resp.status === "success") {
+              // 補充有效期計算
+              const expiryData = calculateRemainingDaysByDate(resp.expiryDate || PERMANENT_EXPIRY_DATE);
+              resolve({
+                ...resp,
+                displayName: displayName,
+                remainingDays: expiryData.remainingDays,
+                displayExpiryDate: expiryData.displayDate,
+                isExpired: expiryData.isExpired
+              });
+            } else {
+              showError(resp.message || "用戶驗證失敗");
+              resolve(null);
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error("用戶驗證請求失敗：", status, error);
+            if (status === 'timeout') {
+              showError('驗證超時，請檢查網絡後重新嘗試');
+            } else {
+              showError(`驗證失敗：${error || '未知網絡錯誤'}`);
+            }
+            reject(error);
+          }
+        });
+      });
+    };
+
+    // JSONP回調函數
+    window.verifyCallback = function (resp) {
+      console.log("用戶授權驗證返回：", resp);
+    };
+
+    // ==================== 初始化LIFF與驗證 ====================
     async function initLiffAndAuth() {
       try {
         // 初始化LIFF
+        authLoading.textContent = "正在初始化LINE登錄...";
         await liff.init({ liffId: LIFF_ID });
-        
+
         // 未登錄則引導登錄
         if (!liff.isLoggedIn()) {
-          liff.login();
+          authLoading.textContent = "請先登錄LINE賬號...";
+          liff.login({ redirectUri: window.location.href });
           return;
         }
 
@@ -1227,27 +1407,29 @@
           displayName: profile.displayName
         };
 
-        // 調用GAS後端驗證用戶權限
-        const authRes = await fetch(`${API_URL}?action=verifyUser&userId=${userInfo.userId}&displayName=${encodeURIComponent(userInfo.displayName)}&callback=callback`, {
-          method: 'GET',
-          mode: 'cors'
-        });
+        // 調用後端驗證用戶（對齊自檢表JSONP方式）
+        authLoading.textContent = "正在驗證授權狀態...";
+        const authData = await verifyUserFromBackend(profile);
 
-        // 解析JSONP響應
-        const jsonpText = await authRes.text();
-        const jsonStr = jsonpText.replace(/^callback\(/, '').replace(/\)$/, '');
-        const authData = JSON.parse(jsonStr);
+        if (!authData) {
+          return; // 錯誤已由showError處理
+        }
 
-        if (authData.status !== 'success') {
-          throw new Error(authData.message || '用戶驗證失敗');
+        // 過期判斷攔截
+        if (authData.isExpired) {
+          showError('您的賬號已過期，無法登錄試算系統，請聯繫管理員續期');
+          return;
         }
 
         // 存儲權限狀態
         authStatus = {
           isAdmin: authData.isAdmin,
           remainingDays: authData.remainingDays,
+          displayExpiryDate: authData.displayExpiryDate,
           expiryDate: authData.expiryDate,
-          usageCount: authData.usageCount || 0
+          usageCount: authData.usageCount || 0,
+          isExpired: authData.isExpired,
+          remainingTimes: 0 // 後續由checkUserRemainingTimes初始化
         };
 
         // 隱藏加載提示，顯示功能區域
@@ -1265,9 +1447,9 @@
 
         showToast(`歡迎回來，${userInfo.displayName}！`);
       } catch (error) {
-        authLoading.innerHTML = `驗證失敗：${error.message}<br/>請刷新頁面重試`;
-        showToast(`驗證失敗：${error.message}`, 'error');
-        console.error('驗證錯誤：', error);
+        authLoading.innerHTML = `初始化失敗：${error.message}<br/>請刷新頁面重試`;
+        showToast(`初始化失敗：${error.message}`, 'error');
+        console.error('初始化錯誤：', error);
       }
     }
 
@@ -1293,10 +1475,17 @@
       }
     }
 
-    // 頁面加載時初始化LIFF與驗證
-    window.onload = () => {
-      initLiffAndAuth();
-    };
+    // 加載jQuery後初始化（兼容未加載完成的情況）
+    function initApp() {
+      if (window.jQuery) {
+        initLiffAndAuth();
+      } else {
+        setTimeout(initApp, 100);
+      }
+    }
+
+    // 頁面加載時初始化
+    window.onload = initApp;
   </script>
 </body>
 </html>
