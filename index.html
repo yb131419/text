@@ -721,7 +721,7 @@
   <script>
     // 配置參數（對齊自檢表）
     const API_URL = "https://script.google.com/macros/s/AKfycbyETFQSpvVF0zCq24jLNkGD_lfm6yX44JUpW4cgkTyt3pJsg4G-38_uRbRzMl5xyMPs/exec";
-    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
+    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f"; // 若後續上傳失敗，請檢查API Key是否有效
     const LIFF_ID = "2007434020-Kf98vapi"; // 對應GAS後端的LIFF ID
     const JSONP_TIMEOUT = 12000;
     const PERMANENT_EXPIRY_DATE = "9999/12/31";
@@ -902,7 +902,7 @@
           adjustQtySelectOptions(nameInput.value);
         }, 300);
       } catch (error) {
-        showToast(`讀取商品失敗: ${error.message}`, 'error');
+        showToast(`讀取商品失敗: ${error.message || '未知錯誤'}`, 'error');
       }
     }
 
@@ -1150,7 +1150,7 @@
         // 記錄使用次數
         recordUserUsage();
       } catch (error) {
-        showToast(`匯出失敗：${error.message}`, 'error');
+        showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
       } finally {
         opCells.forEach(el => el.style.display = "");
         exportBtn.disabled = false;
@@ -1195,7 +1195,7 @@
           showToast("圖片上傳失敗，請稍後再試", 'error');
         }
       } catch (error) {
-        showToast(`圖片上傳錯誤: ${error.message}`, 'error');
+        showToast(`圖片上傳錯誤: ${error.message || '未知錯誤'}`, 'error');
       } finally {
         shareToLineBtn.disabled = false;
         shareToLineBtn.textContent = "📩 上傳備份";
@@ -1226,7 +1226,7 @@
           text: shareText,
         });
       } catch (error) {
-        showToast(`分享失敗: ${error.message}`, 'error');
+        showToast(`分享失敗: ${error.message || '未知錯誤'}`, 'error');
       }
     });
 
@@ -1306,7 +1306,7 @@
           isExpired = false;
         }
 
-        return { displayDate, remainingDays, isExpired };
+        return { displayDate, remainingDays: remainingDaysText, isExpired };
       } catch (e) {
         console.error("計算剩餘天數失敗：", e, expiryDateStr);
         return {
@@ -1317,25 +1317,27 @@
       }
     };
 
-    // 顯示錯誤（對齊自檢表）
+    // 顯示錯誤（對齊自檢表，修復隱藏方式）
     const showError = (msg) => {
-      authLoading.classList.add('hidden');
-      captureArea.classList.add('hidden');
-      inputArea.classList.add('hidden');
-      buttonGroup.classList.add('hidden');
+      authLoading.style.display = 'none'; // 替換classList.add('hidden')
+      captureArea.style.display = 'none'; // 替換classList.add('hidden')
+      inputArea.style.display = 'none'; // 替換classList.add('hidden')
+      buttonGroup.style.display = 'none'; // 替換classList.add('hidden')
       errorContent.innerHTML = `<p class="font-medium">${msg}</p>
         <div class="mt-3 flex justify-center">
           <button onclick="window.location.reload()" class="text-white hover:text-[#fff]">
-            <i class="fa fa-refresh"></i> 重新嘗試
+            重新嘗試
           </button>
         </div>`;
-      errorMessage.classList.remove('hidden');
+      errorMessage.style.display = 'block'; // 顯示錯誤提示
     };
 
     // 驗證用戶（JSONP請求，對齊自檢表）
     const verifyUserFromBackend = (profile) => {
       return new Promise((resolve, reject) => {
-        const userId = liff.getDecodedIDToken()?.sub || profile.userId;
+        // 容錯處理：防止getDecodedIDToken為null
+        const decodedToken = liff.getDecodedIDToken();
+        const userId = decodedToken?.sub || profile.userId;
         const displayName = profile.displayName || 'LINE用戶';
         const data = {
           action: 'verifyUser',
@@ -1370,12 +1372,11 @@
           },
           error: function (xhr, status, error) {
             console.error("用戶驗證請求失敗：", status, error);
-            if (status === 'timeout') {
-              showError('驗證超時，請檢查網絡後重新嘗試');
-            } else {
-              showError(`驗證失敗：${error || '未知網絡錯誤'}`);
-            }
-            reject(error);
+            const errorMsg = status === 'timeout' 
+              ? '驗證超時，請檢查網絡後重新嘗試' 
+              : `驗證失敗：${error || '未知網絡錯誤'}`;
+            showError(errorMsg);
+            reject(new Error(errorMsg));
           }
         });
       });
@@ -1389,9 +1390,12 @@
     // ==================== 初始化LIFF與驗證 ====================
     async function initLiffAndAuth() {
       try {
-        // 初始化LIFF
+        // 初始化LIFF：添加withLoginOnExternalBrowser增強兼容性
         authLoading.textContent = "正在初始化LINE登錄...";
-        await liff.init({ liffId: LIFF_ID });
+        await liff.init({ 
+          liffId: LIFF_ID,
+          withLoginOnExternalBrowser: true // 新增：外部瀏覽器自動登錄
+        });
 
         // 未登錄則引導登錄
         if (!liff.isLoggedIn()) {
@@ -1447,8 +1451,9 @@
 
         showToast(`歡迎回來，${userInfo.displayName}！`);
       } catch (error) {
-        authLoading.innerHTML = `初始化失敗：${error.message}<br/>請刷新頁面重試`;
-        showToast(`初始化失敗：${error.message}`, 'error');
+        const errorMsg = error.message || '未知初始化錯誤';
+        authLoading.innerHTML = `初始化失敗：${errorMsg}<br/>請刷新頁面重試`;
+        showToast(`初始化失敗：${errorMsg}`, 'error');
         console.error('初始化錯誤：', error);
       }
     }
@@ -1475,12 +1480,25 @@
       }
     }
 
-    // 加載jQuery後初始化（兼容未加載完成的情況）
+    // 加載jQuery後初始化（增強等待邏輯）
     function initApp() {
       if (window.jQuery) {
         initLiffAndAuth();
       } else {
-        setTimeout(initApp, 100);
+        // 最多等待5秒，避免無限輪詢
+        let waitCount = 0;
+        const interval = setInterval(() => {
+          waitCount++;
+          if (window.jQuery || waitCount >= 50) {
+            clearInterval(interval);
+            if (window.jQuery) {
+              initLiffAndAuth();
+            } else {
+              authLoading.innerHTML = 'jQuery加載失敗，請檢查網絡或刷新頁面';
+              showToast('jQuery加載失敗', 'error');
+            }
+          }
+        }, 100);
       }
     }
 
