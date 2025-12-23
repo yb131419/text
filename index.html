@@ -21,6 +21,10 @@
     --warning: #ff9800;
     --super-admin: #d4af37; /* 超级管理员金色 */
     --vip-admin: #00bfa5;   /* 尊爵用户绿色 */
+    --gradient-primary: linear-gradient(135deg, #16222a, #3a6073);
+    --gradient-secondary: linear-gradient(135deg, #00bfa5, #00897b);
+    --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-hover: 0 12px 40px rgba(0, 209, 178, 0.2);
   }
 
   * {
@@ -34,14 +38,96 @@
     margin: 0;
     padding: 10px;
     line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
   }
 
-  /* 驗證加載提示 */
-  #authLoading {
+  /* 高質感登錄驗證容器 */
+  #authContainer {
+    width: 100%;
+    max-width: 500px;
+    background: var(--gradient-primary);
+    border-radius: 16px;
+    box-shadow: var(--shadow-soft);
+    padding: 40px 30px;
+    margin: 50px auto 20px;
     text-align: center;
-    padding: 60px 20px;
-    font-size: 1.2rem;
-    color: var(--highlight);
+    transition: all 0.5s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #authContainer:hover {
+    box-shadow: var(--shadow-hover);
+  }
+
+  /* 驗證狀態圖標 */
+  .auth-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .auth-icon svg {
+    width: 40px;
+    height: 40px;
+    fill: var(--accent);
+  }
+
+  /* 加載動畫 */
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+  }
+
+  /* 登錄按鈕 */
+  #loginBtn {
+    background: var(--gradient-secondary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+    width: 100%;
+    max-width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 191, 165, 0.2);
+  }
+
+  #loginBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 191, 165, 0.3);
+  }
+
+  #loginBtn:disabled {
+    background: var(--button-grey);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 
   /* 權限提示欄 */
@@ -53,6 +139,8 @@
     font-size: 14px;
     text-align: center;
     border: 1px solid rgba(0, 209, 178, 0.3);
+    width: 100%;
+    max-width: 800px;
   }
 
   #authStatusBar .super-admin {
@@ -85,6 +173,8 @@
     margin-bottom: 15px;
     overflow-x: auto;
     display: none; /* 初始隱藏，驗證通過後顯示 */
+    width: 100%;
+    max-width: 800px;
   }
 
   /* 增大標題字體並確保居中 */
@@ -304,6 +394,8 @@
     gap: 10px;
     margin-top: 15px;
     display: none; /* 初始隱藏，驗證通過後顯示 */
+    width: 100%;
+    max-width: 800px;
   }
 
   @media (min-width: 576px) {
@@ -385,6 +477,8 @@
     justify-content: center;
     margin: 10px 0;
     display: none; /* 初始隱藏，驗證通過後顯示 */
+    width: 100%;
+    max-width: 800px;
   }
 
   #exportBtn,
@@ -432,6 +526,7 @@
     border: 2px solid #888;
     border-radius: 10px;
     margin: 15px auto;
+    max-width: 800px;
   }
 
   #shareToLineBtn,
@@ -539,7 +634,7 @@
       color: #000;
     }
 
-    #authLoading,
+    #authContainer,
     #authStatusBar,
     #inputArea,
     #addBtn,
@@ -588,6 +683,21 @@
   }
 
   @media (max-width: 360px) {
+    #authContainer {
+      padding: 30px 20px;
+      margin: 30px auto 20px;
+    }
+
+    .auth-icon {
+      width: 60px;
+      height: 60px;
+    }
+
+    .auth-icon svg {
+      width: 30px;
+      height: 30px;
+    }
+
     .userInputs .row {
       gap: 5px;
     }
@@ -621,39 +731,62 @@
     }
   }
 
-  /* 錯誤提示樣式（對齊自檢表） */
+  /* 錯誤提示樣式（高質感優化） */
   #error-message {
     display: none;
-    background: #fef2f2;
+    background: linear-gradient(145deg, #450a0a, #2e0707);
     border: 1px solid #fee2e2;
-    color: #dc2626;
-    padding: 16px;
-    border-radius: 8px;
-    margin: 10px auto;
+    color: #fecdd3;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px auto;
     max-width: 500px;
     text-align: center;
+    box-shadow: 0 4px 16px rgba(255, 82, 82, 0.2);
   }
   #error-message button {
-    background: #dc2626;
+    background: linear-gradient(145deg, #dc2626, #b91c1c);
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 10px 20px;
+    border-radius: 8px;
     cursor: pointer;
-    margin-top: 10px;
+    margin-top: 15px;
+    font-weight: 500;
+    transition: all 0.3s ease;
   }
   #error-message button:hover {
-    background: #b91c1c;
+    background: linear-gradient(145deg, #ef4444, #dc2626);
+    transform: translateY(-2px);
+  }
+
+  /* 隱藏默認驗證提示 */
+  #authLoading {
+    display: none;
   }
 </style>
 </head>
 <body>
-  <!-- 錯誤提示（對齊自檢表） -->
+  <!-- 高質感登錄驗證容器 -->
+  <div id="authContainer">
+    <div class="auth-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+      </svg>
+    </div>
+    <h2 style="color: white; margin: 0 0 10px; font-size: 1.8rem;">彥彬🌿試算系統</h2>
+    <p style="color: rgba(255,255,255,0.8); margin: 0 0 20px; font-size: 1rem;">請完成LINE授權驗證</p>
+    <div id="authStatusText" style="color: white; font-size: 1.1rem; margin-bottom: 15px;">正在初始化系統...</div>
+    <div class="loading-spinner" id="authSpinner"></div>
+    <button id="loginBtn" style="display: none;" disabled>使用LINE登錄</button>
+  </div>
+
+  <!-- 錯誤提示（高質感優化） -->
   <div id="error-message">
     <div id="error-content"></div>
   </div>
 
-  <!-- 驗證加載提示 -->
+  <!-- 默認驗證提示（隱藏） -->
   <div id="authLoading">正在驗證用戶權限，請稍候...</div>
 
   <!-- 權限狀態欄 -->
@@ -765,7 +898,10 @@
     const calculatorDisplay = document.getElementById("calculatorDisplay");
     const resetCalculatorBtn = document.getElementById("resetCalculatorBtn");
     const toast = document.getElementById("toast");
-    const authLoading = document.getElementById("authLoading");
+    const authContainer = document.getElementById("authContainer");
+    const authStatusText = document.getElementById("authStatusText");
+    const authSpinner = document.getElementById("authSpinner");
+    const loginBtn = document.getElementById("loginBtn");
     const authStatusBar = document.getElementById("authStatusBar");
     const captureArea = document.getElementById("captureArea");
     const inputArea = document.getElementById("inputArea");
@@ -937,6 +1073,12 @@
             item.qty = maxQty;
             saveSelectedProducts();
           }
+        } else if (trimmedName.includes('777Ｑ') && trimmedName.includes('(4)')) {
+          maxQty = 2;
+          if (item.qty > maxQty) {
+            item.qty = maxQty;
+            saveSelectedProducts();
+          }
         }
 
         const subtotalPrice = item.price * item.qty;
@@ -1032,6 +1174,12 @@
         maxQty = 2;
         if (qty > maxQty) {
           alert(`⚠️ 2711AB(4)限購${maxQty}組，已自動調整數量為${maxQty}`);
+          qty = maxQty;
+        }
+      } else if (trimmedName.includes('777Ｑ') && trimmedName.includes('(4)')) {
+        maxQty = 2;
+        if (qty > maxQty) {
+          alert(`⚠️ 777Ｑ(4)限購${maxQty}組，已自動調整數量為${maxQty}`);
           qty = maxQty;
         }
       }
@@ -1273,7 +1421,7 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // ==================== 自檢表對齊的核心驗證函數 ====================
+    // ==================== 自檢表對齊的核心驗證函數（修復驗證錯誤） ====================
     // 計算剩餘天數（含過期判斷）
     const calculateRemainingDaysByDate = (expiryDateStr) => {
       try {
@@ -1344,7 +1492,7 @@
 
     // 顯示錯誤（對齊自檢表，修復隱藏方式）
     const showError = (msg) => {
-      authLoading.style.display = 'none';
+      authContainer.style.display = 'none';
       captureArea.style.display = 'none';
       inputArea.style.display = 'none';
       buttonGroup.style.display = 'none';
@@ -1357,13 +1505,25 @@
       errorMessage.style.display = 'block';
     };
 
-    // 驗證用戶（JSONP請求，對齊自檢表）
+    // 驗證用戶（JSONP請求，修復參數傳遞與超時處理）
     const verifyUserFromBackend = (profile) => {
       return new Promise((resolve, reject) => {
         // 容錯處理：防止getDecodedIDToken為null
-        const decodedToken = liff.getDecodedIDToken();
-        const userId = decodedToken?.sub || profile.userId;
+        let userId = '';
+        try {
+          const decodedToken = liff.getDecodedIDToken();
+          userId = decodedToken?.sub || profile.userId || '';
+        } catch (e) {
+          userId = profile.userId || '';
+        }
         const displayName = profile.displayName || 'LINE用戶';
+        
+        if (!userId) {
+          showError('無法獲取用戶ID，請重新登錄');
+          resolve(null);
+          return;
+        }
+
         const data = {
           action: 'verifyUser',
           userId: userId,
@@ -1372,14 +1532,21 @@
           dataType: 'userVerify'
         };
 
+        // 手動設置超時，增強兼容性
+        let timeoutTimer = setTimeout(() => {
+          $.ajax.abort();
+          showError('驗證請求超時，請檢查網絡後重新嘗試');
+          reject(new Error('JSONP request timeout'));
+        }, JSONP_TIMEOUT);
+
         $.ajax({
           url: API_URL,
           dataType: 'jsonp',
           jsonp: 'callback',
           jsonpCallback: 'verifyCallback',
-          timeout: JSONP_TIMEOUT,
           data: data,
           success: function (resp) {
+            clearTimeout(timeoutTimer);
             if (resp.status === "success") {
               // 補充有效期計算
               const expiryData = calculateRemainingDaysByDate(resp.expiryDate || PERMANENT_EXPIRY_DATE);
@@ -1396,6 +1563,7 @@
             }
           },
           error: function (xhr, status, error) {
+            clearTimeout(timeoutTimer);
             console.error("用戶驗證請求失敗：", status, error);
             const errorMsg = status === 'timeout' 
               ? '驗證超時，請檢查網絡後重新嘗試' 
@@ -1412,63 +1580,86 @@
       console.log("用戶授權驗證返回：", resp);
     };
 
-    // ==================== 初始化LIFF與驗證 ====================
+    // ==================== 初始化LIFF與驗證（修復登錄流程） ====================
     async function initLiffAndAuth() {
       try {
-        // 初始化LIFF：添加withLoginOnExternalBrowser增強兼容性
-        authLoading.textContent = "正在初始化LINE登錄...";
+        // 步驟1：更新初始化狀態
+        updateAuthUI('正在初始化LINE系統...', true, false);
+
+        // 驗證LIFF對象是否存在
+        if (typeof liff === 'undefined') {
+          throw new Error('LINE LIFF SDK加載失敗');
+        }
+
+        // 初始化LIFF：添加完整配置增強兼容性
         await liff.init({ 
           liffId: LIFF_ID,
-          withLoginOnExternalBrowser: true
+          withLoginOnExternalBrowser: true,
+          redirectUri: window.location.href
         });
 
-        // 未登錄則引導登錄
+        // 步驟2：檢查登錄狀態
         if (!liff.isLoggedIn()) {
-          authLoading.textContent = "請先登錄LINE賬號...";
-          liff.login({ redirectUri: window.location.href });
+          updateAuthUI('請點擊按鈕使用LINE登錄', false, true);
+          // 綁定登錄按鈕事件
+          loginBtn.addEventListener('click', () => {
+            loginBtn.disabled = true;
+            loginBtn.textContent = '跳轉登錄中...';
+            liff.login({
+              redirectUri: window.location.href,
+              scope: 'profile openid email'
+            });
+          });
           return;
         }
 
-        // 获取用户信息
-        const profile = await liff.getProfile();
+        // 步驟3：獲取用戶信息
+        updateAuthUI('正在獲取用戶信息...', true, false);
+        let profile;
+        try {
+          profile = await liff.getProfile();
+        } catch (e) {
+          throw new Error('獲取用戶信息失敗，請重新登錄');
+        }
+
         userInfo = {
           userId: profile.userId,
           displayName: profile.displayName
         };
 
-        // 調用後端驗證用戶（對齊自檢表JSONP方式）
-        authLoading.textContent = "正在驗證授權狀態...";
+        // 步驟4：調用後端驗證用戶
+        updateAuthUI('正在驗證授權狀態...', true, false);
         const authData = await verifyUserFromBackend(profile);
 
         if (!authData) {
           return;
         }
 
-        // 過期判斷攔截
+        // 步驟5：過期判斷攔截
         if (authData.isExpired) {
           showError('您的賬號已過期，無法登錄試算系統，請聯繫管理員續期');
           return;
         }
 
-        // 存儲權限狀態（與後端字段對齊）
+        // 步驟6：存儲權限狀態
         authStatus = {
-          isVip: authData.isVip,
-          isSuperAdmin: authData.isSuperAdmin,
+          isVip: authData.isVip || false,
+          isSuperAdmin: authData.isSuperAdmin || false,
           remainingDays: authData.remainingDays,
           displayExpiryDate: authData.displayExpiryDate,
-          expiryDate: authData.expiryDate,
+          expiryDate: authData.expiryDate || PERMANENT_EXPIRY_DATE,
           usageCount: authData.usageCount || 0,
-          isExpired: authData.isExpired,
+          isExpired: authData.isExpired || false,
           remainingTimes: 0
         };
 
-        // 隱藏加載提示，顯示功能區域
-        authLoading.style.display = 'none';
+        // 步驟7：隱藏驗證容器，顯示功能區域
+        authContainer.style.display = 'none';
         captureArea.style.display = 'block';
         inputArea.style.display = 'flex';
         buttonGroup.style.display = 'flex';
 
-        // 初始化頁面
+        // 步驟8：初始化頁面
         setupLineName();
         loadProducts();
         loadSelectedProducts();
@@ -1478,58 +1669,72 @@
         showToast(`歡迎回來，${userInfo.displayName}！`);
       } catch (error) {
         const errorMsg = error.message || '未知初始化錯誤';
-        authLoading.innerHTML = `初始化失敗：${errorMsg}<br/>請刷新頁面重試`;
+        updateAuthUI(`初始化失敗：${errorMsg}`, false, false);
         showToast(`初始化失敗：${errorMsg}`, 'error');
         console.error('初始化錯誤：', error);
+        // 顯示重試按鈕
+        setTimeout(() => {
+          updateAuthUI('初始化失敗，請點擊重試', false, true);
+          loginBtn.textContent = '重新嘗試';
+          loginBtn.addEventListener('click', () => window.location.reload());
+        }, 2000);
       }
     }
 
-    // 事件監聽
+    // 更新驗證界面UI
+    function updateAuthUI(text, showSpinner, showLoginBtn) {
+      authStatusText.innerHTML = text;
+      authSpinner.style.display = showSpinner ? 'block' : 'none';
+      loginBtn.style.display = showLoginBtn ? 'block' : 'none';
+      if (showLoginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = '使用LINE登錄';
+      }
+    }
+        // 事件監聽（補全中斷部分）
     addBtn.addEventListener("click", addProduct);
     resetCalculatorBtn.addEventListener("click", resetLineName);
     resetReportBtn.addEventListener("click", resetReport);
 
-    // 窗口大小變化處理
-    window.addEventListener('resize', () => {
-      adjustTableDisplay();
+    // 購買者名稱本地存儲（提升用戶體驗，可選）
+    const savedBuyerName = localStorage.getItem('lastBuyerName');
+    if (savedBuyerName) {
+      buyerInput.value = savedBuyerName;
+    }
+    buyerInput.addEventListener('blur', () => {
+      localStorage.setItem('lastBuyerName', buyerInput.value.trim());
     });
 
-    // 調整表格顯示
-    function adjustTableDisplay() {
-      const table = document.getElementById('reportTable');
-      const width = window.innerWidth;
+    // 鍵盤快捷鍵支持（提升操作效率，可選）
+    document.addEventListener('keydown', (e) => {
+      // Enter鍵快速新增品項
+      if (e.key === 'Enter' && (document.activeElement === nameInput || document.activeElement === qtyInput)) {
+        e.preventDefault();
+        addProduct();
+      }
+      // Ctrl+R重置報表（兼容Mac的Cmd+R）
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        resetReport();
+      }
+      // Ctrl+E匯出圖片
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        exportBtn.click();
+      }
+    });
+
+    // 頁面加載完成後初始化LIFF與授權
+    document.addEventListener('DOMContentLoaded', () => {
+      // 隱藏所有功能區域，只顯示驗證容器
+      captureArea.style.display = 'none';
+      inputArea.style.display = 'none';
+      buttonGroup.style.display = 'none';
+      errorMessage.style.display = 'none';
       
-      if (width < 360) {
-        table.style.fontSize = '11px';
-      } else {
-        table.style.fontSize = '12px';
-      }
-    }
-
-    // 加載jQuery後初始化（增強等待邏輯）
-    function initApp() {
-      if (window.jQuery) {
-        initLiffAndAuth();
-      } else {
-        // 最多等待5秒，避免無限輪詢
-        let waitCount = 0;
-        const interval = setInterval(() => {
-          waitCount++;
-          if (window.jQuery || waitCount >= 50) {
-            clearInterval(interval);
-            if (window.jQuery) {
-              initLiffAndAuth();
-            } else {
-              authLoading.innerHTML = 'jQuery加載失敗，請檢查網絡或刷新頁面';
-              showToast('jQuery加載失敗', 'error');
-            }
-          }
-        }, 100);
-      }
-    }
-
-    // 頁面加載時初始化
-    window.onload = initApp;
+      // 初始化LIFF與用戶驗證
+      initLiffAndAuth();
+    });
   </script>
 </body>
 </html>
