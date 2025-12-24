@@ -884,24 +884,24 @@ function updateAuthStatusBar() {
       ? "永久有效" 
       : `${authStatus.displayExpiryDate} | 剩餘：<span class="remaining-days-yellow">${authStatus.remainingDays}</span>`;
     statusHtml = `
-      <span class="super-admin">👑 超級管理員</span> <br/> 
+      <span class="super-admin">👑 超級管理員</span> | 
       用戶名：<span class="super-admin-username">${userInfo.displayName}</span>
-      | 有效期限：${expiryText}
+      <br/>有效期限：${expiryText}
     `;
   } else if (authStatus.isVip) {
     const expiryText = authStatus.remainingDays === "永久有效" 
       ? "永久有效" 
       : `${authStatus.displayExpiryDate} | 剩餘：<span class="remaining-days-yellow">${authStatus.remainingDays}</span>`;
     statusHtml = `
-      <span class="vip-admin">💎 尊爵用戶</span> <br/> 
+      <span class="vip-admin">💎 尊爵用戶</span> | 
       用戶名：<span class="vip-admin-username">${userInfo.displayName}</span>
-      | 有效期限：${expiryText}
+      <br/>有效期限：${expiryText}
     `;
   } else {
     statusHtml = `
-      <span class="normal">🙋 普通用戶</span> <br/> 
+      <span class="normal">🙋 普通用戶</span> | 
       用戶名：${userInfo.displayName}
-      | 剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/3次</span>
+      <br/>剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/3次</span>
     `;
   }
   authStatusBar.innerHTML = statusHtml;
