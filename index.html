@@ -21,6 +21,10 @@
     --warning: #ff9800;
     --super-admin: #d4af37; /* 超级管理员金色 */
     --vip-admin: #00bfa5;   /* 尊爵用户绿色 */
+    --gradient-primary: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+    --gradient-secondary: linear-gradient(145deg, #2d2d2d, #1f1f1f);
+    --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --loader-color: #00d1b2;
   }
 
   * {
@@ -34,25 +38,86 @@
     margin: 0;
     padding: 10px;
     line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  /* 驗證加載提示 */
+  /* 高質感驗證加載容器 */
+  #authContainer {
+    width: 100%;
+    max-width: 400px;
+    margin: 50px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
   #authLoading {
+    width: 100%;
+    background: var(--gradient-secondary);
+    border-radius: 16px;
+    padding: 40px 25px;
     text-align: center;
-    padding: 60px 20px;
+    box-shadow: var(--card-shadow);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.5s ease;
+  }
+
+  /* 加載動畫 */
+  .loader {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--loader-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite, pulse 2s ease-in-out infinite alternate;
+    margin: 0 auto 20px;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes pulse {
+    from {
+      box-shadow: 0 0 15px rgba(0, 209, 178, 0.3);
+    }
+    to {
+      box-shadow: 0 0 25px rgba(0, 209, 178, 0.6);
+    }
+  }
+
+  #authLoading h3 {
+    margin: 0 0 8px 0;
     font-size: 1.2rem;
     color: var(--highlight);
+    font-weight: 600;
+  }
+
+  #authLoading p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #bbb;
+    line-height: 1.6;
   }
 
   /* 權限提示欄 */
   #authStatusBar {
-    background: linear-gradient(145deg, #2d2d2d, #1f1f1f);
-    padding: 10px 15px;
-    border-radius: 8px;
-    margin-bottom: 15px;
+    background: var(--gradient-secondary);
+    padding: 12px 18px;
+    border-radius: 12px;
+    margin-bottom: 20px;
     font-size: 14px;
     text-align: center;
     border: 1px solid rgba(0, 209, 178, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    display: none;
+    width: 100%;
+    max-width: 600px;
   }
 
   #authStatusBar .super-admin {
@@ -85,6 +150,8 @@
     margin-bottom: 15px;
     overflow-x: auto;
     display: none; /* 初始隱藏，驗證通過後顯示 */
+    width: 100%;
+    max-width: 600px;
   }
 
   /* 增大標題字體並確保居中 */
@@ -304,6 +371,8 @@
     gap: 10px;
     margin-top: 15px;
     display: none; /* 初始隱藏，驗證通過後顯示 */
+    width: 100%;
+    max-width: 600px;
   }
 
   @media (min-width: 576px) {
@@ -385,6 +454,8 @@
     justify-content: center;
     margin: 10px 0;
     display: none; /* 初始隱藏，驗證通過後顯示 */
+    width: 100%;
+    max-width: 600px;
   }
 
   #exportBtn,
@@ -432,6 +503,7 @@
     border: 2px solid #888;
     border-radius: 10px;
     margin: 15px auto;
+    max-width: 600px;
   }
 
   #shareToLineBtn,
@@ -484,17 +556,18 @@
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #4caf50;
+    background: var(--gradient-secondary);
     color: white;
-    padding: 10px 16px;
-    border-radius: 6px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     opacity: 0;
     transition: opacity 0.5s ease, transform 0.5s ease;
     z-index: 1000;
     text-align: center;
-    min-width: 180px;
+    min-width: 200px;
     font-size: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .toast.show {
@@ -503,11 +576,13 @@
   }
 
   .toast.error {
-    background-color: var(--error);
+    background: linear-gradient(145deg, #4a0000, #2a0000);
+    border-color: rgba(255, 82, 82, 0.3);
   }
 
   .toast.warning {
-    background-color: var(--warning);
+    background: linear-gradient(145deg, #4a3200, #2a1e00);
+    border-color: rgba(255, 152, 0, 0.3);
   }
 
   .payment-options {
@@ -539,6 +614,7 @@
       color: #000;
     }
 
+    #authContainer,
     #authLoading,
     #authStatusBar,
     #inputArea,
@@ -619,42 +695,69 @@
     #authStatusBar {
       font-size: 12px;
     }
+
+    #authLoading {
+      padding: 30px 20px;
+    }
+
+    .loader {
+      width: 40px;
+      height: 40px;
+    }
   }
 
-  /* 錯誤提示樣式（對齊自檢表） */
+  /* 高質感錯誤提示樣式 */
   #error-message {
     display: none;
-    background: #fef2f2;
-    border: 1px solid #fee2e2;
-    color: #dc2626;
-    padding: 16px;
-    border-radius: 8px;
-    margin: 10px auto;
-    max-width: 500px;
+    background: linear-gradient(145deg, #4a0000, #2a0000);
+    border: 1px solid rgba(255, 82, 82, 0.3);
+    color: #fef2f2;
+    padding: 20px;
+    border-radius: 16px;
+    margin: 20px auto;
+    max-width: 400px;
     text-align: center;
+    box-shadow: var(--card-shadow);
   }
+
+  #error-message #error-content {
+    margin-bottom: 15px;
+  }
+
   #error-message button {
-    background: #dc2626;
+    background: linear-gradient(145deg, #ff5252, #d32f2f);
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 10px 20px;
+    border-radius: 8px;
     cursor: pointer;
     margin-top: 10px;
+    font-weight: 500;
+    transition: all 0.3s ease;
   }
+
   #error-message button:hover {
-    background: #b91c1c;
+    background: linear-gradient(145deg, #ff6b6b, #e53935);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 82, 82, 0.3);
   }
 </style>
 </head>
 <body>
-  <!-- 錯誤提示（對齊自檢表） -->
-  <div id="error-message">
-    <div id="error-content"></div>
-  </div>
+  <!-- 高質感驗證容器 -->
+  <div id="authContainer">
+    <!-- 錯誤提示（高質感樣式） -->
+    <div id="error-message">
+      <div id="error-content"></div>
+    </div>
 
-  <!-- 驗證加載提示 -->
-  <div id="authLoading">正在驗證用戶權限，請稍候...</div>
+    <!-- 驗證加載提示（高質感） -->
+    <div id="authLoading">
+      <div class="loader"></div>
+      <h3>正在驗證用戶權限</h3>
+      <p>請稍候...</p>
+    </div>
+  </div>
 
   <!-- 權限狀態欄 -->
   <div id="authStatusBar" style="display: none;"></div>
@@ -772,6 +875,8 @@
     const buttonGroup = document.querySelector(".button-group");
     const errorMessage = document.getElementById("error-message");
     const errorContent = document.getElementById("error-content");
+    const authLoadingTitle = authLoading.querySelector("h3");
+    const authLoadingDesc = authLoading.querySelector("p");
 
     // 初始化數量選擇下拉框
     for (let i = 1; i <= 99; i++) {
@@ -1342,7 +1447,7 @@
       }
     };
 
-    // 顯示錯誤（對齊自檢表，修復隱藏方式）
+    // 顯示錯誤（對齊自檢表，高質感樣式）
     const showError = (msg) => {
       authLoading.style.display = 'none';
       captureArea.style.display = 'none';
@@ -1357,13 +1462,15 @@
       errorMessage.style.display = 'block';
     };
 
-    // 驗證用戶（JSONP請求，對齊自檢表）
+    // 驗證用戶（JSONP請求，修復VIP判斷問題）
     const verifyUserFromBackend = (profile) => {
       return new Promise((resolve, reject) => {
-        // 容錯處理：防止getDecodedIDToken為null
+        // 【核心修正】優先使用profile.userId（與後端清洗規則對齊）
         const decodedToken = liff.getDecodedIDToken();
-        const userId = decodedToken?.sub || profile.userId;
+        const userId = profile.userId || decodedToken?.sub || "";
         const displayName = profile.displayName || 'LINE用戶';
+        console.log("傳遞給後端的用戶ID：", userId); // 調試日志
+        
         const data = {
           action: 'verifyUser',
           userId: userId,
@@ -1380,15 +1487,19 @@
           timeout: JSONP_TIMEOUT,
           data: data,
           success: function (resp) {
+            console.log("後端返回的驗證數據：", resp); // 調試日志
             if (resp.status === "success") {
-              // 補充有效期計算
+              // 【核心修正】直接使用後端返回的isVip和isSuperAdmin，不做額外過濾
               const expiryData = calculateRemainingDaysByDate(resp.expiryDate || PERMANENT_EXPIRY_DATE);
               resolve({
                 ...resp,
                 displayName: displayName,
                 remainingDays: expiryData.remainingDays,
                 displayExpiryDate: expiryData.displayDate,
-                isExpired: expiryData.isExpired
+                isExpired: expiryData.isExpired,
+                // 強制保留後端返回的VIP狀態
+                isVip: resp.isVip === true,
+                isSuperAdmin: resp.isSuperAdmin === true
               });
             } else {
               showError(resp.message || "用戶驗證失敗");
@@ -1412,11 +1523,11 @@
       console.log("用戶授權驗證返回：", resp);
     };
 
-    // ==================== 初始化LIFF與驗證 ====================
+    // ==================== 初始化LIFF與驗證（優化提示文本） ====================
     async function initLiffAndAuth() {
       try {
         // 初始化LIFF：添加withLoginOnExternalBrowser增強兼容性
-        authLoading.textContent = "正在初始化LINE登錄...";
+        updateAuthLoadingText("正在初始化LINE登錄", "請稍候...");
         await liff.init({ 
           liffId: LIFF_ID,
           withLoginOnExternalBrowser: true
@@ -1424,7 +1535,7 @@
 
         // 未登錄則引導登錄
         if (!liff.isLoggedIn()) {
-          authLoading.textContent = "請先登錄LINE賬號...";
+          updateAuthLoadingText("請先登錄LINE賬號", "將自動跳轉至登錄頁面...");
           liff.login({ redirectUri: window.location.href });
           return;
         }
@@ -1435,9 +1546,10 @@
           userId: profile.userId,
           displayName: profile.displayName
         };
+        console.log("獲取的LINE用戶信息：", userInfo);
 
         // 調用後端驗證用戶（對齊自檢表JSONP方式）
-        authLoading.textContent = "正在驗證授權狀態...";
+        updateAuthLoadingText("正在驗證授權狀態", "核對用戶權限中...");
         const authData = await verifyUserFromBackend(profile);
 
         if (!authData) {
@@ -1450,7 +1562,7 @@
           return;
         }
 
-        // 存儲權限狀態（與後端字段對齊）
+        // 【核心修正】完整存儲後端返回的權限狀態
         authStatus = {
           isVip: authData.isVip,
           isSuperAdmin: authData.isSuperAdmin,
@@ -1461,6 +1573,7 @@
           isExpired: authData.isExpired,
           remainingTimes: 0
         };
+        console.log("最終用戶權限狀態：", authStatus);
 
         // 隱藏加載提示，顯示功能區域
         authLoading.style.display = 'none';
@@ -1478,10 +1591,16 @@
         showToast(`歡迎回來，${userInfo.displayName}！`);
       } catch (error) {
         const errorMsg = error.message || '未知初始化錯誤';
-        authLoading.innerHTML = `初始化失敗：${errorMsg}<br/>請刷新頁面重試`;
+        updateAuthLoadingText("初始化失敗", errorMsg + "<br/>請刷新頁面重試");
         showToast(`初始化失敗：${errorMsg}`, 'error');
         console.error('初始化錯誤：', error);
       }
+    }
+
+    // 更新驗證加載文本
+    function updateAuthLoadingText(title, desc) {
+      if (authLoadingTitle) authLoadingTitle.textContent = title;
+      if (authLoadingDesc) authLoadingDesc.innerHTML = desc;
     }
 
     // 事件監聽
@@ -1520,7 +1639,7 @@
             if (window.jQuery) {
               initLiffAndAuth();
             } else {
-              authLoading.innerHTML = 'jQuery加載失敗，請檢查網絡或刷新頁面';
+              updateAuthLoadingText("jQuery加載失敗", "請檢查網絡或刷新頁面");
               showToast('jQuery加載失敗', 'error');
             }
           }
