@@ -6,7 +6,6 @@
   <title>彥彬🌿試算系統（驗證版）</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- 引入LINE LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   :root {
@@ -19,17 +18,18 @@
     --button-green: #00bfa5;
     --button-grey: #3a3a3a;
     --warning: #ff9800;
-    --super-admin: #d4af37; /* 超级管理员金色 */
-    --vip-admin: #00bfa5;   /* 尊爵用户绿色 */
+    --super-admin: #d4af37;
+    --vip-admin: #00bfa5;
     --gradient-primary: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
     --gradient-secondary: linear-gradient(145deg, #2d2d2d, #1f1f1f);
     --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     --loader-color: #00d1b2;
+    --username-gradient-vip: linear-gradient(135deg, #00bfa5, #00ffde);
+    --username-gradient-super: linear-gradient(135deg, #d4af37, #ffff00);
+    --remaining-days-yellow: #ffd700;
   }
 
-  * {
-    box-sizing: border-box;
-  }
+  * {box-sizing: border-box;}
 
   body {
     background-color: var(--bg-color);
@@ -44,7 +44,6 @@
     align-items: center;
   }
 
-  /* 高質感驗證加載容器 */
   #authContainer {
     width: 100%;
     max-width: 400px;
@@ -65,7 +64,6 @@
     transition: all 0.5s ease;
   }
 
-  /* 加載動畫 */
   .loader {
     width: 50px;
     height: 50px;
@@ -76,19 +74,10 @@
     margin: 0 auto 20px;
   }
 
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
+  @keyframes spin {to {transform: rotate(360deg);}}
   @keyframes pulse {
-    from {
-      box-shadow: 0 0 15px rgba(0, 209, 178, 0.3);
-    }
-    to {
-      box-shadow: 0 0 25px rgba(0, 209, 178, 0.6);
-    }
+    from {box-shadow: 0 0 15px rgba(0, 209, 178, 0.3);}
+    to {box-shadow: 0 0 25px rgba(0, 209, 178, 0.6);}
   }
 
   #authLoading h3 {
@@ -105,7 +94,6 @@
     line-height: 1.6;
   }
 
-  /* 權限提示欄 */
   #authStatusBar {
     background: var(--gradient-secondary);
     padding: 12px 18px;
@@ -120,57 +108,46 @@
     max-width: 600px;
   }
 
-  #authStatusBar .super-admin {
-    color: var(--super-admin);
+  .super-admin {color: var(--super-admin);font-weight: bold;}
+  .vip-admin {color: var(--vip-admin);font-weight: bold;}
+  .normal {color: var(--highlight);font-weight: bold;}
+  .expired {color: var(--error);font-weight: bold;}
+  .remaining-days-yellow {color: var(--remaining-days-yellow);font-weight: bold;text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);}
+  .super-admin-username, .vip-admin-username {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
     font-weight: bold;
+    text-shadow: 0 0 8px rgba(255,255,255,0.3);
   }
-
-  #authStatusBar .vip-admin {
-    color: var(--vip-admin);
-    font-weight: bold;
-  }
-
-  #authStatusBar .normal {
-    color: var(--highlight);
-    font-weight: bold;
-  }
-
-  #authStatusBar .expired {
-    color: var(--error);
-    font-weight: bold;
-  }
+  .super-admin-username {background-image: var(--username-gradient-super);}
+  .vip-admin-username {background-image: var(--username-gradient-vip);}
 
   #captureArea {
     background: linear-gradient(145deg, #1c1c1c, #141414);
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05),
-                0 4px 20px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05),0 4px 20px rgba(0, 0, 0, 0.6);
     color: var(--text-color);
     padding: 15px 10px;
     border-radius: 12px;
     margin-bottom: 15px;
     overflow-x: auto;
-    display: none; /* 初始隱藏，驗證通過後顯示 */
+    display: none;
     width: 100%;
     max-width: 600px;
   }
 
-  /* 增大標題字體並確保居中 */
   #captureArea h2 {
     text-align: center;
-    font-size: 2rem; /* 基礎字體更大 */
+    font-size: 2rem;
     font-weight: bold;
     color: #ffffff;
     margin: 0 0 15px 0;
-    padding: 10px 0; /* 增加內邊距 */
+    padding: 10px 0;
     line-height: 1.3;
-    width: 100%; /* 確保全寬 */
+    width: 100%;
   }
 
-  @media (min-width: 768px) {
-    #captureArea h2 {
-      font-size: 2.4rem; /* 大屏幕字體更大 */
-    }
-  }
+  @media (min-width: 768px) {#captureArea h2 {font-size: 2.4rem;}}
 
   .userInputs {
     display: flex;
@@ -179,11 +156,7 @@
     margin-bottom: 15px;
   }
 
-  .userInputs .row {
-    display: flex;
-    gap: 10px;
-    width: 100%;
-  }
+  .userInputs .row {display: flex;gap: 10px;width: 100%;}
 
   .userInputs label {
     flex: 1;
@@ -211,10 +184,7 @@
     text-align: center;
   }
 
-  .calculator-container {
-    display: flex;
-    gap: 5px;
-  }
+  .calculator-container {display: flex;gap: 5px;}
 
   #resetCalculatorBtn {
     padding: 10px;
@@ -228,9 +198,7 @@
     width: 40px;
   }
 
-  #resetCalculatorBtn:hover {
-    background-color: #555;
-  }
+  #resetCalculatorBtn:hover {background-color: #555;}
 
   #nameInput option {
     padding: 12px 10px;
@@ -252,23 +220,15 @@
     margin: 0 auto;
   }
 
-  #reportTable th:nth-child(1),
-  #reportTable td:nth-child(1) { width: 22%; }
-  #reportTable th:nth-child(2),
-  #reportTable td:nth-child(2) { width: 10%; }
-  #reportTable th:nth-child(3),
-  #reportTable td:nth-child(3) { width: 12%; }
-  #reportTable th:nth-child(4),
-  #reportTable td:nth-child(4) { width: 12%; }
-  #reportTable th:nth-child(5),
-  #reportTable td:nth-child(5) { width: 16%; }
-  #reportTable th:nth-child(6),
-  #reportTable td:nth-child(6) { width: 16%; }
-  #reportTable th:nth-child(7),
-  #reportTable td:nth-child(7) { width: 12%; }
+  #reportTable th:nth-child(1),#reportTable td:nth-child(1) {width: 22%;}
+  #reportTable th:nth-child(2),#reportTable td:nth-child(2) {width: 10%;}
+  #reportTable th:nth-child(3),#reportTable td:nth-child(3) {width: 12%;}
+  #reportTable th:nth-child(4),#reportTable td:nth-child(4) {width: 12%;}
+  #reportTable th:nth-child(5),#reportTable td:nth-child(5) {width: 16%;}
+  #reportTable th:nth-child(6),#reportTable td:nth-child(6) {width: 16%;}
+  #reportTable th:nth-child(7),#reportTable td:nth-child(7) {width: 12%;}
 
-  #reportTable th,
-  #reportTable td {
+  #reportTable th,#reportTable td {
     border: 1px solid #d1d5db;
     padding: 6px 4px;
     text-align: center;
@@ -276,34 +236,19 @@
     transition: all 0.3s ease;
   }
 
-  #reportTable th:nth-child(2),
-  #reportTable td:nth-child(2),
-  .qtySelect {
+  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect {
     font-size: 16px !important;
     font-weight: bold !important;
   }
 
-  #reportTable td:nth-child(3),
-  #reportTable td:nth-child(4),
-  #reportTable td:nth-child(5),
-  #reportTable td:nth-child(6) {
+  #reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6) {
     font-weight: 500;
     text-align: center !important;
   }
 
   @media (min-width: 768px) {
-    #reportTable th,
-    #reportTable td {
-      padding: 8px 5px;
-      font-size: 14px;
-    }
-    
-    #reportTable th:nth-child(2),
-    #reportTable td:nth-child(2),
-    .qtySelect,
-    #qtyInput {
-      font-size: 18px !important;
-    }
+    #reportTable th,#reportTable td {padding: 8px 5px;font-size: 14px;}
+    #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 18px !important;}
   }
 
   #reportTable thead {
@@ -312,8 +257,8 @@
     font-weight: 600;
   }
 
-  #reportTable tbody tr:nth-child(odd) { background-color: #f3f4f6; }
-  #reportTable tbody tr:nth-child(even) { background-color: #e5e7eb; }
+  #reportTable tbody tr:nth-child(odd) {background-color: #f3f4f6;}
+  #reportTable tbody tr:nth-child(even) {background-color: #e5e7eb;}
 
   #reportTable tbody tr:hover {
     background-color: #1e88e5;
@@ -354,10 +299,7 @@
     margin-top: 4px;
   }
 
-  .summaryBox .done {
-    color: #4caf50;
-    font-weight: bold;
-  }
+  .summaryBox .done {color: #4caf50;font-weight: bold;}
 
   #totalPriceCellDup, #totalPvCellDup, #pvDiff, #pvDiff2 {
     display: inline-block;
@@ -370,46 +312,30 @@
     flex-direction: column;
     gap: 10px;
     margin-top: 15px;
-    display: none; /* 初始隱藏，驗證通過後顯示 */
+    display: none;
     width: 100%;
     max-width: 600px;
   }
 
-  @media (min-width: 576px) {
-    #inputArea {
-      flex-direction: row;
-      align-items: center;
-    }
-  }
+  @media (min-width: 576px) {#inputArea {flex-direction: row;align-items: center;}}
 
-  #nameInput,
-  #qtyInput,
-  #addBtn {
+  #nameInput,#qtyInput,#addBtn {
     padding: 10px;
     font-size: 16px;
     border-radius: 6px;
     border: none;
   }
 
-  #qtyInput {
-    font-size: 18px !important;
-    font-weight: bold;
-  }
+  #qtyInput {font-size: 18px !important;font-weight: bold;}
 
-  #nameInput,
-  #qtyInput {
+  #nameInput,#qtyInput {
     background-color: #2c2c2c;
     color: var(--text-color);
     flex: 1;
     text-align: center;
   }
 
-  #addBtn,
-  #exportBtn,
-  #shareToLineBtn,
-  #nativeShareBtn,
-  #clearImageBtn,
-  #resetReportBtn {
+  #addBtn,#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn {
     background: linear-gradient(145deg, #00bfa5, #009e8a);
     box-shadow: 0 4px 8px rgba(0, 191, 165, 0.3);
     color: white;
@@ -419,33 +345,21 @@
     font-size: 15px;
   }
 
-  #addBtn:hover,
-  #exportBtn:hover,
-  #shareToLineBtn:hover,
-  #nativeShareBtn:hover,
-  #resetReportBtn:hover {
+  #addBtn:hover,#exportBtn:hover,#shareToLineBtn:hover,#nativeShareBtn:hover,#resetReportBtn:hover {
     background: linear-gradient(145deg, #00ccb2, #00a98e);
     transform: translateY(-2px);
   }
 
-  #addBtn:disabled,
-  #exportBtn:disabled,
-  #shareToLineBtn:disabled {
+  #addBtn:disabled,#exportBtn:disabled,#shareToLineBtn:disabled,#resetReportBtn:disabled {
     background: var(--button-grey);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
   }
 
-  #addBtn {
-    width: 100%;
-  }
+  #addBtn {width: 100%;}
 
-  @media (min-width: 576px) {
-    #addBtn {
-      width: 120px;
-    }
-  }
+  @media (min-width: 576px) {#addBtn {width: 120px;}}
 
   .button-group {
     display: flex;
@@ -453,16 +367,12 @@
     gap: 8px;
     justify-content: center;
     margin: 10px 0;
-    display: none; /* 初始隱藏，驗證通過後顯示 */
+    display: none;
     width: 100%;
     max-width: 600px;
   }
 
-  #exportBtn,
-  #shareToLineBtn,
-  #nativeShareBtn,
-  #clearImageBtn,
-  #resetReportBtn {
+  #exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn {
     flex: 1;
     min-width: 110px;
     margin: 0;
@@ -471,31 +381,13 @@
     border-radius: 8px;
   }
 
-  #clearImageBtn {
-    background: var(--button-grey);
-  }
+  #clearImageBtn {background: var(--button-grey);}
+  #clearImageBtn:hover {background: #555;}
+  #clearImageBtn:disabled {background: #2a2a2a;cursor: not-allowed;}
 
-  #clearImageBtn:hover {
-    background: #555;
-  }
-
-  #clearImageBtn:disabled {
-    background: #2a2a2a;
-    cursor: not-allowed;
-  }
-
-  #resetReportBtn {
-    background: #ff9800;
-  }
-
-  #resetReportBtn:hover {
-    background: #ffa726;
-  }
-
-  #resetReportBtn:disabled {
-    background: #b36a00;
-    cursor: not-allowed;
-  }
+  #resetReportBtn {background: #ff9800;}
+  #resetReportBtn:hover {background: #ffa726;}
+  #resetReportBtn:disabled {background: #b36a00;cursor: not-allowed;}
 
   #previewImage {
     display: none;
@@ -506,14 +398,9 @@
     max-width: 600px;
   }
 
-  #shareToLineBtn,
-  #nativeShareBtn,
-  #clearImageBtn {
-    display: none;
-  }
+  #shareToLineBtn,#nativeShareBtn,#clearImageBtn {display: none;}
 
-  #buyerInput,
-  #calculatorDisplay {
+  #buyerInput,#calculatorDisplay {
     background-color: #f9fafb;
     border: 1.5px solid #d1d5db;
     color: #374151;
@@ -526,12 +413,7 @@
     font-weight: 500;
   }
 
-  @media (min-width: 768px) {
-    #buyerInput,
-    #calculatorDisplay {
-      font-size: 18px;
-    }
-  }
+  @media (min-width: 768px) {#buyerInput,#calculatorDisplay {font-size: 18px;}}
 
   #buyerInput:focus {
     border-color: #2563eb;
@@ -540,10 +422,7 @@
     background-color: #ffffff;
   }
 
-  #calculatorDisplay {
-    background-color: #e9ecef;
-    cursor: default;
-  }
+  #calculatorDisplay {background-color: #e9ecef;cursor: default;}
 
   #buyerInput::placeholder {
     color: #9ca3af;
@@ -570,20 +449,9 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-10px);
-  }
-
-  .toast.error {
-    background: linear-gradient(145deg, #4a0000, #2a0000);
-    border-color: rgba(255, 82, 82, 0.3);
-  }
-
-  .toast.warning {
-    background: linear-gradient(145deg, #4a3200, #2a1e00);
-    border-color: rgba(255, 152, 0, 0.3);
-  }
+  .toast.show {opacity: 1;transform: translateX(-50%) translateY(-10px);}
+  .toast.error {background: linear-gradient(145deg, #4a0000, #2a0000);border-color: rgba(255, 82, 82, 0.3);}
+  .toast.warning {background: linear-gradient(145deg, #4a3200, #2a1e00);border-color: rgba(255, 152, 0, 0.3);}
 
   .payment-options {
     display: flex;
@@ -603,110 +471,33 @@
     font-weight: 500;
   }
 
-  .payment-options input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-  }
+  .payment-options input[type="checkbox"] {width: 18px;height: 18px;}
 
   @media print {
-    body {
-      background: #fff;
-      color: #000;
-    }
-
-    #authContainer,
-    #authLoading,
-    #authStatusBar,
-    #inputArea,
-    #addBtn,
-    #exportBtn,
-    #shareToLineBtn,
-    #clearImageBtn,
-    #nativeShareBtn,
-    #resetCalculatorBtn,
-    #resetReportBtn {
-      display: none !important;
-    }
-
-    #captureArea {
-      box-shadow: none;
-      background: #fff;
-      color: #000;
-      display: block !important;
-    }
-
-    #reportTable th {
-      background: #ccc !important;
-      color: #000 !important;
-    }
-
-    .deleteBtn {
-      display: none !important;
-    }
-
-    .summaryBox {
-      color: #000 !important;
-    }
-    
-    #reportTable td, #reportTable th {
-      text-align: center !important;
-    }
-    
-    #reportTable th:nth-child(2),
-    #reportTable td:nth-child(2) {
-      font-size: 16px !important;
-      font-weight: bold !important;
-    }
+    body {background: #fff;color: #000;}
+    #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn {display: none !important;}
+    #captureArea {box-shadow: none;background: #fff;color: #000;display: block !important;}
+    #reportTable th {background: #ccc !important;color: #000 !important;}
+    .deleteBtn {display: none !important;}
+    .summaryBox {color: #000 !important;}
+    #reportTable td, #reportTable th {text-align: center !important;}
+    #reportTable th:nth-child(2),#reportTable td:nth-child(2) {font-size: 16px !important;font-weight: bold !important;}
   }
 
-  .spacer {
-    height: 80px;
-  }
+  .spacer {height: 80px;}
 
   @media (max-width: 360px) {
-    .userInputs .row {
-      gap: 5px;
-    }
-    
-    .userInputs label {
-      font-size: 13px;
-    }
-    
-    .userInputs input {
-      font-size: 15px;
-      padding: 8px;
-    }
-    
-    #reportTable {
-      font-size: 11px;
-    }
-    
-    #reportTable th:nth-child(2),
-    #reportTable td:nth-child(2),
-    .qtySelect,
-    #qtyInput {
-      font-size: 15px !important;
-    }
-    
-    .payment-options {
-      font-size: 1rem;
-    }
-
-    #authStatusBar {
-      font-size: 12px;
-    }
-
-    #authLoading {
-      padding: 30px 20px;
-    }
-
-    .loader {
-      width: 40px;
-      height: 40px;
-    }
+    .userInputs .row {gap: 5px;}
+    .userInputs label {font-size: 13px;}
+    .userInputs input {font-size: 15px;padding: 8px;}
+    #reportTable {font-size: 11px;}
+    #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 15px !important;}
+    .payment-options {font-size: 1rem;}
+    #authStatusBar {font-size: 12px;}
+    #authLoading {padding: 30px 20px;}
+    .loader {width: 40px;height: 40px;}
   }
 
-  /* 高質感錯誤提示樣式 */
   #error-message {
     display: none;
     background: linear-gradient(145deg, #4a0000, #2a0000);
@@ -720,9 +511,7 @@
     box-shadow: var(--card-shadow);
   }
 
-  #error-message #error-content {
-    margin-bottom: 15px;
-  }
+  #error-message #error-content {margin-bottom: 15px;}
 
   #error-message button {
     background: linear-gradient(145deg, #ff5252, #d32f2f);
@@ -744,14 +533,10 @@
 </style>
 </head>
 <body>
-  <!-- 高質感驗證容器 -->
   <div id="authContainer">
-    <!-- 錯誤提示（高質感樣式） -->
     <div id="error-message">
       <div id="error-content"></div>
     </div>
-
-    <!-- 驗證加載提示（高質感） -->
     <div id="authLoading">
       <div class="loader"></div>
       <h3>正在驗證用戶權限</h3>
@@ -759,7 +544,6 @@
     </div>
   </div>
 
-  <!-- 權限狀態欄 -->
   <div id="authStatusBar" style="display: none;"></div>
 
   <div id="captureArea">
@@ -829,24 +613,17 @@
   <div class="spacer"></div>
 
   <script>
-    // 配置參數（與後端完全對齊）
     const API_URL = "https://script.google.com/macros/s/AKfycbyETFQSpvVF0zCq24jLNkGD_lfm6yX44JUpW4cgkTyt3pJsg4G-38_uRbRzMl5xyMPs/exec";
-    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f"; // 若後續上傳失敗，請檢查API Key是否有效
-    const LIFF_ID = "2007434020-Kf98vapi"; // 對應GAS後端的LIFF ID
+    const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
+    const LIFF_ID = "2007434020-Kf98vapi";
     const JSONP_TIMEOUT = 12000;
     const PERMANENT_EXPIRY_DATE = "9999/12/31";
-    const TARGET_PV112 = 112000; // 與後端對齊
-    const TARGET_PV220 = 220000; // 與後端對齊
+    const TARGET_PV112 = 112000;
+    const TARGET_PV220 = 220000;
 
-    // 全局變量
-    let allProducts = [];
-    let selectedProducts = [];
-    let lineName = '';
-    let userInfo = null; // 用戶信息 { userId, displayName }
-    let authStatus = null; // 權限狀態 { isVip, isSuperAdmin, remainingDays, expiryDate, usageCount, remainingTimes, isExpired }
-    let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {}; // 本地使用記錄
+    let allProducts = [], selectedProducts = [], lineName = '', userInfo = null, authStatus = null;
+    let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {};
 
-    // DOM元素
     const nameInput = document.getElementById("nameInput");
     const qtyInput = document.getElementById("qtyInput");
     const addBtn = document.getElementById("addBtn");
@@ -857,7 +634,6 @@
     const pvDiff2 = document.getElementById("pvDiff2");
     const pvMessage1 = document.getElementById("pvMessage1");
     const pvMessage2 = document.getElementById("pvMessage2");
-
     const exportBtn = document.getElementById("exportBtn");
     const previewImage = document.getElementById("previewImage");
     const shareToLineBtn = document.getElementById("shareToLineBtn");
@@ -878,7 +654,6 @@
     const authLoadingTitle = authLoading.querySelector("h3");
     const authLoadingDesc = authLoading.querySelector("p");
 
-    // 初始化數量選擇下拉框
     for (let i = 1; i <= 99; i++) {
       const option = document.createElement("option");
       option.value = i;
@@ -886,7 +661,6 @@
       qtyInput.appendChild(option);
     }
 
-    // 【核心修正1】加強新入會草本提醒功能 - 雙重監聽確保觸發
     nameInput.addEventListener('change', function() {
       checkHerbalNewMember(this.value);
       adjustQtySelectOptions(this.value);
@@ -897,12 +671,10 @@
       adjustQtySelectOptions(this.value);
     });
 
-    // 單獨提取提醒判斷函數，確保邏輯一致
     function checkHerbalNewMember(selectedValue) {
       const trimmedValue = selectedValue.trim();
       const isHerbal = trimmedValue.includes('草本');
       const isNewMember = trimmedValue.includes('新入會');
-      
       if (isHerbal && isNewMember) {
         setTimeout(() => {
           alert('📋 新入會草本組合提醒：\n\n男生款：211x2 + 101x2\n女生款：211x2 + 707x2\n\n請分別新增對應品項與數量');
@@ -910,19 +682,14 @@
       }
     }
 
-    // 【核心修正2】根據選擇的品項調整數量下拉框的可選範圍
     function adjustQtySelectOptions(selectedValue) {
       const trimmedValue = selectedValue.trim();
       let maxQty = 99;
-      
       if (trimmedValue.includes('新入會') || trimmedValue.includes('新會員') || trimmedValue.includes('入會')) {
         maxQty = 1;
       } else if (trimmedValue.includes('2711AB') && trimmedValue.includes('(4)')) {
         maxQty = 2;
-      } else if (trimmedValue.includes('777Ｑ') || trimmedValue.includes('(4)')) {
-        maxQty = 2;
       }
-      
       qtyInput.innerHTML = '';
       for (let i = 1; i <= maxQty; i++) {
         const option = document.createElement("option");
@@ -932,7 +699,6 @@
       }
     }
 
-    // 從本地存儲加載選中的產品
     function loadSelectedProducts() {
       const saved = localStorage.getItem('selectedProducts');
       if (saved) {
@@ -941,20 +707,16 @@
       }
     }
 
-    // 保存選中的產品到本地存儲
     function saveSelectedProducts() {
       localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
     }
 
-    // 保存用戶使用記錄
     function saveUserUsageRecord() {
       localStorage.setItem('userUsageRecord', JSON.stringify(userUsageRecord));
     }
 
-    // 設置試算者名稱
     function setupLineName() {
       lineName = localStorage.getItem('lineName') || userInfo?.displayName || '';
-      
       if (!lineName || lineName === '未知用戶名') {
         const input = prompt('請輸入您的『試算者名稱』\n（僅需輸入一次，可隨時重置）：');
         if (input && input.trim()) {
@@ -964,11 +726,9 @@
           lineName = '未設定';
         }
       }
-      
       calculatorDisplay.value = lineName;
     }
 
-    // 重置試算者名稱
     function resetLineName() {
       if (confirm('確定要重置試算者名稱嗎？')) {
         localStorage.removeItem('lineName');
@@ -977,16 +737,12 @@
       }
     }
 
-    // 重置報表（清除所有品項數據）
     function resetReport() {
-      if (!authStatus) return;
-      
-      // 特權用戶（超管/尊爵）與普通用戶重置均不消耗次數
+      if (!authStatus || authStatus.isExpired) return;
       if (confirm('確定要清空所有品項記錄嗎？')) {
         selectedProducts = [];
         saveSelectedProducts();
         renderTable();
-        // 重置數量下拉框為預設狀態（1-99）
         qtyInput.innerHTML = '';
         for (let i = 1; i <= 99; i++) {
           const option = document.createElement("option");
@@ -998,7 +754,6 @@
       }
     }
 
-    // 加載產品數據
     async function loadProducts() {
       try {
         const res = await fetch(`${API_URL}?action=all`);
@@ -1020,16 +775,12 @@
       }
     }
 
-    // 【核心修正3】渲染表格時檢查數量限制（防止手動修改DOM跳過限制）
     function renderTable() {
       reportBody.innerHTML = "";
-      let totalPrice = 0;
-      let totalPv = 0;
-
+      let totalPrice = 0, totalPv = 0;
       selectedProducts.forEach((item, idx) => {
         const trimmedName = item.name.trim();
         let maxQty = 99;
-        
         if (trimmedName.includes('新入會') || trimmedName.includes('新會員') || trimmedName.includes('入會')) {
           maxQty = 1;
           if (item.qty > maxQty) {
@@ -1043,18 +794,15 @@
             saveSelectedProducts();
           }
         }
-
         const subtotalPrice = item.price * item.qty;
         const subtotalPv = item.pv * item.qty;
         totalPrice += subtotalPrice;
         totalPv += subtotalPv;
-
         const tr = document.createElement("tr");
         const qtyOptions = Array.from({ length: maxQty }, (_, i) => {
           const val = i + 1;
           return `<option value="${val}" ${val === item.qty ? "selected" : ""}>${val}</option>`;
         }).join("");
-
         tr.innerHTML = `
           <td style="text-align:center;">${item.name}</td>
           <td>
@@ -1070,18 +818,14 @@
         `;
         reportBody.appendChild(tr);
       });
-
       totalPriceCellDup.textContent = totalPrice;
       totalPvCellDup.textContent = totalPv;
       const diff1 = TARGET_PV112 - totalPv;
       const diff2 = TARGET_PV220 - totalPv;
-
       pvDiff.textContent = diff1 > 0 ? diff1 : 0;
       pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
       pvMessage1.innerHTML = totalPv >= TARGET_PV112 ? '<span class="done">🎉 已達標</span>' : '';
       pvMessage2.innerHTML = totalPv >= TARGET_PV220 ? '<span class="done">🎉 已達標</span>' : '';
-
-      // 刪除按鈕事件
       document.querySelectorAll(".deleteBtn").forEach(btn => {
         btn.onclick = e => {
           const idx = parseInt(e.target.dataset.index);
@@ -1090,8 +834,6 @@
           renderTable();
         };
       });
-
-      // 數量下拉變更事件（保持限制檢查）
       document.querySelectorAll(".qtySelect").forEach(select => {
         select.onchange = e => {
           const idx = parseInt(e.target.dataset.index);
@@ -1103,30 +845,24 @@
       });
     }
 
-    // 【核心修正4】添加產品時再次檢查數量限制（雙重保障）
     function addProduct() {
       if (!authStatus) {
         showToast('請先完成用戶權限驗證', 'error');
         return;
       }
-
-      // 普通用戶次數用完時禁用新增
       const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
       if (!isPrivilegeUser && authStatus.remainingTimes <= 0) {
         showToast('普通用戶使用次數已達上限，請聯繫管理員升級', 'error');
         return;
       }
-
       const selectedName = nameInput.value;
       const qty = parseInt(qtyInput.value);
       if (!selectedName || qty <= 0) {
         alert("請選擇品項與數量");
         return;
       }
-
       const trimmedName = selectedName.trim();
       let maxQty = 99;
-      
       if (trimmedName.includes('新入會') || trimmedName.includes('新會員') || trimmedName.includes('入會')) {
         maxQty = 1;
         if (qty > maxQty) {
@@ -1140,13 +876,11 @@
           qty = maxQty;
         }
       }
-
       const product = allProducts.find(p => p.name === selectedName);
       if (!product) {
         alert("找不到該品項");
         return;
       }
-
       const exists = selectedProducts.find(p => p.name === selectedName);
       if (exists) {
         const totalQty = exists.qty + qty;
@@ -1158,28 +892,32 @@
       } else {
         selectedProducts.push({ ...product, qty });
       }
-
       saveSelectedProducts();
       renderTable();
     }
 
-    // 檢查用戶剩餘使用次數
     function checkUserRemainingTimes() {
       if (!authStatus) return false;
-      
-      // 特權用戶（超管/尊爵）不受限制
       const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
-      if (isPrivilegeUser) return true;
-      
-      // 普通用戶檢查剩餘次數
+      // 到期禁用所有操作按鈕
+      if (authStatus.isExpired) {
+        exportBtn.disabled = true;
+        addBtn.disabled = true;
+        shareToLineBtn.disabled = true;
+        resetReportBtn.disabled = true;
+        return false;
+      }
+      if (isPrivilegeUser) {
+        exportBtn.disabled = false;
+        addBtn.disabled = false;
+        shareToLineBtn.disabled = false;
+        resetReportBtn.disabled = false;
+        return true;
+      }
       const userId = userInfo.userId;
       const usedTimes = userUsageRecord[userId] || 0;
       authStatus.remainingTimes = 3 - usedTimes;
-      
-      // 更新權限狀態欄
       updateAuthStatusBar();
-      
-      // 禁用相關按鈕
       if (authStatus.remainingTimes <= 0) {
         exportBtn.disabled = true;
         addBtn.disabled = true;
@@ -1189,18 +927,15 @@
         exportBtn.disabled = false;
         addBtn.disabled = false;
         shareToLineBtn.disabled = false;
+        resetReportBtn.disabled = false;
         return true;
       }
     }
 
-    // 記錄用戶使用次數（匯出報表時計數）
     function recordUserUsage() {
       if (!authStatus) return;
-      
-      // 特權用戶不受限制
       const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
       if (isPrivilegeUser) return;
-      
       const userId = userInfo.userId;
       userUsageRecord[userId] = (userUsageRecord[userId] || 0) + 1;
       saveUserUsageRecord();
@@ -1208,58 +943,48 @@
       showToast(`已使用${userUsageRecord[userId]}/3次，剩餘${authStatus.remainingTimes}次`, 'warning');
     }
 
-    // 更新權限狀態欄（與後端身份對齊）
     function updateAuthStatusBar() {
       if (!authStatus || !userInfo) return;
-      
       let statusHtml = '';
       if (authStatus.isSuperAdmin) {
-        // 超級管理員顯示
         const expiryText = authStatus.remainingDays === "永久有效" 
           ? "永久有效" 
-          : `${authStatus.displayExpiryDate}（剩餘${authStatus.remainingDays}）`;
+          : `${authStatus.displayExpiryDate}<br/>剩餘：<span class="remaining-days-yellow">${authStatus.remainingDays}</span>`;
         statusHtml = `
           <span class="super-admin">👑 超級管理員</span> | 
-          用戶名：${userInfo.displayName} | 
-          有效期：<span class="super-admin">${expiryText}</span>
+          用戶名：<span class="super-admin-username">${userInfo.displayName}</span>
+          <br/>有效期限：${expiryText}
         `;
       } else if (authStatus.isVip) {
-        // 尊爵用戶顯示
         const expiryText = authStatus.remainingDays === "永久有效" 
           ? "永久有效" 
-          : `${authStatus.displayExpiryDate}（剩餘${authStatus.remainingDays}）`;
+          : `${authStatus.displayExpiryDate}<br/>剩餘：<span class="remaining-days-yellow">${authStatus.remainingDays}</span>`;
         statusHtml = `
           <span class="vip-admin">💎 尊爵用戶</span> | 
-          用戶名：${userInfo.displayName} | 
-          有效期：<span class="vip-admin">${expiryText}</span>
+          用戶名：<span class="vip-admin-username">${userInfo.displayName}</span>
+          <br/>有效期限：${expiryText}
         `;
       } else {
-        // 普通用戶顯示
         statusHtml = `
           <span class="normal">🙋 普通用戶</span> | 
-          用戶名：${userInfo.displayName} | 
-          剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/3次</span>
+          用戶名：${userInfo.displayName}
+          <br/>剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/3次</span>
         `;
       }
       authStatusBar.innerHTML = statusHtml;
       authStatusBar.style.display = 'block';
     }
 
-    // 匯出圖片
     exportBtn.addEventListener("click", async () => {
       if (!checkUserRemainingTimes()) return;
-      
       if (selectedProducts.length === 0) {
         alert("請先新增至少一個品項，才能匯出圖片！");
         return;
       }
-
       exportBtn.disabled = true;
       exportBtn.textContent = "匯出中...";
-
       const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
       opCells.forEach(el => el.style.display = "none");
-
       try {
         const canvas = await html2canvas(document.getElementById("captureArea"), {
           scale: 2,
@@ -1276,8 +1001,6 @@
         shareToLineBtn.style.display = "inline-block";
         nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
         clearImageBtn.style.display = "inline-block";
-        
-        // 記錄使用次數
         recordUserUsage();
       } catch (error) {
         showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
@@ -1288,24 +1011,19 @@
       }
     });
 
-    // 上傳分享
     shareToLineBtn.addEventListener("click", async () => {
       if (!authStatus) return;
-      
       if (!previewImage.src) {
         alert("請先匯出圖片");
         return;
       }
-
       shareToLineBtn.disabled = true;
       shareToLineBtn.textContent = "上傳中...";
-
       try {
         const base64Data = previewImage.src.split(",")[1];
         const formData = new FormData();
         formData.append("image", base64Data);
         formData.append("key", IMGBB_API_KEY);
-
         const res = await fetch("https://api.imgbb.com/1/upload", {
           method: "POST",
           body: formData,
@@ -1318,7 +1036,6 @@
           const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(
             `康園試算報表\n\n購買者：${buyerName}\n試算者：${calculatorName}\n${imageUrl}`
           )}`;
-
           window.open(lineShareUrl, "_blank");
           showToast("✅ 圖片已上傳備份");
         } else {
@@ -1332,24 +1049,19 @@
       }
     });
 
-    // 原生分享
     nativeShareBtn.addEventListener("click", async () => {
       if (!authStatus) return;
-      
       if (!navigator.share || !previewImage.src) {
         alert("無法使用原生分享");
         return;
       }
-
       try {
         const response = await fetch(previewImage.src);
         const blob = await response.blob();
         const filesArray = [new File([blob], "康園試算報表.png", { type: blob.type })];
-
         const buyer = buyerInput.value.trim() || "未填";
         const calculator = lineName || "未設定";
         const shareText = `康園試算報表\n購買者：${buyer}\n試算者：${calculator}`;
-
         await navigator.share({
           files: filesArray,
           title: "康園試算報表",
@@ -1360,7 +1072,6 @@
       }
     });
 
-    // 清除圖片
     clearImageBtn.addEventListener("click", () => {
       previewImage.style.display = "none";
       previewImage.src = "";
@@ -1369,7 +1080,6 @@
       clearImageBtn.style.display = "none";
     });
 
-    // 顯示提示
     function showToast(message, type = 'success') {
       toast.textContent = message;
       toast.className = 'toast';
@@ -1378,8 +1088,6 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // ==================== 自檢表對齊的核心驗證函數 ====================
-    // 計算剩餘天數（含過期判斷）
     const calculateRemainingDaysByDate = (expiryDateStr) => {
       try {
         if (expiryDateStr === PERMANENT_EXPIRY_DATE) return {
@@ -1387,41 +1095,28 @@
           remainingDays: "永久有效",
           isExpired: false
         };
-        // 兼容橫槓/斜槓、補零/非補零日期
         const dateReg = /^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/;
         if (!dateReg.test(expiryDateStr)) return {
           displayDate: "格式錯誤",
           remainingDays: "格式錯誤",
           isExpired: true
         };
-
-        // 統一拆分日期部分
         const dateParts = expiryDateStr.replace(/-/g, '/').split('/').map(Number);
         const [year, month, day] = dateParts;
-
-        // 構造到期日最後一秒（當天全天有效）
         const expiryDate = new Date(year, month - 1, day, 23, 59, 59, 999);
         const now = new Date();
-
         if (isNaN(expiryDate.getTime())) return {
           displayDate: "日期無效",
           remainingDays: "日期無效",
           isExpired: true
         };
-
-        // 計算天數差
         const oneDayMs = 1000 * 3600 * 24;
         const timeDiff = expiryDate.getTime() - now.getTime();
         let dayDiff = Math.ceil(timeDiff / oneDayMs);
-
-        // 格式化顯示日期
         const fmtMonth = String(month).padStart(2, '0');
         const fmtDay = String(day).padStart(2, '0');
         const displayDate = `${year}/${fmtMonth}/${fmtDay}`;
-
-        // 判斷狀態
-        let remainingDaysText;
-        let isExpired = false;
+        let remainingDaysText, isExpired = false;
         if (timeDiff < 0) {
           remainingDaysText = "<span class='expired'>已過期</span>";
           isExpired = true;
@@ -1435,7 +1130,6 @@
           remainingDaysText = `${dayDiff} 天`;
           isExpired = false;
         }
-
         return { displayDate, remainingDays: remainingDaysText, isExpired };
       } catch (e) {
         console.error("計算剩餘天數失敗：", e, expiryDateStr);
@@ -1447,7 +1141,6 @@
       }
     };
 
-    // 顯示錯誤（對齊自檢表，高質感樣式）
     const showError = (msg) => {
       authLoading.style.display = 'none';
       captureArea.style.display = 'none';
@@ -1462,15 +1155,12 @@
       errorMessage.style.display = 'block';
     };
 
-    // 驗證用戶（JSONP請求，修復VIP判斷問題）
     const verifyUserFromBackend = (profile) => {
       return new Promise((resolve, reject) => {
-        // 【核心修正】優先使用profile.userId（與後端清洗規則對齊）
         const decodedToken = liff.getDecodedIDToken();
         const userId = profile.userId || decodedToken?.sub || "";
         const displayName = profile.displayName || 'LINE用戶';
-        console.log("傳遞給後端的用戶ID：", userId); // 調試日志
-        
+        console.log("傳遞給後端的用戶ID：", userId);
         const data = {
           action: 'verifyUser',
           userId: userId,
@@ -1478,7 +1168,6 @@
           callback: 'verifyCallback',
           dataType: 'userVerify'
         };
-
         $.ajax({
           url: API_URL,
           dataType: 'jsonp',
@@ -1487,9 +1176,8 @@
           timeout: JSONP_TIMEOUT,
           data: data,
           success: function (resp) {
-            console.log("後端返回的驗證數據：", resp); // 調試日志
+            console.log("後端返回的驗證數據：", resp);
             if (resp.status === "success") {
-              // 【核心修正】直接使用後端返回的isVip和isSuperAdmin，不做額外過濾
               const expiryData = calculateRemainingDaysByDate(resp.expiryDate || PERMANENT_EXPIRY_DATE);
               resolve({
                 ...resp,
@@ -1497,7 +1185,6 @@
                 remainingDays: expiryData.remainingDays,
                 displayExpiryDate: expiryData.displayDate,
                 isExpired: expiryData.isExpired,
-                // 強制保留後端返回的VIP狀態
                 isVip: resp.isVip === true,
                 isSuperAdmin: resp.isSuperAdmin === true
               });
@@ -1518,51 +1205,35 @@
       });
     };
 
-    // JSONP回調函數
     window.verifyCallback = function (resp) {
       console.log("用戶授權驗證返回：", resp);
     };
 
-    // ==================== 初始化LIFF與驗證（優化提示文本） ====================
     async function initLiffAndAuth() {
       try {
-        // 初始化LIFF：添加withLoginOnExternalBrowser增強兼容性
         updateAuthLoadingText("正在初始化LINE登錄", "請稍候...");
         await liff.init({ 
           liffId: LIFF_ID,
           withLoginOnExternalBrowser: true
         });
-
-        // 未登錄則引導登錄
         if (!liff.isLoggedIn()) {
           updateAuthLoadingText("請先登錄LINE賬號", "將自動跳轉至登錄頁面...");
           liff.login({ redirectUri: window.location.href });
           return;
         }
-
-        // 获取用户信息
         const profile = await liff.getProfile();
         userInfo = {
           userId: profile.userId,
           displayName: profile.displayName
         };
         console.log("獲取的LINE用戶信息：", userInfo);
-
-        // 調用後端驗證用戶（對齊自檢表JSONP方式）
         updateAuthLoadingText("正在驗證授權狀態", "核對用戶權限中...");
         const authData = await verifyUserFromBackend(profile);
-
-        if (!authData) {
-          return;
-        }
-
-        // 過期判斷攔截
+        if (!authData) return;
         if (authData.isExpired) {
           showError('您的賬號已過期，無法登錄試算系統，請聯繫管理員續期');
           return;
         }
-
-        // 【核心修正】完整存儲後端返回的權限狀態
         authStatus = {
           isVip: authData.isVip,
           isSuperAdmin: authData.isSuperAdmin,
@@ -1574,20 +1245,15 @@
           remainingTimes: 0
         };
         console.log("最終用戶權限狀態：", authStatus);
-
-        // 隱藏加載提示，顯示功能區域
         authLoading.style.display = 'none';
         captureArea.style.display = 'block';
         inputArea.style.display = 'flex';
         buttonGroup.style.display = 'flex';
-
-        // 初始化頁面
         setupLineName();
         loadProducts();
         loadSelectedProducts();
         checkUserRemainingTimes();
         updateAuthStatusBar();
-
         showToast(`歡迎回來，${userInfo.displayName}！`);
       } catch (error) {
         const errorMsg = error.message || '未知初始化錯誤';
@@ -1597,57 +1263,43 @@
       }
     }
 
-    // 更新驗證加載文本
     function updateAuthLoadingText(title, desc) {
       if (authLoadingTitle) authLoadingTitle.textContent = title;
       if (authLoadingDesc) authLoadingDesc.innerHTML = desc;
     }
 
-    // 事件監聽
     addBtn.addEventListener("click", addProduct);
     resetCalculatorBtn.addEventListener("click", resetLineName);
     resetReportBtn.addEventListener("click", resetReport);
 
-    // 窗口大小變化處理
     window.addEventListener('resize', () => {
       adjustTableDisplay();
     });
 
-    // 調整表格顯示
     function adjustTableDisplay() {
       const table = document.getElementById('reportTable');
       const width = window.innerWidth;
-      
-      if (width < 360) {
-        table.style.fontSize = '11px';
-      } else {
-        table.style.fontSize = '12px';
-      }
+      table.style.fontSize = width < 360 ? '11px' : '12px';
     }
 
-    // 加載jQuery後初始化（增強等待邏輯）
     function initApp() {
       if (window.jQuery) {
         initLiffAndAuth();
       } else {
-        // 最多等待5秒，避免無限輪詢
         let waitCount = 0;
         const interval = setInterval(() => {
           waitCount++;
           if (window.jQuery || waitCount >= 50) {
             clearInterval(interval);
-            if (window.jQuery) {
-              initLiffAndAuth();
-            } else {
-              updateAuthLoadingText("jQuery加載失敗", "請檢查網絡或刷新頁面");
-              showToast('jQuery加載失敗', 'error');
-            }
+            window.jQuery ? initLiffAndAuth() : (
+              updateAuthLoadingText("jQuery加載失敗", "請檢查網絡或刷新頁面"),
+              showToast('jQuery加載失敗', 'error')
+            );
           }
         }, 100);
       }
     }
 
-    // 頁面加載時初始化
     window.onload = initApp;
   </script>
 </body>
