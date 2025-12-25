@@ -475,9 +475,7 @@ body {
       <p>請稍候...</p>
     </div>
   </div>
-
   <div id="authStatusBar" style="display: none;"></div>
-
   <div id="captureArea">
     <h2>
       🌿 康園試算報表
@@ -501,7 +499,6 @@ body {
         </label>
       </div>
     </div>
-
     <table id="reportTable" aria-label="試算報表">
       <thead>
         <tr>
@@ -516,16 +513,13 @@ body {
       </thead>
       <tbody id="reportBody"></tbody>
     </table>
-
     <div class="summaryBox" aria-live="polite">
       總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
       <span class="extra">距 11.2萬 PV：<span id="pvDiff">112000</span> <span id="pvMessage1"></span></span>
       <span class="extra">距 22.0萬 PV：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
     </div>
   </div>
-
   <img id="previewImage" alt="預覽匯出圖片" />
-  
   <div class="button-group">
     <button id="exportBtn">📤 報表轉圖片</button>
     <button id="shareToLineBtn">📩 上傳備份</button>
@@ -533,17 +527,13 @@ body {
     <button id="clearImageBtn">❌ 清除圖片</button>
     <button id="resetReportBtn">🔄 重置報表</button>
   </div>
-
   <div id="toast" class="toast">✅ 圖片已上傳備份</div>
-
   <div id="inputArea">
     <select id="nameInput"></select>
     <select id="qtyInput"></select>
     <button id="addBtn">➕ 新增品項</button>
   </div>
-
   <div class="spacer"></div>
-
   <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbyETFQSpvVF0zCq24jLNkGD_lfm6yX44JUpW4cgkTyt3pJsg4G-38_uRbRzMl5xyMPs/exec";
 const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
@@ -552,10 +542,12 @@ const JSONP_TIMEOUT = 12000;
 const PERMANENT_EXPIRY_DATE = "9999/12/31";
 const TARGET_PV112 = 112000;
 const TARGET_PV220 = 220000;
+const MAX_NORMAL_USER_USAGE = 10; // 核心修改：3次→10次
 
 let allProducts = [], selectedProducts = [], lineName = '', userInfo = null, authStatus = null;
 let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {};
 
+// 元素獲取
 const nameInput = document.getElementById("nameInput");
 const qtyInput = document.getElementById("qtyInput");
 const addBtn = document.getElementById("addBtn");
@@ -586,6 +578,7 @@ const errorContent = document.getElementById("error-content");
 const authLoadingTitle = authLoading.querySelector("h3");
 const authLoadingDesc = authLoading.querySelector("p");
 
+// 初始化數量選擇框
 for (let i = 1; i <= 99; i++) {
   const option = document.createElement("option");
   option.value = i;
@@ -593,16 +586,17 @@ for (let i = 1; i <= 99; i++) {
   qtyInput.appendChild(option);
 }
 
+// 品項選擇事件
 nameInput.addEventListener('change', function() {
   checkHerbalNewMember(this.value);
   adjustQtySelectOptions(this.value);
 });
-
 nameInput.addEventListener('input', function() {
   checkHerbalNewMember(this.value);
   adjustQtySelectOptions(this.value);
 });
 
+// 新入會草本組合提醒
 function checkHerbalNewMember(selectedValue) {
   const trimmedValue = selectedValue.trim();
   const isHerbal = trimmedValue.includes('草本');
@@ -614,6 +608,7 @@ function checkHerbalNewMember(selectedValue) {
   }
 }
 
+// 調整數量選擇框選項
 function adjustQtySelectOptions(selectedValue) {
   const trimmedValue = selectedValue.trim();
   let maxQty = 99;
@@ -631,6 +626,7 @@ function adjustQtySelectOptions(selectedValue) {
   }
 }
 
+// 加載已選商品
 function loadSelectedProducts() {
   const saved = localStorage.getItem('selectedProducts');
   if (saved) {
@@ -639,14 +635,17 @@ function loadSelectedProducts() {
   }
 }
 
+// 保存已選商品
 function saveSelectedProducts() {
   localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
 }
 
+// 保存使用記錄
 function saveUserUsageRecord() {
   localStorage.setItem('userUsageRecord', JSON.stringify(userUsageRecord));
 }
 
+// 設置試算者名稱
 function setupLineName() {
   lineName = localStorage.getItem('lineName') || userInfo?.displayName || '';
   if (!lineName || lineName === '未知用戶名') {
@@ -661,6 +660,7 @@ function setupLineName() {
   calculatorDisplay.value = lineName;
 }
 
+// 重置試算者名稱
 function resetLineName() {
   if (confirm('確定要重置試算者名稱嗎？')) {
     localStorage.removeItem('lineName');
@@ -669,6 +669,7 @@ function resetLineName() {
   }
 }
 
+// 重置報表
 function resetReport() {
   if (!authStatus || authStatus.isExpired) return;
   if (confirm('確定要清空所有品項記錄嗎？')) {
@@ -686,6 +687,7 @@ function resetReport() {
   }
 }
 
+// 加載商品列表
 async function loadProducts() {
   try {
     const res = await fetch(`${API_URL}?action=all`);
@@ -707,6 +709,7 @@ async function loadProducts() {
   }
 }
 
+// 渲染報表表格
 function renderTable() {
   reportBody.innerHTML = "";
   let totalPrice = 0, totalPv = 0;
@@ -758,6 +761,7 @@ function renderTable() {
   pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
   pvMessage1.innerHTML = totalPv >= TARGET_PV112 ? '<span class="done">🎉 已達標</span>' : '';
   pvMessage2.innerHTML = totalPv >= TARGET_PV220 ? '<span class="done">🎉 已達標</span>' : '';
+  // 刪除按鈕事件
   document.querySelectorAll(".deleteBtn").forEach(btn => {
     btn.onclick = e => {
       const idx = parseInt(e.target.dataset.index);
@@ -766,6 +770,7 @@ function renderTable() {
       renderTable();
     };
   });
+  // 數量變更事件
   document.querySelectorAll(".qtySelect").forEach(select => {
     select.onchange = e => {
       const idx = parseInt(e.target.dataset.index);
@@ -777,6 +782,7 @@ function renderTable() {
   });
 }
 
+// 新增商品
 function addProduct() {
   if (!authStatus) {
     showToast('請先完成用戶權限驗證', 'error');
@@ -784,7 +790,7 @@ function addProduct() {
   }
   const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
   if (!isPrivilegeUser && authStatus.remainingTimes <= 0) {
-    showToast('普通用戶使用次數已達上限，請聯繫管理員升級', 'error');
+    showToast(`普通用戶使用次數已達上限（${MAX_NORMAL_USER_USAGE}次），請聯繫管理員升級`, 'error');
     return;
   }
   const selectedName = nameInput.value;
@@ -828,10 +834,10 @@ function addProduct() {
   renderTable();
 }
 
+// 檢查剩餘使用次數
 function checkUserRemainingTimes() {
   if (!authStatus) return false;
   const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
-  // 到期禁用所有操作按鈕
   if (authStatus.isExpired) {
     exportBtn.disabled = true;
     addBtn.disabled = true;
@@ -848,7 +854,7 @@ function checkUserRemainingTimes() {
   }
   const userId = userInfo.userId;
   const usedTimes = userUsageRecord[userId] || 0;
-  authStatus.remainingTimes = 3 - usedTimes;
+  authStatus.remainingTimes = MAX_NORMAL_USER_USAGE - usedTimes;
   updateAuthStatusBar();
   if (authStatus.remainingTimes <= 0) {
     exportBtn.disabled = true;
@@ -865,6 +871,7 @@ function checkUserRemainingTimes() {
   }
 }
 
+// 記錄使用次數
 function recordUserUsage() {
   if (!authStatus) return;
   const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
@@ -873,9 +880,10 @@ function recordUserUsage() {
   userUsageRecord[userId] = (userUsageRecord[userId] || 0) + 1;
   saveUserUsageRecord();
   checkUserRemainingTimes();
-  showToast(`已使用${userUsageRecord[userId]}/3次，剩餘${authStatus.remainingTimes}次`, 'warning');
+  showToast(`已使用${userUsageRecord[userId]}/${MAX_NORMAL_USER_USAGE}次，剩餘${authStatus.remainingTimes}次`, 'warning');
 }
 
+// 更新權限狀態欄
 function updateAuthStatusBar() {
   if (!authStatus || !userInfo) return;
   let statusHtml = '';
@@ -901,13 +909,14 @@ function updateAuthStatusBar() {
     statusHtml = `
       <span class="normal">🙋 普通用戶 🙋</span> | 
       用戶名：${userInfo.displayName}
-      <br/>剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/3次</span>
+      <br/>剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/${MAX_NORMAL_USER_USAGE}次</span>
     `;
   }
   authStatusBar.innerHTML = statusHtml;
   authStatusBar.style.display = 'block';
 }
 
+// 匯出圖片
 exportBtn.addEventListener("click", async () => {
   if (!checkUserRemainingTimes()) return;
   if (selectedProducts.length === 0) {
@@ -944,6 +953,7 @@ exportBtn.addEventListener("click", async () => {
   }
 });
 
+// 上傳備份
 shareToLineBtn.addEventListener("click", async () => {
   if (!authStatus) return;
   if (!previewImage.src) {
@@ -982,6 +992,7 @@ shareToLineBtn.addEventListener("click", async () => {
   }
 });
 
+// 原生分享
 nativeShareBtn.addEventListener("click", async () => {
   if (!authStatus) return;
   if (!navigator.share || !previewImage.src) {
@@ -1005,6 +1016,7 @@ nativeShareBtn.addEventListener("click", async () => {
   }
 });
 
+// 清除圖片
 clearImageBtn.addEventListener("click", () => {
   previewImage.style.display = "none";
   previewImage.src = "";
@@ -1013,6 +1025,7 @@ clearImageBtn.addEventListener("click", () => {
   clearImageBtn.style.display = "none";
 });
 
+// 顯示提示框
 function showToast(message, type = 'success') {
   toast.textContent = message;
   toast.className = 'toast';
@@ -1021,6 +1034,7 @@ function showToast(message, type = 'success') {
   setTimeout(() => toast.classList.remove("show"), 3000);
 }
 
+// 計算剩餘天數
 const calculateRemainingDaysByDate = (expiryDateStr) => {
   try {
     if (expiryDateStr === PERMANENT_EXPIRY_DATE) return {
@@ -1074,6 +1088,7 @@ const calculateRemainingDaysByDate = (expiryDateStr) => {
   }
 };
 
+// 顯示錯誤
 const showError = (msg) => {
   authLoading.style.display = 'none';
   captureArea.style.display = 'none';
@@ -1088,6 +1103,7 @@ const showError = (msg) => {
   errorMessage.style.display = 'block';
 };
 
+// 後端驗證用戶
 const verifyUserFromBackend = (profile) => {
   return new Promise((resolve, reject) => {
     const decodedToken = liff.getDecodedIDToken();
@@ -1138,10 +1154,12 @@ const verifyUserFromBackend = (profile) => {
   });
 };
 
+// 驗證回調
 window.verifyCallback = function (resp) {
   console.log("用戶授權驗證返回：", resp);
 };
 
+// 初始化LIFF與授權
 async function initLiffAndAuth() {
   try {
     updateAuthLoadingText("正在初始化LINE登錄", "請稍候...");
@@ -1196,25 +1214,25 @@ async function initLiffAndAuth() {
   }
 }
 
+// 更新授權加載文本
 function updateAuthLoadingText(title, desc) {
   if (authLoadingTitle) authLoadingTitle.textContent = title;
   if (authLoadingDesc) authLoadingDesc.innerHTML = desc;
 }
 
-addBtn.addEventListener("click", addProduct);
-resetCalculatorBtn.addEventListener("click", resetLineName);
-resetReportBtn.addEventListener("click", resetReport);
-
+// 窗口大小調整
 window.addEventListener('resize', () => {
   adjustTableDisplay();
 });
 
+// 調整表格顯示
 function adjustTableDisplay() {
   const table = document.getElementById('reportTable');
   const width = window.innerWidth;
   table.style.fontSize = width < 360 ? '11px' : '12px';
 }
 
+// 初始化應用
 function initApp() {
   if (window.jQuery) {
     initLiffAndAuth();
@@ -1233,6 +1251,10 @@ function initApp() {
   }
 }
 
+// 綁定事件
+addBtn.addEventListener("click", addProduct);
+resetCalculatorBtn.addEventListener("click", resetLineName);
+resetReportBtn.addEventListener("click", resetReport);
 window.onload = initApp;
   </script>
 </body>
