@@ -542,7 +542,7 @@ const JSONP_TIMEOUT = 12000;
 const PERMANENT_EXPIRY_DATE = "9999/12/31";
 const TARGET_PV112 = 112000;
 const TARGET_PV220 = 220000;
-const MAX_NORMAL_USER_USAGE = 10; // 核心修改：3次→10次
+const MAX_NORMAL_USER_USAGE = 10;
 
 let allProducts = [], selectedProducts = [], lineName = '', userInfo = null, authStatus = null;
 let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {};
@@ -673,6 +673,12 @@ function resetLineName() {
 function resetReport() {
   if (!authStatus || authStatus.isExpired) return;
   if (confirm('確定要清空所有品項記錄嗎？')) {
+    // 普通用户扣次逻辑
+    const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
+    if (!isPrivilegeUser && authStatus.remainingTimes > 0) {
+      recordUserUsage();
+    }
+    // 原有重置逻辑
     selectedProducts = [];
     saveSelectedProducts();
     renderTable();
@@ -943,7 +949,6 @@ exportBtn.addEventListener("click", async () => {
     shareToLineBtn.style.display = "inline-block";
     nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
     clearImageBtn.style.display = "inline-block";
-    recordUserUsage();
   } catch (error) {
     showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
   } finally {
