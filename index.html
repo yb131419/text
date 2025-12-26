@@ -715,7 +715,7 @@ function updateAuthStatusBar() {
   authStatusBar.style.display = 'block';
 }
 
-// 核心修改：優化html2canvas配置，減小圖片尺寸
+// 修復截圖格式跑掉的核心程式碼
 exportBtn.addEventListener("click", async () => {
   if (!checkUserRemainingTimes()) return;
   if (selectedProds.length === 0) {
@@ -724,31 +724,63 @@ exportBtn.addEventListener("click", async () => {
   }
   exportBtn.disabled = true;
   exportBtn.textContent = "匯出中...";
+  
+  // 保存原始樣式
+  const captureAreaStyle = {
+    width: captureArea.style.width,
+    overflow: captureArea.style.overflow,
+    boxShadow: captureArea.style.boxShadow,
+    background: captureArea.style.background
+  };
+  const tableRows = document.querySelectorAll('#reportTable tbody tr');
+  const rowStyles = [];
+  tableRows.forEach((row, idx) => {
+    rowStyles[idx] = {
+      transform: row.style.transform,
+      transition: row.style.transition
+    };
+  });
+
+  // 截圖前臨時調整樣式（解決格式跑掉問題）
+  captureArea.style.width = '600px'; // 固定寬度
+  captureArea.style.overflow = 'visible'; // 關閉滾動
+  captureArea.style.boxShadow = 'none'; // 移除陰影
+  captureArea.style.background = '#1c1c1c'; // 簡化背景
+  tableRows.forEach(row => {
+    row.style.transform = 'none'; // 移除hover變形
+    row.style.transition = 'none'; // 移除過渡效果
+  });
+  
   const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
   opCells.forEach(el => el.style.display = "none");
+
   try {
-    // 關鍵修改：降低scale值，並添加尺寸限制，減小圖片體積
-    const captureEl = document.getElementById("captureArea");
-    const canvas = await html2canvas(captureEl, {
-      scale: 1.2, // 從2降低到1.2，平衡清晰度和體積
+    // 優化html2canvas配置
+    const canvas = await html2canvas(captureArea, {
+      scale: 2, // 提高解析度保證清晰度
       useCORS: true,
       allowTaint: true,
-      backgroundColor: null,
+      backgroundColor: '#1c1c1c',
       logging: false,
       letterRendering: true,
-      useTransform: true,
-      width: captureEl.offsetWidth, // 固定寬度為元素實際寬度
-      height: captureEl.offsetHeight, // 固定高度為元素實際高度
-      windowWidth: captureEl.scrollWidth,
-      windowHeight: captureEl.scrollHeight
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: captureArea.offsetWidth,
+      windowHeight: captureArea.offsetHeight,
+      ignoreElements: (el) => {
+        // 忽略可能導致問題的元素
+        return el.classList.contains('deleteBtn') || el.tagName === 'SELECT';
+      }
     });
-    // 額外優化：壓縮圖片質量
-    const dataUrl = canvas.toDataURL("image/png", 0.8); // 質量從1.0調整為0.8
+    
+    // 壓縮圖片質量
+    const dataUrl = canvas.toDataURL("image/png", 0.9);
     previewImage.src = dataUrl;
     previewImage.style.display = "block";
     shareToLineBtn.style.display = "inline-block";
     nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
     clearImageBtn.style.display = "inline-block";
+    
     if (!authStatus.isVip && !authStatus.isSuperAdmin) {
       recordUserUsage();
       checkUserRemainingTimes();
@@ -756,6 +788,16 @@ exportBtn.addEventListener("click", async () => {
   } catch (error) {
     showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
   } finally {
+    // 恢復原始樣式
+    captureArea.style.width = captureAreaStyle.width;
+    captureArea.style.overflow = captureAreaStyle.overflow;
+    captureArea.style.boxShadow = captureAreaStyle.boxShadow;
+    captureArea.style.background = captureAreaStyle.background;
+    tableRows.forEach((row, idx) => {
+      row.style.transform = rowStyles[idx].transform;
+      row.style.transition = rowStyles[idx].transition;
+    });
+    
     opCells.forEach(el => el.style.display = "");
     exportBtn.disabled = false;
     exportBtn.textContent = "📤 報表轉圖片";
