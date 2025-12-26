@@ -9,31 +9,29 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
 :root {
-  --bg-color: #0f0f0f;
+  --bg: #0f0f0f;
   --panel-bg: #1a1a1a;
-  --text-color: #e0e0e0;
+  --text: #e0e0e0;
   --accent: #00d1b2;
   --highlight: #40c4ff;
   --error: #ff5252;
-  --button-green: #00bfa5;
-  --button-grey: #3a3a3a;
+  --btn-grey: #3a3a3a;
   --warning: #ff9800;
-  --super-admin: #d4af37;
-  --vip-admin: #00bfa5;
-  --gradient-primary: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-  --gradient-secondary: linear-gradient(145deg, #2d2d2d, #1f1f1f);
-  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --loader-color: #00d1b2;
-  --username-gradient-vip: linear-gradient(135deg, #00bfa5, #00ffde);
-  --username-gradient-super: linear-gradient(135deg, #d4af37, #ffff00);
-  --remaining-days-yellow: #ffd700;
+  --super: #d4af37;
+  --vip: #00bfa5;
+  --grad-primary: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+  --grad-secondary: linear-gradient(145deg, #2d2d2d, #1f1f1f);
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --loader: #00d1b2;
+  --vip-username: linear-gradient(135deg, #00bfa5, #00ffde);
+  --super-username: linear-gradient(135deg, #d4af37, #ffff00);
+  --yellow: #ffd700;
 }
-* {box-sizing: border-box;}
+* {box-sizing: border-box;margin: 0;padding: 0;}
 body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
+  background: var(--bg);
+  color: var(--text);
   font-family: 'Segoe UI', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-  margin: 0;
   padding: 10px;
   line-height: 1.5;
   min-height: 100vh;
@@ -41,81 +39,60 @@ body {
   flex-direction: column;
   align-items: center;
 }
-#authContainer {
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+#authContainer {width: 100%;max-width: 400px;margin: 0 auto;display: flex;flex-direction: column;align-items: center;}
 #authLoading {
   width: 100%;
-  background: var(--gradient-secondary);
+  background: var(--grad-secondary);
   border-radius: 16px;
   padding: 40px 25px;
   text-align: center;
-  box-shadow: var(--card-shadow);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.05);
   transition: all 0.5s ease;
 }
 .loader {
   width: 50px;
   height: 50px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: var(--loader-color);
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--loader);
   border-radius: 50%;
   animation: spin 1s linear infinite, pulse 2s ease-in-out infinite alternate;
   margin: 0 auto 20px;
 }
 @keyframes spin {to {transform: rotate(360deg);}}
 @keyframes pulse {
-  from {box-shadow: 0 0 15px rgba(0, 209, 178, 0.3);}
-  to {box-shadow: 0 0 25px rgba(0, 209, 178, 0.6);}
+  from {box-shadow: 0 0 15px rgba(0,209,178,0.3);}
+  to {box-shadow: 0 0 25px rgba(0,209,178,0.6);}
 }
-#authLoading h3 {
-  margin: 0 0 8px 0;
-  font-size: 1.2rem;
-  color: var(--highlight);
-  font-weight: 600;
-}
-#authLoading p {
-  margin: 0;
-  font-size: 0.95rem;
-  color: #bbb;
-  line-height: 1.6;
-}
+#authLoading h3 {margin: 0 0 8px 0;font-size: 1.2rem;color: var(--highlight);font-weight: 600;}
+#authLoading p {margin: 0;font-size: 0.95rem;color: #bbb;line-height: 1.6;}
 #authStatusBar {
-  background: var(--gradient-secondary);
+  background: var(--grad-secondary);
   padding: 12px 18px;
   border-radius: 12px;
   margin-bottom: 20px;
   font-size: 14px;
   text-align: center;
-  border: 1px solid rgba(0, 209, 178, 0.3);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0,209,178,0.3);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   display: none;
   width: 100%;
   max-width: 600px;
 }
-.super-admin {color: var(--super-admin);font-weight: bold;}
-.vip-admin {color: var(--vip-admin);font-weight: bold;}
+.super-admin {color: var(--super);font-weight: bold;}
+.vip-admin {color: var(--vip);font-weight: bold;}
 .normal {color: var(--highlight);font-weight: bold;}
 .expired {color: var(--error);font-weight: bold;}
-.remaining-days-yellow {color: var(--remaining-days-yellow);font-weight: bold;text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);}
+.remaining-days-yellow {color: var(--yellow);font-weight: bold;text-shadow: 0 0 5px rgba(255,215,0,0.5);}
 .super-admin-username, .vip-admin-username {
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  font-weight: bold;
-  text-shadow: 0 0 8px rgba(255,255,255,0.3);
+  background-clip: text;-webkit-background-clip: text;color: transparent;font-weight: bold;text-shadow: 0 0 8px rgba(255,255,255,0.3);
 }
-.super-admin-username {background-image: var(--username-gradient-super);}
-.vip-admin-username {background-image: var(--username-gradient-vip);}
+.super-admin-username {background-image: var(--super-username);}
+.vip-admin-username {background-image: var(--vip-username);}
 #captureArea {
   background: linear-gradient(145deg, #1c1c1c, #141414);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05),0 4px 20px rgba(0, 0, 0, 0.6);
-  color: var(--text-color);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
+  color: var(--text);
   padding: 15px 10px;
   border-radius: 12px;
   margin-bottom: 15px;
@@ -128,48 +105,32 @@ body {
   text-align: center;
   font-size: 2rem;
   font-weight: bold;
-  color: #ffffff;
+  color: #fff;
   margin: 0 0 15px 0;
   padding: 10px 0;
   line-height: 1.3;
   width: 100%;
 }
-@media (min-width: 768px) {#captureArea h2 {font-size: 2.4rem;}}
-.userInputs {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 15px;
-}
+@media (min-width:768px) {#captureArea h2 {font-size: 2.4rem;}}
+.userInputs {display: flex;flex-direction: column;gap: 10px;margin-bottom: 15px;}
 .userInputs .row {display: flex;gap: 10px;width: 100%;}
-.userInputs label {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
-  color: #bbb;
-}
-.userInputs label span {
-  text-align: center;
-  margin-bottom: 4px;
-  font-size: 15px;
-}
+.userInputs label {flex: 1;display: flex;flex-direction: column;font-size: 14px;color: #bbb;}
+.userInputs label span {text-align: center;margin-bottom: 4px;font-size: 15px;}
 .userInputs input {
   padding: 10px;
   font-size: 16px;
   background: #333;
-  color: var(--text-color);
+  color: var(--text);
   border: none;
   border-radius: 6px;
   width: 100%;
-  box-sizing: border-box;
   text-align: center;
 }
 .calculator-container {display: flex;gap: 5px;}
 #resetCalculatorBtn {
   padding: 10px;
-  background-color: var(--button-grey);
-  color: white;
+  background: var(--btn-grey);
+  color: #fff;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -177,14 +138,8 @@ body {
   flex-shrink: 0;
   width: 40px;
 }
-#resetCalculatorBtn:hover {background-color: #555;}
-#nameInput option {
-  padding: 12px 10px;
-  line-height: 1.6;
-  font-size: 16px;
-  height: auto;
-  white-space: normal;
-}
+#resetCalculatorBtn:hover {background: #555;}
+#nameInput option {padding: 12px 10px;line-height: 1.6;font-size: 16px;height: auto;white-space: normal;}
 #reportTable {
   width: 100%;
   min-width: 300px;
@@ -192,7 +147,7 @@ body {
   font-size: 12px;
   border-radius: 10px;
   overflow: hidden;
-  background-color: #f9fafb;
+  background: #f9fafb;
   color: #374151;
   margin: 0 auto;
 }
@@ -210,44 +165,27 @@ body {
   white-space: nowrap;
   transition: all 0.3s ease;
 }
-#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect {
-  font-size: 16px !important;
-  font-weight: bold !important;
-}
-#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6) {
-  font-weight: 500;
-  text-align: center !important;
-}
-@media (min-width: 768px) {
+#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect {font-size: 16px !important;font-weight: bold !important;}
+#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6) {font-weight: 500;text-align: center !important;}
+@media (min-width:768px) {
   #reportTable th,#reportTable td {padding: 8px 5px;font-size: 14px;}
   #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 18px !important;}
 }
-#reportTable thead {
-  background: linear-gradient(90deg, #2b6cb0, #3182ce);
-  color: #fff;
-  font-weight: 600;
-}
-#reportTable tbody tr:nth-child(odd) {background-color: #f3f4f6;}
-#reportTable tbody tr:nth-child(even) {background-color: #e5e7eb;}
-#reportTable tbody tr:hover {
-  background-color: #1e88e5;
-  color: #fff;
-  font-weight: bold;
-  transform: scale(1.01);
-}
+#reportTable thead {background: linear-gradient(90deg, #2b6cb0, #3182ce);color: #fff;font-weight: 600;}
+#reportTable tbody tr:nth-child(odd) {background: #f3f4f6;}
+#reportTable tbody tr:nth-child(even) {background: #e5e7eb;}
+#reportTable tbody tr:hover {background: #1e88e5;color: #fff;font-weight: bold;transform: scale(1.01);}
 .deleteBtn {
   writing-mode: vertical-rl;
   text-orientation: upright;
-  background-color: var(--error);
+  background: var(--error);
   border: none;
-  color: white;
+  color: #fff;
   border-radius: 4px;
   padding: 2px;
   cursor: pointer;
   font-size: 11px;
   display: inline-block;
-  height: auto;
-  width: auto;
   margin: 0 auto;
 }
 .summaryBox {
@@ -258,46 +196,26 @@ body {
   color: var(--highlight);
   line-height: 1.6;
 }
-.summaryBox .extra {
-  display: block;
-  font-size: 0.9rem;
-  color: var(--accent);
-  margin-top: 4px;
-}
+.summaryBox .extra {display: block;font-size: 0.9rem;color: var(--accent);margin-top: 4px;}
 .summaryBox .done {color: #4caf50;font-weight: bold;}
-#totalPriceCellDup, #totalPvCellDup, #pvDiff, #pvDiff2 {
-  display: inline-block;
-  min-width: 60px;
-  text-align: center;
-}
+#totalPriceCellDup, #totalPvCellDup, #pvDiff, #pvDiff2 {display: inline-block;min-width: 60px;text-align: center;}
 #inputArea {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 15px;
-  margin-bottom: 30px;
+  margin: 15px 0 30px 0;
   display: none;
   width: 100%;
   max-width: 600px;
 }
-@media (min-width: 576px) {#inputArea {flex-direction: row;align-items: center;}}
-#nameInput,#qtyInput,#addBtn {
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 6px;
-  border: none;
-}
+@media (min-width:576px) {#inputArea {flex-direction: row;align-items: center;}}
+#nameInput,#qtyInput,#addBtn {padding: 10px;font-size: 16px;border-radius: 6px;border: none;}
 #qtyInput {font-size: 18px !important;font-weight: bold;}
-#nameInput,#qtyInput {
-  background-color: #2c2c2c;
-  color: var(--text-color);
-  flex: 1;
-  text-align: center;
-}
+#nameInput,#qtyInput {background: #2c2c2c;color: var(--text);flex: 1;text-align: center;}
 #addBtn,#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn {
   background: linear-gradient(145deg, #00bfa5, #009e8a);
-  box-shadow: 0 4px 8px rgba(0, 191, 165, 0.3);
-  color: white;
+  box-shadow: 0 4px 8px rgba(0,191,165,0.3);
+  color: #fff;
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
@@ -308,13 +226,13 @@ body {
   transform: translateY(-2px);
 }
 #addBtn:disabled,#exportBtn:disabled,#shareToLineBtn:disabled,#resetReportBtn:disabled {
-  background: var(--button-grey);
+  background: var(--btn-grey);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 #addBtn {width: 100%;}
-@media (min-width: 576px) {#addBtn {width: 120px;}}
+@media (min-width:576px) {#addBtn {width: 120px;}}
 .button-group {
   display: flex;
   flex-wrap: wrap;
@@ -333,7 +251,7 @@ body {
   font-size: 15px;
   border-radius: 8px;
 }
-#clearImageBtn {background: var(--button-grey);}
+#clearImageBtn {background: var(--btn-grey);}
 #clearImageBtn:hover {background: #555;}
 #clearImageBtn:disabled {background: #2a2a2a;cursor: not-allowed;}
 #resetReportBtn {background: #ff9800;}
@@ -349,7 +267,7 @@ body {
 }
 #shareToLineBtn,#nativeShareBtn,#clearImageBtn {display: none;}
 #buyerInput,#calculatorDisplay {
-  background-color: #f9fafb;
+  background: #f9fafb;
   border: 1.5px solid #d1d5db;
   color: #374151;
   border-radius: 8px;
@@ -357,59 +275,48 @@ body {
   font-size: 16px;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
   width: 100%;
-  box-sizing: border-box;
   font-weight: 500;
 }
-@media (min-width: 768px) {#buyerInput,#calculatorDisplay {font-size: 18px;}}
+@media (min-width:768px) {#buyerInput,#calculatorDisplay {font-size: 18px;}}
 #buyerInput:focus {
   border-color: #2563eb;
-  box-shadow: 0 0 8px 2px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 0 8px 2px rgba(37,99,235,0.3);
   outline: none;
-  background-color: #ffffff;
+  background: #fff;
 }
-#calculatorDisplay {background-color: #e9ecef;cursor: default;}
-#buyerInput::placeholder {
-  color: #9ca3af;
-  font-weight: 400;
-  text-align: center;
-}
+#calculatorDisplay {background: #e9ecef;cursor: default;}
+#buyerInput::placeholder {color: #9ca3af;font-weight: 400;text-align: center;}
 .toast {
   position: fixed;
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--gradient-secondary);
-  color: white;
+  background: var(--grad-secondary);
+  color: #fff;
   padding: 12px 20px;
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   opacity: 0;
   transition: opacity 0.5s ease, transform 0.5s ease;
   z-index: 1000;
   text-align: center;
   min-width: 200px;
   font-size: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255,255,255,0.1);
 }
 .toast.show {opacity: 1;transform: translateX(-50%) translateY(-10px);}
-.toast.error {background: linear-gradient(145deg, #4a0000, #2a0000);border-color: rgba(255, 82, 82, 0.3);}
-.toast.warning {background: linear-gradient(145deg, #4a3200, #2a1e00);border-color: rgba(255, 152, 0, 0.3);}
+.toast.error {background: linear-gradient(145deg, #4a0000, #2a0000);border-color: rgba(255,82,82,0.3);}
+.toast.warning {background: linear-gradient(145deg, #4a3200, #2a1e00);border-color: rgba(255,152,0,0.3);}
 .payment-options {
   display: flex;
   justify-content: center;
   gap: 15px;
   margin-top: 8px;
-  color: white;
+  color: #fff;
   font-size: 1.1rem;
   flex-wrap: wrap;
 }
-.payment-options label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: white;
-  font-weight: 500;
-}
+.payment-options label {display: flex;align-items: center;gap: 8px;color: #fff;font-weight: 500;}
 .payment-options input[type="checkbox"] {width: 18px;height: 18px;}
 @media print {
   body {background: #fff;color: #000;}
@@ -422,7 +329,7 @@ body {
   #reportTable th:nth-child(2),#reportTable td:nth-child(2) {font-size: 16px !important;font-weight: bold !important;}
 }
 .spacer {height: 80px;}
-@media (max-width: 360px) {
+@media (max-width:360px) {
   .userInputs .row {gap: 5px;}
   .userInputs label {font-size: 13px;}
   .userInputs input {font-size: 15px;padding: 8px;}
@@ -436,19 +343,19 @@ body {
 #error-message {
   display: none;
   background: linear-gradient(145deg, #4a0000, #2a0000);
-  border: 1px solid rgba(255, 82, 82, 0.3);
+  border: 1px solid rgba(255,82,82,0.3);
   color: #fef2f2;
   padding: 20px;
   border-radius: 16px;
   margin: 20px auto;
   max-width: 400px;
   text-align: center;
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow);
 }
 #error-message #error-content {margin-bottom: 15px;}
 #error-message button {
   background: linear-gradient(145deg, #ff5252, #d32f2f);
-  color: white;
+  color: #fff;
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
@@ -460,7 +367,7 @@ body {
 #error-message button:hover {
   background: linear-gradient(145deg, #ff6b6b, #e53935);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 82, 82, 0.3);
+  box-shadow: 0 4px 12px rgba(255,82,82,0.3);
 }
 </style>
 </head>
@@ -538,13 +445,13 @@ body {
 const API_URL = "https://script.google.com/macros/s/AKfycbyETFQSpvVF0zCq24jLNkGD_lfm6yX44JUpW4cgkTyt3pJsg4G-38_uRbRzMl5xyMPs/exec";
 const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
 const LIFF_ID = "2007434020-Kf98vapi";
-const JSONP_TIMEOUT = 12000;
+const JSONP_TIMEOUT = 5000; // 優化：縮短超時時間（5秒足夠）
 const PERMANENT_EXPIRY_DATE = "9999/12/31";
 const TARGET_PV112 = 112000;
 const TARGET_PV220 = 220000;
 const MAX_NORMAL_USER_USAGE = 10;
 
-let allProducts = [], selectedProducts = [], lineName = '', userInfo = null, authStatus = null;
+let products = [], selectedProds = [], lineName = '', userInfo = null, authStatus = null;
 let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {};
 
 // 元素獲取
@@ -598,10 +505,8 @@ nameInput.addEventListener('input', function() {
 
 // 新入會草本組合提醒
 function checkHerbalNewMember(selectedValue) {
-  const trimmedValue = selectedValue.trim();
-  const isHerbal = trimmedValue.includes('草本');
-  const isNewMember = trimmedValue.includes('新入會');
-  if (isHerbal && isNewMember) {
+  const val = selectedValue.trim();
+  if (val.includes('草本') && val.includes('新入會')) {
     setTimeout(() => {
       alert('📋 新入會草本組合提醒：\n\n男生款：211x2 + 101x2\n女生款：211x2 + 707x2\n\n請分別新增對應品項與數量');
     }, 100);
@@ -610,11 +515,11 @@ function checkHerbalNewMember(selectedValue) {
 
 // 調整數量選擇框選項
 function adjustQtySelectOptions(selectedValue) {
-  const trimmedValue = selectedValue.trim();
+  const val = selectedValue.trim();
   let maxQty = 99;
-  if (trimmedValue.includes('新入會') || trimmedValue.includes('新會員') || trimmedValue.includes('入會')) {
+  if (val.includes('新入會') || val.includes('新會員') || val.includes('入會')) {
     maxQty = 1;
-  } else if (trimmedValue.includes('2711AB') && trimmedValue.includes('(4)')) {
+  } else if (val.includes('2711AB') && val.includes('(4)')) {
     maxQty = 2;
   }
   qtyInput.innerHTML = '';
@@ -627,17 +532,17 @@ function adjustQtySelectOptions(selectedValue) {
 }
 
 // 加載已選商品
-function loadSelectedProducts() {
+function loadSelectedProds() {
   const saved = localStorage.getItem('selectedProducts');
   if (saved) {
-    selectedProducts = JSON.parse(saved);
+    selectedProds = JSON.parse(saved);
     renderTable();
   }
 }
 
 // 保存已選商品
-function saveSelectedProducts() {
-  localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
+function saveSelectedProds() {
+  localStorage.setItem('selectedProducts', JSON.stringify(selectedProds));
 }
 
 // 保存使用記錄
@@ -692,7 +597,6 @@ function syncRecordResetToBackend() {
       data: data,
       success: function(resp) {
         if (resp.status === "success") {
-          // 同步後端返回的最新使用次數
           const backendUsageCount = resp.usageCount || 0;
           userUsageRecord[userInfo.userId] = backendUsageCount;
           saveUserUsageRecord();
@@ -713,7 +617,7 @@ function syncRecordResetToBackend() {
   });
 }
 
-// 重置報表
+// 重置報表（優化：簡化邏輯，減少阻塞）
 async function resetReport() {
   if (!authStatus || authStatus.isExpired) return;
   if (!confirm('確定要清空所有品項記錄嗎？')) return;
@@ -721,41 +625,26 @@ async function resetReport() {
   const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
   let isDeducted = false;
   
-  // 普通用戶先執行後端扣次同步
   if (!isPrivilegeUser && authStatus.remainingTimes > 0) {
     resetReportBtn.disabled = true;
     resetReportBtn.textContent = "處理中...";
     try {
       const syncSuccess = await syncRecordResetToBackend();
-      if (!syncSuccess) {
-        resetReportBtn.disabled = false;
-        resetReportBtn.textContent = "🔄 重置報表";
-        return;
-      }
-      isDeducted = true;
+      isDeducted = syncSuccess;
     } catch (error) {
-      resetReportBtn.disabled = false;
-      resetReportBtn.textContent = "🔄 重置報表";
-      return;
+      showToast(error.message, 'error');
     } finally {
       resetReportBtn.disabled = false;
       resetReportBtn.textContent = "🔄 重置報表";
     }
   }
   
-  // 執行報表重置邏輯
-  selectedProducts = [];
-  saveSelectedProducts();
+  // 快速執行重置邏輯
+  selectedProds = [];
+  saveSelectedProds();
   renderTable();
-  qtyInput.innerHTML = '';
-  for (let i = 1; i <= 99; i++) {
-    const option = document.createElement("option");
-    option.value = i;
-    option.textContent = i;
-    qtyInput.appendChild(option);
-  }
+  adjustQtySelectOptions(nameInput.value); // 優化：復用函數，減少重複代碼
   
-  // 提示信息
   if (isDeducted) {
     showToast(`✅ 已扣除1次使用次數，剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次`, 'warning');
   } else {
@@ -763,12 +652,12 @@ async function resetReport() {
   }
 }
 
-// 加載商品列表
+// 加載商品列表（優化：提前加載，不用等驗證完成）
 async function loadProducts() {
   try {
     const res = await fetch(`${API_URL}?action=all`);
     const data = await res.json();
-    allProducts = data;
+    products = data;
     nameInput.innerHTML = "";
     data.forEach(item => {
       const opt = document.createElement("option");
@@ -789,20 +678,20 @@ async function loadProducts() {
 function renderTable() {
   reportBody.innerHTML = "";
   let totalPrice = 0, totalPv = 0;
-  selectedProducts.forEach((item, idx) => {
-    const trimmedName = item.name.trim();
+  selectedProds.forEach((item, idx) => {
+    const val = item.name.trim();
     let maxQty = 99;
-    if (trimmedName.includes('新入會') || trimmedName.includes('新會員') || trimmedName.includes('入會')) {
+    if (val.includes('新入會') || val.includes('新會員') || val.includes('入會')) {
       maxQty = 1;
       if (item.qty > maxQty) {
         item.qty = maxQty;
-        saveSelectedProducts();
+        saveSelectedProds();
       }
-    } else if (trimmedName.includes('2711AB') && trimmedName.includes('(4)')) {
+    } else if (val.includes('2711AB') && val.includes('(4)')) {
       maxQty = 2;
       if (item.qty > maxQty) {
         item.qty = maxQty;
-        saveSelectedProducts();
+        saveSelectedProds();
       }
     }
     const subtotalPrice = item.price * item.qty;
@@ -837,12 +726,13 @@ function renderTable() {
   pvDiff2.textContent = diff2 > 0 ? diff2 : 0;
   pvMessage1.innerHTML = totalPv >= TARGET_PV112 ? '<span class="done">🎉 已達標</span>' : '';
   pvMessage2.innerHTML = totalPv >= TARGET_PV220 ? '<span class="done">🎉 已達標</span>' : '';
+  
   // 刪除按鈕事件
   document.querySelectorAll(".deleteBtn").forEach(btn => {
     btn.onclick = e => {
       const idx = parseInt(e.target.dataset.index);
-      selectedProducts.splice(idx, 1);
-      saveSelectedProducts();
+      selectedProds.splice(idx, 1);
+      saveSelectedProds();
       renderTable();
     };
   });
@@ -850,9 +740,8 @@ function renderTable() {
   document.querySelectorAll(".qtySelect").forEach(select => {
     select.onchange = e => {
       const idx = parseInt(e.target.dataset.index);
-      const newQty = parseInt(e.target.value);
-      selectedProducts[idx].qty = newQty;
-      saveSelectedProducts();
+      selectedProds[idx].qty = parseInt(e.target.value);
+      saveSelectedProds();
       renderTable();
     };
   });
@@ -870,32 +759,32 @@ function addProduct() {
     return;
   }
   const selectedName = nameInput.value;
-  const qty = parseInt(qtyInput.value);
+  let qty = parseInt(qtyInput.value);
   if (!selectedName || qty <= 0) {
     alert("請選擇品項與數量");
     return;
   }
-  const trimmedName = selectedName.trim();
+  const val = selectedName.trim();
   let maxQty = 99;
-  if (trimmedName.includes('新入會') || trimmedName.includes('新會員') || trimmedName.includes('入會')) {
+  if (val.includes('新入會') || val.includes('新會員') || val.includes('入會')) {
     maxQty = 1;
     if (qty > maxQty) {
       alert(`⚠️ 新入會相關品項限購${maxQty}個，已自動調整數量為${maxQty}`);
       qty = maxQty;
     }
-  } else if (trimmedName.includes('2711AB') && trimmedName.includes('(4)')) {
+  } else if (val.includes('2711AB') && val.includes('(4)')) {
     maxQty = 2;
     if (qty > maxQty) {
       alert(`⚠️ 2711AB(4)限購${maxQty}組，已自動調整數量為${maxQty}`);
       qty = maxQty;
     }
   }
-  const product = allProducts.find(p => p.name === selectedName);
+  const product = products.find(p => p.name === selectedName);
   if (!product) {
     alert("找不到該品項");
     return;
   }
-  const exists = selectedProducts.find(p => p.name === selectedName);
+  const exists = selectedProds.find(p => p.name === selectedName);
   if (exists) {
     const totalQty = exists.qty + qty;
     if (totalQty > maxQty) {
@@ -904,9 +793,9 @@ function addProduct() {
     }
     exists.qty += qty;
   } else {
-    selectedProducts.push({ ...product, qty });
+    selectedProds.push({ ...product, qty });
   }
-  saveSelectedProducts();
+  saveSelectedProds();
   renderTable();
 }
 
@@ -953,15 +842,11 @@ function recordUserUsage() {
   const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
   if (isPrivilegeUser) return;
   const userId = userInfo.userId;
-  // 扣次前先獲取當前剩餘次數
   const beforeRemaining = authStatus.remainingTimes;
   if (beforeRemaining <= 0) return;
-  // 更新使用次數
   userUsageRecord[userId] = (userUsageRecord[userId] || 0) + 1;
   saveUserUsageRecord();
-  // 同步更新剩餘次數
   authStatus.remainingTimes = MAX_NORMAL_USER_USAGE - userUsageRecord[userId];
-  // 更新狀態欄
   updateAuthStatusBar();
 }
 
@@ -1001,7 +886,7 @@ function updateAuthStatusBar() {
 // 匯出圖片
 exportBtn.addEventListener("click", async () => {
   if (!checkUserRemainingTimes()) return;
-  if (selectedProducts.length === 0) {
+  if (selectedProds.length === 0) {
     alert("請先新增至少一個品項，才能匯出圖片！");
     return;
   }
@@ -1160,7 +1045,6 @@ const calculateRemainingDaysByDate = (expiryDateStr) => {
     }
     return { displayDate, remainingDays: remainingDaysText, isExpired };
   } catch (e) {
-    console.error("計算剩餘天數失敗：", e, expiryDateStr);
     return {
       displayDate: "計算錯誤",
       remainingDays: "計算錯誤",
@@ -1190,7 +1074,6 @@ const verifyUserFromBackend = (profile) => {
     const decodedToken = liff.getDecodedIDToken();
     const userId = profile.userId || decodedToken?.sub || "";
     const displayName = profile.displayName || 'LINE用戶';
-    console.log("傳遞給後端的用戶ID：", userId);
     const data = {
       action: 'verifyUser',
       userId: userId,
@@ -1206,13 +1089,10 @@ const verifyUserFromBackend = (profile) => {
       timeout: JSONP_TIMEOUT,
       data: data,
       success: function (resp) {
-        console.log("後端返回的驗證數據：", resp);
         if (resp.status === "success") {
-          // 優先使用後端返回的使用次數，同步本地存儲
           const backendUsageCount = resp.usageCount || 0;
           userUsageRecord[userId] = backendUsageCount;
           saveUserUsageRecord();
-          
           const expiryData = calculateRemainingDaysByDate(resp.expiryDate || PERMANENT_EXPIRY_DATE);
           resolve({
             ...resp,
@@ -1230,7 +1110,6 @@ const verifyUserFromBackend = (profile) => {
         }
       },
       error: function (xhr, status, error) {
-        console.error("用戶驗證請求失敗：", status, error);
         const errorMsg = status === 'timeout' 
           ? '驗證超時，請檢查網絡後重新嘗試' 
           : `驗證失敗：${error || '未知網絡錯誤'}`;
@@ -1242,16 +1121,11 @@ const verifyUserFromBackend = (profile) => {
 };
 
 // 驗證回調
-window.verifyCallback = function (resp) {
-  console.log("用戶授權驗證返回：", resp);
-};
-
+window.verifyCallback = function (resp) {};
 // 重置扣次回調
-window.recordResetCallback = function (resp) {
-  console.log("重置扣次驗證返回：", resp);
-};
+window.recordResetCallback = function (resp) {};
 
-// 初始化LIFF與授權
+// 初始化LIFF與授權（優化：並行加載商品，減少總耗時）
 async function initLiffAndAuth() {
   try {
     updateAuthLoadingText("正在初始化LINE登錄", "請稍候...");
@@ -1259,6 +1133,9 @@ async function initLiffAndAuth() {
       liffId: LIFF_ID,
       withLoginOnExternalBrowser: true
     });
+    // 優化：提前加載商品列表，不用等驗證完成
+    loadProducts();
+    
     if (!liff.isLoggedIn()) {
       updateAuthLoadingText("請先登錄LINE賬號", "將自動跳轉至登錄頁面...");
       liff.login({ redirectUri: window.location.href });
@@ -1269,7 +1146,6 @@ async function initLiffAndAuth() {
       userId: profile.userId,
       displayName: profile.displayName
     };
-    console.log("獲取的LINE用戶信息：", userInfo);
     updateAuthLoadingText("正在驗證授權狀態", "核對用戶權限中...");
     const authData = await verifyUserFromBackend(profile);
     if (!authData) return;
@@ -1287,14 +1163,12 @@ async function initLiffAndAuth() {
       isExpired: authData.isExpired,
       remainingTimes: authData.remainingTimes || 0
     };
-    console.log("最終用戶權限狀態：", authStatus);
     authLoading.style.display = 'none';
     captureArea.style.display = 'block';
     inputArea.style.display = 'flex';
     buttonGroup.style.display = 'flex';
     setupLineName();
-    loadProducts();
-    loadSelectedProducts();
+    loadSelectedProds();
     checkUserRemainingTimes();
     updateAuthStatusBar();
     showToast(`歡迎回來，${userInfo.displayName}！`);
@@ -1302,7 +1176,6 @@ async function initLiffAndAuth() {
     const errorMsg = error.message || '未知初始化錯誤';
     updateAuthLoadingText("初始化失敗", errorMsg + "<br/>請刷新頁面重試");
     showToast(`初始化失敗：${errorMsg}`, 'error');
-    console.error('初始化錯誤：', error);
   }
 }
 
@@ -1314,15 +1187,9 @@ function updateAuthLoadingText(title, desc) {
 
 // 窗口大小調整
 window.addEventListener('resize', () => {
-  adjustTableDisplay();
-});
-
-// 調整表格顯示
-function adjustTableDisplay() {
   const table = document.getElementById('reportTable');
-  const width = window.innerWidth;
-  table.style.fontSize = width < 360 ? '11px' : '12px';
-}
+  table.style.fontSize = window.innerWidth < 360 ? '11px' : '12px';
+});
 
 // 初始化應用
 function initApp() {
