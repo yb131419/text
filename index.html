@@ -715,6 +715,7 @@ function updateAuthStatusBar() {
   authStatusBar.style.display = 'block';
 }
 
+// 核心修改：優化html2canvas配置，減小圖片尺寸
 exportBtn.addEventListener("click", async () => {
   if (!checkUserRemainingTimes()) return;
   if (selectedProds.length === 0) {
@@ -726,16 +727,23 @@ exportBtn.addEventListener("click", async () => {
   const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
   opCells.forEach(el => el.style.display = "none");
   try {
-    const canvas = await html2canvas(document.getElementById("captureArea"), {
-      scale: 2,
+    // 關鍵修改：降低scale值，並添加尺寸限制，減小圖片體積
+    const captureEl = document.getElementById("captureArea");
+    const canvas = await html2canvas(captureEl, {
+      scale: 1.2, // 從2降低到1.2，平衡清晰度和體積
       useCORS: true,
       allowTaint: true,
       backgroundColor: null,
       logging: false,
       letterRendering: true,
-      useTransform: true
+      useTransform: true,
+      width: captureEl.offsetWidth, // 固定寬度為元素實際寬度
+      height: captureEl.offsetHeight, // 固定高度為元素實際高度
+      windowWidth: captureEl.scrollWidth,
+      windowHeight: captureEl.scrollHeight
     });
-    const dataUrl = canvas.toDataURL("image/png");
+    // 額外優化：壓縮圖片質量
+    const dataUrl = canvas.toDataURL("image/png", 0.8); // 質量從1.0調整為0.8
     previewImage.src = dataUrl;
     previewImage.style.display = "block";
     shareToLineBtn.style.display = "inline-block";
