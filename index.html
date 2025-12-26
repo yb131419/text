@@ -669,34 +669,97 @@ function resetLineName() {
   }
 }
 
+// 後端扣次同步請求
+function syncRecordResetToBackend() {
+  return new Promise((resolve, reject) => {
+    if (!userInfo || authStatus.isVip || authStatus.isSuperAdmin) {
+      resolve(true);
+      return;
+    }
+    const data = {
+      action: 'recordReset',
+      userId: userInfo.userId,
+      displayName: userInfo.displayName,
+      callback: 'recordResetCallback',
+      dataType: 'resetRecord'
+    };
+    $.ajax({
+      url: API_URL,
+      dataType: 'jsonp',
+      jsonp: 'callback',
+      jsonpCallback: 'recordResetCallback',
+      timeout: JSONP_TIMEOUT,
+      data: data,
+      success: function(resp) {
+        if (resp.status === "success") {
+          // 同步後端返回的最新使用次數
+          const backendUsageCount = resp.usageCount || 0;
+          userUsageRecord[userInfo.userId] = backendUsageCount;
+          saveUserUsageRecord();
+          authStatus.remainingTimes = MAX_NORMAL_USER_USAGE - backendUsageCount;
+          updateAuthStatusBar();
+          resolve(true);
+        } else {
+          showToast(`後端扣次失敗：${resp.message || '未知錯誤'}`, 'error');
+          resolve(false);
+        }
+      },
+      error: function(xhr, status, error) {
+        const errorMsg = status === 'timeout' ? '扣次同步超時，請檢查網絡' : `扣次同步失敗：${error}`;
+        showToast(errorMsg, 'error');
+        reject(new Error(errorMsg));
+      }
+    });
+  });
+}
+
 // 重置報表
-function resetReport() {
+async function resetReport() {
   if (!authStatus || authStatus.isExpired) return;
-  if (confirm('確定要清空所有品項記錄嗎？')) {
-    // 普通用户扣次逻辑
-    const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
-    let isDeducted = false; // 标记是否扣次
-    if (!isPrivilegeUser && authStatus.remainingTimes > 0) {
-      recordUserUsage();
+  if (!confirm('確定要清空所有品項記錄嗎？')) return;
+  
+  const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
+  let isDeducted = false;
+  
+  // 普通用戶先執行後端扣次同步
+  if (!isPrivilegeUser && authStatus.remainingTimes > 0) {
+    resetReportBtn.disabled = true;
+    resetReportBtn.textContent = "處理中...";
+    try {
+      const syncSuccess = await syncRecordResetToBackend();
+      if (!syncSuccess) {
+        resetReportBtn.disabled = false;
+        resetReportBtn.textContent = "🔄 重置報表";
+        return;
+      }
       isDeducted = true;
+    } catch (error) {
+      resetReportBtn.disabled = false;
+      resetReportBtn.textContent = "🔄 重置報表";
+      return;
+    } finally {
+      resetReportBtn.disabled = false;
+      resetReportBtn.textContent = "🔄 重置報表";
     }
-    // 原有重置逻辑
-    selectedProducts = [];
-    saveSelectedProducts();
-    renderTable();
-    qtyInput.innerHTML = '';
-    for (let i = 1; i <= 99; i++) {
-      const option = document.createElement("option");
-      option.value = i;
-      option.textContent = i;
-      qtyInput.appendChild(option);
-    }
-    // 扣次後專用提示
-    if (isDeducted) {
-      showToast(`✅ 已扣除1次使用次數，剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次`, 'warning');
-    } else {
-      showToast('報表已重置');
-    }
+  }
+  
+  // 執行報表重置邏輯
+  selectedProducts = [];
+  saveSelectedProducts();
+  renderTable();
+  qtyInput.innerHTML = '';
+  for (let i = 1; i <= 99; i++) {
+    const option = document.createElement("option");
+    option.value = i;
+    option.textContent = i;
+    qtyInput.appendChild(option);
+  }
+  
+  // 提示信息
+  if (isDeducted) {
+    showToast(`✅ 已扣除1次使用次數，剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次`, 'warning');
+  } else {
+    showToast('報表已重置');
   }
 }
 
@@ -1181,6 +1244,11 @@ const verifyUserFromBackend = (profile) => {
 // 驗證回調
 window.verifyCallback = function (resp) {
   console.log("用戶授權驗證返回：", resp);
+};
+
+// 重置扣次回調
+window.recordResetCallback = function (resp) {
+  console.log("重置扣次驗證返回：", resp);
 };
 
 // 初始化LIFF與授權
