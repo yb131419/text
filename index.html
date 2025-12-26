@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>彥彬🌿試算系統（驗證版）</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -59,10 +59,10 @@ body {
   display: none;width: 100%;max-width: 600px;
 }
 #captureArea h2 {
-  text-align: center;font-size: 2rem;font-weight: bold;color: #fff;margin: 0 0 15px 0;padding: 10px 0;
+  text-align: center;font-size: 1.8rem;font-weight: bold;color: #fff;margin: 0 0 15px 0;padding: 10px 0;
   line-height: 1.3;width: 100%;
 }
-@media (min-width:768px) {#captureArea h2 {font-size: 2.4rem;}}
+@media (min-width:768px) {#captureArea h2 {font-size: 2.2rem;}}
 .userInputs {display: flex;flex-direction: column;gap: 10px;margin-bottom: 15px;}
 .userInputs .row {display: flex;gap: 10px;width: 100%;}
 .userInputs label {flex: 1;display: flex;flex-direction: column;font-size: 14px;color: #bbb;}
@@ -79,25 +79,26 @@ body {
 #resetCalculatorBtn:hover {background: #555;}
 #nameInput option {padding: 12px 10px;line-height: 1.6;font-size: 16px;height: auto;white-space: normal;}
 #reportTable {
-  width: 100%;min-width: 300px;border-collapse: collapse;font-size: 12px;border-radius: 10px;
+  width: 100%;min-width: 280px;border-collapse: collapse;font-size: 12px;border-radius: 10px;
   overflow: hidden;background: #f9fafb;color: #374151;margin: 0 auto;
 }
-#reportTable th:nth-child(1),#reportTable td:nth-child(1) {width: 22%;}
+/* 手机端表格列宽优化 */
+#reportTable th:nth-child(1),#reportTable td:nth-child(1) {width: 25%;}
 #reportTable th:nth-child(2),#reportTable td:nth-child(2) {width: 10%;}
 #reportTable th:nth-child(3),#reportTable td:nth-child(3) {width: 12%;}
 #reportTable th:nth-child(4),#reportTable td:nth-child(4) {width: 12%;}
-#reportTable th:nth-child(5),#reportTable td:nth-child(5) {width: 16%;}
-#reportTable th:nth-child(6),#reportTable td:nth-child(6) {width: 16%;}
-#reportTable th:nth-child(7),#reportTable td:nth-child(7) {width: 12%;}
+#reportTable th:nth-child(5),#reportTable td:nth-child(5) {width: 15%;}
+#reportTable th:nth-child(6),#reportTable td:nth-child(6) {width: 15%;}
+#reportTable th:nth-child(7),#reportTable td:nth-child(7) {width: 11%;}
 #reportTable th,#reportTable td {
-  border: 1px solid #d1d5db;padding: 6px 4px;text-align: center;white-space: nowrap;
+  border: 1px solid #d1d5db;padding: 6px 3px;text-align: center;white-space: nowrap;
   transition: all 0.3s ease;
 }
-#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect {font-size: 16px !important;font-weight: bold !important;}
+#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect {font-size: 15px !important;font-weight: bold !important;}
 #reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6) {font-weight: 500;text-align: center !important;}
 @media (min-width:768px) {
   #reportTable th,#reportTable td {padding: 8px 5px;font-size: 14px;}
-  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 18px !important;}
+  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 17px !important;}
 }
 #reportTable thead {background: linear-gradient(90deg, #2b6cb0, #3182ce);color: #fff;font-weight: 600;}
 #reportTable tbody tr:nth-child(odd) {background: #f3f4f6;}
@@ -121,7 +122,7 @@ body {
 }
 @media (min-width:576px) {#inputArea {flex-direction: row;align-items: center;}}
 #nameInput,#qtyInput,#addBtn {padding: 10px;font-size: 16px;border-radius: 6px;border: none;}
-#qtyInput {font-size: 18px !important;font-weight: bold;}
+#qtyInput {font-size: 17px !important;font-weight: bold;}
 #nameInput,#qtyInput {background: #2c2c2c;color: var(--text);flex: 1;text-align: center;}
 #addBtn,#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn {
   background: linear-gradient(145deg, #00bfa5, #009e8a);box-shadow: 0 4px 8px rgba(0,191,165,0.3);
@@ -140,7 +141,7 @@ body {
   display: none;width: 100%;max-width: 600px;
 }
 #exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn {
-  flex: 1;min-width: 110px;margin: 0;padding: 10px 0;font-size: 15px;border-radius: 8px;
+  flex: 1;min-width: 100px;margin: 0;padding: 10px 0;font-size: 14px;border-radius: 8px;
 }
 #clearImageBtn {background: var(--btn-grey);}
 #clearImageBtn:hover {background: #555;}
@@ -196,7 +197,7 @@ body {
   .userInputs label {font-size: 13px;}
   .userInputs input {font-size: 15px;padding: 8px;}
   #reportTable {font-size: 11px;}
-  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 15px !important;}
+  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 14px !important;}
   .payment-options {font-size: 1rem;}
   #authStatusBar {font-size: 12px;}
   #authLoading {padding: 30px 20px;}
@@ -217,21 +218,30 @@ body {
   background: linear-gradient(145deg, #ff6b6b, #e53935);transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(255,82,82,0.3);
 }
-/* 截图专用样式 */
+/* 手机截图专用样式 - 核心优化 */
 .capture-temp {
   width: 100% !important;
   max-width: 100% !important;
   overflow: visible !important;
   box-shadow: none !important;
   background: #1c1c1c !important;
+  padding: 10px !important;
 }
 .capture-temp #reportTable {
-  font-size: calc(12px + (100vw - 320px) / 40) !important;
+  font-size: calc(11px + (100vw - 320px) / 50) !important;
+  min-width: 100% !important;
 }
 .capture-temp #reportTable th,
 .capture-temp #reportTable td {
-  padding: 4px 2px !important;
+  padding: 5px 2px !important;
   white-space: nowrap !important;
+  border: 1px solid #ccc !important;
+}
+.capture-temp #reportTable thead {
+  background: #2b6cb0 !important;
+}
+.capture-temp .summaryBox {
+  font-size: 0.95rem !important;
 }
 </style>
 </head>
@@ -772,7 +782,7 @@ function updateAuthStatusBar() {
   el.authStatusBar.style.display = 'block';
 }
 
-// 匯出圖片按鈕事件（核心修改：适配手机截图）
+// 匯出圖片按鈕事件 - 核心优化：修复数量显示+手机截图适配
 el.exportBtn.addEventListener("click", async () => {
   if (!checkUserRemainingTimes()) return;
   if (selectedProds.length === 0) {
@@ -783,17 +793,22 @@ el.exportBtn.addEventListener("click", async () => {
   el.exportBtn.disabled = true;
   el.exportBtn.textContent = "匯出中...";
   
-  // 保存原始樣式
+  // 保存原始樣式和元素
   const captureAreaClass = el.captureArea.className;
   const captureAreaStyle = {
     width: el.captureArea.style.width,
     maxWidth: el.captureArea.style.maxWidth,
     overflow: el.captureArea.style.overflow,
     boxShadow: el.captureArea.style.boxShadow,
-    background: el.captureArea.style.background
+    background: el.captureArea.style.background,
+    padding: el.captureArea.style.padding
   };
   const tableRows = document.querySelectorAll('#reportTable tbody tr');
   const rowStyles = [];
+  const qtySelects = document.querySelectorAll('.qtySelect');
+  const qtyTextNodes = []; // 存储数量文本节点，用于恢复
+  
+  // 1. 保存行样式
   tableRows.forEach((row, idx) => {
     rowStyles[idx] = {
       transform: row.style.transform,
@@ -801,21 +816,37 @@ el.exportBtn.addEventListener("click", async () => {
     };
   });
 
-  // 截圖前臨時調整樣式（适配手机）
-  el.captureArea.className = captureAreaClass + ' capture-temp';
-  tableRows.forEach(row => {
-    row.style.transform = 'none';
-    row.style.transition = 'none';
-  });
-  
-  // 隱藏操作列
-  const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
-  opCells.forEach(el => el.style.display = "none");
-
   try {
-    // 優化html2canvas配置（适配手机）
+    // 2. 截图前临时调整样式（适配手机）
+    el.captureArea.className = captureAreaClass + ' capture-temp';
+    el.captureArea.style.width = '100%';
+    el.captureArea.style.maxWidth = '100%';
+    el.captureArea.style.overflow = 'visible';
+    
+    // 3. 移除行的hover效果
+    tableRows.forEach(row => {
+      row.style.transform = 'none';
+      row.style.transition = 'none';
+    });
+
+    // 4. 隐藏操作列
+    const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
+    opCells.forEach(el => el.style.display = "none");
+
+    // 5. 核心修复：将数量下拉框替换为静态文本（解决数量消失问题）
+    qtySelects.forEach((select, idx) => {
+      const qtyValue = select.value;
+      const textNode = document.createTextNode(qtyValue);
+      qtyTextNodes.push({ select, parent: select.parentNode, nextSibling: select.nextSibling });
+      select.parentNode.replaceChild(textNode, select);
+    });
+
+    // 6. 优化html2canvas配置（深度适配手机屏幕）
+    const canvasWidth = Math.min(window.innerWidth, 600); // 限制最大宽度
+    const canvasHeight = el.captureArea.offsetHeight;
+    
     const canvas = await html2canvas(el.captureArea, {
-      scale: window.devicePixelRatio || 2, // 根據設備像素比調整
+      scale: window.devicePixelRatio || 2, // 根据设备像素比优化清晰度
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#1c1c1c',
@@ -823,48 +854,64 @@ el.exportBtn.addEventListener("click", async () => {
       letterRendering: true,
       scrollX: 0,
       scrollY: 0,
-      windowWidth: el.captureArea.offsetWidth,
-      windowHeight: el.captureArea.offsetHeight,
-      // 适配移动端视口
+      windowWidth: canvasWidth,
+      windowHeight: canvasHeight,
+      width: canvasWidth,
+      height: canvasHeight,
       x: 0,
       y: 0,
-      width: el.captureArea.offsetWidth,
-      height: el.captureArea.offsetHeight,
+      // 只过滤删除按钮，不再过滤select（已提前替换为文本）
       ignoreElements: (el) => {
-        return el.classList.contains('deleteBtn') || el.tagName === 'SELECT';
+        return el.classList.contains('deleteBtn');
       }
     });
     
-    // 壓縮圖片質量（平衡質量和大小）
-    const dataUrl = canvas.toDataURL("image/png", 0.85);
+    // 7. 压缩图片（平衡质量和大小，适配手机传输）
+    const dataUrl = canvas.toDataURL("image/png", 0.9); // 优化压缩质量
     el.previewImage.src = dataUrl;
     el.previewImage.style.display = "block";
     el.shareToLineBtn.style.display = "inline-block";
     el.nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
     el.clearImageBtn.style.display = "inline-block";
     
-    // 普通用戶扣次
+    // 8. 普通用戶扣次
     if (!authStatus.isVip && !authStatus.isSuperAdmin) {
       recordUserUsage();
       checkUserRemainingTimes();
     }
+    
+    showToast('✅ 截图已生成（适配手机格式）', 'success');
+    
   } catch (error) {
     showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
   } finally {
-    // 恢復原始樣式
+    // 9. 恢复所有原始样式和元素
+    // 恢复数量下拉框
+    qtyTextNodes.forEach(({ select, parent, nextSibling }) => {
+      const textNode = parent.firstChild;
+      parent.replaceChild(select, textNode);
+    });
+
+    // 恢复操作列显示
+    const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
+    opCells.forEach(el => el.style.display = "");
+
+    // 恢复行样式
+    tableRows.forEach((row, idx) => {
+      row.style.transform = rowStyles[idx].transform;
+      row.style.transition = rowStyles[idx].transition;
+    });
+
+    // 恢复截图区域样式
     el.captureArea.className = captureAreaClass;
     el.captureArea.style.width = captureAreaStyle.width;
     el.captureArea.style.maxWidth = captureAreaStyle.maxWidth;
     el.captureArea.style.overflow = captureAreaStyle.overflow;
     el.captureArea.style.boxShadow = captureAreaStyle.boxShadow;
     el.captureArea.style.background = captureAreaStyle.background;
-    
-    tableRows.forEach((row, idx) => {
-      row.style.transform = rowStyles[idx].transform;
-      row.style.transition = rowStyles[idx].transition;
-    });
-    
-    opCells.forEach(el => el.style.display = "");
+    el.captureArea.style.padding = captureAreaStyle.padding;
+
+    // 恢复按钮状态
     el.exportBtn.disabled = false;
     el.exportBtn.textContent = "📤 報表轉圖片";
   }
