@@ -9,27 +9,55 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
 :root {
-  --bg: #0f0f0f;--panel-bg: #1a1a1a;--text: #e0e0e0;--accent: #00d1b2;--highlight: #40c4ff;
-  --error: #ff5252;--btn-grey: #3a3a3a;--warning: #ff9800;--super: #d4af37;--vip: #00bfa5;
+  --bg: #0f0f0f;
+  --panel-bg: #1a1a1a;
+  --text: #e0e0e0;
+  --accent: #00d1b2;
+  --highlight: #40c4ff;
+  --error: #ff5252;
+  --btn-grey: #3a3a3a;
+  --warning: #ff9800;
+  --super: #d4af37;
+  --vip: #00bfa5;
   --grad-primary: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
   --grad-secondary: linear-gradient(145deg, #2d2d2d, #1f1f1f);
-  --shadow: 0 8px 32px rgba(0,0,0,0.4);--loader: #00d1b2;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --loader: #00d1b2;
   --vip-username: linear-gradient(135deg, #00bfa5, #00ffde);
-  --super-username: linear-gradient(135deg, #d4af37, #ffff00);--yellow: #ffd700;
+  --super-username: linear-gradient(135deg, #d4af37, #ffff00);
+  --yellow: #ffd700;
 }
 * {box-sizing: border-box;margin: 0;padding: 0;}
 body {
-  background: var(--bg);color: var(--text);font-family: 'Segoe UI', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-  padding: 10px;line-height: 1.5;min-height: 100vh;display: flex;flex-direction: column;align-items: center;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  padding: 10px;
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 #authContainer {width: 100%;max-width: 400px;margin: 0 auto;display: flex;flex-direction: column;align-items: center;}
 #authLoading {
-  width: 100%;background: var(--grad-secondary);border-radius: 16px;padding: 40px 25px;text-align: center;
-  box-shadow: var(--shadow);border: 1px solid rgba(255,255,255,0.05);transition: all 0.5s ease;
+  width: 100%;
+  background: var(--grad-secondary);
+  border-radius: 16px;
+  padding: 40px 25px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.5s ease;
 }
 .loader {
-  width: 50px;height: 50px;border: 3px solid rgba(255,255,255,0.1);border-top-color: var(--loader);
-  border-radius: 50%;animation: spin 1s linear infinite, pulse 2s ease-in-out infinite alternate;margin: 0 auto 20px;
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--loader);
+  border-radius: 50%;
+  animation: spin 1s linear infinite, pulse 2s ease-in-out infinite alternate;
+  margin: 0 auto 20px;
 }
 @keyframes spin {to {transform: rotate(360deg);}}
 @keyframes pulse {
@@ -39,9 +67,17 @@ body {
 #authLoading h3 {margin: 0 0 8px 0;font-size: 1.2rem;color: var(--highlight);font-weight: 600;}
 #authLoading p {margin: 0;font-size: 0.95rem;color: #bbb;line-height: 1.6;}
 #authStatusBar {
-  background: var(--grad-secondary);padding: 12px 18px;border-radius: 12px;margin-bottom: 20px;
-  font-size: 14px;text-align: center;border: 1px solid rgba(0,209,178,0.3);box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-  display: none;width: 100%;max-width: 600px;
+  background: var(--grad-secondary);
+  padding: 12px 18px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
+  border: 1px solid rgba(0,209,178,0.3);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  display: none;
+  width: 100%;
+  max-width: 600px;
 }
 .super-admin {color: var(--super);font-weight: bold;}
 .vip-admin {color: var(--vip);font-weight: bold;}
@@ -54,13 +90,26 @@ body {
 .super-admin-username {background-image: var(--super-username);}
 .vip-admin-username {background-image: var(--vip-username);}
 #captureArea {
-  background: linear-gradient(145deg, #1c1c1c, #141414);box-shadow: inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
-  color: var(--text);padding: 15px 10px;border-radius: 12px;margin-bottom: 15px;overflow-x: auto;
-  display: none;width: 100%;max-width: 600px;
+  background: linear-gradient(145deg, #1c1c1c, #141414);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
+  color: var(--text);
+  padding: 15px 10px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  overflow-x: auto;
+  display: none;
+  width: 100%;
+  max-width: 600px;
 }
 #captureArea h2 {
-  text-align: center;font-size: 2rem;font-weight: bold;color: #fff;margin: 0 0 15px 0;padding: 10px 0;
-  line-height: 1.3;width: 100%;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 0 0 15px 0;
+  padding: 10px 0;
+  line-height: 1.3;
+  width: 100%;
 }
 @media (min-width:768px) {#captureArea h2 {font-size: 2.4rem;}}
 .userInputs {display: flex;flex-direction: column;gap: 10px;margin-bottom: 15px;}
@@ -68,19 +117,39 @@ body {
 .userInputs label {flex: 1;display: flex;flex-direction: column;font-size: 14px;color: #bbb;}
 .userInputs label span {text-align: center;margin-bottom: 4px;font-size: 15px;}
 .userInputs input {
-  padding: 10px;font-size: 16px;background: #333;color: var(--text);border: none;
-  border-radius: 6px;width: 100%;text-align: center;
+  padding: 10px;
+  font-size: 16px;
+  background: #333;
+  color: var(--text);
+  border: none;
+  border-radius: 6px;
+  width: 100%;
+  text-align: center;
 }
 .calculator-container {display: flex;gap: 5px;}
 #resetCalculatorBtn {
-  padding: 10px;background: var(--btn-grey);color: #fff;border: none;border-radius: 6px;
-  cursor: pointer;font-size: 14px;flex-shrink: 0;width: 40px;
+  padding: 10px;
+  background: var(--btn-grey);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 40px;
 }
 #resetCalculatorBtn:hover {background: #555;}
 #nameInput option {padding: 12px 10px;line-height: 1.6;font-size: 16px;height: auto;white-space: normal;}
 #reportTable {
-  width: 100%;min-width: 300px;border-collapse: collapse;font-size: 12px;border-radius: 10px;
-  overflow: hidden;background: #f9fafb;color: #374151;margin: 0 auto;
+  width: 100%;
+  min-width: 300px;
+  border-collapse: collapse;
+  font-size: 12px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f9fafb;
+  color: #374151;
+  margin: 0 auto;
 }
 #reportTable th:nth-child(1),#reportTable td:nth-child(1) {width: 22%;}
 #reportTable th:nth-child(2),#reportTable td:nth-child(2) {width: 10%;}
@@ -90,7 +159,10 @@ body {
 #reportTable th:nth-child(6),#reportTable td:nth-child(6) {width: 16%;}
 #reportTable th:nth-child(7),#reportTable td:nth-child(7) {width: 12%;}
 #reportTable th,#reportTable td {
-  border: 1px solid #d1d5db;padding: 6px 4px;text-align: center;white-space: nowrap;
+  border: 1px solid #d1d5db;
+  padding: 6px 4px;
+  text-align: center;
+  white-space: nowrap;
   transition: all 0.3s ease;
 }
 #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect {font-size: 16px !important;font-weight: bold !important;}
@@ -104,43 +176,80 @@ body {
 #reportTable tbody tr:nth-child(even) {background: #e5e7eb;}
 #reportTable tbody tr:hover {background: #1e88e5;color: #fff;font-weight: bold;transform: scale(1.01);}
 .deleteBtn {
-  writing-mode: vertical-rl;text-orientation: upright;background: var(--error);border: none;
-  color: #fff;border-radius: 4px;padding: 2px;cursor: pointer;font-size: 11px;
-  display: inline-block;margin: 0 auto;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  background: var(--error);
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px;
+  cursor: pointer;
+  font-size: 11px;
+  display: inline-block;
+  margin: 0 auto;
 }
 .summaryBox {
-  text-align: center;margin-top: 13px;font-size: 1rem;font-weight: bold;
-  color: var(--highlight);line-height: 1.6;
+  text-align: center;
+  margin-top: 13px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--highlight);
+  line-height: 1.6;
 }
 .summaryBox .extra {display: block;font-size: 0.9rem;color: var(--accent);margin-top: 4px;}
 .summaryBox .done {color: #4caf50;font-weight: bold;}
 #totalPriceCellDup, #totalPvCellDup, #pvDiff, #pvDiff2 {display: inline-block;min-width: 60px;text-align: center;}
 #inputArea {
-  display: flex;flex-direction: column;gap: 10px;margin: 15px 0 30px 0;
-  display: none;width: 100%;max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 15px 0 30px 0;
+  display: none;
+  width: 100%;
+  max-width: 600px;
 }
 @media (min-width:576px) {#inputArea {flex-direction: row;align-items: center;}}
 #nameInput,#qtyInput,#addBtn {padding: 10px;font-size: 16px;border-radius: 6px;border: none;}
 #qtyInput {font-size: 18px !important;font-weight: bold;}
 #nameInput,#qtyInput {background: #2c2c2c;color: var(--text);flex: 1;text-align: center;}
 #addBtn,#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn {
-  background: linear-gradient(145deg, #00bfa5, #009e8a);box-shadow: 0 4px 8px rgba(0,191,165,0.3);
-  color: #fff;cursor: pointer;transition: all 0.3s ease;text-align: center;font-size: 15px;
+  background: linear-gradient(145deg, #00bfa5, #009e8a);
+  box-shadow: 0 4px 8px rgba(0,191,165,0.3);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  font-size: 15px;
 }
 #addBtn:hover,#exportBtn:hover,#shareToLineBtn:hover,#nativeShareBtn:hover,#resetReportBtn:hover {
-  background: linear-gradient(145deg, #00ccb2, #00a98e);transform: translateY(-2px);
+  background: linear-gradient(145deg, #00ccb2, #00a98e);
+  transform: translateY(-2px);
 }
 #addBtn:disabled,#exportBtn:disabled,#shareToLineBtn:disabled,#resetReportBtn:disabled {
-  background: var(--btn-grey);cursor: not-allowed;transform: none;box-shadow: none;
+  background: var(--btn-grey);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 #addBtn {width: 100%;}
 @media (min-width:576px) {#addBtn {width: 120px;}}
 .button-group {
-  display: flex;flex-wrap: wrap;gap: 8px;justify-content: center;margin: 10px 0;
-  display: none;width: 100%;max-width: 600px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 10px 0;
+  display: none;
+  width: 100%;
+  max-width: 600px;
 }
 #exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn {
-  flex: 1;min-width: 110px;margin: 0;padding: 10px 0;font-size: 15px;border-radius: 8px;
+  flex: 1;
+  min-width: 110px;
+  margin: 0;
+  padding: 10px 0;
+  font-size: 15px;
+  border-radius: 8px;
 }
 #clearImageBtn {background: var(--btn-grey);}
 #clearImageBtn:hover {background: #555;}
@@ -149,34 +258,63 @@ body {
 #resetReportBtn:hover {background: #ffa726;}
 #resetReportBtn:disabled {background: #b36a00;cursor: not-allowed;}
 #previewImage {
-  display: none;max-width: 100%;border: 2px solid #888;border-radius: 10px;
-  margin: 15px auto;max-width: 600px;
+  display: none;
+  max-width: 100%;
+  border: 2px solid #888;
+  border-radius: 10px;
+  margin: 15px auto;
+  max-width: 600px;
 }
 #shareToLineBtn,#nativeShareBtn,#clearImageBtn {display: none;}
 #buyerInput,#calculatorDisplay {
-  background: #f9fafb;border: 1.5px solid #d1d5db;color: #374151;border-radius: 8px;
-  padding: 10px 12px;font-size: 16px;transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  width: 100%;font-weight: 500;
+  background: #f9fafb;
+  border: 1.5px solid #d1d5db;
+  color: #374151;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  font-weight: 500;
 }
 @media (min-width:768px) {#buyerInput,#calculatorDisplay {font-size: 18px;}}
 #buyerInput:focus {
-  border-color: #2563eb;box-shadow: 0 0 8px 2px rgba(37,99,235,0.3);
-  outline: none;background: #fff;
+  border-color: #2563eb;
+  box-shadow: 0 0 8px 2px rgba(37,99,235,0.3);
+  outline: none;
+  background: #fff;
 }
 #calculatorDisplay {background: #e9ecef;cursor: default;}
 #buyerInput::placeholder {color: #9ca3af;font-weight: 400;text-align: center;}
 .toast {
-  position: fixed;bottom: 30px;left: 50%;transform: translateX(-50%);
-  background: var(--grad-secondary);color: #fff;padding: 12px 20px;border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);opacity: 0;transition: opacity 0.5s ease, transform 0.5s ease;
-  z-index: 1000;text-align: center;min-width: 200px;font-size: 15px;border: 1px solid rgba(255,255,255,0.1);
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--grad-secondary);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  z-index: 1000;
+  text-align: center;
+  min-width: 200px;
+  font-size: 15px;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 .toast.show {opacity: 1;transform: translateX(-50%) translateY(-10px);}
 .toast.error {background: linear-gradient(145deg, #4a0000, #2a0000);border-color: rgba(255,82,82,0.3);}
 .toast.warning {background: linear-gradient(145deg, #4a3200, #2a1e00);border-color: rgba(255,152,0,0.3);}
 .payment-options {
-  display: flex;justify-content: center;gap: 15px;margin-top: 8px;
-  color: #fff;font-size: 1.1rem;flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 8px;
+  color: #fff;
+  font-size: 1.1rem;
+  flex-wrap: wrap;
 }
 .payment-options label {display: flex;align-items: center;gap: 8px;color: #fff;font-weight: 500;}
 .payment-options input[type="checkbox"] {width: 18px;height: 18px;}
@@ -203,18 +341,32 @@ body {
   .loader {width: 40px;height: 40px;}
 }
 #error-message {
-  display: none;background: linear-gradient(145deg, #4a0000, #2a0000);
-  border: 1px solid rgba(255,82,82,0.3);color: #fef2f2;padding: 20px;border-radius: 16px;
-  margin: 20px auto;max-width: 400px;text-align: center;box-shadow: var(--shadow);
+  display: none;
+  background: linear-gradient(145deg, #4a0000, #2a0000);
+  border: 1px solid rgba(255,82,82,0.3);
+  color: #fef2f2;
+  padding: 20px;
+  border-radius: 16px;
+  margin: 20px auto;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: var(--shadow);
 }
 #error-message #error-content {margin-bottom: 15px;}
 #error-message button {
-  background: linear-gradient(145deg, #ff5252, #d32f2f);color: #fff;border: none;
-  padding: 10px 20px;border-radius: 8px;cursor: pointer;margin-top: 10px;
-  font-weight: 500;transition: all 0.3s ease;
+  background: linear-gradient(145deg, #ff5252, #d32f2f);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 #error-message button:hover {
-  background: linear-gradient(145deg, #ff6b6b, #e53935);transform: translateY(-2px);
+  background: linear-gradient(145deg, #ff6b6b, #e53935);
+  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(255,82,82,0.3);
 }
 </style>
@@ -293,7 +445,7 @@ body {
 const API_URL = "https://script.google.com/macros/s/AKfycbyETFQSpvVF0zCq24jLNkGD_lfm6yX44JUpW4cgkTyt3pJsg4G-38_uRbRzMl5xyMPs/exec";
 const IMGBB_API_KEY = "5be146133d1fa6ded66878aade98880f";
 const LIFF_ID = "2007434020-Kf98vapi";
-const JSONP_TIMEOUT = 10000;
+const JSONP_TIMEOUT = 5000; // 優化：縮短超時時間（5秒足夠）
 const PERMANENT_EXPIRY_DATE = "9999/12/31";
 const TARGET_PV112 = 112000;
 const TARGET_PV220 = 220000;
@@ -302,6 +454,7 @@ const MAX_NORMAL_USER_USAGE = 10;
 let products = [], selectedProds = [], lineName = '', userInfo = null, authStatus = null;
 let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {};
 
+// 元素獲取
 const nameInput = document.getElementById("nameInput");
 const qtyInput = document.getElementById("qtyInput");
 const addBtn = document.getElementById("addBtn");
@@ -332,6 +485,7 @@ const errorContent = document.getElementById("error-content");
 const authLoadingTitle = authLoading.querySelector("h3");
 const authLoadingDesc = authLoading.querySelector("p");
 
+// 初始化數量選擇框
 for (let i = 1; i <= 99; i++) {
   const option = document.createElement("option");
   option.value = i;
@@ -339,6 +493,7 @@ for (let i = 1; i <= 99; i++) {
   qtyInput.appendChild(option);
 }
 
+// 品項選擇事件
 nameInput.addEventListener('change', function() {
   checkHerbalNewMember(this.value);
   adjustQtySelectOptions(this.value);
@@ -348,6 +503,7 @@ nameInput.addEventListener('input', function() {
   adjustQtySelectOptions(this.value);
 });
 
+// 新入會草本組合提醒
 function checkHerbalNewMember(selectedValue) {
   const val = selectedValue.trim();
   if (val.includes('草本') && val.includes('新入會')) {
@@ -357,6 +513,7 @@ function checkHerbalNewMember(selectedValue) {
   }
 }
 
+// 調整數量選擇框選項
 function adjustQtySelectOptions(selectedValue) {
   const val = selectedValue.trim();
   let maxQty = 99;
@@ -374,6 +531,7 @@ function adjustQtySelectOptions(selectedValue) {
   }
 }
 
+// 加載已選商品
 function loadSelectedProds() {
   const saved = localStorage.getItem('selectedProducts');
   if (saved) {
@@ -382,14 +540,17 @@ function loadSelectedProds() {
   }
 }
 
+// 保存已選商品
 function saveSelectedProds() {
   localStorage.setItem('selectedProducts', JSON.stringify(selectedProds));
 }
 
+// 保存使用記錄
 function saveUserUsageRecord() {
   localStorage.setItem('userUsageRecord', JSON.stringify(userUsageRecord));
 }
 
+// 設置試算者名稱
 function setupLineName() {
   lineName = localStorage.getItem('lineName') || userInfo?.displayName || '';
   if (!lineName || lineName === '未知用戶名') {
@@ -404,6 +565,7 @@ function setupLineName() {
   calculatorDisplay.value = lineName;
 }
 
+// 重置試算者名稱
 function resetLineName() {
   if (confirm('確定要重置試算者名稱嗎？')) {
     localStorage.removeItem('lineName');
@@ -412,6 +574,7 @@ function resetLineName() {
   }
 }
 
+// 後端扣次同步請求
 function syncRecordResetToBackend() {
   return new Promise((resolve, reject) => {
     if (!userInfo || authStatus.isVip || authStatus.isSuperAdmin) {
@@ -439,7 +602,6 @@ function syncRecordResetToBackend() {
           saveUserUsageRecord();
           authStatus.remainingTimes = MAX_NORMAL_USER_USAGE - backendUsageCount;
           updateAuthStatusBar();
-          checkUserRemainingTimes();
           resolve(true);
         } else {
           showToast(`後端扣次失敗：${resp.message || '未知錯誤'}`, 'error');
@@ -455,6 +617,7 @@ function syncRecordResetToBackend() {
   });
 }
 
+// 重置報表（優化：簡化邏輯，減少阻塞）
 async function resetReport() {
   if (!authStatus || authStatus.isExpired) return;
   if (!confirm('確定要清空所有品項記錄嗎？')) return;
@@ -476,10 +639,11 @@ async function resetReport() {
     }
   }
   
+  // 快速執行重置邏輯
   selectedProds = [];
   saveSelectedProds();
   renderTable();
-  adjustQtySelectOptions(nameInput.value);
+  adjustQtySelectOptions(nameInput.value); // 優化：復用函數，減少重複代碼
   
   if (isDeducted) {
     showToast(`✅ 已扣除1次使用次數，剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次`, 'warning');
@@ -488,6 +652,7 @@ async function resetReport() {
   }
 }
 
+// 加載商品列表（優化：提前加載，不用等驗證完成）
 async function loadProducts() {
   try {
     const res = await fetch(`${API_URL}?action=all`);
@@ -509,6 +674,7 @@ async function loadProducts() {
   }
 }
 
+// 渲染報表表格
 function renderTable() {
   reportBody.innerHTML = "";
   let totalPrice = 0, totalPv = 0;
@@ -561,6 +727,7 @@ function renderTable() {
   pvMessage1.innerHTML = totalPv >= TARGET_PV112 ? '<span class="done">🎉 已達標</span>' : '';
   pvMessage2.innerHTML = totalPv >= TARGET_PV220 ? '<span class="done">🎉 已達標</span>' : '';
   
+  // 刪除按鈕事件
   document.querySelectorAll(".deleteBtn").forEach(btn => {
     btn.onclick = e => {
       const idx = parseInt(e.target.dataset.index);
@@ -569,6 +736,7 @@ function renderTable() {
       renderTable();
     };
   });
+  // 數量變更事件
   document.querySelectorAll(".qtySelect").forEach(select => {
     select.onchange = e => {
       const idx = parseInt(e.target.dataset.index);
@@ -579,6 +747,7 @@ function renderTable() {
   });
 }
 
+// 新增商品
 function addProduct() {
   if (!authStatus) {
     showToast('請先完成用戶權限驗證', 'error');
@@ -628,12 +797,9 @@ function addProduct() {
   }
   saveSelectedProds();
   renderTable();
-  if (!isPrivilegeUser) {
-    recordUserUsage();
-    checkUserRemainingTimes();
-  }
 }
 
+// 檢查剩餘使用次數
 function checkUserRemainingTimes() {
   if (!authStatus) return false;
   const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
@@ -670,6 +836,7 @@ function checkUserRemainingTimes() {
   }
 }
 
+// 記錄使用次數
 function recordUserUsage() {
   if (!authStatus) return;
   const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
@@ -683,6 +850,7 @@ function recordUserUsage() {
   updateAuthStatusBar();
 }
 
+// 更新權限狀態欄
 function updateAuthStatusBar() {
   if (!authStatus || !userInfo) return;
   let statusHtml = '';
@@ -715,6 +883,7 @@ function updateAuthStatusBar() {
   authStatusBar.style.display = 'block';
 }
 
+// 匯出圖片
 exportBtn.addEventListener("click", async () => {
   if (!checkUserRemainingTimes()) return;
   if (selectedProds.length === 0) {
@@ -741,10 +910,6 @@ exportBtn.addEventListener("click", async () => {
     shareToLineBtn.style.display = "inline-block";
     nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
     clearImageBtn.style.display = "inline-block";
-    if (!authStatus.isVip && !authStatus.isSuperAdmin) {
-      recordUserUsage();
-      checkUserRemainingTimes();
-    }
   } catch (error) {
     showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
   } finally {
@@ -754,6 +919,7 @@ exportBtn.addEventListener("click", async () => {
   }
 });
 
+// 上傳備份
 shareToLineBtn.addEventListener("click", async () => {
   if (!authStatus) return;
   if (!previewImage.src) {
@@ -792,6 +958,7 @@ shareToLineBtn.addEventListener("click", async () => {
   }
 });
 
+// 原生分享
 nativeShareBtn.addEventListener("click", async () => {
   if (!authStatus) return;
   if (!navigator.share || !previewImage.src) {
@@ -815,6 +982,7 @@ nativeShareBtn.addEventListener("click", async () => {
   }
 });
 
+// 清除圖片
 clearImageBtn.addEventListener("click", () => {
   previewImage.style.display = "none";
   previewImage.src = "";
@@ -823,6 +991,7 @@ clearImageBtn.addEventListener("click", () => {
   clearImageBtn.style.display = "none";
 });
 
+// 顯示提示框
 function showToast(message, type = 'success') {
   toast.textContent = message;
   toast.className = 'toast';
@@ -831,6 +1000,7 @@ function showToast(message, type = 'success') {
   setTimeout(() => toast.classList.remove("show"), 3000);
 }
 
+// 計算剩餘天數
 const calculateRemainingDaysByDate = (expiryDateStr) => {
   try {
     if (expiryDateStr === PERMANENT_EXPIRY_DATE) return {
@@ -883,6 +1053,7 @@ const calculateRemainingDaysByDate = (expiryDateStr) => {
   }
 };
 
+// 顯示錯誤
 const showError = (msg) => {
   authLoading.style.display = 'none';
   captureArea.style.display = 'none';
@@ -897,6 +1068,7 @@ const showError = (msg) => {
   errorMessage.style.display = 'block';
 };
 
+// 後端驗證用戶
 const verifyUserFromBackend = (profile) => {
   return new Promise((resolve, reject) => {
     const decodedToken = liff.getDecodedIDToken();
@@ -948,17 +1120,20 @@ const verifyUserFromBackend = (profile) => {
   });
 };
 
+// 驗證回調
 window.verifyCallback = function (resp) {};
+// 重置扣次回調
 window.recordResetCallback = function (resp) {};
 
+// 初始化LIFF與授權（優化：並行加載商品，減少總耗時）
 async function initLiffAndAuth() {
   try {
     updateAuthLoadingText("正在初始化LINE登錄", "請稍候...");
     await liff.init({ 
       liffId: LIFF_ID,
-      withLoginOnExternalBrowser: true,
-      scope: 'profile openid email'
+      withLoginOnExternalBrowser: true
     });
+    // 優化：提前加載商品列表，不用等驗證完成
     loadProducts();
     
     if (!liff.isLoggedIn()) {
@@ -1004,16 +1179,19 @@ async function initLiffAndAuth() {
   }
 }
 
+// 更新授權加載文本
 function updateAuthLoadingText(title, desc) {
   if (authLoadingTitle) authLoadingTitle.textContent = title;
   if (authLoadingDesc) authLoadingDesc.innerHTML = desc;
 }
 
+// 窗口大小調整
 window.addEventListener('resize', () => {
   const table = document.getElementById('reportTable');
   table.style.fontSize = window.innerWidth < 360 ? '11px' : '12px';
 });
 
+// 初始化應用
 function initApp() {
   if (window.jQuery) {
     initLiffAndAuth();
@@ -1032,6 +1210,7 @@ function initApp() {
   }
 }
 
+// 綁定事件
 addBtn.addEventListener("click", addProduct);
 resetCalculatorBtn.addEventListener("click", resetLineName);
 resetReportBtn.addEventListener("click", resetReport);
