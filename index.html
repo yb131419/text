@@ -17,7 +17,7 @@
   --vip-username: linear-gradient(135deg, #00bfa5, #00ffde);
   --super-username: linear-gradient(135deg, #d4af37, #ffff00);--yellow: #ffd700;
 }
-* {box-sizing: border-box;margin: 0;padding: 0;}
+* {box-sizing: border-box;margin: 0;padding: 0;text-align: center !important;}
 body {
   background: var(--bg);color: var(--text);font-family: 'Segoe UI', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
   padding: 10px;line-height: 1.5;min-height: 100vh;display: flex;flex-direction: column;align-items: center;
@@ -56,14 +56,14 @@ body {
 #captureArea {
   background: linear-gradient(145deg, #1c1c1c, #141414);box-shadow: inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
   color: var(--text);padding: 15px 10px;border-radius: 12px;margin-bottom: 15px;overflow-x: auto;
-  display: none;width: 100%;max-width: 600px;
+  display: none;width: 100%;max-width: 600px;margin-left: auto;margin-right: auto;
 }
 #captureArea h2 {
   text-align: center;font-size: 1.8rem;font-weight: bold;color: #fff;margin: 0 0 15px 0;padding: 10px 0;
   line-height: 1.3;width: 100%;
 }
 @media (min-width:768px) {#captureArea h2 {font-size: 2.2rem;}}
-.userInputs {display: flex;flex-direction: column;gap: 10px;margin-bottom: 15px;}
+.userInputs {display: flex;flex-direction: column;gap: 10px;margin-bottom: 15px;width: 100%;}
 .userInputs .row {display: flex;gap: 10px;width: 100%;}
 .userInputs label {flex: 1;display: flex;flex-direction: column;font-size: 14px;color: #bbb;}
 .userInputs label span {text-align: center;margin-bottom: 4px;font-size: 15px;}
@@ -71,13 +71,13 @@ body {
   padding: 10px;font-size: 16px;background: #333;color: var(--text);border: none;
   border-radius: 6px;width: 100%;text-align: center;
 }
-.calculator-container {display: flex;gap: 5px;}
+.calculator-container {display: flex;gap: 5px;justify-content: center;width: 100%;}
 #resetCalculatorBtn {
   padding: 10px;background: var(--btn-grey);color: #fff;border: none;border-radius: 6px;
   cursor: pointer;font-size: 14px;flex-shrink: 0;width: 40px;
 }
 #resetCalculatorBtn:hover {background: #555;}
-#nameInput option {padding: 12px 10px;line-height: 1.6;font-size: 16px;height: auto;white-space: normal;}
+#nameInput option {padding: 12px 10px;line-height: 1.6;font-size: 16px;height: auto;white-space: normal;text-align: center;}
 #reportTable {
   width: 100%;min-width: 280px;border-collapse: collapse;font-size: 12px;border-radius: 10px;
   overflow: hidden;background: #f9fafb;color: #374151;margin: 0 auto;
@@ -90,21 +90,25 @@ body {
 #reportTable th:nth-child(6),#reportTable td:nth-child(6) {width: 15%;}
 #reportTable th:nth-child(7),#reportTable td:nth-child(7) {width: 11%;}
 #reportTable th,#reportTable td {
-  border: 1px solid #d1d5db;padding: 6px 3px;text-align: center;white-space: nowrap;
+  border: 1px solid #d1d5db;padding: 6px 3px;text-align: center !important;white-space: nowrap;
   transition: all 0.3s ease;
 }
-/* 关键修复：统一数量栏位样式 */
-#reportTable th:nth-child(2),#reportTable td:nth-child(2) {
+/* 关键修改：数量标题改为白色字体，内容保持蓝色 */
+#reportTable th:nth-child(2) {
+  font-size: 15px !important;font-weight: bold !important;color: #ffffff !important;
+}
+#reportTable td:nth-child(2) {
   font-size: 15px !important;font-weight: bold !important;color: #2563eb !important;
 }
 .qtySelect {
   font-size: 15px !important;font-weight: bold !important;color: #2563eb !important;
-  width: 100%;border: none;background: transparent;text-align: center;
+  width: 100%;border: none;background: transparent;text-align: center !important;
   padding: 0;margin: 0;appearance: none;-webkit-appearance: none;
 }
 @media (min-width:768px) {
   #reportTable th,#reportTable td {padding: 8px 5px;font-size: 14px;}
-  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 17px !important;}
+  #reportTable th:nth-child(2) {font-size: 17px !important;color: #ffffff !important;}
+  #reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 17px !important;color: #2563eb !important;}
 }
 #reportTable thead {background: linear-gradient(90deg, #2b6cb0, #3182ce);color: #fff;font-weight: 600;}
 #reportTable tbody tr:nth-child(odd) {background: #f3f4f6;}
@@ -117,18 +121,18 @@ body {
 }
 .summaryBox {
   text-align: center;margin-top: 13px;font-size: 1rem;font-weight: bold;
-  color: var(--highlight);line-height: 1.6;
+  color: var(--highlight);line-height: 1.6;width: 100%;
 }
-.summaryBox .extra {display: block;font-size: 0.9rem;color: var(--accent);margin-top: 4px;}
-.summaryBox .done {color: #4caf50;font-weight: bold;}
+.summaryBox .extra {display: block;font-size: 0.9rem;color: var(--accent);margin-top: 4px;text-align: center;}
+.summaryBox .done {color: #4caf50;font-weight: bold;text-align: center;}
 #totalPriceCellDup, #totalPvCellDup, #pvDiff, #pvDiff2 {display: inline-block;min-width: 60px;text-align: center;}
 #inputArea {
   display: flex;flex-direction: column;gap: 10px;margin: 15px 0 30px 0;
-  display: none;width: 100%;max-width: 600px;
+  display: none;width: 100%;max-width: 600px;margin-left: auto;margin-right: auto;
 }
-@media (min-width:576px) {#inputArea {flex-direction: row;align-items: center;}}
-#nameInput,#qtyInput,#addBtn {padding: 10px;font-size: 16px;border-radius: 6px;border: none;}
-#qtyInput {font-size: 17px !important;font-weight: bold;}
+@media (min-width:576px) {#inputArea {flex-direction: row;align-items: center;justify-content: center;}}
+#nameInput,#qtyInput,#addBtn {padding: 10px;font-size: 16px;border-radius: 6px;border: none;text-align: center;}
+#qtyInput {font-size: 17px !important;font-weight: bold;color: #2563eb !important;}
 #nameInput,#qtyInput {background: #2c2c2c;color: var(--text);flex: 1;text-align: center;}
 #addBtn,#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn {
   background: linear-gradient(145deg, #00bfa5, #009e8a);box-shadow: 0 4px 8px rgba(0,191,165,0.3);
@@ -144,10 +148,10 @@ body {
 @media (min-width:576px) {#addBtn {width: 120px;}}
 .button-group {
   display: flex;flex-wrap: wrap;gap: 8px;justify-content: center;margin: 10px 0;
-  display: none;width: 100%;max-width: 600px;
+  display: none;width: 100%;max-width: 600px;margin-left: auto;margin-right: auto;
 }
 #exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn {
-  flex: 1;min-width: 100px;margin: 0;padding: 10px 0;font-size: 14px;border-radius: 8px;
+  flex: 1;min-width: 100px;margin: 0;padding: 10px 0;font-size: 14px;border-radius: 8px;text-align: center;
 }
 #clearImageBtn {background: var(--btn-grey);}
 #clearImageBtn:hover {background: #555;}
@@ -163,14 +167,14 @@ body {
 #buyerInput,#calculatorDisplay {
   background: #f9fafb;border: 1.5px solid #d1d5db;color: #374151;border-radius: 8px;
   padding: 10px 12px;font-size: 16px;transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  width: 100%;font-weight: 500;
+  width: 100%;font-weight: 500;text-align: center;
 }
 @media (min-width:768px) {#buyerInput,#calculatorDisplay {font-size: 18px;}}
 #buyerInput:focus {
   border-color: #2563eb;box-shadow: 0 0 8px 2px rgba(37,99,235,0.3);
   outline: none;background: #fff;
 }
-#calculatorDisplay {background: #e9ecef;cursor: default;}
+#calculatorDisplay {background: #e9ecef;cursor: default;text-align: center;}
 #buyerInput::placeholder {color: #9ca3af;font-weight: 400;text-align: center;}
 .toast {
   position: fixed;bottom: 30px;left: 50%;transform: translateX(-50%);
@@ -185,15 +189,16 @@ body {
   display: flex;justify-content: center;gap: 15px;margin-top: 8px;
   color: #fff;font-size: 1.1rem;flex-wrap: wrap;
 }
-.payment-options label {display: flex;align-items: center;gap: 8px;color: #fff;font-weight: 500;}
-.payment-options input[type="checkbox"] {width: 18px;height: 18px;}
+.payment-options label {display: flex;align-items: center;gap: 8px;color: #fff;font-weight: 500;justify-content: center;}
+.payment-options input[type="checkbox"] {width: 18px;height: 18px;margin: 0 auto;}
 @media print {
   body {background: #fff;color: #000;}
   #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn {display: none !important;}
-  #captureArea {box-shadow: none;background: #fff;color: #000;display: block !important;}
+  #captureArea {box-shadow: none;background: #fff;color: #000;display: block !important;margin: 0 auto;width: 100%;}
   #reportTable th {background: #ccc !important;color: #000 !important;}
+  #reportTable th:nth-child(2) {color: #ffffff !important;}
   .deleteBtn {display: none !important;}
-  .summaryBox {color: #000 !important;}
+  .summaryBox {color: #000 !important;text-align: center;}
   #reportTable td, #reportTable th {text-align: center !important;}
   #reportTable th:nth-child(2),#reportTable td:nth-child(2) {font-size: 16px !important;font-weight: bold !important;}
 }
@@ -203,7 +208,8 @@ body {
   .userInputs label {font-size: 13px;}
   .userInputs input {font-size: 15px;padding: 8px;}
   #reportTable {font-size: 11px;}
-  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 14px !important;}
+  #reportTable th:nth-child(2) {font-size: 14px !important;color: #ffffff !important;}
+  #reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 14px !important;color: #2563eb !important;}
   .payment-options {font-size: 1rem;}
   #authStatusBar {font-size: 12px;}
   #authLoading {padding: 30px 20px;}
@@ -214,17 +220,17 @@ body {
   border: 1px solid rgba(255,82,82,0.3);color: #fef2f2;padding: 20px;border-radius: 16px;
   margin: 20px auto;max-width: 400px;text-align: center;box-shadow: var(--shadow);
 }
-#error-message #error-content {margin-bottom: 15px;}
+#error-message #error-content {margin-bottom: 15px;text-align: center;}
 #error-message button {
   background: linear-gradient(145deg, #ff5252, #d32f2f);color: #fff;border: none;
   padding: 10px 20px;border-radius: 8px;cursor: pointer;margin-top: 10px;
-  font-weight: 500;transition: all 0.3s ease;
+  font-weight: 500;transition: all 0.3s ease;text-align: center;
 }
 #error-message button:hover {
   background: linear-gradient(145deg, #ff6b6b, #e53935);transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(255,82,82,0.3);
 }
-/* 截图专用样式 - 核心优化：匹配报表宽度 */
+/* 截图专用样式 - 统一试算/截图页面位置 */
 .capture-temp {
   width: 100% !important;
   max-width: 100% !important;
@@ -232,23 +238,34 @@ body {
   box-shadow: none !important;
   background: #1c1c1c !important;
   padding: 10px !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  left: 0 !important;
+  top: 0 !important;
 }
 .capture-temp #reportTable {
   font-size: calc(11px + (100vw - 320px) / 50) !important;
   min-width: 100% !important;
   width: 100% !important;
+  margin: 0 auto !important;
 }
 .capture-temp #reportTable th,
 .capture-temp #reportTable td {
   padding: 5px 2px !important;
   white-space: nowrap !important;
   border: 1px solid #ccc !important;
+  text-align: center !important;
 }
 .capture-temp #reportTable thead {
   background: #2b6cb0 !important;
 }
+.capture-temp #reportTable th:nth-child(2) {
+  color: #ffffff !important;
+}
 .capture-temp .summaryBox {
   font-size: 0.95rem !important;
+  text-align: center !important;
+  width: 100% !important;
 }
 /* 截图数量文本样式 */
 .qty-text-node {
@@ -257,7 +274,7 @@ body {
   color: #2563eb !important;
   display: block;
   width: 100%;
-  text-align: center;
+  text-align: center !important;
 }
 @media (min-width:768px) {
   .qty-text-node {font-size: 17px !important;}
@@ -596,16 +613,16 @@ function renderTable() {
     }).join("");
     
     tr.innerHTML = `
-      <td style="text-align:center;">${item.name}</td>
+      <td>${item.name}</td>
       <td>
-        <select class="qtySelect" data-index="${idx}" style="text-align:center;">
+        <select class="qtySelect" data-index="${idx}">
           ${qtyOptions}
         </select>
       </td>
-      <td style="text-align:center;">${item.price}</td>
-      <td style="text-align:center;">${item.pv}</td>
-      <td style="text-align:center;">${subtotalPrice}</td>
-      <td style="text-align:center;">${subtotalPv}</td>
+      <td>${item.price}</td>
+      <td>${item.pv}</td>
+      <td>${subtotalPrice}</td>
+      <td>${subtotalPv}</td>
       <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
     `;
     el.reportBody.appendChild(tr);
@@ -796,7 +813,7 @@ function updateAuthStatusBar() {
   el.authStatusBar.style.display = 'block';
 }
 
-// 匯出圖片按鈕事件 - 核心优化：截图宽度匹配报表栏位
+// 匯出圖片按鈕事件 - 统一试算/截图页面位置
 el.exportBtn.addEventListener("click", async () => {
   if (!checkUserRemainingTimes()) return;
   if (selectedProds.length === 0) {
@@ -815,7 +832,11 @@ el.exportBtn.addEventListener("click", async () => {
     overflow: el.captureArea.style.overflow,
     boxShadow: el.captureArea.style.boxShadow,
     background: el.captureArea.style.background,
-    padding: el.captureArea.style.padding
+    padding: el.captureArea.style.padding,
+    margin: el.captureArea.style.margin,
+    position: el.captureArea.style.position,
+    left: el.captureArea.style.left,
+    top: el.captureArea.style.top
   };
   const tableRows = document.querySelectorAll('#reportTable tbody tr');
   const rowStyles = [];
@@ -831,11 +852,15 @@ el.exportBtn.addEventListener("click", async () => {
   });
 
   try {
-    // 2. 截图前临时调整样式（适配手机）
+    // 2. 截图前临时调整样式 - 统一位置
     el.captureArea.className = captureAreaClass + ' capture-temp';
     el.captureArea.style.width = '100%';
     el.captureArea.style.maxWidth = '100%';
     el.captureArea.style.overflow = 'visible';
+    el.captureArea.style.margin = '0 auto';
+    el.captureArea.style.position = 'relative';
+    el.captureArea.style.left = '0';
+    el.captureArea.style.top = '0';
     
     // 3. 移除行的hover效果
     tableRows.forEach(row => {
@@ -847,7 +872,7 @@ el.exportBtn.addEventListener("click", async () => {
     const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
     opCells.forEach(el => el.style.display = "none");
 
-    // 5. 将数量下拉框替换为带样式的静态文本（关键修复）
+    // 5. 将数量下拉框替换为带样式的静态文本
     qtySelects.forEach((select, idx) => {
       const qtyValue = select.value;
       const span = document.createElement('span');
@@ -857,7 +882,7 @@ el.exportBtn.addEventListener("click", async () => {
       select.parentNode.replaceChild(span, select);
     });
 
-    // 6. 核心优化：获取报表表格的实际宽度作为截图宽度
+    // 6. 统一截图宽度计算 - 匹配原页面位置
     const tableWidth = el.reportTable.offsetWidth || window.innerWidth;
     const canvasWidth = Math.min(tableWidth, window.innerWidth);
     const canvasHeight = el.captureArea.offsetHeight;
@@ -880,7 +905,7 @@ el.exportBtn.addEventListener("click", async () => {
       ignoreElements: (el) => el.classList.contains('deleteBtn')
     });
     
-    // 7. 压缩图片（适配移动版分享）
+    // 7. 压缩图片
     const dataUrl = canvas.toDataURL("image/png", 0.9);
     el.previewImage.src = dataUrl;
     el.previewImage.style.display = "block";
@@ -894,7 +919,7 @@ el.exportBtn.addEventListener("click", async () => {
       checkUserRemainingTimes();
     }
     
-    showToast('✅ 截图已生成（适配报表宽度）', 'success');
+    showToast('✅ 截图已生成（位置已统一）', 'success');
     
   } catch (error) {
     showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
@@ -919,6 +944,10 @@ el.exportBtn.addEventListener("click", async () => {
     el.captureArea.style.boxShadow = captureAreaStyle.boxShadow;
     el.captureArea.style.background = captureAreaStyle.background;
     el.captureArea.style.padding = captureAreaStyle.padding;
+    el.captureArea.style.margin = captureAreaStyle.margin;
+    el.captureArea.style.position = captureAreaStyle.position;
+    el.captureArea.style.left = captureAreaStyle.left;
+    el.captureArea.style.top = captureAreaStyle.top;
 
     el.exportBtn.disabled = false;
     el.exportBtn.textContent = "📤 報表轉圖片";
