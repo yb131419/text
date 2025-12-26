@@ -706,7 +706,7 @@ function updateAuthStatusBar() {
     `;
   } else {
     statusHtml = `
-      <span class="normal">🙋 普通用戶 🙋</span> | 
+      <span class="normal">🪙 普通用戶 🪙</span> | 
       用戶名：${userInfo.displayName}
       <br/>剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/${MAX_NORMAL_USER_USAGE}次</span>
     `;
