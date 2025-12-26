@@ -545,17 +545,7 @@ const TARGET_PV220 = 220000;
 const MAX_NORMAL_USER_USAGE = 10;
 
 let allProducts = [], selectedProducts = [], lineName = '', userInfo = null, authStatus = null;
-
-// ===== 新增：與後端一致的ID清洗函數 =====
-function cleanUserId(id) {
-  if (!id) return "";
-  // 與後端邏輯完全一致，去除不可見字符、各類空格，統一小寫
-  return id.toString()
-    .replace(/[\u0000-\u001F\u007F-\u009F\u2000-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g, "")
-    .replace(/[\s\t\n\r\f\v\u00A0]/g, "")
-    .toLowerCase()
-    .trim();
-}
+let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {};
 
 // 元素獲取
 const nameInput = document.getElementById("nameInput");
@@ -650,6 +640,11 @@ function saveSelectedProducts() {
   localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
 }
 
+// 保存使用記錄
+function saveUserUsageRecord() {
+  localStorage.setItem('userUsageRecord', JSON.stringify(userUsageRecord));
+}
+
 // 設置試算者名稱
 function setupLineName() {
   lineName = localStorage.getItem('lineName') || userInfo?.displayName || '';
@@ -678,7 +673,14 @@ function resetLineName() {
 function resetReport() {
   if (!authStatus || authStatus.isExpired) return;
   if (confirm('確定要清空所有品項記錄嗎？')) {
-    // 普通用户：重置報表後，後端會自動更新使用次數（此處不再本地記錄）
+    // 普通用户扣次逻辑
+    const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
+    let isDeducted = false; // 标记是否扣次
+    if (!isPrivilegeUser && authStatus.remainingTimes > 0) {
+      recordUserUsage();
+      isDeducted = true;
+    }
+    // 原有重置逻辑
     selectedProducts = [];
     saveSelectedProducts();
     renderTable();
@@ -689,28 +691,13 @@ function resetReport() {
       option.textContent = i;
       qtyInput.appendChild(option);
     }
-    // 重置後重新獲取後端最新使用次數
-    refreshUserUsageStatus();
-    showToast('報表已重置');
-  }
-}
-
-// 刷新用戶使用次數狀態（從後端重新獲取）
-function refreshUserUsageStatus() {
-  if (!userInfo) return;
-  verifyUserFromBackend({
-    userId: userInfo.rawUserId,
-    displayName: userInfo.displayName
-  }).then(authData => {
-    if (authData) {
-      authStatus.usageCount = authData.usageCount || 0;
-      authStatus.remainingTimes = authData.remainingTimes || 0;
-      updateAuthStatusBar();
-      checkUserRemainingTimes();
+    // 扣次後專用提示
+    if (isDeducted) {
+      showToast(`✅ 已扣除1次使用次數，剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次`, 'warning');
+    } else {
+      showToast('報表已重置');
     }
-  }).catch(err => {
-    console.error("刷新使用次數失敗：", err);
-  });
+  }
 }
 
 // 加載商品列表
@@ -860,7 +847,7 @@ function addProduct() {
   renderTable();
 }
 
-// 檢查剩餘使用次數（基於後端返回的數據）
+// 檢查剩餘使用次數
 function checkUserRemainingTimes() {
   if (!authStatus) return false;
   const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
@@ -878,7 +865,10 @@ function checkUserRemainingTimes() {
     resetReportBtn.disabled = false;
     return true;
   }
-  // 直接使用後端返回的剩餘次數
+  const userId = userInfo.userId;
+  const usedTimes = userUsageRecord[userId] || 0;
+  authStatus.remainingTimes = MAX_NORMAL_USER_USAGE - usedTimes;
+  updateAuthStatusBar();
   if (authStatus.remainingTimes <= 0) {
     exportBtn.disabled = true;
     addBtn.disabled = true;
@@ -892,6 +882,24 @@ function checkUserRemainingTimes() {
     resetReportBtn.disabled = false;
     return true;
   }
+}
+
+// 記錄使用次數
+function recordUserUsage() {
+  if (!authStatus) return;
+  const isPrivilegeUser = authStatus.isVip || authStatus.isSuperAdmin;
+  if (isPrivilegeUser) return;
+  const userId = userInfo.userId;
+  // 扣次前先獲取當前剩餘次數
+  const beforeRemaining = authStatus.remainingTimes;
+  if (beforeRemaining <= 0) return;
+  // 更新使用次數
+  userUsageRecord[userId] = (userUsageRecord[userId] || 0) + 1;
+  saveUserUsageRecord();
+  // 同步更新剩餘次數
+  authStatus.remainingTimes = MAX_NORMAL_USER_USAGE - userUsageRecord[userId];
+  // 更新狀態欄
+  updateAuthStatusBar();
 }
 
 // 更新權限狀態欄
@@ -921,7 +929,6 @@ function updateAuthStatusBar() {
       <span class="normal">🙋 普通用戶 🙋</span> | 
       用戶名：${userInfo.displayName}
       <br/>剩餘使用次數：<span class="${authStatus.remainingTimes <= 0 ? 'expired' : 'normal'}">${authStatus.remainingTimes || 0}/${MAX_NORMAL_USER_USAGE}次</span>
-      <br/>已使用次數：${authStatus.usageCount || 0}次
     `;
   }
   authStatusBar.innerHTML = statusHtml;
@@ -955,8 +962,6 @@ exportBtn.addEventListener("click", async () => {
     shareToLineBtn.style.display = "inline-block";
     nativeShareBtn.style.display = navigator.share ? "inline-block" : "none";
     clearImageBtn.style.display = "inline-block";
-    // 匯出後刷新使用次數
-    refreshUserUsageStatus();
   } catch (error) {
     showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
   } finally {
@@ -1116,28 +1121,16 @@ const showError = (msg) => {
   errorMessage.style.display = 'block';
 };
 
-// 後端驗證用戶（修正：傳遞清洗後的ID）
+// 後端驗證用戶
 const verifyUserFromBackend = (profile) => {
   return new Promise((resolve, reject) => {
-    const decodedToken = liff.getDecodedIDToken ? liff.getDecodedIDToken() : {};
-    // 保存原始ID，用於後續刷新
-    const rawUserId = profile.userId || decodedToken?.sub || "";
-    // 清洗後的ID（與後端一致）
-    const userId = cleanUserId(rawUserId);
+    const decodedToken = liff.getDecodedIDToken();
+    const userId = profile.userId || decodedToken?.sub || "";
     const displayName = profile.displayName || 'LINE用戶';
-    console.log("原始用戶ID：", rawUserId);
-    console.log("清洗後用戶ID（傳遞給後端）：", userId);
-    
-    // 保存用戶信息
-    userInfo = {
-      rawUserId: rawUserId,
-      userId: userId,
-      displayName: displayName
-    };
-
+    console.log("傳遞給後端的用戶ID：", userId);
     const data = {
       action: 'verifyUser',
-      userId: userId, // 傳遞清洗後的ID
+      userId: userId,
       displayName: displayName,
       callback: 'verifyCallback',
       dataType: 'userVerify'
@@ -1151,20 +1144,23 @@ const verifyUserFromBackend = (profile) => {
       data: data,
       success: function (resp) {
         console.log("後端返回的驗證數據：", resp);
-        if (resp.status === "success" || resp.status === "exceeded") {
+        if (resp.status === "success") {
+          // 優先使用後端返回的使用次數，同步本地存儲
+          const backendUsageCount = resp.usageCount || 0;
+          userUsageRecord[userId] = backendUsageCount;
+          saveUserUsageRecord();
+          
           const expiryData = calculateRemainingDaysByDate(resp.expiryDate || PERMANENT_EXPIRY_DATE);
-          const authResult = {
+          resolve({
             ...resp,
             displayName: displayName,
             remainingDays: expiryData.remainingDays,
             displayExpiryDate: expiryData.displayDate,
-            isExpired: expiryData.isExpired || resp.status === "exceeded",
+            isExpired: expiryData.isExpired,
             isVip: resp.isVip === true,
             isSuperAdmin: resp.isSuperAdmin === true,
-            usageCount: resp.usageCount || 0,
-            remainingTimes: resp.remainingTimes || 0
-          };
-          resolve(authResult);
+            remainingTimes: resp.remainingTimes || (MAX_NORMAL_USER_USAGE - backendUsageCount)
+          });
         } else {
           showError(resp.message || "用戶驗證失敗");
           resolve(null);
@@ -1201,6 +1197,11 @@ async function initLiffAndAuth() {
       return;
     }
     const profile = await liff.getProfile();
+    userInfo = {
+      userId: profile.userId,
+      displayName: profile.displayName
+    };
+    console.log("獲取的LINE用戶信息：", userInfo);
     updateAuthLoadingText("正在驗證授權狀態", "核對用戶權限中...");
     const authData = await verifyUserFromBackend(profile);
     if (!authData) return;
@@ -1208,7 +1209,6 @@ async function initLiffAndAuth() {
       showError('您的賬號已過期，無法登錄試算系統，請聯繫管理員續期');
       return;
     }
-    // 保存授權狀態（以後端返回數據為准）
     authStatus = {
       isVip: authData.isVip,
       isSuperAdmin: authData.isSuperAdmin,
@@ -1216,10 +1216,10 @@ async function initLiffAndAuth() {
       displayExpiryDate: authData.displayExpiryDate,
       expiryDate: authData.expiryDate,
       usageCount: authData.usageCount || 0,
-      remainingTimes: authData.remainingTimes || 0,
-      isExpired: authData.isExpired
+      isExpired: authData.isExpired,
+      remainingTimes: authData.remainingTimes || 0
     };
-    console.log("最終用戶權限狀態（後端同步）：", authStatus);
+    console.log("最終用戶權限狀態：", authStatus);
     authLoading.style.display = 'none';
     captureArea.style.display = 'block';
     inputArea.style.display = 'flex';
