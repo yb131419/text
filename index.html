@@ -78,26 +78,30 @@ body {
 }
 #resetCalculatorBtn:hover {background: #555;}
 #nameInput option {padding: 12px 10px;line-height: 1.6;font-size: 16px;height: auto;white-space: normal;}
+/* 表格样式紧凑化优化 - 核心修改部分 */
 #reportTable {
-  width: 100%;min-width: 300px;border-collapse: collapse;font-size: 12px;border-radius: 10px;
-  overflow: hidden;background: #f9fafb;color: #374151;margin: 0 auto;
+  width: 100%;min-width: 260px; /* 降低最小宽度，适配小屏幕 */
+  border-collapse: collapse;font-size: 11px; /* 整体缩小字体 */
+  border-radius: 10px;overflow: hidden;background: #f9fafb;color: #374151;margin: 0 auto;
 }
-#reportTable th:nth-child(1),#reportTable td:nth-child(1) {width: 22%;}
-#reportTable th:nth-child(2),#reportTable td:nth-child(2) {width: 10%;}
-#reportTable th:nth-child(3),#reportTable td:nth-child(3) {width: 12%;}
-#reportTable th:nth-child(4),#reportTable td:nth-child(4) {width: 12%;}
-#reportTable th:nth-child(5),#reportTable td:nth-child(5) {width: 16%;}
-#reportTable th:nth-child(6),#reportTable td:nth-child(6) {width: 16%;}
-#reportTable th:nth-child(7),#reportTable td:nth-child(7) {width: 12%;}
+/* 调整列宽，更紧凑分配 */
+#reportTable th:nth-child(1),#reportTable td:nth-child(1) {width: 20%;} /* 品項名稱缩窄 */
+#reportTable th:nth-child(2),#reportTable td:nth-child(2) {width: 8%;}  /* 數量缩窄 */
+#reportTable th:nth-child(3),#reportTable td:nth-child(3) {width: 10%;} /* 單價缩窄 */
+#reportTable th:nth-child(4),#reportTable td:nth-child(4) {width: 8%;}  /* PV缩窄 */
+#reportTable th:nth-child(5),#reportTable td:nth-child(5) {width: 14%;} /* 小計金額缩窄 */
+#reportTable th:nth-child(6),#reportTable td:nth-child(6) {width: 14%;} /* 小計PV缩窄 */
+#reportTable th:nth-child(7),#reportTable td:nth-child(7) {width: 8%;}  /* 操作缩窄 */
 #reportTable th,#reportTable td {
-  border: 1px solid #d1d5db;padding: 6px 4px;text-align: center;white-space: nowrap;
-  transition: all 0.3s ease;
+  border: 1px solid #d1d5db;padding: 4px 2px; /* 减少内边距，更紧凑 */
+  text-align: center;white-space: nowrap;transition: all 0.3s ease;
 }
-#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect {font-size: 16px !important;font-weight: bold !important;}
+#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect {font-size: 14px !important;font-weight: bold !important;}
 #reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6) {font-weight: 500;text-align: center !important;}
+/* 大屏适配微调，保持紧凑 */
 @media (min-width:768px) {
-  #reportTable th,#reportTable td {padding: 8px 5px;font-size: 14px;}
-  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 18px !important;}
+  #reportTable th,#reportTable td {padding: 6px 3px;font-size: 12px;}
+  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 16px !important;}
 }
 #reportTable thead {background: linear-gradient(90deg, #2b6cb0, #3182ce);color: #fff;font-weight: 600;}
 #reportTable tbody tr:nth-child(odd) {background: #f3f4f6;}
@@ -105,16 +109,24 @@ body {
 #reportTable tbody tr:hover {background: #1e88e5;color: #fff;font-weight: bold;transform: scale(1.01);}
 .deleteBtn {
   writing-mode: vertical-rl;text-orientation: upright;background: var(--error);border: none;
-  color: #fff;border-radius: 4px;padding: 2px;cursor: pointer;font-size: 11px;
-  display: inline-block;margin: 0 auto;
+  color: #fff;border-radius: 4px;padding: 1px;cursor: pointer;font-size: 10px; /* 缩小删除按钮字体 */
+  display: inline-block;margin: 0 auto;width: 18px; /* 固定操作按钮宽度 */
 }
+/* 表格样式优化结束 */
 .summaryBox {
   text-align: center;margin-top: 13px;font-size: 1rem;font-weight: bold;
   color: var(--highlight);line-height: 1.6;
 }
-.summaryBox .extra {display: block;font-size: 0.9rem;color: var(--accent);margin-top: 4px;}
+.summaryBox .extra {
+  display: block;font-size: 0.9rem;color: var(--accent);margin-top: 4px;
+  font-weight: bold; /* 统一字体粗细 */
+}
 .summaryBox .done {color: #4caf50;font-weight: bold;}
-#totalPriceCellDup, #totalPvCellDup, #pvDiff, #pvDiff2 {display: inline-block;min-width: 60px;text-align: center;}
+#totalPriceCellDup, #totalPvCellDup, #pvDiff, #pvDiff2 {
+  display: inline-block;min-width: 60px;text-align: center;
+  font-size: 0.9rem; /* 统一字体大小 */
+  font-weight: bold; /* 统一字体粗细 */
+}
 #inputArea {
   display: flex;flex-direction: column;gap: 10px;margin: 15px 0 30px 0;
   display: none;width: 100%;max-width: 600px;
@@ -195,8 +207,8 @@ body {
   .userInputs .row {gap: 5px;}
   .userInputs label {font-size: 13px;}
   .userInputs input {font-size: 15px;padding: 8px;}
-  #reportTable {font-size: 11px;}
-  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 15px !important;}
+  #reportTable {font-size: 10px;} /* 超小屏进一步缩小表格字体 */
+  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 13px !important;}
   .payment-options {font-size: 1rem;}
   #authStatusBar {font-size: 12px;}
   #authLoading {padding: 30px 20px;}
@@ -1011,7 +1023,7 @@ function updateAuthLoadingText(title, desc) {
 
 window.addEventListener('resize', () => {
   const table = document.getElementById('reportTable');
-  table.style.fontSize = window.innerWidth < 360 ? '11px' : '12px';
+  table.style.fontSize = window.innerWidth < 360 ? '10px' : '11px';
 });
 
 function initApp() {
