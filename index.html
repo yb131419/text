@@ -93,8 +93,15 @@ body {
   border: 1px solid #d1d5db;padding: 6px 3px;text-align: center;white-space: nowrap;
   transition: all 0.3s ease;
 }
-#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect {font-size: 15px !important;font-weight: bold !important;}
-#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6) {font-weight: 500;text-align: center !important;}
+/* 关键修复：统一数量栏位样式 */
+#reportTable th:nth-child(2),#reportTable td:nth-child(2) {
+  font-size: 15px !important;font-weight: bold !important;color: #2563eb !important;
+}
+.qtySelect {
+  font-size: 15px !important;font-weight: bold !important;color: #2563eb !important;
+  width: 100%;border: none;background: transparent;text-align: center;
+  padding: 0;margin: 0;appearance: none;-webkit-appearance: none;
+}
 @media (min-width:768px) {
   #reportTable th,#reportTable td {padding: 8px 5px;font-size: 14px;}
   #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput {font-size: 17px !important;}
@@ -150,7 +157,7 @@ body {
 #resetReportBtn:disabled {background: #b36a00;cursor: not-allowed;}
 #previewImage {
   display: none;max-width: 100%;border: 2px solid #888;border-radius: 10px;
-  margin: 15px auto;max-width: 600px;width: 100%; /* 关键修改：预览图宽度100%匹配报表 */
+  margin: 15px auto;max-width: 600px;width: 100%;
 }
 #shareToLineBtn,#nativeShareBtn,#clearImageBtn {display: none;}
 #buyerInput,#calculatorDisplay {
@@ -229,7 +236,7 @@ body {
 .capture-temp #reportTable {
   font-size: calc(11px + (100vw - 320px) / 50) !important;
   min-width: 100% !important;
-  width: 100% !important; /* 确保表格宽度100% */
+  width: 100% !important;
 }
 .capture-temp #reportTable th,
 .capture-temp #reportTable td {
@@ -242,6 +249,21 @@ body {
 }
 .capture-temp .summaryBox {
   font-size: 0.95rem !important;
+}
+/* 截图数量文本样式 */
+.qty-text-node {
+  font-size: 15px !important;
+  font-weight: bold !important;
+  color: #2563eb !important;
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+@media (min-width:768px) {
+  .qty-text-node {font-size: 17px !important;}
+}
+@media (max-width:360px) {
+  .qty-text-node {font-size: 14px !important;}
 }
 </style>
 </head>
@@ -357,7 +379,7 @@ const el = {
   buttonGroup: document.querySelector(".button-group"),
   errorMessage: document.getElementById("error-message"),
   errorContent: document.getElementById("error-content"),
-  reportTable: document.getElementById("reportTable") // 新增：获取报表表格元素
+  reportTable: document.getElementById("reportTable")
 };
 const authLoadingTitle = el.authLoading.querySelector("h3");
 const authLoadingDesc = el.authLoading.querySelector("p");
@@ -798,7 +820,7 @@ el.exportBtn.addEventListener("click", async () => {
   const tableRows = document.querySelectorAll('#reportTable tbody tr');
   const rowStyles = [];
   const qtySelects = document.querySelectorAll('.qtySelect');
-  const qtyTextNodes = [];
+  const qtyElements = [];
   
   // 1. 保存行样式
   tableRows.forEach((row, idx) => {
@@ -825,17 +847,19 @@ el.exportBtn.addEventListener("click", async () => {
     const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
     opCells.forEach(el => el.style.display = "none");
 
-    // 5. 将数量下拉框替换为静态文本
+    // 5. 将数量下拉框替换为带样式的静态文本（关键修复）
     qtySelects.forEach((select, idx) => {
       const qtyValue = select.value;
-      const textNode = document.createTextNode(qtyValue);
-      qtyTextNodes.push({ select, parent: select.parentNode, nextSibling: select.nextSibling });
-      select.parentNode.replaceChild(textNode, select);
+      const span = document.createElement('span');
+      span.className = 'qty-text-node';
+      span.textContent = qtyValue;
+      qtyElements.push({ select, span, parent: select.parentNode });
+      select.parentNode.replaceChild(span, select);
     });
 
     // 6. 核心优化：获取报表表格的实际宽度作为截图宽度
     const tableWidth = el.reportTable.offsetWidth || window.innerWidth;
-    const canvasWidth = Math.min(tableWidth, window.innerWidth); // 匹配报表宽度
+    const canvasWidth = Math.min(tableWidth, window.innerWidth);
     const canvasHeight = el.captureArea.offsetHeight;
     
     const canvas = await html2canvas(el.captureArea, {
@@ -847,9 +871,9 @@ el.exportBtn.addEventListener("click", async () => {
       letterRendering: true,
       scrollX: 0,
       scrollY: 0,
-      windowWidth: canvasWidth, // 使用报表宽度
+      windowWidth: canvasWidth,
       windowHeight: canvasHeight,
-      width: canvasWidth, // 匹配报表宽度
+      width: canvasWidth,
       height: canvasHeight,
       x: 0,
       y: 0,
@@ -876,9 +900,8 @@ el.exportBtn.addEventListener("click", async () => {
     showToast(`匯出失敗：${error.message || '未知錯誤'}`, 'error');
   } finally {
     // 恢复所有原始样式和元素
-    qtyTextNodes.forEach(({ select, parent, nextSibling }) => {
-      const textNode = parent.firstChild;
-      parent.replaceChild(select, textNode);
+    qtyElements.forEach(({ select, span, parent }) => {
+      parent.replaceChild(select, span);
     });
 
     const opCells = document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
