@@ -142,7 +142,7 @@
             reader.readAsDataURL(file);
         }
 
-        // === 核心：精準裁切「頭 → 胸口」===
+        // === 最終完美修正：頭頂空間縮小 + 胸口範圍加大 ===
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳左右兩張照片');
@@ -165,36 +165,34 @@
                     mergeCanvas.height = targetHeight;
                     ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    // 精準裁切到胸口
-                    ctx.drawImage(imgL, 0, 0, imgL.width, imgL.height * 0.70, 0, 0, leftW, targetHeight);
-                    ctx.drawImage(imgR, 0, 0, imgR.width, imgR.height * 0.70, leftW, 0, rightW, targetHeight);
+                    // ✅ 關鍵修正：
+                    // 從「頭頂下方 10%」開始裁切 → 頭頂空間縮小
+                    // 裁切高度拉到 80% → 胸口完整呈現
+                    const cropTop = imgL.height * 0.10;
+                    const cropHeight = imgL.height * 0.80;
+
+                    ctx.drawImage(imgL, 0, cropTop, imgL.width, cropHeight, 0, 0, leftW, targetHeight);
+                    ctx.drawImage(imgR, 0, cropTop, imgR.width, cropHeight, leftW, 0, rightW, targetHeight);
                 }
                 imgR.src = rightPreview.src;
             }
             imgL.src = leftPreview.src;
         }
 
-        // === 優化下載：直接存入手機相簿 / 電腦圖庫 ===
+        // 下載到相簿
         function downloadMerge() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
                 return;
             }
-            
-            // 高畫質輸出
             const dataURL = mergeCanvas.toDataURL('image/png', 1.0);
-            
-            // 建立下載連結
             const a = document.createElement('a');
             a.href = dataURL;
             a.download = '頭胸對比拼圖.png';
-            
-            // 觸發下載（自動存入系統相簿/下載資料夾）
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            
-            alert('✅ 高畫質拼圖已下載！\n請至手機相簿 / 電腦下載資料夾查看');
+            alert('✅ 高畫質拼圖已儲存至相簿！');
         }
 
         // 清除
