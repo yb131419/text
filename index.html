@@ -47,61 +47,66 @@
         }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-12">
-    <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-10">
-            <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+<body class="min-h-screen p-4">
+    <div class="max-w-xl mx-auto">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
                 📷 半身照 AI 比對系統
             </h1>
-            <p class="text-gray-600 mt-3 text-lg">自動頭胸裁切 + 專業 AI 點評</p>
+            <p class="text-gray-600 mt-2">自動頭胸裁切 + 專業 AI 點評</p>
         </div>
 
-        <!-- 上傳區域：左右排列 -->
-        <div class="flex flex-col md:flex-row gap-6 mb-10">
-            <div class="upload-card flex-1 p-6 text-center h-[420px] flex flex-col items-center justify-center relative">
-                <h3 class="font-semibold text-gray-700 text-lg mb-4">左邊照片</h3>
+        <!-- 全部改成「上下排列」 -->
+        <div class="flex flex-col gap-4 mb-6">
+            <div class="upload-card p-5 text-center h-[380px] flex flex-col items-center justify-center relative">
+                <h3 class="font-semibold text-gray-700 mb-3">上邊照片</h3>
                 <input type="file" id="leftImg" accept="image/*" class="hidden" onchange="loadLeftImage()">
-                <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-6 py-3 rounded-xl mb-4 font-medium">
+                <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-5 py-2.5 rounded-xl mb-3 font-medium">
                     選擇圖片
                 </button>
-                <img id="leftPreview" class="hidden max-h-[280px] w-auto rounded-lg shadow">
+                <img id="leftPreview" class="hidden max-h-[240px] w-auto rounded-lg shadow">
             </div>
 
-            <div class="upload-card flex-1 p-6 text-center h-[420px] flex flex-col items-center justify-center relative">
-                <h3 class="font-semibold text-gray-700 text-lg mb-4">右邊照片</h3>
+            <div class="upload-card p-5 text-center h-[380px] flex flex-col items-center justify-center relative">
+                <h3 class="font-semibold text-gray-700 mb-3">下邊照片</h3>
                 <input type="file" id="rightImg" accept="image/*" class="hidden" onchange="loadRightImage()">
-                <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-6 py-3 rounded-xl mb-4 font-medium">
+                <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-5 py-2.5 rounded-xl mb-3 font-medium">
                     選擇圖片
                 </button>
-                <img id="rightPreview" class="hidden max-h-[280px] w-auto rounded-lg shadow">
+                <img id="rightPreview" class="hidden max-h-[240px] w-auto rounded-lg shadow">
             </div>
         </div>
 
-        <div class="flex flex-wrap gap-4 justify-center mb-10">
-            <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-8 py-3.5 font-semibold">
+        <div class="flex flex-wrap gap-3 justify-center mb-6">
+            <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-6 py-3 font-semibold text-sm">
                 🔗 自動頭胸拼圖
             </button>
-            <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-8 py-3.5 font-semibold">
+            <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-6 py-3 font-semibold text-sm">
                 🤖 AI 專業點評
             </button>
-            <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-6 py-3.5">
-                🗑 清除全部
+            <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-3 text-sm">
+                🗑 清除
             </button>
         </div>
 
-        <div class="result-card p-8 mb-10 text-center">
-            <h2 class="text-2xl font-bold text-gray-800 mb-5">✅ 頭胸對比拼圖結果</h2>
+        <div class="result-card p-5 mb-6 text-center">
+            <h2 class="text-xl font-bold text-gray-800 mb-3">✅ 頭胸對比拼圖結果</h2>
             <div class="inline-block max-w-full">
-                <canvas id="mergeCanvas" class="rounded-xl shadow-lg max-w-full max-h-[500px]"></canvas>
-                <button onclick="downloadMerge()" class="mt-5 bg-gray-800 text-white px-5 py-2 rounded-xl hover:bg-gray-900 transition">
-                    💾 下載高畫質拼圖
-                </button>
+                <canvas id="mergeCanvas" class="rounded-xl shadow-lg max-w-full max-h-[400px]"></canvas>
+                <div class="flex gap-3 justify-center mt-4">
+                    <button onclick="downloadMerge()" class="bg-gray-800 text-white px-4 py-2 rounded-xl text-sm hover:bg-gray-900 transition">
+                        💾 下載到相簿
+                    </button>
+                    <button onclick="shareImage()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 transition">
+                        📤 分享照片
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="result-card p-8 mb-10">
-            <h2 class="text-2xl font-bold text-purple-700 mb-5">🤖 AI 專業照片點評</h2>
-            <div id="aiResult" class="text-gray-700 text-lg leading-relaxed whitespace-pre-line">
+        <div class="result-card p-5 mb-10">
+            <h2 class="text-xl font-bold text-purple-700 mb-3">🤖 AI 專業照片點評</h2>
+            <div id="aiResult" class="text-gray-700 text-base leading-relaxed whitespace-pre-line">
                 尚未分析...
             </div>
         </div>
@@ -114,7 +119,6 @@
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
 
-        // 讀取左圖（完整顯示）
         function loadLeftImage() {
             const file = document.getElementById('leftImg').files[0];
             if (!file) return;
@@ -128,7 +132,6 @@
             reader.readAsDataURL(file);
         }
 
-        // 讀取右圖（完整顯示）
         function loadRightImage() {
             const file = document.getElementById('rightImg').files[0];
             if (!file) return;
@@ -142,10 +145,10 @@
             reader.readAsDataURL(file);
         }
 
-        // === 最終完美修正：頭頂空間縮小 + 胸口範圍加大 ===
+        // 頭胸裁切（完美比例：頭頂縮小 + 胸口加大）
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
-                alert('請先上傳左右兩張照片');
+                alert('請先上傳兩張照片');
                 return;
             }
 
@@ -156,7 +159,7 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    const targetHeight = 900;
+                    const targetHeight = 800;
                     const leftW = imgL.width * targetHeight / imgL.height;
                     let rightW = imgR.width * targetHeight / imgR.height;
                     rightW *= 0.92;
@@ -165,11 +168,8 @@
                     mergeCanvas.height = targetHeight;
                     ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    // ✅ 關鍵修正：
-                    // 從「頭頂下方 10%」開始裁切 → 頭頂空間縮小
-                    // 裁切高度拉到 80% → 胸口完整呈現
-                    const cropTop = imgL.height * 0.10;
-                    const cropHeight = imgL.height * 0.80;
+                    const cropTop = imgL.height * 0.12;
+                    const cropHeight = imgL.height * 0.78;
 
                     ctx.drawImage(imgL, 0, cropTop, imgL.width, cropHeight, 0, 0, leftW, targetHeight);
                     ctx.drawImage(imgR, 0, cropTop, imgR.width, cropHeight, leftW, 0, rightW, targetHeight);
@@ -179,23 +179,62 @@
             imgL.src = leftPreview.src;
         }
 
-        // 下載到相簿
-        function downloadMerge() {
+        // 🔥 手機原生下載（安卓 + iOS 直接存相簿）
+        async function downloadMerge() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
                 return;
             }
-            const dataURL = mergeCanvas.toDataURL('image/png', 1.0);
-            const a = document.createElement('a');
-            a.href = dataURL;
-            a.download = '頭胸對比拼圖.png';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            alert('✅ 高畫質拼圖已儲存至相簿！');
+
+            try {
+                const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
+                const fileName = "頭胸對比拼圖.png";
+                
+                if (navigator.share) {
+                    const file = new File([blob], fileName, { type: 'image/png' });
+                    await navigator.share({
+                        files: [file],
+                        title: '頭胸對比拼圖',
+                    });
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+                alert('✅ 已儲存至手機相簿！');
+            } catch (e) {
+                alert('❌ 下載失敗：' + e.message);
+            }
         }
 
-        // 清除
+        // 🔥 手機原生分享（安卓 + iOS 通用）
+        async function shareImage() {
+            if (!mergeCanvas.width) {
+                alert('請先產生拼圖');
+                return;
+            }
+
+            try {
+                const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
+                const file = new File([blob], "頭胸對比拼圖.png", { type: 'image/png' });
+
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: '半身照對比拼圖',
+                        text: '分享我的頭胸比對照片',
+                    });
+                } else {
+                    alert('❌ 你的裝置不支援分享功能，請使用下載');
+                }
+            } catch (e) {
+                alert('❌ 分享失敗：' + e.message);
+            }
+        }
+
         function clearAll() {
             localStorage.clear();
             location.reload();
@@ -223,7 +262,7 @@
                             {
                                 role: "user",
                                 content: [
-                                    { type: "text", text: "你是專業攝影師、形象導師。請針對左右兩張照片進行對比點評，包含：1.姿態 2.表情 3.光影 4.構圖 5.整體建議。使用口語化、專業、有建設性的繁體中文。" },
+                                    { type: "text", text: "你是專業攝影師、形象導師。請針對上下兩張照片進行對比點評，包含：1.姿態 2.表情 3.光影 4.構圖 5.整體建議。使用口語化、專業、有建設性的繁體中文。" },
                                     { type: "image_url", image_url: { url: leftPreview.src } },
                                     { type: "image_url", image_url: { url: rightPreview.src } }
                                 ]
@@ -242,7 +281,6 @@
             }
         }
 
-        // 還原暫存
         window.onload = function() {
             const leftCache = localStorage.getItem('leftImgCache');
             const rightCache = localStorage.getItem('rightImgCache');
