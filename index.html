@@ -142,7 +142,7 @@
             reader.readAsDataURL(file);
         }
 
-        // === 核心修正：精準裁切「頭 → 胸口」===
+        // === 核心：精準裁切「頭 → 胸口」===
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳左右兩張照片');
@@ -156,22 +156,16 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    // 固定高度：完整頭到胸口（更長、更精準）
                     const targetHeight = 900;
-
-                    // 左圖等比例
                     const leftW = imgL.width * targetHeight / imgL.height;
-                    
-                    // 右圖等比例 & 略小一點
                     let rightW = imgR.width * targetHeight / imgR.height;
                     rightW *= 0.92;
 
-                    // 畫布
                     mergeCanvas.width = leftW + rightW;
                     mergeCanvas.height = targetHeight;
                     ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    // ✅ 關鍵修正：裁切 70% 高度 → 完整頭到胸口
+                    // 精準裁切到胸口
                     ctx.drawImage(imgL, 0, 0, imgL.width, imgL.height * 0.70, 0, 0, leftW, targetHeight);
                     ctx.drawImage(imgR, 0, 0, imgR.width, imgR.height * 0.70, leftW, 0, rightW, targetHeight);
                 }
@@ -180,16 +174,27 @@
             imgL.src = leftPreview.src;
         }
 
-        // 下載
+        // === 優化下載：直接存入手機相簿 / 電腦圖庫 ===
         function downloadMerge() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
                 return;
             }
+            
+            // 高畫質輸出
+            const dataURL = mergeCanvas.toDataURL('image/png', 1.0);
+            
+            // 建立下載連結
             const a = document.createElement('a');
+            a.href = dataURL;
             a.download = '頭胸對比拼圖.png';
-            a.href = mergeCanvas.toDataURL('image/png');
+            
+            // 觸發下載（自動存入系統相簿/下載資料夾）
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
+            
+            alert('✅ 高畫質拼圖已下載！\n請至手機相簿 / 電腦下載資料夾查看');
         }
 
         // 清除
