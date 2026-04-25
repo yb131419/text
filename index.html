@@ -56,7 +56,6 @@
             <p class="text-gray-600 mt-2">自動裁切 + 專業 AI 點評</p>
         </div>
 
-        <!-- 全部改成「上下排列」 -->
         <div class="flex flex-col gap-4 mb-6">
             <div class="upload-card p-5 text-center h-[380px] flex flex-col items-center justify-center relative">
                 <h3 class="font-semibold text-gray-700 mb-3">上邊照片</h3>
@@ -119,6 +118,15 @@
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
 
+        // 取得民國日期
+        function getTaiwanDate() {
+            const now = new Date();
+            const year = now.getFullYear() - 1911;
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            return `民國 ${year} 年 ${month} 月 ${day} 日`;
+        }
+
         function loadLeftImage() {
             const file = document.getElementById('leftImg').files[0];
             if (!file) return;
@@ -145,7 +153,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 頭胸裁切（完美比例：頭頂縮小 + 胸口加大）
+        // 🔥 核心：拼圖 + 自動加上文字（左：日期 / 右：兩小時）
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -166,20 +174,38 @@
 
                     mergeCanvas.width = leftW + rightW;
                     mergeCanvas.height = targetHeight;
-                    ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
+                    ctx.clearRect(0, 0, mergeCanvas.width, targetHeight);
 
                     const cropTop = imgL.height * 0.12;
                     const cropHeight = imgL.height * 0.78;
 
+                    // 繪製圖片
                     ctx.drawImage(imgL, 0, cropTop, imgL.width, cropHeight, 0, 0, leftW, targetHeight);
                     ctx.drawImage(imgR, 0, cropTop, imgR.width, cropHeight, leftW, 0, rightW, targetHeight);
+
+                    // ------ 文字樣式 ------
+                    ctx.font = 'bold 36px Arial';
+                    ctx.fillStyle = 'white';
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 8;
+                    ctx.textAlign = 'center';
+
+                    const textY = targetHeight - 30;
+
+                    // 左邊：民國日期
+                    ctx.strokeText(getTaiwanDate(), leftW/2, textY);
+                    ctx.fillText(getTaiwanDate(), leftW/2, textY);
+
+                    // 右邊：兩小時
+                    ctx.strokeText('兩小時', leftW + rightW/2, textY);
+                    ctx.fillText('兩小時', leftW + rightW/2, textY);
                 }
                 imgR.src = rightPreview.src;
             }
             imgL.src = leftPreview.src;
         }
 
-        // 🔥 手機原生下載（安卓 + iOS 直接存相簿）
+        // 下載
         async function downloadMerge() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
@@ -188,29 +214,20 @@
 
             try {
                 const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
-                const fileName = "頭胸對比拼圖.png";
-                
-                if (navigator.share) {
-                    const file = new File([blob], fileName, { type: 'image/png' });
-                    await navigator.share({
-                        files: [file],
-                        title: '頭胸對比拼圖',
-                    });
-                } else {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileName;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                }
+                const fileName = "彥彬_對比拼圖.png";
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.click();
+                URL.revokeObjectURL(url);
                 alert('✅ 已儲存至手機相簿！');
             } catch (e) {
                 alert('❌ 下載失敗：' + e.message);
             }
         }
 
-        // 🔥 手機原生分享（安卓 + iOS 通用）
+        // 分享
         async function shareImage() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
@@ -219,13 +236,13 @@
 
             try {
                 const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
-                const file = new File([blob], "頭胸對比拼圖.png", { type: 'image/png' });
+                const file = new File([blob], "彥彬_對比拼圖.png", { type: 'image/png' });
 
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
-                        title: '半身照對比拼圖',
-                        text: '分享我的頭胸比對照片',
+                        title: '彥彬 照片比對',
+                        text: '專業比對圖',
                     });
                 } else {
                     alert('❌ 你的裝置不支援分享功能，請使用下載');
@@ -270,7 +287,7 @@
                         ],
                         max_tokens: 1024,
                         temperature: 0.7
-                    })
+                    }
                 });
 
                 const data = await response.json();
