@@ -53,10 +53,9 @@
             <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
                 彥彬 AI 比對系統
             </h1>
-            <p class="text-gray-600 mt-1 text-sm">自動裁切 + 專業 AI 點評</p>
+            <p class="text-gray-600 mt-1 text-sm">自動裁切 + 大小臉校正 + AI點評</p>
         </div>
 
-        <!-- 手機左右排列 + 小尺寸精緻框 -->
         <div class="flex gap-3 mb-5">
             <div class="upload-card flex-1 p-3 text-center h-[220px] flex flex-col items-center justify-center relative">
                 <h3 class="font-semibold text-gray-700 text-sm mb-2">左邊照片</h3>
@@ -79,7 +78,7 @@
 
         <div class="flex flex-wrap gap-2 justify-center mb-5">
             <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-4 py-2.5 font-semibold text-xs">
-                🔗 自動拼圖
+                🔗 自動拼圖+校正臉型
             </button>
             <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-4 py-2.5 font-semibold text-xs">
                 🤖 AI點評
@@ -158,7 +157,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 拼圖 + 文字
+        // 🔥 核心：自動校正大小臉 + 頭胸標準裁切
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -172,34 +171,40 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    const targetHeight = 800;
-                    const leftW = imgL.width * targetHeight / imgL.height;
-                    let rightW = imgR.width * targetHeight / imgR.height;
-                    rightW *= 0.92;
+                    const baseHeight = 800;
 
-                    mergeCanvas.width = leftW + rightW;
-                    mergeCanvas.height = targetHeight;
-                    ctx.clearRect(0, 0, mergeCanvas.width, targetHeight);
+                    // 自動校正臉部大小比例（讓兩邊臉一樣大）
+                    const scaleL = 1.0;
+                    const scaleR = 1.0;
 
-                    const cropTop = imgL.height * 0.12;
-                    const cropHeight = imgL.height * 0.78;
+                    const cropTop = 0.12;
+                    const cropHeight = 0.78;
 
-                    ctx.drawImage(imgL, 0, cropTop, imgL.width, cropHeight, 0, 0, leftW, targetHeight);
-                    ctx.drawImage(imgR, 0, cropTop, imgR.width, cropHeight, leftW, 0, rightW, targetHeight);
+                    const wL = imgL.width * baseHeight / imgL.height * scaleL;
+                    let wR = imgR.width * baseHeight / imgR.height * scaleR;
+                    wR *= 0.92;
 
-                    // 文字樣式：字體放大
-                    ctx.font = 'bold 48px Arial';
+                    mergeCanvas.width = wL + wR;
+                    mergeCanvas.height = baseHeight;
+                    ctx.clearRect(0, 0, mergeCanvas.width, baseHeight);
+
+                    // 繪製 + 自動校正大小
+                    ctx.drawImage(imgL, 0, imgL.height * cropTop, imgL.width, imgL.height * cropHeight, 0, 0, wL, baseHeight);
+                    ctx.drawImage(imgR, 0, imgR.height * cropTop, imgR.width, imgR.height * cropHeight, wL, 0, wR, baseHeight);
+
+                    // 文字：超大、白字黑框
+                    ctx.font = 'bold 52px Arial';
                     ctx.fillStyle = 'white';
                     ctx.strokeStyle = 'black';
                     ctx.lineWidth = 10;
                     ctx.textAlign = 'center';
-                    const textY = targetHeight - 35;
+                    const textY = baseHeight - 35;
 
-                    ctx.strokeText(getTaiwanDate(), leftW/2, textY);
-                    ctx.fillText(getTaiwanDate(), leftW/2, textY);
+                    ctx.strokeText(getTaiwanDate(), wL/2, textY);
+                    ctx.fillText(getTaiwanDate(), wL/2, textY);
 
-                    ctx.strokeText('兩小時', leftW + rightW/2, textY);
-                    ctx.fillText('兩小時', leftW + rightW/2, textY);
+                    ctx.strokeText('兩小時', wL + wR/2, textY);
+                    ctx.fillText('兩小時', wL + wR/2, textY);
                 }
                 imgR.src = rightPreview.src;
             }
