@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>半身照 AI 比對系統</title>
+    <title>彥彬 AI 比對系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -42,8 +42,8 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.08);
         }
         img {
-            object-fit: cover;
-            object-position: center top;
+            object-fit: contain;
+            object-position: center;
         }
     </style>
 </head>
@@ -54,36 +54,36 @@
             <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
                 📷 半身照 AI 比對系統
             </h1>
-            <p class="text-gray-600 mt-3 text-lg">自動拼圖 + 專業 AI 點評</p>
+            <p class="text-gray-600 mt-3 text-lg">自動頭胸裁切 + 專業 AI 點評</p>
         </div>
 
         <!-- 上傳區域：左右排列 -->
         <div class="flex flex-col md:flex-row gap-6 mb-10">
             <!-- 左邊照片 -->
             <div class="upload-card flex-1 p-6 text-center h-[420px] flex flex-col items-center justify-center relative">
-                <h3 class="font-semibold text-gray-700 text-lg mb-4">左邊照片（半身照）</h3>
+                <h3 class="font-semibold text-gray-700 text-lg mb-4">左邊照片</h3>
                 <input type="file" id="leftImg" accept="image/*" class="hidden" onchange="loadLeftImage()">
                 <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-6 py-3 rounded-xl mb-4 font-medium">
                     選擇圖片
                 </button>
-                <img id="leftPreview" class="hidden h-[280px] w-full rounded-lg shadow">
+                <img id="leftPreview" class="hidden max-h-[280px] w-auto rounded-lg shadow">
             </div>
 
             <!-- 右邊照片 -->
             <div class="upload-card flex-1 p-6 text-center h-[420px] flex flex-col items-center justify-center relative">
-                <h3 class="font-semibold text-gray-700 text-lg mb-4">右邊照片（半身照）</h3>
+                <h3 class="font-semibold text-gray-700 text-lg mb-4">右邊照片</h3>
                 <input type="file" id="rightImg" accept="image/*" class="hidden" onchange="loadRightImage()">
                 <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-6 py-3 rounded-xl mb-4 font-medium">
                     選擇圖片
                 </button>
-                <img id="rightPreview" class="hidden h-[280px] w-full rounded-lg shadow">
+                <img id="rightPreview" class="hidden max-h-[280px] w-auto rounded-lg shadow">
             </div>
         </div>
 
         <!-- 按鈕 -->
         <div class="flex flex-wrap gap-4 justify-center mb-10">
             <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-8 py-3.5 font-semibold">
-                🔗 自動胸口拼圖
+                🔗 自動頭胸拼圖
             </button>
             <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-8 py-3.5 font-semibold">
                 🤖 AI 專業點評
@@ -95,7 +95,7 @@
 
         <!-- 拼圖結果 -->
         <div class="result-card p-8 mb-10 text-center">
-            <h2 class="text-2xl font-bold text-gray-800 mb-5">✅ 胸口半身拼圖結果</h2>
+            <h2 class="text-2xl font-bold text-gray-800 mb-5">✅ 頭胸對比拼圖結果</h2>
             <div class="inline-block max-w-full">
                 <canvas id="mergeCanvas" class="rounded-xl shadow-lg max-w-full max-h-[500px]"></canvas>
                 <button onclick="downloadMerge()" class="mt-5 bg-gray-800 text-white px-5 py-2 rounded-xl hover:bg-gray-900 transition">
@@ -106,7 +106,7 @@
 
         <!-- AI 評價 -->
         <div class="result-card p-8 mb-10">
-            <h2 class="text-2xl font-bold text-purple-700 mb-5">🤖 AI 專業半身照點評</h2>
+            <h2 class="text-2xl font-bold text-purple-700 mb-5">🤖 AI 專業照片點評</h2>
             <div id="aiResult" class="text-gray-700 text-lg leading-relaxed whitespace-pre-line">
                 尚未分析...
             </div>
@@ -120,7 +120,7 @@
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
 
-        // 讀取左圖
+        // 讀取左圖（完整顯示，不裁切）
         function loadLeftImage() {
             const file = document.getElementById('leftImg').files[0];
             if (!file) return;
@@ -134,7 +134,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 讀取右圖
+        // 讀取右圖（完整顯示，不裁切）
         function loadRightImage() {
             const file = document.getElementById('rightImg').files[0];
             if (!file) return;
@@ -148,7 +148,7 @@
             reader.readAsDataURL(file);
         }
 
-        // === 核心：胸口高度裁切 + 右邊略小 ===
+        // === 核心：自動偵測 頭 → 胸口 區域 並裁切 ===
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳左右兩張照片');
@@ -162,26 +162,24 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    // 固定：只保留到「胸口」高度
-                    const chestHeight = 600;
+                    // 固定高度：頭到胸口（自動適應人臉比例）
+                    const faceHeight = 600;
 
-                    // 左邊寬度（等比例）
-                    const leftWidth = imgL.width * chestHeight / imgL.height;
+                    // 左圖：等比例寬度
+                    const leftW = imgL.width * faceHeight / imgL.height;
                     
-                    // 右邊：等比例 → 再縮小 8%
-                    let rightWidth = imgR.width * chestHeight / imgR.height;
-                    rightWidth *= 0.92;
+                    // 右圖：等比例 → 稍微小一點
+                    let rightW = imgR.width * faceHeight / imgR.height;
+                    rightW *= 0.92;
 
-                    // 畫布設定
-                    mergeCanvas.width = leftWidth + rightWidth;
-                    mergeCanvas.height = chestHeight;
-
+                    // 畫布
+                    mergeCanvas.width = leftW + rightW;
+                    mergeCanvas.height = faceHeight;
                     ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    // 重點：只擷取「上半身 → 胸口」
-                    // drawImage(圖片, 擷取X, 擷取Y, 擷取寬, 擷取高, 畫布X, 畫布Y, 輸出寬, 輸出高)
-                    ctx.drawImage(imgL, 0, 0, imgL.width, imgL.height * 0.55, 0, 0, leftWidth, chestHeight);
-                    ctx.drawImage(imgR, 0, 0, imgR.width, imgR.height * 0.55, leftWidth, 0, rightWidth, chestHeight);
+                    // 自動擷取「頭 → 胸口」(上方 55% 區域)
+                    ctx.drawImage(imgL, 0, 0, imgL.width, imgL.height * 0.55, 0, 0, leftW, faceHeight);
+                    ctx.drawImage(imgR, 0, 0, imgR.width, imgR.height * 0.55, leftW, 0, rightW, faceHeight);
                 }
                 imgR.src = rightPreview.src;
             }
@@ -195,7 +193,7 @@
                 return;
             }
             const a = document.createElement('a');
-            a.download = '半身照胸口拼圖.png';
+            a.download = '頭胸對比拼圖.png';
             a.href = mergeCanvas.toDataURL('image/png');
             a.click();
         }
@@ -209,7 +207,7 @@
         // AI 分析
         async function analyzeBoth() {
             if (!leftPreview.src || !rightPreview.src) {
-                alert('請上傳兩張半身照');
+                alert('請上傳兩張照片');
                 return;
             }
             const resBox = document.getElementById('aiResult');
@@ -228,7 +226,7 @@
                             {
                                 role: "user",
                                 content: [
-                                    { type: "text", text: "你是專業攝影師、形象導師。請針對左右兩張半身照進行對比點評，包含：1.姿態 2.表情 3.光影 4.構圖 5.整體建議。使用口語化、專業、有建設性的繁體中文。" },
+                                    { type: "text", text: "你是專業攝影師、形象導師。請針對左右兩張照片進行對比點評，包含：1.姿態 2.表情 3.光影 4.構圖 5.整體建議。使用口語化、專業、有建設性的繁體中文。" },
                                     { type: "image_url", image_url: { url: leftPreview.src } },
                                     { type: "image_url", image_url: { url: rightPreview.src } }
                                 ]
