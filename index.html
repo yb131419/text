@@ -6,47 +6,110 @@
     <title>半身照 AI 比對系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .upload-area { border: 2px dashed #ccc; }
-        .upload-area.active { border-color: #3b82f6; background: #eff6ff; }
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+        }
+        .upload-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .upload-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        }
+        .upload-btn {
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            transition: all 0.3s;
+        }
+        .upload-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.03);
+        }
+        .action-btn {
+            border-radius: 16px;
+            transition: all 0.3s;
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        }
+        .result-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+        img {
+            object-fit: cover;
+            object-position: center top;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-12">
     <div class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-bold text-center mb-6 text-blue-700">📷 半身照 AI 比對系統</h1>
+        <!-- 標題 -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+                📷 半身照 AI 比對系統
+            </h1>
+            <p class="text-gray-600 mt-3 text-lg">自動拼圖 + 專業 AI 點評</p>
+        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div class="upload-area p-6 rounded-lg text-center h-72 flex flex-col items-center justify-center relative">
-                <h3 class="font-semibold mb-2">左邊照片（半身照）</h3>
+        <!-- 上傳區域：左右排列 -->
+        <div class="flex flex-col md:flex-row gap-6 mb-10">
+            <!-- 左邊照片 -->
+            <div class="upload-card flex-1 p-6 text-center h-[420px] flex flex-col items-center justify-center relative">
+                <h3 class="font-semibold text-gray-700 text-lg mb-4">左邊照片（半身照）</h3>
                 <input type="file" id="leftImg" accept="image/*" class="hidden" onchange="loadLeftImage()">
-                <button onclick="document.getElementById('leftImg').click()" class="bg-blue-500 text-white px-4 py-2 rounded mb-2">選擇圖片</button>
-                <img id="leftPreview" class="max-h-60 object-contain hidden">
+                <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-6 py-3 rounded-xl mb-4 font-medium">
+                    選擇圖片
+                </button>
+                <img id="leftPreview" class="hidden h-[280px] w-full rounded-lg shadow">
             </div>
 
-            <div class="upload-area p-6 rounded-lg text-center h-72 flex flex-col items-center justify-center relative">
-                <h3 class="font-semibold mb-2">右邊照片（半身照）</h3>
+            <!-- 右邊照片 -->
+            <div class="upload-card flex-1 p-6 text-center h-[420px] flex flex-col items-center justify-center relative">
+                <h3 class="font-semibold text-gray-700 text-lg mb-4">右邊照片（半身照）</h3>
                 <input type="file" id="rightImg" accept="image/*" class="hidden" onchange="loadRightImage()">
-                <button onclick="document.getElementById('rightImg').click()" class="bg-blue-500 text-white px-4 py-2 rounded mb-2">選擇圖片</button>
-                <img id="rightPreview" class="max-h-60 object-contain hidden">
+                <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-6 py-3 rounded-xl mb-4 font-medium">
+                    選擇圖片
+                </button>
+                <img id="rightPreview" class="hidden h-[280px] w-full rounded-lg shadow">
             </div>
         </div>
 
-        <div class="flex flex-wrap gap-3 justify-center mb-6">
-            <button onclick="mergeImages()" class="bg-green-600 text-white px-5 py-2 rounded-lg font-semibold">🔗 自動左右拼圖</button>
-            <button onclick="analyzeBoth()" class="bg-purple-600 text-white px-5 py-2 rounded-lg font-semibold">🤖 AI 專業點評</button>
-            <button onclick="clearAll()" class="bg-red-500 text-white px-5 py-2 rounded-lg">🗑 清除全部</button>
+        <!-- 按鈕 -->
+        <div class="flex flex-wrap gap-4 justify-center mb-10">
+            <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-8 py-3.5 font-semibold">
+                🔗 自動胸口拼圖
+            </button>
+            <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-8 py-3.5 font-semibold">
+                🤖 AI 專業點評
+            </button>
+            <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-6 py-3.5">
+                🗑 清除全部
+            </button>
         </div>
 
-        <div class="mb-6 text-center">
-            <h2 class="text-xl font-bold mb-3">✅ 左右拼圖結果</h2>
-            <div class="border rounded-lg p-3 bg-white inline-block max-w-full">
-                <canvas id="mergeCanvas" class="max-w-full max-h-[500px] shadow-md"></canvas>
-                <button onclick="downloadMerge()" class="mt-3 bg-gray-700 text-white px-3 py-1 rounded">💾 下載拼圖</button>
+        <!-- 拼圖結果 -->
+        <div class="result-card p-8 mb-10 text-center">
+            <h2 class="text-2xl font-bold text-gray-800 mb-5">✅ 胸口半身拼圖結果</h2>
+            <div class="inline-block max-w-full">
+                <canvas id="mergeCanvas" class="rounded-xl shadow-lg max-w-full max-h-[500px]"></canvas>
+                <button onclick="downloadMerge()" class="mt-5 bg-gray-800 text-white px-5 py-2 rounded-xl hover:bg-gray-900 transition">
+                    💾 下載高畫質拼圖
+                </button>
             </div>
         </div>
 
-        <div class="bg-white p-5 rounded-lg shadow mb-8">
-            <h2 class="text-xl font-bold mb-3 text-purple-700">🤖 AI 半身照點評</h2>
-            <div id="aiResult" class="whitespace-pre-line text-gray-700 leading-relaxed">尚未分析...</div>
+        <!-- AI 評價 -->
+        <div class="result-card p-8 mb-10">
+            <h2 class="text-2xl font-bold text-purple-700 mb-5">🤖 AI 專業半身照點評</h2>
+            <div id="aiResult" class="text-gray-700 text-lg leading-relaxed whitespace-pre-line">
+                尚未分析...
+            </div>
         </div>
     </div>
 
@@ -57,6 +120,7 @@
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
 
+        // 讀取左圖
         function loadLeftImage() {
             const file = document.getElementById('leftImg').files[0];
             if (!file) return;
@@ -70,6 +134,7 @@
             reader.readAsDataURL(file);
         }
 
+        // 讀取右圖
         function loadRightImage() {
             const file = document.getElementById('rightImg').files[0];
             if (!file) return;
@@ -83,7 +148,7 @@
             reader.readAsDataURL(file);
         }
 
-        // === 核心優化：自動校正尺寸 + 右邊略小一點 ===
+        // === 核心：胸口高度裁切 + 右邊略小 ===
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳左右兩張照片');
@@ -97,51 +162,51 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    // 固定統一高度（兩張一樣高）
-                    const targetHeight = 600;
-                    
-                    // 左邊寬度
-                    const leftWidth = imgL.width * targetHeight / imgL.height;
-                    
-                    // 右邊寬度 = 自動等比例 → 再縮小 8%（你要的小一點點）
-                    let rightWidth = imgR.width * targetHeight / imgR.height;
-                    rightWidth = rightWidth * 0.92;
+                    // 固定：只保留到「胸口」高度
+                    const chestHeight = 600;
 
-                    // 畫布總寬
-                    const totalWidth = leftWidth + rightWidth;
+                    // 左邊寬度（等比例）
+                    const leftWidth = imgL.width * chestHeight / imgL.height;
+                    
+                    // 右邊：等比例 → 再縮小 8%
+                    let rightWidth = imgR.width * chestHeight / imgR.height;
+                    rightWidth *= 0.92;
 
-                    mergeCanvas.width = totalWidth;
-                    mergeCanvas.height = targetHeight;
-                    
-                    ctx.clearRect(0, 0, totalWidth, targetHeight);
-                    
-                    // 畫左圖
-                    ctx.drawImage(imgL, 0, 0, leftWidth, targetHeight);
-                    
-                    // 畫右圖（自動對齊、略小）
-                    ctx.drawImage(imgR, leftWidth, 0, rightWidth, targetHeight);
+                    // 畫布設定
+                    mergeCanvas.width = leftWidth + rightWidth;
+                    mergeCanvas.height = chestHeight;
+
+                    ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
+
+                    // 重點：只擷取「上半身 → 胸口」
+                    // drawImage(圖片, 擷取X, 擷取Y, 擷取寬, 擷取高, 畫布X, 畫布Y, 輸出寬, 輸出高)
+                    ctx.drawImage(imgL, 0, 0, imgL.width, imgL.height * 0.55, 0, 0, leftWidth, chestHeight);
+                    ctx.drawImage(imgR, 0, 0, imgR.width, imgR.height * 0.55, leftWidth, 0, rightWidth, chestHeight);
                 }
                 imgR.src = rightPreview.src;
             }
             imgL.src = leftPreview.src;
         }
 
+        // 下載
         function downloadMerge() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
                 return;
             }
             const a = document.createElement('a');
-            a.download = '照片對比拼圖.png';
+            a.download = '半身照胸口拼圖.png';
             a.href = mergeCanvas.toDataURL('image/png');
             a.click();
         }
 
+        // 清除
         function clearAll() {
             localStorage.clear();
             location.reload();
         }
 
+        // AI 分析
         async function analyzeBoth() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請上傳兩張半身照');
@@ -182,6 +247,7 @@
             }
         }
 
+        // 還原暫存
         window.onload = function() {
             const leftCache = localStorage.getItem('leftImgCache');
             const rightCache = localStorage.getItem('rightImgCache');
