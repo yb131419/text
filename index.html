@@ -119,13 +119,13 @@
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
 
-        // 民國日期
+        // 日期格式：115/4/26
         function getTaiwanDate() {
             const now = new Date();
             const year = now.getFullYear() - 1911;
             const month = now.getMonth() + 1;
             const day = now.getDate();
-            return `民國 ${year} 年 ${month} 月 ${day} 日`;
+            return `${year}/${month}/${day}`;
         }
 
         // 修復上傳
@@ -187,13 +187,13 @@
                     ctx.drawImage(imgL, 0, cropTop, imgL.width, cropHeight, 0, 0, leftW, targetHeight);
                     ctx.drawImage(imgR, 0, cropTop, imgR.width, cropHeight, leftW, 0, rightW, targetHeight);
 
-                    // 文字樣式
-                    ctx.font = 'bold 36px Arial';
+                    // 文字樣式：字體放大
+                    ctx.font = 'bold 48px Arial';
                     ctx.fillStyle = 'white';
                     ctx.strokeStyle = 'black';
-                    ctx.lineWidth = 8;
+                    ctx.lineWidth = 10;
                     ctx.textAlign = 'center';
-                    const textY = targetHeight - 30;
+                    const textY = targetHeight - 35;
 
                     ctx.strokeText(getTaiwanDate(), leftW/2, textY);
                     ctx.fillText(getTaiwanDate(), leftW/2, textY);
