@@ -134,7 +134,7 @@
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
         
-        // 🔥 整體輸出 1:1 正方形（兩張拼起來）
+        // 🔥 整體 1:1 正方形（放大、更真實）
         const FULL_SIZE = 800;
         const HALF_SIZE = FULL_SIZE / 2;
 
@@ -177,7 +177,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 🔥 整體 1:1 正方形 + 左圖自動日期
+        // 🔥 修正：畫面放大 + 頭頂空間縮小 + 文字不擋脖子
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -191,24 +191,26 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    const TOP_CROP = 0.08;
-                    const BOTTOM_CROP = 0.75;
+                    // ==========================
+                    // 🔥 核心修正（重點）
+                    // ==========================
+                    const TOP_CROP = 0.03;       // 頭頂空間縮小（更自然）
+                    const BOTTOM_CROP = 0.85;    // 脖子、肩膀完整露出
 
-                    // 整體 1:1 正方形
                     mergeCanvas.width = FULL_SIZE;
                     mergeCanvas.height = FULL_SIZE;
                     ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    // 左圖（半寬）
+                    // 左圖（放大、滿版、真實）
                     const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
                     ctx.drawImage(imgL, 0, imgL.height * TOP_CROP, imgL.width, cropH_L, 0, 0, HALF_SIZE, FULL_SIZE);
                     
-                    // 右圖（半寬）
+                    // 右圖（放大、滿版、真實）
                     const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
                     ctx.drawImage(imgR, 0, imgR.height * TOP_CROP, imgR.width, cropH_R, HALF_SIZE, 0, HALF_SIZE, FULL_SIZE);
 
-                    // 左圖固定日期
-                    drawText(getTaiwanDate(), HALF_SIZE/2, FULL_SIZE - 45);
+                    // 🔥 文字往上移 → 不擋脖子
+                    drawText(getTaiwanDate(), HALF_SIZE/2, FULL_SIZE - 65);
                 }
                 imgR.src = rightPreview.src;
             }
@@ -217,7 +219,7 @@
 
         // 文字繪製
         function drawText(text, x, y) {
-            ctx.font = 'bold 42px Arial';
+            ctx.font = 'bold 40px Arial';
             ctx.fillStyle = 'white';
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 8;
@@ -232,10 +234,10 @@
                 alert('請先產生拼圖');
                 return;
             }
-            drawText(text, HALF_SIZE + HALF_SIZE/2, FULL_SIZE - 45);
+            drawText(text, HALF_SIZE + HALF_SIZE/2, FULL_SIZE - 65);
         }
 
-        // 清除右側文字（重新繪製圖片）
+        // 清除右側文字
         function clearRightText() {
             if (!leftPreview.src || !rightPreview.src) return;
             mergeImages();
