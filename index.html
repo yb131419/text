@@ -127,7 +127,7 @@
                 <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
                     選擇圖片
                 </button>
-                <img id="leftPreview" class="hidden max-h-[130px] w-auto rounded-lg shadow-sm">
+                <img id="leftPreview" class="max-h-[130px] w-auto rounded-lg shadow-sm hidden">
             </div>
 
             <div class="upload-card flex-1 p-3 text-center h-[220px] flex flex-col items-center justify-center relative">
@@ -136,7 +136,7 @@
                 <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
                     選擇圖片
                 </button>
-                <img id="rightPreview" class="hidden max-h-[130px] w-auto rounded-lg shadow-sm">
+                <img id="rightPreview" class="max-h-[130px] w-auto rounded-lg shadow-sm hidden">
             </div>
         </div>
 
@@ -176,7 +176,6 @@
         <div class="result-card p-4 mb-5 text-center">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
             
-            <!-- 截圖只會抓這一塊：對比照片本身 -->
             <div id="capture-target" class="split-zoom-container mx-auto" style="display: none;">
                 <div class="left-img-area" id="leftImgArea">
                     <img id="leftSplitImg" class="split-img">
@@ -209,16 +208,12 @@
         let leftFile, rightFile;
         const leftPreview = document.getElementById('leftPreview');
         const rightPreview = document.getElementById('rightPreview');
-        const mergeCanvas = document.getElementById('mergeCanvas');
-        const finalCanvas = document.getElementById('finalCanvas');
         const splitZoomContainer = document.getElementById('capture-target');
         const leftSplitImg = document.getElementById('leftSplitImg');
         const rightSplitImg = document.getElementById('rightSplitImg');
         const leftImgArea = document.getElementById('leftImgArea');
         const rightImgArea = document.getElementById('rightImgArea');
         const captureContainer = document.getElementById('capture-target');
-        const ctx = mergeCanvas.getContext('2d');
-        const finalCtx = finalCanvas.getContext('2d');
         
         const FULL_SIZE = 800;
         const HALF_SIZE = FULL_SIZE / 2;
@@ -238,31 +233,31 @@
             return `${year}/${month}/${day}`;
         }
 
-        document.getElementById('leftImg').addEventListener('change', loadLeftImage);
-        function loadLeftImage() {
-            const file = document.getElementById('leftImg').files[0];
+        // 修正：左圖上傳
+        document.getElementById('leftImg').addEventListener('change', function(e) {
+            const file = e.target.files[0];
             if (!file) return;
             leftFile = file;
             const reader = new FileReader();
-            reader.onload = e => {
+            reader.onload = function(e) {
                 leftPreview.src = e.target.result;
                 leftPreview.classList.remove('hidden');
             };
             reader.readAsDataURL(file);
-        }
+        });
 
-        document.getElementById('rightImg').addEventListener('change', loadRightImage);
-        function loadRightImage() {
-            const file = document.getElementById('rightImg').files[0];
+        // 修正：右圖上傳
+        document.getElementById('rightImg').addEventListener('change', function(e) {
+            const file = e.target.files[0];
             if (!file) return;
             rightFile = file;
             const reader = new FileReader();
-            reader.onload = e => {
+            reader.onload = function(e) {
                 rightPreview.src = e.target.result;
                 rightPreview.classList.remove('hidden');
             };
             reader.readAsDataURL(file);
-        }
+        });
 
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
@@ -329,16 +324,6 @@
                     
                     initSplitZoomControls();
                     
-                    mergeCanvas.width = FULL_SIZE;
-                    mergeCanvas.height = FULL_SIZE;
-                    ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
-                    ctx.drawImage(leftCanvas, 0, 0);
-                    ctx.drawImage(rightCanvas, HALF_SIZE, 0);
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
-                    
                     window.shareLeftCanvas = leftCanvas;
                     window.shareRightCanvas = rightCanvas;
                 }
@@ -386,22 +371,7 @@
                 rightCtx.fillText(text, HALF_SIZE/2, FULL_SIZE - 65);
                 
                 rightSplitImg.src = rightCanvas.toDataURL('image/png');
-                
                 window.shareRightCanvas = rightCanvas;
-                
-                mergeCanvas.width = FULL_SIZE;
-                mergeCanvas.height = FULL_SIZE;
-                ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
-                const leftImg = new Image();
-                leftImg.onload = function() {
-                    ctx.drawImage(leftImg, 0, 0);
-                    ctx.drawImage(rightCanvas, HALF_SIZE, 0);
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
-                }
-                leftImg.src = leftSplitImg.src;
             }
             imgR.src = rightPreview.src;
         }
@@ -476,14 +446,10 @@
             });
 
             document.addEventListener('mouseup', () => {
-                if (zoomState.left.isDragging) {
-                    zoomState.left.isDragging = false;
-                    leftImgArea.style.cursor = 'zoom-in';
-                }
-                if (zoomState.right.isDragging) {
-                    zoomState.right.isDragging = false;
-                    rightImgArea.style.cursor = 'zoom-in';
-                }
+                zoomState.left.isDragging = false;
+                zoomState.right.isDragging = false;
+                leftImgArea.style.cursor = 'zoom-in';
+                rightImgArea.style.cursor = 'zoom-in';
                 zoomState.currentArea = null;
             });
 
@@ -498,7 +464,6 @@
             });
         }
 
-        // 最大放大限制：1.1 倍
         function handleZoom(e, area) {
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
             const newScale = Math.min(1.1, Math.max(0.8, zoomState[area].scale + delta));
@@ -512,27 +477,18 @@
             
             zoomState[area].scale = newScale;
             
-            if (area === 'left') {
-                updateLeftTransform();
-            } else {
-                updateRightTransform();
-            }
+            area === 'left' ? updateLeftTransform() : updateRightTransform();
         }
 
         function handleTouchStart(e) {
             e.preventDefault();
             const touch = e.touches[0];
-            
             const rectLeft = leftImgArea.getBoundingClientRect();
             const rectRight = rightImgArea.getBoundingClientRect();
             let area = null;
             
-            if (touch.clientX >= rectLeft.left && touch.clientX <= rectLeft.right) {
-                area = 'left';
-            } else if (touch.clientX >= rectRight.left && touch.clientX <= rectRight.right) {
-                area = 'right';
-            }
-            
+            if (touch.clientX >= rectLeft.left && touch.clientX <= rectLeft.right) area = 'left';
+            else if (touch.clientX >= rectRight.left && touch.clientX <= rectRight.right) area = 'right';
             if (!area) return;
             
             zoomState.currentArea = area;
@@ -546,8 +502,7 @@
             else if (e.touches.length === 2) {
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
-                const initialDistance = getDistance(t1, t2);
-                zoomState[area].initialDistance = initialDistance;
+                zoomState[area].initialDistance = getDistance(t1, t2);
                 zoomState[area].lastScale = zoomState[area].scale;
             }
         }
@@ -555,7 +510,6 @@
         function handleTouchMove(e) {
             e.preventDefault();
             if (!zoomState.currentArea) return;
-            
             const area = zoomState.currentArea;
             const touch = e.touches[0];
             const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
@@ -563,34 +517,21 @@
             if (e.touches.length === 1 && zoomState[area].isDragging) {
                 zoomState[area].offsetX = touch.clientX - rect.left - zoomState[area].startX;
                 zoomState[area].offsetY = touch.clientY - rect.top - zoomState[area].startY;
-                
-                if (area === 'left') {
-                    updateLeftTransform();
-                } else {
-                    updateRightTransform();
-                }
+                area === 'left' ? updateLeftTransform() : updateRightTransform();
             }
             else if (e.touches.length === 2) {
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
-                const newDistance = getDistance(t1, t2);
-                const scaleRatio = newDistance / zoomState[area].initialDistance;
-                
-                // 最大放大限制：1.1 倍
+                const scaleRatio = getDistance(t1, t2) / zoomState[area].initialDistance;
                 zoomState[area].scale = Math.min(1.1, Math.max(0.8, zoomState[area].lastScale * scaleRatio));
-                
-                if (area === 'left') {
-                    updateLeftTransform();
-                } else {
-                    updateRightTransform();
-                }
+                area === 'left' ? updateLeftTransform() : updateRightTransform();
             }
         }
 
         function getDistance(t1, t2) {
             const dx = t2.clientX - t1.clientX;
             const dy = t2.clientY - t1.clientY;
-            return Math.sqrt(dx * dx + dy * dy);
+            return Math.sqrt(dx*dx + dy*dy);
         }
 
         function updateLeftTransform() {
@@ -601,15 +542,11 @@
             rightSplitImg.style.transform = `translate(-50%, -50%) translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 截圖只抓對比照片，不含標題、按鈕
         async function captureCurrentScreen() {
             return new Promise(async (resolve) => {
                 try {
                     const canvas = await html2canvas(captureContainer, {
-                        scale: 2,
-                        useCORS: true,
-                        logging: false,
-                        backgroundColor: '#ffffff'
+                        scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff'
                     });
                     resolve(canvas.toDataURL('image/png', 1.0));
                 } catch (e) {
@@ -621,69 +558,31 @@
         }
 
         async function downloadMerge() {
-            if (!splitZoomContainer.style.display) {
-                alert('請先產生拼圖');
-                return;
-            }
+            if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
+            const finalDataUrl = await captureCurrentScreen();
+            if (!finalDataUrl) return;
             
-            try {
-                const finalDataUrl = await captureCurrentScreen();
-                if (!finalDataUrl) return;
-                
-                const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-                const isAndroid = /Android/.test(navigator.userAgent);
-
-                if (isIOS || isAndroid) {
-                    const link = document.createElement('a');
-                    link.href = finalDataUrl;
-                    link.download = "彥彬_證件照對比.png";
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    setTimeout(() => {
-                        alert('✅ 下載成功！照片已儲存至相簿');
-                    }, 500);
-                } else {
-                    const blob = await fetch(finalDataUrl).then(res => res.blob());
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = "彥彬_證件照對比.png";
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    alert('✅ 下載成功！');
-                }
-            } catch (e) {
-                console.error('下載失敗:', e);
-                alert('❌ 下載失敗，請截圖儲存');
-            }
+            const link = document.createElement('a');
+            link.href = finalDataUrl;
+            link.download = "彥彬_證件照對比.png";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            alert('✅ 下載成功！');
         }
 
         async function shareImage() {
-            if (!splitZoomContainer.style.display) {
-                alert('請先產生拼圖');
-                return;
-            }
+            if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
+            const finalDataUrl = await captureCurrentScreen();
+            if (!finalDataUrl) return;
             
-            try {
-                const finalDataUrl = await captureCurrentScreen();
-                if (!finalDataUrl) return;
-                
-                const blob = await fetch(finalDataUrl).then(res => res.blob());
-                const file = new File([blob], "彥彬_證件照對比.png", { type: 'image/png' });
-                
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ 
-                        files: [file], 
-                        title: '彥彬 證件照比對' 
-                    });
-                } else {
-                    alert('❌ 裝置不支援分享，請先下載圖片後手動分享');
-                }
-            } catch (e) {
-                console.error('分享失敗:', e);
-                alert('❌ 分享失敗，請先下載圖片後手動分享');
+            const blob = await fetch(finalDataUrl).then(res => res.blob());
+            const file = new File([blob], "彥彬_證件照對比.png", { type: 'image/png' });
+            
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: '彥彬 證件照比對' });
+            } else {
+                alert('❌ 裝置不支援分享，請先下載圖片後手動分享');
             }
         }
 
@@ -724,11 +623,6 @@
                 console.error('AI分析錯誤：', error);
             }
         }
-
-        window.onload = function() {
-            leftPreview.classList.add('hidden');
-            rightPreview.classList.add('hidden');
-        };
     </script>
 </body>
 </html>
