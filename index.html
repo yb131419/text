@@ -93,8 +93,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* 永遠以 400×800 中心為基準 */
-            transform-origin: center center;
+            /* 关键：取消固定中心，改为动态计算 */
+            transform-origin: 0 0;
             transition: transform 0.1s ease-out;
             user-select: none;
         }
@@ -146,6 +146,9 @@
             </button>
             <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-2.5 font-semibold text-xs">
                 🗑 清除全部
+            </button>
+            <button onclick="resetZoomState()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-5 py-2.5 font-semibold text-xs">
+                🔄 還原預設
             </button>
         </div>
 
@@ -221,21 +224,21 @@
         const HALF_SIZE = 400;
         const BORDER_WIDTH = 2;
 
-        // 縮放狀態：以 400×800 中心為基準
+        // 縮放狀態：支援以鼠標/觸摸位置為中心縮放
         const zoomState = {
             left:  { 
                 scale: 1,        // 縮放比例（0.5~1.0）
-                offsetX: 0,      // X偏移
-                offsetY: 0,      // Y偏移
+                x: 0,            // X偏移（相對於容器）
+                y: 0,            // Y偏移（相對於容器）
                 isDragging: false,
                 startX: 0,
                 startY: 0,
-                lastScale: 1      // 上一次縮放比例
+                lastScale: 1     // 上一次縮放比例
             },
             right: { 
                 scale: 1,
-                offsetX: 0,
-                offsetY: 0,
+                x: 0,
+                y: 0,
                 isDragging: false,
                 startX: 0,
                 startY: 0,
@@ -346,7 +349,7 @@
                     rightSplitImg.src = rightCanvas.toDataURL('image/png');
                     splitZoomContainer.style.display = 'block';
                     
-                    // 重置縮放狀態（回到400×800中心）
+                    // 重置縮放狀態（回到初始位置）
                     resetZoomState();
                     // 初始化交互控制
                     initInteractiveControls();
@@ -432,12 +435,12 @@
             mergeImages();
         }
 
-        // 重置縮放狀態（回到400×800中心）
+        // 重置縮放狀態（回到初始位置）
         function resetZoomState() {
             zoomState.left = {
                 scale: 1,
-                offsetX: 0,
-                offsetY: 0,
+                x: 0,
+                y: 0,
                 isDragging: false,
                 startX: 0,
                 startY: 0,
@@ -445,8 +448,8 @@
             };
             zoomState.right = {
                 scale: 1,
-                offsetX: 0,
-                offsetY: 0,
+                x: 0,
+                y: 0,
                 isDragging: false,
                 startX: 0,
                 startY: 0,
@@ -456,50 +459,71 @@
             updateImageTransform('right');
         }
 
-        // 限制偏移在400×800框內（中心基準）
-        function clampOffset(area) {
+        // 限制偏移在400×800框內（基於當前縮放比例）
+        function clampPosition(area) {
             const state = zoomState[area];
-            const maxOffsetX = (HALF_SIZE * (state.scale - 1)) / 2;
-            const maxOffsetY = (FULL_SIZE * (state.scale - 1)) / 2;
+            const containerWidth = area === 'left' ? leftImgArea.clientWidth : rightImgArea.clientWidth;
+            const containerHeight = area === 'left' ? leftImgArea.clientHeight : rightImgArea.clientHeight;
             
-            state.offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, state.offsetX));
-            state.offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, state.offsetY));
+            // 計算圖片當前尺寸
+            const imgWidth = HALF_SIZE * state.scale;
+            const imgHeight = FULL_SIZE * state.scale;
+            
+            // 計算最大偏移值（保證圖片不超出400×800框）
+            const maxX = Math.max(0, (containerWidth - imgWidth) / 2);
+            const maxY = Math.max(0, (containerHeight - imgHeight) / 2);
+            
+            // 限制偏移範圍
+            state.x = Math.max(-maxX, Math.min(maxX, state.x));
+            state.y = Math.max(-maxY, Math.min(maxY, state.y));
         }
 
-        // 更新圖片變換（以400×800中心為基準）
+        // 更新圖片變換（以鼠標/觸摸位置為中心縮放）
         function updateImageTransform(area) {
             const state = zoomState[area];
             const img = area === 'left' ? leftSplitImg : rightSplitImg;
             
-            // 永遠以400×800中心點縮放/移動
-            img.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.scale})`;
+            // 計算容器中心偏移
+            const container = area === 'left' ? leftImgArea : rightImgArea;
+            const containerCenterX = container.clientWidth / 2;
+            const containerCenterY = container.clientHeight / 2;
+            
+            // 計算圖片中心偏移
+            const imgCenterX = (HALF_SIZE * state.scale) / 2;
+            const imgCenterY = (FULL_SIZE * state.scale) / 2;
+            
+            // 最終變換：先平移到容器中心，再應用縮放和偏移
+            const translateX = containerCenterX - imgCenterX + state.x;
+            const translateY = containerCenterY - imgCenterY + state.y;
+            
+            img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${state.scale})`;
         }
 
-        // 初始化交互控制（滑鼠+觸控，中心基準）
+        // 初始化交互控制（完全复刻 PhotoGrid 逻辑）
         function initInteractiveControls() {
             // 滑鼠拖動
             function handleMouseDown(e, area) {
                 e.preventDefault();
                 const state = zoomState[area];
                 state.isDragging = true;
-                state.startX = e.clientX - state.offsetX;
-                state.startY = e.clientY - state.offsetY;
+                state.startX = e.clientX - state.x;
+                state.startY = e.clientY - state.y;
                 (area === 'left' ? leftImgArea : rightImgArea).style.cursor = 'grabbing';
             }
 
             function handleMouseMove(e) {
                 // 左圖拖動
                 if (zoomState.left.isDragging) {
-                    zoomState.left.offsetX = e.clientX - zoomState.left.startX;
-                    zoomState.left.offsetY = e.clientY - zoomState.left.startY;
-                    clampOffset('left');
+                    zoomState.left.x = e.clientX - zoomState.left.startX;
+                    zoomState.left.y = e.clientY - zoomState.left.startY;
+                    clampPosition('left');
                     updateImageTransform('left');
                 }
                 // 右圖拖動
                 if (zoomState.right.isDragging) {
-                    zoomState.right.offsetX = e.clientX - zoomState.right.startX;
-                    zoomState.right.offsetY = e.clientY - zoomState.right.startY;
-                    clampOffset('right');
+                    zoomState.right.x = e.clientX - zoomState.right.startX;
+                    zoomState.right.y = e.clientY - zoomState.right.startY;
+                    clampPosition('right');
                     updateImageTransform('right');
                 }
             }
@@ -511,97 +535,170 @@
                 rightImgArea.style.cursor = 'zoom-in';
             }
 
-            // 滾輪縮放（中心基準）
+            // 滾輪縮放（PhotoGrid 逻辑：以鼠标位置为中心）
             function handleWheel(e, area) {
                 e.preventDefault();
                 const state = zoomState[area];
+                const container = area === 'left' ? leftImgArea : rightImgArea;
+                
+                // 計算滾輪方向（上滾放大，下滾縮小）
                 const delta = e.deltaY > 0 ? -0.1 : 0.1;
                 const newScale = Math.min(1.0, Math.max(0.5, state.scale + delta));
                 
-                // 以滑鼠位置為參考，保持縮放中心
-                const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left - HALF_SIZE/2;
-                const mouseY = e.clientY - rect.top - FULL_SIZE/2;
+                if (newScale === state.scale) return; // 達到極限，不變化
                 
-                // 計算偏移補償，保證縮放圍繞400×800中心
-                state.offsetX += mouseX * (newScale - state.scale);
-                state.offsetY += mouseY * (newScale - state.scale);
+                // 獲取鼠標在容器內的相對位置
+                const rect = container.getBoundingClientRect();
+                const mouseXInContainer = e.clientX - rect.left;
+                const mouseYInContainer = e.clientY - rect.top;
                 
+                // 計算縮放前鼠標在圖片上的相對位置
+                const oldImgWidth = HALF_SIZE * state.scale;
+                const oldImgHeight = FULL_SIZE * state.scale;
+                const containerCenterX = rect.width / 2;
+                const containerCenterY = rect.height / 2;
+                const oldImgCenterX = containerCenterX - state.x;
+                const oldImgCenterY = containerCenterY - state.y;
+                
+                const mouseXInImg = mouseXInContainer - (containerCenterX - oldImgWidth/2 - state.x);
+                const mouseYInImg = mouseYInContainer - (containerCenterY - oldImgHeight/2 - state.y);
+                
+                // 計算縮放比例差
+                const scaleDiff = newScale / state.scale;
+                
+                // 調整偏移量，保證鼠標位置不變
+                state.x -= (mouseXInImg * (scaleDiff - 1));
+                state.y -= (mouseYInImg * (scaleDiff - 1));
+                
+                // 更新縮放比例
                 state.scale = newScale;
-                clampOffset(area);
+                
+                // 限制位置在400×800框內
+                clampPosition(area);
+                
+                // 更新圖片位置
                 updateImageTransform(area);
             }
 
-            // 觸控縮放（雙指，中心基準）
-            let touchDistance = 0;
+            // 觸控縮放（雙指，PhotoGrid 逻辑：以雙指中心为中心）
+            let touchInfo = {
+                distance: 0,
+                centerX: 0,
+                centerY: 0,
+                area: null
+            };
+
             function handleTouchStart(e) {
                 e.preventDefault();
-                if (e.touches.length === 2) {
-                    // 計算初始距離
-                    const t1 = e.touches[0];
-                    const t2 = e.touches[1];
-                    touchDistance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                const touches = e.touches;
+                
+                if (touches.length === 2) {
+                    // 雙指縮放初始化
+                    const t1 = touches[0];
+                    const t2 = touches[1];
                     
-                    // 判斷左右區域
-                    const midX = (t1.clientX + t2.clientX) / 2;
-                    const area = midX < window.innerWidth/2 ? 'left' : 'right';
-                    zoomState[area].lastScale = zoomState[area].scale;
-                } else if (e.touches.length === 1) {
+                    // 計算雙指距離和中心點
+                    touchInfo.distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    touchInfo.centerX = (t1.clientX + t2.clientX) / 2;
+                    touchInfo.centerY = (t1.clientY + t2.clientY) / 2;
+                    
+                    // 判斷屬於左/右區域
+                    touchInfo.area = touchInfo.centerX < window.innerWidth/2 ? 'left' : 'right';
+                    
+                    // 記錄當前縮放比例
+                    zoomState[touchInfo.area].lastScale = zoomState[touchInfo.area].scale;
+                } else if (touches.length === 1) {
                     // 單指拖動
-                    const touch = e.touches[0];
+                    const touch = touches[0];
                     const area = touch.clientX < window.innerWidth/2 ? 'left' : 'right';
                     const state = zoomState[area];
+                    
                     state.isDragging = true;
-                    state.startX = touch.clientX - state.offsetX;
-                    state.startY = touch.clientY - state.offsetY;
+                    state.startX = touch.clientX - state.x;
+                    state.startY = touch.clientY - state.y;
                 }
             }
 
             function handleTouchMove(e) {
                 e.preventDefault();
-                if (e.touches.length === 2) {
+                const touches = e.touches;
+                
+                if (touches.length === 2 && touchInfo.area) {
                     // 雙指縮放
-                    const t1 = e.touches[0];
-                    const t2 = e.touches[1];
-                    const newDistance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-                    
-                    // 判斷左右區域
-                    const midX = (t1.clientX + t2.clientX) / 2;
-                    const area = midX < window.innerWidth/2 ? 'left' : 'right';
+                    const t1 = touches[0];
+                    const t2 = touches[1];
+                    const area = touchInfo.area;
                     const state = zoomState[area];
+                    const container = area === 'left' ? leftImgArea : rightImgArea;
                     
-                    // 計算新比例（0.5~1.0）
-                    const scaleRatio = newDistance / touchDistance;
+                    // 計算新的雙指距離和中心點
+                    const newDistance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    const newCenterX = (t1.clientX + t2.clientX) / 2;
+                    const newCenterY = (t1.clientY + t2.clientY) / 2;
+                    
+                    // 計算縮放比例
+                    const scaleRatio = newDistance / touchInfo.distance;
                     const newScale = Math.min(1.0, Math.max(0.5, state.lastScale * scaleRatio));
                     
-                    // 以雙指中心為參考，保持縮放中心
-                    const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
-                    const midTouchX = (t1.clientX + t2.clientX) / 2 - rect.left - HALF_SIZE/2;
-                    const midTouchY = (t1.clientY + t2.clientY) / 2 - rect.top - FULL_SIZE/2;
-                    
-                    // 補償偏移，保證圍繞400×800中心
-                    state.offsetX += midTouchX * (newScale - state.scale);
-                    state.offsetY += midTouchY * (newScale - state.scale);
-                    
-                    state.scale = newScale;
-                    clampOffset(area);
-                    updateImageTransform(area);
-                } else if (e.touches.length === 1) {
+                    if (newScale !== state.scale) {
+                        // 獲取雙指中心在容器內的相對位置
+                        const rect = container.getBoundingClientRect();
+                        const centerXInContainer = newCenterX - rect.left;
+                        const centerYInContainer = newCenterY - rect.top;
+                        
+                        // 計算縮放前雙指中心在圖片上的相對位置
+                        const oldImgWidth = HALF_SIZE * state.scale;
+                        const oldImgHeight = FULL_SIZE * state.scale;
+                        const containerCenterX = rect.width / 2;
+                        const containerCenterY = rect.height / 2;
+                        
+                        const oldImgCenterX = containerCenterX - state.x;
+                        const oldImgCenterY = containerCenterY - state.y;
+                        
+                        const centerXInImg = centerXInContainer - (containerCenterX - oldImgWidth/2 - state.x);
+                        const centerYInImg = centerYInContainer - (containerCenterY - oldImgHeight/2 - state.y);
+                        
+                        // 計算縮放比例差
+                        const scaleDiff = newScale / state.scale;
+                        
+                        // 調整偏移量，保證雙指中心位置不變
+                        state.x -= (centerXInImg * (scaleDiff - 1));
+                        state.y -= (centerYInImg * (scaleDiff - 1));
+                        
+                        // 更新縮放比例
+                        state.scale = newScale;
+                        
+                        // 限制位置在400×800框內
+                        clampPosition(area);
+                        
+                        // 更新圖片位置
+                        updateImageTransform(area);
+                    }
+                } else if (touches.length === 1) {
                     // 單指拖動
-                    const touch = e.touches[0];
+                    const touch = touches[0];
                     const area = touch.clientX < window.innerWidth/2 ? 'left' : 'right';
                     const state = zoomState[area];
+                    
                     if (state.isDragging) {
-                        state.offsetX = touch.clientX - state.startX;
-                        state.offsetY = touch.clientY - state.startY;
-                        clampOffset(area);
+                        state.x = touch.clientX - state.startX;
+                        state.y = touch.clientY - state.startY;
+                        clampPosition(area);
                         updateImageTransform(area);
                     }
                 }
             }
 
             function handleTouchEnd() {
-                touchDistance = 0;
+                // 重置觸控信息
+                touchInfo = {
+                    distance: 0,
+                    centerX: 0,
+                    centerY: 0,
+                    area: null
+                };
+                
+                // 結束拖動
                 zoomState.left.isDragging = false;
                 zoomState.right.isDragging = false;
             }
@@ -615,12 +712,12 @@
             document.addEventListener('mouseleave', handleMouseUp);
 
             // 滾輪事件
-            leftImgArea.addEventListener('wheel', (e) => handleWheel(e, 'left'));
-            rightImgArea.addEventListener('wheel', (e) => handleWheel(e, 'right'));
+            leftImgArea.addEventListener('wheel', (e) => handleWheel(e, 'left'), { passive: false });
+            rightImgArea.addEventListener('wheel', (e) => handleWheel(e, 'right'), { passive: false });
 
             // 觸控事件
-            splitZoomContainer.addEventListener('touchstart', handleTouchStart);
-            splitZoomContainer.addEventListener('touchmove', handleTouchMove);
+            splitZoomContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+            splitZoomContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
             splitZoomContainer.addEventListener('touchend', handleTouchEnd);
             splitZoomContainer.addEventListener('touchcancel', handleTouchEnd);
         }
@@ -633,32 +730,34 @@
                 finalCtx.fillStyle = "#fff";
                 finalCtx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
 
-                // 繪製左圖（400×800，中心基準）
+                // 繪製左圖（400×800）
                 const leftImg = new Image();
                 leftImg.crossOrigin = "anonymous";
                 leftImg.onload = () => {
                     finalCtx.save();
-                    // 定位到左圖400×800中心
-                    finalCtx.translate(HALF_SIZE/2, FULL_SIZE/2);
-                    // 應用縮放和偏移（中心基準）
-                    finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
-                    finalCtx.translate(zoomState.left.offsetX/zoomState.left.scale, zoomState.left.offsetY/zoomState.left.scale);
-                    // 繪製圖片
-                    finalCtx.drawImage(leftImg, -HALF_SIZE/2, -FULL_SIZE/2, HALF_SIZE, FULL_SIZE);
+                    // 計算左圖最終位置和縮放
+                    const leftScale = zoomState.left.scale;
+                    const leftX = (HALF_SIZE - HALF_SIZE * leftScale) / 2 + zoomState.left.x;
+                    const leftY = (FULL_SIZE - FULL_SIZE * leftScale) / 2 + zoomState.left.y;
+                    
+                    finalCtx.translate(leftX, leftY);
+                    finalCtx.scale(leftScale, leftScale);
+                    finalCtx.drawImage(leftImg, 0, 0, HALF_SIZE, FULL_SIZE);
                     finalCtx.restore();
 
-                    // 繪製右圖（400×800，中心基準）
+                    // 繪製右圖（400×800）
                     const rightImg = new Image();
                     rightImg.crossOrigin = "anonymous";
                     rightImg.onload = () => {
                         finalCtx.save();
-                        // 定位到右圖400×800中心
-                        finalCtx.translate(FULL_SIZE - HALF_SIZE/2, FULL_SIZE/2);
-                        // 應用縮放和偏移（中心基準）
-                        finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
-                        finalCtx.translate(zoomState.right.offsetX/zoomState.right.scale, zoomState.right.offsetY/zoomState.right.scale);
-                        // 繪製圖片
-                        finalCtx.drawImage(rightImg, -HALF_SIZE/2, -FULL_SIZE/2, HALF_SIZE, FULL_SIZE);
+                        // 計算右圖最終位置和縮放
+                        const rightScale = zoomState.right.scale;
+                        const rightX = HALF_SIZE + (HALF_SIZE - HALF_SIZE * rightScale) / 2 + zoomState.right.x;
+                        const rightY = (FULL_SIZE - FULL_SIZE * rightScale) / 2 + zoomState.right.y;
+                        
+                        finalCtx.translate(rightX, rightY);
+                        finalCtx.scale(rightScale, rightScale);
+                        finalCtx.drawImage(rightImg, 0, 0, HALF_SIZE, FULL_SIZE);
                         finalCtx.restore();
 
                         // 中間分隔線
