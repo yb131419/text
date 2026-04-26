@@ -92,11 +92,11 @@
         .fixed-text {
             position: absolute;
             font-size: 26px;
-            font-weight: 900;
-            font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-            letter-spacing: 0px;
+            font-weight: 900; /* 超級加粗 */
+            font-family: Arial, sans-serif; /* 絕對穩定，解決中文異常 */
+            letter-spacing: 0px; /* 正常字間距 */
             color: #ffffff;
-            -webkit-text-stroke: 0.5px #000000;
+            -webkit-text-stroke: 0.5px #000000; /* 超細黑框 */
             text-shadow: none;
             text-align: center;
             pointer-events: none;
@@ -129,6 +129,7 @@
 
             <div class="upload-card flex-1 p-3 text-center flex flex-col items-center justify-center relative">
                 <h3 class="font-semibold text-gray-700 text-sm mb-2">右邊照片</h3>
+                <input type="file" id="rightImg" accept="image/*" class="hidden">
                 <input type="file" id="rightImg" accept="image/*" class="hidden">
                 <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
                     選擇圖片
@@ -202,7 +203,7 @@
                 <div class="flex flex-col gap-2">
                     <p class="text-xs font-semibold text-gray-600">➡️ 右側照片</p>
                     <button onclick="addTextRight('2小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">
-                        ⏱ 加入2小時
+                        ⏱ 加入兩小時
                     </button>
                     <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">
                         📅 加入今天日期
@@ -239,9 +240,10 @@
         const HEIGHT = 800;
         const HALF_WIDTH = WIDTH / 2;
 
+        // 缩放+拖拽状态（新增双指缩放初始距离）
         const zoomState = {
-            left: { scale:1, offsetX:0, offsetY:0, isDragging:false },
-            right: { scale:1, offsetX:0, offsetY:0, isDragging:false }
+            left: { scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0 },
+            right: { scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0 }
         };
 
         // 民國日期
@@ -296,99 +298,98 @@
 
         // 還原縮放
         function resetZoomState() {
-            zoomState.left = {scale:1, offsetX:0, offsetY:0, isDragging:false};
-            zoomState.right = {scale:1, offsetX:0, offsetY:0, isDragging:false};
+            zoomState.left = {scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0};
+            zoomState.right = {scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0};
             update();
         }
 
-        // 滑動 + 縮放 (完整支援：滑鼠滾輪 + 觸控拖曳)
+        // 初始化控制：拖拽 + 滚轮缩放 + 双指缩放
         function initControls() {
             resetZoomState();
             
-            // 滑鼠滾輪 放大/縮小
-            leftImgArea.addEventListener('wheel', (e)=>{
-                e.preventDefault();
-                handleZoom(e, 'left');
-            });
-            rightImgArea.addEventListener('wheel', (e)=>{
-                e.preventDefault();
-                handleZoom(e, 'right');
-            });
-
-            // 滑鼠拖曳
-            leftImgArea.addEventListener('mousedown', dragStartMouse);
-            rightImgArea.addEventListener('mousedown', dragStartMouse);
-            document.addEventListener('mousemove', dragMoveMouse);
+            // PC端滚轮缩放
+            leftImgArea.addEventListener('wheel', (e)=>{e.preventDefault(); zoomWheel(e,'left');}, {passive:false});
+            rightImgArea.addEventListener('wheel', (e)=>{e.preventDefault(); zoomWheel(e,'right');}, {passive:false});
+            
+            // 移动端触摸事件（单指拖拽+双指缩放）
+            leftImgArea.addEventListener('touchstart', dragStart);
+            leftImgArea.addEventListener('touchmove', dragMove);
+            leftImgArea.addEventListener('touchend', dragEnd);
+            rightImgArea.addEventListener('touchstart', dragStart);
+            rightImgArea.addEventListener('touchmove', dragMove);
+            rightImgArea.addEventListener('touchend', dragEnd);
+            
+            // PC端鼠标松开
             document.addEventListener('mouseup', dragEnd);
-
-            // 手機觸控拖曳
-            leftImgArea.addEventListener('touchstart', dragStartTouch);
-            leftImgArea.addEventListener('touchmove', dragMoveTouch);
-            rightImgArea.addEventListener('touchstart', dragStartTouch);
-            rightImgArea.addEventListener('touchmove', dragMoveTouch);
         }
 
-        // 滾輪縮放
-        function handleZoom(e, side) {
-            const delta = e.deltaY > 0 ? -0.15 : 0.15;
-            zoomState[side].scale = Math.min(4, Math.max(0.8, zoomState[side].scale + delta));
-            update();
-        }
-
-        // 滑鼠拖曳
-        function dragStartMouse(e) {
+        // 触摸开始：判断单指拖拽/双指缩放
+        function dragStart(e) {
             e.preventDefault();
             const isLeft = e.target.closest('#leftImgArea');
-            const side = isLeft ? 'left' : 'right';
-            zoomState[side].isDragging = true;
-            zoomState[side].startX = e.clientX - zoomState[side].offsetX;
-            zoomState[side].startY = e.clientY - zoomState[side].offsetY;
+            const a = isLeft ? 'left' : 'right';
+            const rect = isLeft ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
+            
+            // 双指缩放
+            if(e.touches.length === 2) {
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                const xDiff = t2.clientX - t1.clientX;
+                const yDiff = t2.clientY - t1.clientY;
+                zoomState[a].startDistance = Math.hypot(xDiff, yDiff);
+                zoomState[a].isDragging = false;
+            }
+            // 单指拖拽
+            else if(e.touches.length === 1) {
+                const t = e.touches[0];
+                zoomState[a].isDragging = true;
+                zoomState[a].startX = t.clientX - rect.left - zoomState[a].offsetX;
+                zoomState[a].startY = t.clientY - rect.top - zoomState[a].offsetY;
+            }
         }
 
-        function dragMoveMouse(e) {
-            const left = zoomState.left;
-            const right = zoomState.right;
-            if (!left.isDragging && !right.isDragging) return;
+        // 触摸移动：执行拖拽/缩放
+        function dragMove(e) {
+            e.preventDefault();
+            const isLeft = e.target.closest('#leftImgArea');
+            const a = isLeft ? 'left' : 'right';
+            const rect = isLeft ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
 
-            if (left.isDragging) {
-                left.offsetX = e.clientX - left.startX;
-                left.offsetY = e.clientY - left.startY;
+            // 双指缩放
+            if(e.touches.length === 2) {
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                const xDiff = t2.clientX - t1.clientX;
+                const yDiff = t2.clientY - t1.clientY;
+                const currentDistance = Math.hypot(xDiff, yDiff);
+                const scale = currentDistance / zoomState[a].startDistance;
+                zoomState[a].scale = Math.min(4, Math.max(0.8, zoomState[a].scale * scale));
+                zoomState[a].startDistance = currentDistance;
+                update();
             }
-            if (right.isDragging) {
-                right.offsetX = e.clientX - right.startX;
-                right.offsetY = e.clientY - right.startY;
+            // 单指拖拽
+            else if(e.touches.length === 1 && zoomState[a].isDragging) {
+                const t = e.touches[0];
+                zoomState[a].offsetX = t.clientX - rect.left - zoomState[a].startX;
+                zoomState[a].offsetY = t.clientY - rect.top - zoomState[a].startY;
+                update();
             }
-            update();
         }
 
-        function dragEnd() {
+        // 结束操作
+        function dragEnd(e) {
             zoomState.left.isDragging = false;
             zoomState.right.isDragging = false;
         }
 
-        // 手機觸控拖曳
-        function dragStartTouch(e) {
-            e.preventDefault();
-            const t = e.touches[0];
-            const isLeft = e.target.closest('#leftImgArea');
-            const side = isLeft ? 'left' : 'right';
-            zoomState[side].isDragging = true;
-            zoomState[side].startX = t.clientX - zoomState[side].offsetX;
-            zoomState[side].startY = t.clientY - zoomState[side].offsetY;
-        }
-
-        function dragMoveTouch(e) {
-            e.preventDefault();
-            const t = e.touches[0];
-            const isLeft = e.target.closest('#leftImgArea');
-            const side = isLeft ? 'left' : 'right';
-            if (!zoomState[side].isDragging) return;
-
-            zoomState[side].offsetX = t.clientX - zoomState[side].startX;
-            zoomState[side].offsetY = t.clientY - zoomState[side].startY;
+        // PC端滚轮缩放（优化顺滑度）
+        function zoomWheel(e, a) {
+            const delta = e.deltaY > 0 ? -0.08 : 0.08;
+            zoomState[a].scale = Math.min(4, Math.max(0.8, zoomState[a].scale + delta));
             update();
         }
 
+        // 更新图片样式
         function update() {
             leftSplitImg.style.transform = `translate(-50%,-50%) translate(${zoomState.left.offsetX}px,${zoomState.left.offsetY}px) scale(${zoomState.left.scale})`;
             rightSplitImg.style.transform = `translate(-50%,-50%) translate(${zoomState.right.offsetX}px,${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
