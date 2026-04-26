@@ -62,16 +62,16 @@
             background: #d1d5db;
         }
 
-        /* 关键修改：统一预览容器比例与最终分享图片一致 */
+        /* 核心修改：6:8 (3:4) 比例容器，優化留白 */
         .split-zoom-container {
             position: relative;
             overflow: hidden;
             border-radius: 16px;
             width: 100%;
-            max-width: 800px; /* 固定最大宽度 */
-            height: 800px;    /* 保持800x800正方形比例 */
+            max-width: 600px; /* 寬度600px */
+            height: 800px;    /* 高度800px → 6:8比例 */
             touch-action: none;
-            margin: 0 auto;   /* 居中显示 */
+            margin: 0 auto;   /* 居中顯示 */
         }
         .left-img-area {
             position: absolute;
@@ -225,9 +225,10 @@
         const ctx = mergeCanvas.getContext('2d');
         const finalCtx = finalCanvas.getContext('2d');
         
-        // 恢复800x800标准正方形比例（与分享图片一致）
-        const FULL_SIZE = 800;
-        const HALF_SIZE = FULL_SIZE / 2;
+        // 核心修改：6:8 比例尺寸（寬600px，高800px）
+        const FULL_WIDTH = 600;   // 總寬度
+        const FULL_HEIGHT = 800;  // 總高度
+        const HALF_WIDTH = FULL_WIDTH / 2; // 單側寬度
         const BORDER_WIDTH = 2;
 
         // 缩放状态管理
@@ -288,31 +289,31 @@
             imgL.onload = function() {
                 imgR.onload = function() {
                     const TOP_CROP = 0.01;
-                    const BOTTOM_CROP = 0.90;
+                    const BOTTOM_CROP = 0.95; // 調整裁切比例，減少上下留白
 
-                    // 生成左側圖片
+                    // 生成左側圖片（6:8 比例單側）
                     const leftCanvas = document.createElement('canvas');
                     const leftCtx = leftCanvas.getContext('2d');
-                    leftCanvas.width = HALF_SIZE;
-                    leftCanvas.height = FULL_SIZE;
-                    leftCtx.clearRect(0, 0, HALF_SIZE, FULL_SIZE);
+                    leftCanvas.width = HALF_WIDTH;  // 單側寬300px
+                    leftCanvas.height = FULL_HEIGHT; // 高度800px
+                    leftCtx.clearRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
                     
                     // 左圖白色外框
                     leftCtx.fillStyle = "#ffffff";
-                    leftCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
+                    leftCtx.fillRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
                     
                     const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
-                    // 計算圖片繪製比例（保持原比例）
+                    // 計算圖片繪製比例（适配6:8容器，減少留白）
                     const scaleRatioL = Math.min(
-                        (HALF_SIZE - BORDER_WIDTH * 2) / imgL.width,
-                        (FULL_SIZE - BORDER_WIDTH * 2) / cropH_L
+                        (HALF_WIDTH - BORDER_WIDTH * 2) / imgL.width,
+                        (FULL_HEIGHT - BORDER_WIDTH * 2) / cropH_L
                     );
                     const drawWidthL = imgL.width * scaleRatioL;
                     const drawHeightL = cropH_L * scaleRatioL;
-                    const offsetXL = (HALF_SIZE - drawWidthL) / 2;
-                    const offsetYL = (FULL_SIZE - drawHeightL) / 2;
+                    const offsetXL = (HALF_WIDTH - drawWidthL) / 2;
+                    const offsetYL = (FULL_HEIGHT - drawHeightL) / 2;
                     
-                    // 繪製圖片（只在圖片區域內）
+                    // 繪製圖片（最大化填充容器，減少留白）
                     leftCtx.drawImage(
                         imgL,
                         0, imgL.height * TOP_CROP, imgL.width, cropH_L,
@@ -321,40 +322,38 @@
                         drawHeightL
                     );
                     
-                    // 关键修改：日期文字绘制在图片区域内（而非外围）
-                    // 计算文字位置：基于图片实际显示区域
-                    const textX = HALF_SIZE / 2;
-                    // 文字Y坐标：图片底部上方50px（确保在图片内）
-                    const textY = offsetYL + drawHeightL - 50;
+                    // 日期文字繪製在圖片區域內（6:8比例優化位置）
+                    const textX = HALF_WIDTH / 2;
+                    const textY = offsetYL + drawHeightL - 40; // 靠近底部但不超出圖片
                     
-                    leftCtx.font = 'bold 40px Arial';
+                    leftCtx.font = 'bold 36px Arial'; // 适配600px寬度調整字體大小
                     leftCtx.fillStyle = 'white';
                     leftCtx.strokeStyle = 'black';
-                    leftCtx.lineWidth = 8;
+                    leftCtx.lineWidth = 7;
                     leftCtx.textAlign = 'center';
                     leftCtx.strokeText(getTaiwanDate(), textX, textY);
                     leftCtx.fillText(getTaiwanDate(), textX, textY);
 
-                    // 生成右側圖片
+                    // 生成右側圖片（6:8 比例單側）
                     const rightCanvas = document.createElement('canvas');
                     const rightCtx = rightCanvas.getContext('2d');
-                    rightCanvas.width = HALF_SIZE;
-                    rightCanvas.height = FULL_SIZE;
-                    rightCtx.clearRect(0, 0, HALF_SIZE, FULL_SIZE);
+                    rightCanvas.width = HALF_WIDTH;
+                    rightCanvas.height = FULL_HEIGHT;
+                    rightCtx.clearRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
                     
                     // 右圖白色外框
                     rightCtx.fillStyle = "#ffffff";
-                    rightCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
+                    rightCtx.fillRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
                     
                     const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
                     const scaleRatioR = Math.min(
-                        (HALF_SIZE - BORDER_WIDTH * 2) / imgR.width,
-                        (FULL_SIZE - BORDER_WIDTH * 2) / cropH_R
+                        (HALF_WIDTH - BORDER_WIDTH * 2) / imgR.width,
+                        (FULL_HEIGHT - BORDER_WIDTH * 2) / cropH_R
                     );
                     const drawWidthR = imgR.width * scaleRatioR;
                     const drawHeightR = cropH_R * scaleRatioR;
-                    const offsetXR = (HALF_SIZE - drawWidthR) / 2;
-                    const offsetYR = (FULL_SIZE - drawHeightR) / 2;
+                    const offsetXR = (HALF_WIDTH - drawWidthR) / 2;
+                    const offsetYR = (FULL_HEIGHT - drawHeightR) / 2;
                     
                     rightCtx.drawImage(
                         imgR,
@@ -372,15 +371,15 @@
                     // 初始化縮放控制
                     initSplitZoomControls();
                     
-                    // 生成完整拼圖
-                    mergeCanvas.width = FULL_SIZE;
-                    mergeCanvas.height = FULL_SIZE;
-                    ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
+                    // 生成完整拼圖（600×800，6:8比例）
+                    mergeCanvas.width = FULL_WIDTH;
+                    mergeCanvas.height = FULL_HEIGHT;
+                    ctx.clearRect(0, 0, FULL_WIDTH, FULL_HEIGHT);
                     ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, FULL_SIZE, FULL_HEIGHT);
+                    ctx.fillRect(0, 0, FULL_WIDTH, FULL_HEIGHT);
                     ctx.drawImage(leftCanvas, 0, 0);
-                    ctx.drawImage(rightCanvas, HALF_SIZE, 0);
-                    ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
+                    ctx.drawImage(rightCanvas, HALF_WIDTH, 0);
+                    ctx.fillRect(HALF_WIDTH - 1, 0, 2, FULL_HEIGHT);
                     
                     // 保存分享用画布
                     window.shareLeftCanvas = leftCanvas;
@@ -401,28 +400,28 @@
             imgR.crossOrigin = 'anonymous';
             imgR.onload = function() {
                 const TOP_CROP = 0.01;
-                const BOTTOM_CROP = 0.90;
+                const BOTTOM_CROP = 0.95;
                 
-                // 生成右側圖片
+                // 生成右側圖片（6:8比例）
                 const rightCanvas = document.createElement('canvas');
                 const rightCtx = rightCanvas.getContext('2d');
-                rightCanvas.width = HALF_SIZE;
-                rightCanvas.height = FULL_SIZE;
-                rightCtx.clearRect(0, 0, HALF_SIZE, FULL_SIZE);
+                rightCanvas.width = HALF_WIDTH;
+                rightCanvas.height = FULL_HEIGHT;
+                rightCtx.clearRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
                 
                 // 右圖白色外框
                 rightCtx.fillStyle = "#ffffff";
-                rightCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
+                rightCtx.fillRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
                 
                 const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
                 const scaleRatioR = Math.min(
-                    (HALF_SIZE - BORDER_WIDTH * 2) / imgR.width,
-                    (FULL_SIZE - BORDER_WIDTH * 2) / cropH_R
+                    (HALF_WIDTH - BORDER_WIDTH * 2) / imgR.width,
+                    (FULL_HEIGHT - BORDER_WIDTH * 2) / cropH_R
                 );
                 const drawWidthR = imgR.width * scaleRatioR;
                 const drawHeightR = cropH_R * scaleRatioR;
-                const offsetXR = (HALF_SIZE - drawWidthR) / 2;
-                const offsetYR = (FULL_SIZE - drawHeightR) / 2;
+                const offsetXR = (HALF_WIDTH - drawWidthR) / 2;
+                const offsetYR = (FULL_HEIGHT - drawHeightR) / 2;
                 
                 rightCtx.drawImage(
                     imgR,
@@ -432,14 +431,14 @@
                     drawHeightR
                 );
                 
-                // 关键修改：文字绘制在图片区域内
-                const textX = HALF_SIZE / 2;
-                const textY = offsetYR + drawHeightR - 50; // 图片底部上方50px
+                // 文字繪製（适配6:8比例）
+                const textX = HALF_WIDTH / 2;
+                const textY = offsetYR + drawHeightR - 40;
                 
-                rightCtx.font = 'bold 40px Arial';
+                rightCtx.font = 'bold 36px Arial';
                 rightCtx.fillStyle = 'white';
                 rightCtx.strokeStyle = 'black';
-                rightCtx.lineWidth = 8;
+                rightCtx.lineWidth = 7;
                 rightCtx.textAlign = 'center';
                 rightCtx.strokeText(text, textX, textY);
                 rightCtx.fillText(text, textX, textY);
@@ -451,16 +450,16 @@
                 window.shareRightCanvas = rightCanvas;
                 
                 // 更新完整拼圖
-                mergeCanvas.width = FULL_SIZE;
-                mergeCanvas.height = FULL_SIZE;
-                ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
+                mergeCanvas.width = FULL_WIDTH;
+                mergeCanvas.height = FULL_HEIGHT;
+                ctx.clearRect(0, 0, FULL_WIDTH, FULL_HEIGHT);
                 ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
+                ctx.fillRect(0, 0, FULL_WIDTH, FULL_HEIGHT);
                 const leftImg = new Image();
                 leftImg.onload = function() {
                     ctx.drawImage(leftImg, 0, 0);
-                    ctx.drawImage(rightCanvas, HALF_SIZE, 0);
-                    ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
+                    ctx.drawImage(rightCanvas, HALF_WIDTH, 0);
+                    ctx.fillRect(HALF_WIDTH - 1, 0, 2, FULL_HEIGHT);
                 }
                 leftImg.src = leftSplitImg.src;
             }
@@ -668,7 +667,7 @@
             rightSplitImg.style.transform = `translate(-50%, -50%) translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 截圖當前畫面
+        // 截圖當前畫面（6:8比例）
         async function captureCurrentScreen() {
             return new Promise(async (resolve) => {
                 try {
@@ -687,7 +686,7 @@
             });
         }
 
-        // 下載圖片
+        // 下載圖片（6:8比例）
         async function downloadMerge() {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -704,23 +703,23 @@
                 if (isIOS || isAndroid) {
                     const link = document.createElement('a');
                     link.href = finalDataUrl;
-                    link.download = "彥彬_證件照級對比_當前畫面.png";
+                    link.download = "彥彬_證件照級對比_6-8比例.png";
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     
                     setTimeout(() => {
-                        alert('✅ 下載成功！照片已儲存至相簿（當前調整畫面的完整截圖）');
+                        alert('✅ 下載成功！照片已儲存至相簿（6:8比例）');
                     }, 500);
                 } else {
                     const blob = await fetch(finalDataUrl).then(res => res.blob());
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = "彥彬_證件照級對比_當前畫面.png";
+                    a.download = "彥彬_證件照級對比_6-8比例.png";
                     a.click();
                     URL.revokeObjectURL(url);
-                    alert('✅ 下載成功！（當前調整畫面的完整截圖）');
+                    alert('✅ 下載成功！（6:8比例）');
                 }
             } catch (e) {
                 console.error('下載失敗:', e);
@@ -728,7 +727,7 @@
             }
         }
 
-        // 分享圖片
+        // 分享圖片（6:8比例）
         async function shareImage() {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -740,12 +739,12 @@
                 if (!finalDataUrl) return;
                 
                 const blob = await fetch(finalDataUrl).then(res => res.blob());
-                const file = new File([blob], "彥彬_證件照級對比_當前畫面.png", { type: 'image/png' });
+                const file = new File([blob], "彥彬_證件照級對比_6-8比例.png", { type: 'image/png' });
                 
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({ 
                         files: [file], 
-                        title: '彥彬 證件照比對（當前調整畫面）' 
+                        title: '彥彬 證件照比對（6:8比例）' 
                     });
                 } else {
                     alert('❌ 裝置不支援分享，請先下載圖片後手動分享');
