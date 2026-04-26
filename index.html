@@ -62,15 +62,16 @@
             background: #d1d5db;
         }
 
-        /* 畫面 6:8 */
+        /* 雙圖 6:8 容器 (單圖 3:4) */
         .split-zoom-container {
             position: relative;
             overflow: hidden;
             border-radius: 16px;
             width: 100%;
             height: 0;
-            padding-top: 133.33%;
+            padding-top: 133.33%; /* 6:8 = 3:4 */
             touch-action: manipulation;
+            background: #fff;
         }
         .left-img-area {
             position: absolute;
@@ -112,33 +113,27 @@
             transform: translateX(-50%);
         }
 
-        /* 固定文字（位置提高，正常顯示）*/
+        /* 固定文字（畫面內可見，不會消失）*/
         .fixed-text {
             position: absolute;
-            bottom: 40px;
+            bottom: 30px;
             width: 50%;
             text-align: center;
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
             color: white;
-            text-shadow: black 0px 0px 6px;
+            text-shadow: 0 0 6px black;
             z-index: 10;
             pointer-events: none;
         }
-        #fixedLeftText {
-            left: 0;
-        }
-        #fixedRightText {
-            right: 0;
-        }
+        #fixedLeftText { left: 0; }
+        #fixedRightText { right: 0; }
     </style>
 </head>
 <body class="min-h-screen p-3">
     <div class="max-w-md mx-auto">
         <div class="text-center mb-4">
-            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
-                彥彬 AI 比對系統
-            </h1>
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">彥彬 AI 比對系統</h1>
             <p class="text-gray-600 mt-1 text-sm">標準證件照裁切 + 三庭五眼校正 + AI點評</p>
         </div>
 
@@ -146,91 +141,57 @@
             <div class="upload-card flex-1 p-3 text-center h-[220px] flex flex-col items-center justify-center relative">
                 <h3 class="font-semibold text-gray-700 text-sm mb-2">左邊照片</h3>
                 <input type="file" id="leftImg" accept="image/*" class="hidden">
-                <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
-                    選擇圖片
-                </button>
+                <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">選擇圖片</button>
                 <img id="leftPreview" class="max-h-[130px] w-auto rounded-lg shadow-sm hidden">
             </div>
-
             <div class="upload-card flex-1 p-3 text-center h-[220px] flex flex-col items-center justify-center relative">
                 <h3 class="font-semibold text-gray-700 text-sm mb-2">右邊照片</h3>
                 <input type="file" id="rightImg" accept="image/*" class="hidden">
-                <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
-                    選擇圖片
-                </button>
+                <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">選擇圖片</button>
                 <img id="rightPreview" class="max-h-[130px] w-auto rounded-lg shadow-sm hidden">
             </div>
         </div>
 
         <div class="section-title">主要功能</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
-            <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-5 py-2.5 font-semibold text-xs">
-                🔗 標準證件照拼圖
-            </button>
-            <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-2.5 font-semibold text-xs">
-                🗑 清除全部
-            </button>
+            <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-5 py-2.5 font-semibold text-xs">🔗 標準證件照拼圖</button>
+            <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-2.5 font-semibold text-xs">🗑 清除全部</button>
         </div>
 
         <div class="section-title">文字編輯</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
-            <button onclick="setLeftText(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
-                📅 左邊加入日期
-            </button>
-            <button onclick="clearLeftText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
-                🧹 清除左邊文字
-            </button>
+            <button onclick="setLeftText(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">📅 左邊加入日期</button>
+            <button onclick="clearLeftText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">🧹 清除左邊文字</button>
         </div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
-            <button onclick="setRightText('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
-                ⏱ 右邊加入兩小時
-            </button>
-            <button onclick="setRightText(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
-                📅 右邊加入日期
-            </button>
-            <button onclick="clearRightText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
-                🧹 清除右邊文字
-            </button>
+            <button onclick="setRightText('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">⏱ 右邊加入兩小時</button>
+            <button onclick="setRightText(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">📅 右邊加入日期</button>
+            <button onclick="clearRightText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">🧹 清除右邊文字</button>
         </div>
 
         <div class="section-title">AI 分析</div>
         <div class="flex flex-wrap gap-2 justify-center mb-5">
-            <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-5 py-2.5 font-semibold text-xs w-full">
-                🤖 AI 點評
-            </button>
+            <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-5 py-2.5 font-semibold text-xs w-full">🤖 AI 點評</button>
         </div>
 
         <div class="result-card p-4 mb-5 text-center">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
-            
             <div id="capture-target" class="split-zoom-container mx-auto" style="display: none;">
-                <div class="left-img-area" id="leftImgArea">
-                    <img id="leftSplitImg" class="split-img">
-                </div>
-                <div class="right-img-area" id="rightImgArea">
-                    <img id="rightSplitImg" class="split-img">
-                </div>
+                <div class="left-img-area" id="leftImgArea"><img id="leftSplitImg" class="split-img"></div>
+                <div class="right-img-area" id="rightImgArea"><img id="rightSplitImg" class="split-img"></div>
                 <div class="divider-line"></div>
-
                 <div id="fixedLeftText" class="fixed-text"></div>
                 <div id="fixedRightText" class="fixed-text"></div>
             </div>
-
             <div class="flex gap-2 justify-center mt-3">
-                <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">
-                    💾 下載相簿
-                </button>
-                <button onclick="shareImage()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">
-                    📤 分享照片
-                </button>
+                <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">💾 下載相簿</button>
+                <button onclick="shareImage()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">📤 分享照片</button>
             </div>
         </div>
 
         <div class="result-card p-4 mb-8">
             <h2 class="text-lg font-bold text-purple-700 mb-2">🤖 AI 點評</h2>
-            <div id="aiResult" class="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-                尚未分析...
-            </div>
+            <div id="aiResult" class="text-gray-700 text-sm leading-relaxed whitespace-pre-line">尚未分析...</div>
         </div>
     </div>
 
@@ -248,7 +209,7 @@
         const fixedLeftText = document.getElementById('fixedLeftText');
         const fixedRightText = document.getElementById('fixedRightText');
 
-        // 匯出尺寸 6:8
+        // 匯出尺寸：單圖 3:4、雙圖 6:8
         const EXPORT_WIDTH = 600;
         const EXPORT_HEIGHT = 800;
         const HALF_WIDTH = EXPORT_WIDTH / 2;
@@ -268,266 +229,149 @@
             return `${year}/${month}/${day}`;
         }
 
-        // 固定文字功能
-        function setLeftText(text) {
-            if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
-            fixedLeftText.textContent = text;
-        }
-        function setRightText(text) {
-            if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
-            fixedRightText.textContent = text;
-        }
+        function setLeftText(text) { if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; } fixedLeftText.textContent = text; }
+        function setRightText(text) { if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; } fixedRightText.textContent = text; }
         function clearLeftText() { fixedLeftText.textContent = ''; }
         function clearRightText() { fixedRightText.textContent = ''; }
 
         document.getElementById('leftImg').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            leftFile = file;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                leftPreview.src = e.target.result;
-                leftPreview.classList.remove('hidden');
-            };
+            const file = e.target.files[0]; if (!file) return; leftFile = file;
+            const reader = new FileReader(); reader.onload = e => { leftPreview.src = e.target.result; leftPreview.classList.remove('hidden'); };
             reader.readAsDataURL(file);
         });
-
         document.getElementById('rightImg').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            rightFile = file;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                rightPreview.src = e.target.result;
-                rightPreview.classList.remove('hidden');
-            };
+            const file = e.target.files[0]; if (!file) return; rightFile = file;
+            const reader = new FileReader(); reader.onload = e => { rightPreview.src = e.target.result; rightPreview.classList.remove('hidden'); };
             reader.readAsDataURL(file);
         });
 
         function mergeImages() {
-            if (!leftPreview.src || !rightPreview.src) {
-                alert('請先上傳兩張照片');
-                return;
-            }
+            if (!leftPreview.src || !rightPreview.src) { alert('請先上傳兩張照片'); return; }
+            const imgL = new Image(); const imgR = new Image();
+            imgL.crossOrigin = imgR.crossOrigin = 'anonymous';
 
-            const imgL = new Image();
-            const imgR = new Image();
-            imgL.crossOrigin = 'anonymous';
-            imgR.crossOrigin = 'anonymous';
+            imgL.onload = () => { imgR.onload = () => {
+                // 單圖 3:4 標準裁切
+                const leftCanvas = document.createElement('canvas');
+                leftCanvas.width = HALF_WIDTH; leftCanvas.height = EXPORT_HEIGHT;
+                const leftCtx = leftCanvas.getContext('2d');
+                leftCtx.fillStyle = "#fff"; leftCtx.fillRect(0,0,HALF_WIDTH,EXPORT_HEIGHT);
+                leftCtx.drawImage(imgL, 0, 0, imgL.width, imgL.height, BORDER_WIDTH, BORDER_WIDTH, HALF_WIDTH - BORDER_WIDTH*2, EXPORT_HEIGHT - BORDER_WIDTH*2);
 
-            imgL.onload = function() {
-                imgR.onload = function() {
-                    const TOP_CROP = 0.02;
-                    const BOTTOM_CROP = 0.88;
+                const rightCanvas = document.createElement('canvas');
+                rightCanvas.width = HALF_WIDTH; rightCanvas.height = EXPORT_HEIGHT;
+                const rightCtx = rightCanvas.getContext('2d');
+                rightCtx.fillStyle = "#fff"; rightCtx.fillRect(0,0,HALF_WIDTH,EXPORT_HEIGHT);
+                rightCtx.drawImage(imgR, 0, 0, imgR.width, imgR.height, BORDER_WIDTH, BORDER_WIDTH, HALF_WIDTH - BORDER_WIDTH*2, EXPORT_HEIGHT - BORDER_WIDTH*2);
 
-                    const leftCanvas = document.createElement('canvas');
-                    const leftCtx = leftCanvas.getContext('2d');
-                    leftCanvas.width = HALF_WIDTH;
-                    leftCanvas.height = EXPORT_HEIGHT;
-                    leftCtx.clearRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
-                    
-                    leftCtx.fillStyle = "#ffffff";
-                    leftCtx.fillRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
-                    
-                    const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
-                    leftCtx.drawImage(
-                        imgL,
-                        0, imgL.height * TOP_CROP, imgL.width, cropH_L,
-                        BORDER_WIDTH, BORDER_WIDTH,
-                        HALF_WIDTH - BORDER_WIDTH * 2,
-                        EXPORT_HEIGHT - BORDER_WIDTH * 2
-                    );
-
-                    const rightCanvas = document.createElement('canvas');
-                    const rightCtx = rightCanvas.getContext('2d');
-                    rightCanvas.width = HALF_WIDTH;
-                    rightCanvas.height = EXPORT_HEIGHT;
-                    rightCtx.clearRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
-                    
-                    rightCtx.fillStyle = "#ffffff";
-                    rightCtx.fillRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
-                    
-                    const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
-                    rightCtx.drawImage(
-                        imgR,
-                        0, imgR.height * TOP_CROP, imgR.width, cropH_R,
-                        BORDER_WIDTH, BORDER_WIDTH,
-                        HALF_WIDTH - BORDER_WIDTH * 2,
-                        EXPORT_HEIGHT - BORDER_WIDTH * 2
-                    );
-
-                    leftSplitImg.src = leftCanvas.toDataURL('image/png');
-                    rightSplitImg.src = rightCanvas.toDataURL('image/png');
-                    splitZoomContainer.style.display = 'block';
-                    
-                    initTapZoomControls();
-                    
-                    window.shareLeftCanvas = leftCanvas;
-                    window.shareRightCanvas = rightCanvas;
-                }
-                imgR.src = rightPreview.src;
-            }
+                leftSplitImg.src = leftCanvas.toDataURL('image/png');
+                rightSplitImg.src = rightCanvas.toDataURL('image/png');
+                splitZoomContainer.style.display = 'block';
+                initTapZoomControls();
+            }};
+            imgR.src = rightPreview.src;
             imgL.src = leftPreview.src;
         }
 
-        // 點擊放大/縮小 + 拖動調整（新版）
+        // 點擊放大縮小 + 滑動調整
         function initTapZoomControls() {
-            zoomState.left = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
-            zoomState.right = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
-            
-            updateLeftTransform();
-            updateRightTransform();
+            zoomState.left = { scale:1, offsetX:0, offsetY:0, isDragging:false, startX:0, startY:0 };
+            zoomState.right = { scale:1, offsetX:0, offsetY:0, isDragging:false, startX:0, startY:0 };
+            updateLeftTransform(); updateRightTransform();
 
-            // 左邊點擊切換放大縮小
-            leftImgArea.addEventListener('click', (e) => {
-                toggleZoom('left');
-            });
-            // 右邊點擊切換放大縮小
-            rightImgArea.addEventListener('click', (e) => {
-                toggleZoom('right');
-            });
+            leftImgArea.onclick = () => toggleZoom('left');
+            rightImgArea.onclick = () => toggleZoom('right');
 
-            // 拖動調整
             leftImgArea.addEventListener('mousedown', startDrag);
             rightImgArea.addEventListener('mousedown', startDrag);
             document.addEventListener('mousemove', dragMove);
             document.addEventListener('mouseup', stopDrag);
 
-            // 手機觸控
             leftImgArea.addEventListener('touchstart', startDrag);
             rightImgArea.addEventListener('touchstart', startDrag);
             document.addEventListener('touchmove', dragMove);
             document.addEventListener('touchend', stopDrag);
         }
 
-        // 點擊切換 1.0 ↔ 1.3 倍
         function toggleZoom(area) {
-            const state = zoomState[area];
-            state.scale = state.scale === 1 ? 1.3 : 1;
-            clampOffset(area);
-            area === 'left' ? updateLeftTransform() : updateRightTransform();
+            const s = zoomState[area]; s.scale = s.scale === 1 ? 1.3 : 1;
+            clampOffset(area); area === 'left' ? updateLeftTransform() : updateRightTransform();
         }
 
-        // 拖動功能
         function startDrag(e) {
             e.preventDefault();
-            const isTouch = e.type === 'touchstart';
-            const clientX = isTouch ? e.touches[0].clientX : e.clientX;
-            const clientY = isTouch ? e.touches[0].clientY : e.clientY;
-
-            let area = null;
-            let rect = null;
-
-            if (leftImgArea.contains(e.target)) {
-                area = 'left';
-                rect = leftImgArea.getBoundingClientRect();
-            } else if (rightImgArea.contains(e.target)) {
-                area = 'right';
-                rect = rightImgArea.getBoundingClientRect();
-            }
+            const isTouch = e.type.includes('touch');
+            const x = isTouch ? e.touches[0].clientX : e.clientX;
+            const y = isTouch ? e.touches[0].clientY : e.clientY;
+            let area = null, rect;
+            if (leftImgArea.contains(e.target)) { area = 'left'; rect = leftImgArea.getBoundingClientRect(); }
+            else if (rightImgArea.contains(e.target)) { area = 'right'; rect = rightImgArea.getBoundingClientRect(); }
             if (!area) return;
-
             zoomState.currentArea = area;
-            const state = zoomState[area];
-            state.isDragging = true;
-            state.startX = clientX - rect.left - state.offsetX;
-            state.startY = clientY - rect.top - state.offsetY;
+            const s = zoomState[area];
+            s.isDragging = true;
+            s.startX = x - rect.left - s.offsetX;
+            s.startY = y - rect.top - s.offsetY;
         }
 
         function dragMove(e) {
             e.preventDefault();
-            const area = zoomState.currentArea;
-            if (!area) return;
-
-            const state = zoomState[area];
-            if (!state.isDragging) return;
-
-            const isTouch = e.type === 'touchmove';
-            const clientX = isTouch ? e.touches[0].clientX : e.clientX;
-            const clientY = isTouch ? e.touches[0].clientY : e.clientY;
-
-            const rect = area === 'left' 
-                ? leftImgArea.getBoundingClientRect() 
-                : rightImgArea.getBoundingClientRect();
-
-            state.offsetX = clientX - rect.left - state.startX;
-            state.offsetY = clientY - rect.top - state.startY;
+            const area = zoomState.currentArea; if (!area) return;
+            const s = zoomState[area]; if (!s.isDragging) return;
+            const isTouch = e.type.includes('touch');
+            const x = isTouch ? e.touches[0].clientX : e.clientX;
+            const y = isTouch ? e.touches[0].clientY : e.clientY;
+            const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
+            s.offsetX = x - rect.left - s.startX;
+            s.offsetY = y - rect.top - s.startY;
             clampOffset(area);
-
             area === 'left' ? updateLeftTransform() : updateRightTransform();
         }
 
-        function stopDrag() {
-            zoomState.left.isDragging = false;
-            zoomState.right.isDragging = false;
-        }
+        function stopDrag() { zoomState.left.isDragging = false; zoomState.right.isDragging = false; }
 
-        // 邊界限制
         function clampOffset(area) {
-            const container = area === 'left' ? leftImgArea : rightImgArea;
-            const w = container.clientWidth;
-            const h = container.clientHeight;
-            const s = zoomState[area].scale;
-            const maxX = (w * s - w) / 2;
-            const maxY = (h * s - h) / 2;
-
-            zoomState[area].offsetX = Math.max(-maxX, Math.min(maxX, zoomState[area].offsetX));
-            zoomState[area].offsetY = Math.max(-maxY, Math.min(maxY, zoomState[area].offsetY));
+            const c = area === 'left' ? leftImgArea : rightImgArea;
+            const w = c.clientWidth, h = c.clientHeight, s = zoomState[area].scale;
+            const mx = (w*s - w)/2, my = (h*s - h)/2;
+            zoomState[area].offsetX = Math.max(-mx, Math.min(mx, zoomState[area].offsetX));
+            zoomState[area].offsetY = Math.max(-my, Math.min(my, zoomState[area].offsetY));
         }
 
         function updateLeftTransform() {
-            leftSplitImg.style.transform = `translate(-50%, -50%) translate(${zoomState.left.offsetX}px, ${zoomState.left.offsetY}px) scale(${zoomState.left.scale})`;
+            leftSplitImg.style.transform = `translate(-50%,-50%) translate(${zoomState.left.offsetX}px,${zoomState.left.offsetY}px) scale(${zoomState.left.scale})`;
         }
         function updateRightTransform() {
-            rightSplitImg.style.transform = `translate(-50%, -50%) translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
+            rightSplitImg.style.transform = `translate(-50%,-50%) translate(${zoomState.right.offsetX}px,${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
         async function captureCurrentScreen() {
-            return new Promise(async (resolve) => {
+            return new Promise(async resolve => {
                 try {
-                    const canvas = await html2canvas(captureContainer, {
-                        scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff'
-                    });
-                    resolve(canvas.toDataURL('image/png', 1.0));
-                } catch (e) {
-                    console.error('截圖失敗:', e);
-                    alert('截圖失敗，請重試');
-                    resolve(null);
-                }
+                    const canvas = await html2canvas(captureContainer, { scale:2, useCORS:true, logging:false, backgroundColor:'#fff' });
+                    resolve(canvas.toDataURL('image/png',1));
+                } catch(e) { console.error(e); alert('截圖失敗'); resolve(null); }
             });
         }
+
         async function downloadMerge() {
             if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
-            const finalDataUrl = await captureCurrentScreen();
-            if (!finalDataUrl) return;
-            
-            const link = document.createElement('a');
-            link.href = finalDataUrl;
-            link.download = "彥彬_證件照對比.png";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            alert('✅ 下載成功！');
-        }
-        async function shareImage() {
-            if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
-            const finalDataUrl = await captureCurrentScreen();
-            if (!finalDataUrl) return;
-            
-            const blob = await fetch(finalDataUrl).then(res => res.blob());
-            const file = new File([blob], "彥彬_證件照對比.png", { type: 'image/png' });
-            
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({ files: [file], title: '彥彬 證件照比對' });
-            } else {
-                alert('❌ 裝置不支援分享，請先下載圖片後手動分享');
-            }
+            const url = await captureCurrentScreen(); if (!url) return;
+            const a = document.createElement('a'); a.href = url; a.download = '彥彬_證件照對比_6x8.png';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            alert('✅ 下載成功！比例 6:8');
         }
 
-        function clearAll() {
-            localStorage.clear();
-            location.reload();
+        async function shareImage() {
+            if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
+            const url = await captureCurrentScreen(); if (!url) return;
+            const blob = await fetch(url).then(r=>r.blob());
+            const file = new File([blob], '彥彬_證件照對比_6x8.png', {type:'image/png'});
+            if (navigator.share && navigator.canShare({files:[file]})) await navigator.share({files:[file],title:'證件照對比'});
+            else alert('❌ 裝置不支援分享');
         }
+
+        function clearAll() { localStorage.clear(); location.reload(); }
 
         async function analyzeBoth() {
             if (!leftPreview.src || !rightPreview.src) return alert('請上傳兩張照片');
