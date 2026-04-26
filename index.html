@@ -61,29 +61,32 @@
             background: #d1d5db;
         }
 
+        /* 关键修复：固定容器尺寸为800×800（视觉上适配屏幕），保证400×800分区精准 */
         .split-zoom-container {
             position: relative;
             overflow: hidden;
             border-radius: 16px;
             width: 100%;
-            height: 450px;
+            max-width: 800px;
+            height: 800px; /* 固定高度为800px，和标准框尺寸一致 */
             touch-action: none;
+            margin: 0 auto;
         }
         .left-img-area {
             position: absolute;
             top: 0;
             left: 0;
-            width: 50%;
-            height: 100%;
+            width: 400px; /* 精准固定400px宽度 */
+            height: 800px; /* 精准固定800px高度 */
             overflow: hidden;
             cursor: zoom-in;
         }
         .right-img-area {
             position: absolute;
             top: 0;
-            right: 0;
-            width: 50%;
-            height: 100%;
+            left: 400px; /* 精准定位到400px位置 */
+            width: 400px; /* 精准固定400px宽度 */
+            height: 800px; /* 精准固定800px高度 */
             overflow: hidden;
             cursor: zoom-in;
         }
@@ -91,22 +94,20 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            /* 关键：取消固定中心，改为动态计算 */
-            transform-origin: 0 0;
+            width: 400px; /* 强制匹配400×800标准框 */
+            height: 800px;
+            transform-origin: center center; /* 恢复中心缩放，保证初始对齐 */
             transition: transform 0.1s ease-out;
             user-select: none;
         }
         .divider-line {
             position: absolute;
             top: 0;
-            left: 50%;
+            left: 400px; /* 精准定位到400px分割线 */
             width: 2px;
             height: 100%;
             background: white;
             z-index: 5;
-            transform: translateX(-50%);
         }
     </style>
 </head>
@@ -219,21 +220,21 @@
         const ctx = mergeCanvas.getContext('2d');
         const finalCtx = finalCanvas.getContext('2d');
         
-        // 核心尺寸：400×800（左右各一個），整體800×800
+        // 核心尺寸：严格固定400×800（左右各一个），整体800×800
         const FULL_SIZE = 800;
         const HALF_SIZE = 400;
         const BORDER_WIDTH = 2;
 
-        // 縮放狀態：支援以鼠標/觸摸位置為中心縮放
+        // 缩放状态：初始值绝对归零，保证初始位置精准
         const zoomState = {
             left:  { 
-                scale: 1,        // 縮放比例（0.5~1.0）
-                x: 0,            // X偏移（相對於容器）
-                y: 0,            // Y偏移（相對於容器）
+                scale: 1,        // 初始缩放1.0（原始大小）
+                x: 0,            // 初始X偏移0（绝对居中）
+                y: 0,            // 初始Y偏移0（绝对居中）
                 isDragging: false,
                 startX: 0,
                 startY: 0,
-                lastScale: 1     // 上一次縮放比例
+                lastScale: 1     
             },
             right: { 
                 scale: 1,
@@ -283,7 +284,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 合併圖片（生成400×800標準框）
+        // 合併圖片（生成400×800標準框，精准对齐）
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -300,7 +301,7 @@
                     const TOP_CROP = 0.02;
                     const BOTTOM_CROP = 0.88;
 
-                    // 左圖：400×800 標準框
+                    // 左圖：400×800 標準框（精准像素级对齐）
                     const leftCanvas = document.createElement('canvas');
                     const leftCtx = leftCanvas.getContext('2d');
                     leftCanvas.width = HALF_SIZE;
@@ -310,6 +311,7 @@
                     leftCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
                     const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
+                    // 精准绘制：边框2px，内容区域396×796，绝对居中
                     leftCtx.drawImage(
                         imgL,
                         0, imgL.height * TOP_CROP, imgL.width, cropH_L,
@@ -317,7 +319,7 @@
                         HALF_SIZE - BORDER_WIDTH * 2,
                         FULL_SIZE - BORDER_WIDTH * 2
                     );
-                    // 左圖加日期文字
+                    // 左圖加日期文字（精准定位在800-65=735px位置）
                     leftCtx.font = 'bold 40px Arial';
                     leftCtx.fillStyle = 'white';
                     leftCtx.strokeStyle = 'black';
@@ -326,7 +328,7 @@
                     leftCtx.strokeText(getTaiwanDate(), HALF_SIZE/2, FULL_SIZE - 65);
                     leftCtx.fillText(getTaiwanDate(), HALF_SIZE/2, FULL_SIZE - 65);
 
-                    // 右圖：400×800 標準框
+                    // 右圖：400×800 標準框（和左图完全对称）
                     const rightCanvas = document.createElement('canvas');
                     const rightCtx = rightCanvas.getContext('2d');
                     rightCanvas.width = HALF_SIZE;
@@ -336,6 +338,7 @@
                     rightCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
                     const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
+                    // 精准绘制：和左图完全相同的参数，保证对称
                     rightCtx.drawImage(
                         imgR,
                         0, imgR.height * TOP_CROP, imgR.width, cropH_R,
@@ -344,24 +347,27 @@
                         FULL_SIZE - BORDER_WIDTH * 2
                     );
 
-                    // 設置分割圖片
+                    // 設置分割圖片（强制400×800尺寸，保证初始对齐）
                     leftSplitImg.src = leftCanvas.toDataURL('image/png');
                     rightSplitImg.src = rightCanvas.toDataURL('image/png');
                     splitZoomContainer.style.display = 'block';
                     
-                    // 重置縮放狀態（回到初始位置）
+                    // 强制重置缩放状态（初始位置绝对归零）
                     resetZoomState();
                     // 初始化交互控制
                     initInteractiveControls();
                     
-                    // 生成合併畫布
+                    // 生成合併畫布（800×800，精准拼接）
                     mergeCanvas.width = FULL_SIZE;
                     mergeCanvas.height = FULL_SIZE;
                     ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
+                    // 左图精准绘制在0,0位置
                     ctx.drawImage(leftCanvas, 0, 0);
+                    // 右图精准绘制在400,0位置（绝对对齐）
                     ctx.drawImage(rightCanvas, HALF_SIZE, 0);
+                    // 分割线精准绘制在400px位置
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
                 }
@@ -370,7 +376,7 @@
             imgL.src = leftPreview.src;
         }
 
-        // 右圖添加文字
+        // 右圖添加文字（保持精准对齐）
         function addTextRight(text) {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -400,7 +406,7 @@
                     FULL_SIZE - BORDER_WIDTH * 2
                 );
                 
-                // 添加文字
+                // 添加文字（精准定位）
                 rightCtx.font = 'bold 40px Arial';
                 rightCtx.fillStyle = 'white';
                 rightCtx.strokeStyle = 'black';
@@ -411,7 +417,7 @@
                 
                 rightSplitImg.src = rightCanvas.toDataURL('image/png');
                 
-                // 更新合併畫布
+                // 更新合併畫布（保持精准拼接）
                 mergeCanvas.width = FULL_SIZE;
                 mergeCanvas.height = FULL_SIZE;
                 ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
@@ -435,7 +441,7 @@
             mergeImages();
         }
 
-        // 重置縮放狀態（回到初始位置）
+        // 重置縮放狀態（绝对回到初始中心位置）
         function resetZoomState() {
             zoomState.left = {
                 scale: 1,
@@ -455,51 +461,39 @@
                 startY: 0,
                 lastScale: 1
             };
-            updateImageTransform('left');
-            updateImageTransform('right');
+            // 强制更新位置，保证初始对齐
+            leftSplitImg.style.transform = `translate(0px, 0px) scale(1)`;
+            rightSplitImg.style.transform = `translate(0px, 0px) scale(1)`;
         }
 
-        // 限制偏移在400×800框內（基於當前縮放比例）
+        // 限制偏移在400×800框內（基于精准尺寸计算）
         function clampPosition(area) {
             const state = zoomState[area];
-            const containerWidth = area === 'left' ? leftImgArea.clientWidth : rightImgArea.clientWidth;
-            const containerHeight = area === 'left' ? leftImgArea.clientHeight : rightImgArea.clientHeight;
-            
-            // 計算圖片當前尺寸
             const imgWidth = HALF_SIZE * state.scale;
             const imgHeight = FULL_SIZE * state.scale;
             
-            // 計算最大偏移值（保證圖片不超出400×800框）
-            const maxX = Math.max(0, (containerWidth - imgWidth) / 2);
-            const maxY = Math.max(0, (containerHeight - imgHeight) / 2);
+            // 精准计算最大偏移：保证图片完全在400×800框内
+            const maxX = (HALF_SIZE - imgWidth) / 2;
+            const maxY = (FULL_SIZE - imgHeight) / 2;
             
-            // 限制偏移範圍
-            state.x = Math.max(-maxX, Math.min(maxX, state.x));
-            state.y = Math.max(-maxY, Math.min(maxY, state.y));
+            // 严格限制偏移范围（绝对不超出）
+            state.x = Math.max(maxX, Math.min(-maxX, state.x));
+            state.y = Math.max(maxY, Math.min(-maxY, state.y));
         }
 
-        // 更新圖片變換（以鼠標/觸摸位置為中心縮放）
+        // 更新圖片變換（精准中心缩放，不偏移）
         function updateImageTransform(area) {
             const state = zoomState[area];
             const img = area === 'left' ? leftSplitImg : rightSplitImg;
             
-            // 計算容器中心偏移
-            const container = area === 'left' ? leftImgArea : rightImgArea;
-            const containerCenterX = container.clientWidth / 2;
-            const containerCenterY = container.clientHeight / 2;
-            
-            // 計算圖片中心偏移
-            const imgCenterX = (HALF_SIZE * state.scale) / 2;
-            const imgCenterY = (FULL_SIZE * state.scale) / 2;
-            
-            // 最終變換：先平移到容器中心，再應用縮放和偏移
-            const translateX = containerCenterX - imgCenterX + state.x;
-            const translateY = containerCenterY - imgCenterY + state.y;
+            // 精准计算平移：基于中心缩放，保证视觉对齐
+            const translateX = state.x;
+            const translateY = state.y;
             
             img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${state.scale})`;
         }
 
-        // 初始化交互控制（完全复刻 PhotoGrid 逻辑）
+        // 初始化交互控制（精准中心缩放，复刻PhotoGrid）
         function initInteractiveControls() {
             // 滑鼠拖動
             function handleMouseDown(e, area) {
@@ -535,7 +529,7 @@
                 rightImgArea.style.cursor = 'zoom-in';
             }
 
-            // 滾輪縮放（PhotoGrid 逻辑：以鼠标位置为中心）
+            // 滾輪縮放（以鼠标位置为中心，精准不偏移）
             function handleWheel(e, area) {
                 e.preventDefault();
                 const state = zoomState[area];
@@ -547,7 +541,7 @@
                 
                 if (newScale === state.scale) return; // 達到極限，不變化
                 
-                // 獲取鼠標在容器內的相對位置
+                // 獲取鼠標在容器內的相對位置（精准计算）
                 const rect = container.getBoundingClientRect();
                 const mouseXInContainer = e.clientX - rect.left;
                 const mouseYInContainer = e.clientY - rect.top;
@@ -555,13 +549,9 @@
                 // 計算縮放前鼠標在圖片上的相對位置
                 const oldImgWidth = HALF_SIZE * state.scale;
                 const oldImgHeight = FULL_SIZE * state.scale;
-                const containerCenterX = rect.width / 2;
-                const containerCenterY = rect.height / 2;
-                const oldImgCenterX = containerCenterX - state.x;
-                const oldImgCenterY = containerCenterY - state.y;
                 
-                const mouseXInImg = mouseXInContainer - (containerCenterX - oldImgWidth/2 - state.x);
-                const mouseYInImg = mouseYInContainer - (containerCenterY - oldImgHeight/2 - state.y);
+                const mouseXInImg = mouseXInContainer - (HALF_SIZE/2 - oldImgWidth/2) - state.x;
+                const mouseYInImg = mouseYInContainer - (FULL_SIZE/2 - oldImgHeight/2) - state.y;
                 
                 // 計算縮放比例差
                 const scaleDiff = newScale / state.scale;
@@ -580,7 +570,7 @@
                 updateImageTransform(area);
             }
 
-            // 觸控縮放（雙指，PhotoGrid 逻辑：以雙指中心为中心）
+            // 觸控縮放（雙指，以雙指中心为中心）
             let touchInfo = {
                 distance: 0,
                 centerX: 0,
@@ -602,15 +592,15 @@
                     touchInfo.centerX = (t1.clientX + t2.clientX) / 2;
                     touchInfo.centerY = (t1.clientY + t2.clientY) / 2;
                     
-                    // 判斷屬於左/右區域
-                    touchInfo.area = touchInfo.centerX < window.innerWidth/2 ? 'left' : 'right';
+                    // 判斷屬於左/右區域（精准判断400px分割线）
+                    touchInfo.area = touchInfo.centerX < leftImgArea.getBoundingClientRect().right ? 'left' : 'right';
                     
                     // 記錄當前縮放比例
                     zoomState[touchInfo.area].lastScale = zoomState[touchInfo.area].scale;
                 } else if (touches.length === 1) {
                     // 單指拖動
                     const touch = touches[0];
-                    const area = touch.clientX < window.innerWidth/2 ? 'left' : 'right';
+                    const area = touch.clientX < leftImgArea.getBoundingClientRect().right ? 'left' : 'right';
                     const state = zoomState[area];
                     
                     state.isDragging = true;
@@ -649,14 +639,9 @@
                         // 計算縮放前雙指中心在圖片上的相對位置
                         const oldImgWidth = HALF_SIZE * state.scale;
                         const oldImgHeight = FULL_SIZE * state.scale;
-                        const containerCenterX = rect.width / 2;
-                        const containerCenterY = rect.height / 2;
                         
-                        const oldImgCenterX = containerCenterX - state.x;
-                        const oldImgCenterY = containerCenterY - state.y;
-                        
-                        const centerXInImg = centerXInContainer - (containerCenterX - oldImgWidth/2 - state.x);
-                        const centerYInImg = centerYInContainer - (containerCenterY - oldImgHeight/2 - state.y);
+                        const centerXInImg = centerXInContainer - (HALF_SIZE/2 - oldImgWidth/2) - state.x;
+                        const centerYInImg = centerYInContainer - (FULL_SIZE/2 - oldImgHeight/2) - state.y;
                         
                         // 計算縮放比例差
                         const scaleDiff = newScale / state.scale;
@@ -677,7 +662,7 @@
                 } else if (touches.length === 1) {
                     // 單指拖動
                     const touch = touches[0];
-                    const area = touch.clientX < window.innerWidth/2 ? 'left' : 'right';
+                    const area = touch.clientX < leftImgArea.getBoundingClientRect().right ? 'left' : 'right';
                     const state = zoomState[area];
                     
                     if (state.isDragging) {
@@ -722,7 +707,7 @@
             splitZoomContainer.addEventListener('touchcancel', handleTouchEnd);
         }
 
-        // 生成最終圖片（800×800，保留當前縮放/移動）
+        // 生成最終圖片（800×800，精准保留调整效果）
         function generateFinalImage() {
             return new Promise((resolve) => {
                 finalCanvas.width = FULL_SIZE;
@@ -730,12 +715,12 @@
                 finalCtx.fillStyle = "#fff";
                 finalCtx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
 
-                // 繪製左圖（400×800）
+                // 繪製左圖（400×800，精准位置）
                 const leftImg = new Image();
                 leftImg.crossOrigin = "anonymous";
                 leftImg.onload = () => {
                     finalCtx.save();
-                    // 計算左圖最終位置和縮放
+                    // 精准计算左图最终位置
                     const leftScale = zoomState.left.scale;
                     const leftX = (HALF_SIZE - HALF_SIZE * leftScale) / 2 + zoomState.left.x;
                     const leftY = (FULL_SIZE - FULL_SIZE * leftScale) / 2 + zoomState.left.y;
@@ -745,12 +730,12 @@
                     finalCtx.drawImage(leftImg, 0, 0, HALF_SIZE, FULL_SIZE);
                     finalCtx.restore();
 
-                    // 繪製右圖（400×800）
+                    // 繪製右圖（400×800，精准位置）
                     const rightImg = new Image();
                     rightImg.crossOrigin = "anonymous";
                     rightImg.onload = () => {
                         finalCtx.save();
-                        // 計算右圖最終位置和縮放
+                        // 精准计算右图最终位置（和左图对称）
                         const rightScale = zoomState.right.scale;
                         const rightX = HALF_SIZE + (HALF_SIZE - HALF_SIZE * rightScale) / 2 + zoomState.right.x;
                         const rightY = (FULL_SIZE - FULL_SIZE * rightScale) / 2 + zoomState.right.y;
@@ -760,7 +745,7 @@
                         finalCtx.drawImage(rightImg, 0, 0, HALF_SIZE, FULL_SIZE);
                         finalCtx.restore();
 
-                        // 中間分隔線
+                        // 分割线精准绘制
                         finalCtx.fillStyle = "#fff";
                         finalCtx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
                         
