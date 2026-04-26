@@ -92,11 +92,11 @@
         .fixed-text {
             position: absolute;
             font-size: 26px;
-            font-weight: 900; /* 超級加粗 */
-            font-family: Arial, sans-serif; /* 絕對穩定，解決中文異常 */
-            letter-spacing: 0px; /* 正常字間距 */
+            font-weight: 900;
+            font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+            letter-spacing: 0px;
             color: #ffffff;
-            -webkit-text-stroke: 0.5px #000000; /* 超細黑框 */
+            -webkit-text-stroke: 0.5px #000000;
             text-shadow: none;
             text-align: center;
             pointer-events: none;
@@ -202,7 +202,7 @@
                 <div class="flex flex-col gap-2">
                     <p class="text-xs font-semibold text-gray-600">➡️ 右側照片</p>
                     <button onclick="addTextRight('2小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">
-                        ⏱ 加入兩小時
+                        ⏱ 加入2小時
                     </button>
                     <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">
                         📅 加入今天日期
@@ -301,44 +301,91 @@
             update();
         }
 
-        // 滑動 + 縮放
+        // 滑動 + 縮放 (完整支援：滑鼠滾輪 + 觸控拖曳)
         function initControls() {
             resetZoomState();
-            leftImgArea.onwheel = e=>{e.preventDefault(); zoom(e,'left');};
-            rightImgArea.onwheel = e=>{e.preventDefault(); zoom(e,'right');};
-            leftImgArea.addEventListener('touchstart',dragStart);
-            leftImgArea.addEventListener('touchmove',dragMove);
-            rightImgArea.addEventListener('touchstart',dragStart);
-            rightImgArea.addEventListener('touchmove',dragMove);
-            document.onmouseup = ()=>{zoomState.left.isDragging=false; zoomState.right.isDragging=false;};
+            
+            // 滑鼠滾輪 放大/縮小
+            leftImgArea.addEventListener('wheel', (e)=>{
+                e.preventDefault();
+                handleZoom(e, 'left');
+            });
+            rightImgArea.addEventListener('wheel', (e)=>{
+                e.preventDefault();
+                handleZoom(e, 'right');
+            });
+
+            // 滑鼠拖曳
+            leftImgArea.addEventListener('mousedown', dragStartMouse);
+            rightImgArea.addEventListener('mousedown', dragStartMouse);
+            document.addEventListener('mousemove', dragMoveMouse);
+            document.addEventListener('mouseup', dragEnd);
+
+            // 手機觸控拖曳
+            leftImgArea.addEventListener('touchstart', dragStartTouch);
+            leftImgArea.addEventListener('touchmove', dragMoveTouch);
+            rightImgArea.addEventListener('touchstart', dragStartTouch);
+            rightImgArea.addEventListener('touchmove', dragMoveTouch);
         }
 
-        function dragStart(e) {
-            e.preventDefault();
-            const t = e.touches[0];
-            const isLeft = e.target.closest('#leftImgArea');
-            const a = isLeft ? 'left' : 'right';
-            const r = isLeft ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
-            zoomState[a].isDragging = true;
-            zoomState[a].startX = t.clientX - r.left - zoomState[a].offsetX;
-            zoomState[a].startY = t.clientY - r.top - zoomState[a].offsetY;
-        }
-
-        function dragMove(e) {
-            e.preventDefault();
-            const t = e.touches[0];
-            const isLeft = e.target.closest('#leftImgArea');
-            const a = isLeft ? 'left' : 'right';
-            if(!zoomState[a].isDragging) return;
-            const r = isLeft ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
-            zoomState[a].offsetX = t.clientX - r.left - zoomState[a].startX;
-            zoomState[a].offsetY = t.clientY - r.top - zoomState[a].startY;
+        // 滾輪縮放
+        function handleZoom(e, side) {
+            const delta = e.deltaY > 0 ? -0.15 : 0.15;
+            zoomState[side].scale = Math.min(4, Math.max(0.8, zoomState[side].scale + delta));
             update();
         }
 
-        function zoom(e,a) {
-            const d = e.deltaY>0 ? -0.1 : 0.1;
-            zoomState[a].scale = Math.min(4,Math.max(0.8,zoomState[a].scale+d));
+        // 滑鼠拖曳
+        function dragStartMouse(e) {
+            e.preventDefault();
+            const isLeft = e.target.closest('#leftImgArea');
+            const side = isLeft ? 'left' : 'right';
+            zoomState[side].isDragging = true;
+            zoomState[side].startX = e.clientX - zoomState[side].offsetX;
+            zoomState[side].startY = e.clientY - zoomState[side].offsetY;
+        }
+
+        function dragMoveMouse(e) {
+            const left = zoomState.left;
+            const right = zoomState.right;
+            if (!left.isDragging && !right.isDragging) return;
+
+            if (left.isDragging) {
+                left.offsetX = e.clientX - left.startX;
+                left.offsetY = e.clientY - left.startY;
+            }
+            if (right.isDragging) {
+                right.offsetX = e.clientX - right.startX;
+                right.offsetY = e.clientY - right.startY;
+            }
+            update();
+        }
+
+        function dragEnd() {
+            zoomState.left.isDragging = false;
+            zoomState.right.isDragging = false;
+        }
+
+        // 手機觸控拖曳
+        function dragStartTouch(e) {
+            e.preventDefault();
+            const t = e.touches[0];
+            const isLeft = e.target.closest('#leftImgArea');
+            const side = isLeft ? 'left' : 'right';
+            zoomState[side].isDragging = true;
+            zoomState[side].startX = t.clientX - zoomState[side].offsetX;
+            zoomState[side].startY = t.clientY - zoomState[side].offsetY;
+        }
+
+        function dragMoveTouch(e) {
+            e.preventDefault();
+            const t = e.touches[0];
+            const isLeft = e.target.closest('#leftImgArea');
+            const side = isLeft ? 'left' : 'right';
+            if (!zoomState[side].isDragging) return;
+
+            zoomState[side].offsetX = t.clientX - zoomState[side].startX;
+            zoomState[side].offsetY = t.clientY - zoomState[side].startY;
             update();
         }
 
