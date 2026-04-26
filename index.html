@@ -220,10 +220,22 @@
         const BORDER_WIDTH = 2;
 
         const zoomState = {
-            left: { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 },
-            right: { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 },
-            currentArea: null
+            left:  { scale: 1, x: 0, y: 0, dragging: false, lastX: 0, lastY: 0 },
+            right: { scale: 1, x: 0, y: 0, dragging: false, lastX: 0, lastY: 0 }
         };
+
+        function clamp(area) {
+            const z = zoomState[area];
+            const maxX = (400 * (z.scale - 1)) / z.scale;
+            const maxY = (800 * (z.scale - 1)) / z.scale;
+            z.x = Math.max(-maxX, Math.min(maxX, z.x));
+            z.y = Math.max(-maxY, Math.min(maxY, z.y));
+        }
+
+        function updateTransform() {
+            leftSplitImg.style.transform  = `translate(${zoomState.left.x}px, ${zoomState.left.y}px) scale(${zoomState.left.scale})`;
+            rightSplitImg.style.transform = `translate(${zoomState.right.x}px, ${zoomState.right.y}px) scale(${zoomState.right.scale})`;
+        }
 
         function getTaiwanDate() {
             const now = new Date();
@@ -323,7 +335,9 @@
                     rightSplitImg.src = rightCanvas.toDataURL('image/png');
                     splitZoomContainer.style.display = 'block';
                     
-                    initSplitZoomControls();
+                    zoomState.left  = { scale:1, x:0, y:0, dragging:false, lastX:0, lastY:0 };
+                    zoomState.right = { scale:1, x:0, y:0, dragging:false, lastX:0, lastY:0 };
+                    updateTransform();
                     
                     mergeCanvas.width = FULL_SIZE;
                     mergeCanvas.height = FULL_SIZE;
@@ -402,166 +416,87 @@
             mergeImages();
         }
 
-        function initSplitZoomControls() {
-            zoomState.left = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
-            zoomState.right = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
-            zoomState.currentArea = null;
-            
-            updateLeftTransform();
-            updateRightTransform();
-
-            leftImgArea.addEventListener('wheel', (e) => {
+        // ==== 滑鼠/觸控 完整重寫，絕對不超界 ====
+        function setupEvents() {
+            function start(area, e) {
                 e.preventDefault();
-                zoomState.currentArea = 'left';
-                handleZoom(e, 'left');
-            });
+                const z = zoomState[area];
+                z.dragging = true;
+                const p = e.touches ? e.touches[0] : e;
+                z.lastX = p.clientX;
+                z.lastY = p.clientY;
+            }
 
-            leftImgArea.addEventListener('mousedown', (e) => {
+            function move(area, e) {
                 e.preventDefault();
-                zoomState.currentArea = 'left';
-                zoomState.left.isDragging = true;
-                zoomState.left.startX = e.clientX - zoomState.left.offsetX;
-                zoomState.left.startY = e.clientY - zoomState.left.offsetY;
-                leftImgArea.style.cursor = 'grabbing';
-            });
+                const z = zoomState[area];
+                if (!z.dragging) return;
+                const p = e.touches ? e.touches[0] : e;
+                z.x += p.clientX - z.lastX;
+                z.y += p.clientY - z.lastY;
+                z.lastX = p.clientX;
+                z.lastY = p.clientY;
+                clamp(area);
+                updateTransform();
+            }
 
-            rightImgArea.addEventListener('wheel', (e) => {
+            function end(area) {
+                zoomState[area].dragging = false;
+            }
+
+            // 滑鼠
+            leftImgArea.onmousedown = e => start('left', e);
+            rightImgArea.onmousedown = e => start('right', e);
+            document.onmousemove = e => {
+                if (zoomState.left.dragging) move('left', e);
+                if (zoomState.right.dragging) move('right', e);
+            };
+            document.onmouseup = () => { end('left'); end('right'); };
+
+            // 觸控
+            leftImgArea.ontouchstart = e => start('left', e);
+            rightImgArea.ontouchstart = e => start('right', e);
+            leftImgArea.ontouchmove = e => move('left', e);
+            rightImgArea.ontouchmove = e => move('right', e);
+            leftImgArea.ontouchend = () => end('left');
+            rightImgArea.ontouchend = () => end('right');
+
+            // 滾輪縮放
+            function wheel(area, e) {
                 e.preventDefault();
-                zoomState.currentArea = 'right';
-                handleZoom(e, 'right');
-            });
+                const z = zoomState[area];
+                const s = Math.min(1, Math.max(0.5, z.scale + (e.deltaY > 0 ? -0.1 : 0.1)));
+                z.scale = s;
+                clamp(area);
+                updateTransform();
+            }
+            leftImgArea.onwheel = e => wheel('left', e);
+            rightImgArea.onwheel = e => wheel('right', e);
 
-            rightImgArea.addEventListener('mousedown', (e) => {
+            // 雙指縮放（完全鎖死）
+            function pinch(area, e) {
                 e.preventDefault();
-                zoomState.currentArea = 'right';
-                zoomState.right.isDragging = true;
-                zoomState.right.startX = e.clientX - zoomState.right.offsetX;
-                zoomState.right.startY = e.clientY - zoomState.right.offsetY;
-                rightImgArea.style.cursor = 'grabbing';
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (zoomState.left.isDragging) {
-                    zoomState.left.offsetX = e.clientX - zoomState.left.startX;
-                    zoomState.left.offsetY = e.clientY - zoomState.left.startY;
-                    clampTo400x800('left');
-                    updateLeftTransform();
-                }
-                if (zoomState.right.isDragging) {
-                    zoomState.right.offsetX = e.clientX - zoomState.right.startX;
-                    zoomState.right.offsetY = e.clientY - zoomState.right.startY;
-                    clampTo400x800('right');
-                    updateRightTransform();
-                }
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (zoomState.left.isDragging) {
-                    zoomState.left.isDragging = false;
-                    leftImgArea.style.cursor = 'zoom-in';
-                }
-                if (zoomState.right.isDragging) {
-                    zoomState.right.isDragging = false;
-                    rightImgArea.style.cursor = 'zoom-in';
-                }
-                zoomState.currentArea = null;
-            });
-
-            leftImgArea.addEventListener('touchstart', handleTouchStart);
-            leftImgArea.addEventListener('touchmove', handleTouchMove);
-            rightImgArea.addEventListener('touchstart', handleTouchStart);
-            rightImgArea.addEventListener('touchmove', handleTouchMove);
-            splitZoomContainer.addEventListener('touchend', () => {
-                zoomState.left.isDragging = false;
-                zoomState.right.isDragging = false;
-                zoomState.currentArea = null;
-            });
-        }
-
-        // 🔥 鎖死：縮放只能 0.5 ~ 1.0（不超過 400×800）
-        function handleZoom(e, area) {
-            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            const newScale = Math.min(1.0, Math.max(0.5, zoomState[area].scale + delta));
-            
-            const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            
-            zoomState[area].offsetX = mouseX - (mouseX - zoomState[area].offsetX) * (newScale / zoomState[area].scale);
-            zoomState[area].offsetY = mouseY - (mouseY - zoomState[area].offsetY) * (newScale / zoomState[area].scale);
-            
-            zoomState[area].scale = newScale;
-            clampTo400x800(area);
-            
-            area === 'left' ? updateLeftTransform() : updateRightTransform();
-        }
-
-        // ✅ 核心修正：永遠鎖在 400×800 範圍內，絕對不會跑出去
-        function clampTo400x800(area) {
-            const z = zoomState[area];
-            const maxOffsetX = (400 * (z.scale - 1)) / z.scale;
-            const maxOffsetY = (800 * (z.scale - 1)) / z.scale;
-
-            z.offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, z.offsetX));
-            z.offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, z.offsetY));
-        }
-
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const area = touch.clientX < window.innerWidth / 2 ? 'left' : 'right';
-            if (!area) return;
-            
-            zoomState.currentArea = area;
-            
-            if (e.touches.length === 1) {
-                zoomState[area].isDragging = true;
-                zoomState[area].startX = touch.clientX - zoomState[area].offsetX;
-                zoomState[area].startY = touch.clientY - zoomState[area].offsetY;
-            } else if (e.touches.length === 2) {
+                if (e.touches.length !== 2) return;
                 const t1 = e.touches[0], t2 = e.touches[1];
-                zoomState[area].initialDistance = getDistance(t1, t2);
-                zoomState[area].lastScale = zoomState[area].scale;
+                const d = Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+                const z = zoomState[area];
+                if (!z.lastDist) { z.lastDist = d; return; }
+                const scale = z.scale * (d / z.lastDist);
+                z.scale = Math.min(1, Math.max(0.5, scale));
+                z.lastDist = d;
+                clamp(area);
+                updateTransform();
             }
+            leftImgArea.addEventListener('touchmove', e => pinch('left', e));
+            rightImgArea.addEventListener('touchmove', e => pinch('right', e));
+            leftImgArea.addEventListener('touchend', () => { zoomState.left.lastDist = 0; });
+            rightImgArea.addEventListener('touchend', () => { zoomState.right.lastDist = 0; });
         }
+        setupEvents();
 
-        function handleTouchMove(e) {
-            e.preventDefault();
-            const area = zoomState.currentArea;
-            if (!area) return;
-
-            if (e.touches.length === 1 && zoomState[area].isDragging) {
-                const touch = e.touches[0];
-                zoomState[area].offsetX = touch.clientX - zoomState[area].startX;
-                zoomState[area].offsetY = touch.clientY - zoomState[area].startY;
-                clampTo400x800(area);
-                area === 'left' ? updateLeftTransform() : updateRightTransform();
-            }
-
-            if (e.touches.length === 2) {
-                const t1 = e.touches[0], t2 = e.touches[1];
-                const scale = Math.min(1.0, Math.max(0.5, getDistance(t1, t2) / zoomState[area].initialDistance * zoomState[area].lastScale));
-                zoomState[area].scale = scale;
-                clampTo400x800(area);
-                area === 'left' ? updateLeftTransform() : updateRightTransform();
-            }
-        }
-
-        function getDistance(t1, t2) {
-            return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-        }
-
-        function updateLeftTransform() {
-            leftSplitImg.style.transform = `translate(${zoomState.left.offsetX}px, ${zoomState.left.offsetY}px) scale(${zoomState.left.scale})`;
-        }
-
-        function updateRightTransform() {
-            rightSplitImg.style.transform = `translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
-        }
-
-        // 🔥 輸出永遠 800×800 + 你當前調整後的畫面
+        // 輸出 800×800
         function generateFinalImage() {
-            return new Promise((resolve) => {
+            return new Promise(resolve => {
                 finalCanvas.width = 800;
                 finalCanvas.height = 800;
                 finalCtx.fillStyle = "#fff";
@@ -573,7 +508,7 @@
                     finalCtx.save();
                     finalCtx.translate(200,400);
                     finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
-                    finalCtx.translate(zoomState.left.offsetX/zoomState.left.scale, zoomState.left.offsetY/zoomState.left.scale);
+                    finalCtx.translate(zoomState.left.x/zoomState.left.scale, zoomState.left.y/zoomState.left.scale);
                     finalCtx.drawImage(l,-200,-400,400,800);
                     finalCtx.restore();
 
@@ -583,13 +518,12 @@
                         finalCtx.save();
                         finalCtx.translate(600,400);
                         finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
-                        finalCtx.translate(zoomState.right.offsetX/zoomState.right.scale, zoomState.right.offsetY/zoomState.right.scale);
+                        finalCtx.translate(zoomState.right.x/zoomState.right.scale, zoomState.right.y/zoomState.right.scale);
                         finalCtx.drawImage(r,-200,-400,400,800);
                         finalCtx.restore();
-
                         finalCtx.fillStyle="#fff";
                         finalCtx.fillRect(399,0,2,800);
-                        setTimeout(()=>resolve(finalCanvas.toDataURL("image/png",1)), 100);
+                        setTimeout(()=>resolve(finalCanvas.toDataURL("image/png",1)),100);
                     };
                     r.src = rightSplitImg.src;
                 };
