@@ -88,16 +88,17 @@
             z-index: 5;
         }
 
-        /* 固定文字層 - 純白色 + 更靠近底部 */
+        /* 固定文字層 - 白字 + 黑框 + 靠近底部 */
         .fixed-text {
             position: absolute;
             font-size: 24px;
             font-weight: bold;
-            color: #ffffff; /* 純白色 */
+            color: #ffffff;
+            -webkit-text-stroke: 2px #000000;
             text-align: center;
             pointer-events: none;
             z-index: 10;
-            bottom: 12px; /* 更靠近底部 */
+            bottom: 12px;
             transform: translateX(-50%);
         }
         .fixed-text.left { left: 25%; }
@@ -146,26 +147,6 @@
             </button>
         </div>
 
-        <!-- 文字編輯區 → 移到 AI 點評上方 -->
-        <div class="section-title">文字編輯</div>
-        <div class="flex flex-wrap gap-2 justify-center mb-4">
-            <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
-                📅 左側加入日期
-            </button>
-            <button onclick="clearLeftText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
-                🧹 清除左側文字
-            </button>
-            <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
-                ⏱ 右側加入兩小時
-            </button>
-            <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
-                📅 右側加入日期
-            </button>
-            <button onclick="clearRightText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
-                🧹 清除右側文字
-            </button>
-        </div>
-
         <div class="section-title">AI 分析</div>
         <div class="flex-wrap gap-2 justify-center mb-5">
             <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-5 py-2.5 font-semibold text-xs w-full">
@@ -173,7 +154,7 @@
             </button>
         </div>
 
-        <div class="result-card p-4 mb-5 text-center">
+        <div class="result-card p-4 mb-3 text-center">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
             
             <!-- 截圖專用容器（只截圖片） -->
@@ -195,6 +176,28 @@
                 </button>
                 <button onclick="shareImage()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">
                     📤 分享照片
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== 文字編輯區：分享照片下方、AI點評上方 ===== -->
+        <div class="result-card p-3 mb-5">
+            <div class="section-title">文字編輯</div>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
+                    📅 左側加入今天日期
+                </button>
+                <button onclick="clearLeftText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
+                    🧹 清除左側文字
+                </button>
+                <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
+                    ⏱ 右側加入兩小時
+                </button>
+                <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
+                    📅 右側加入今天日期
+                </button>
+                <button onclick="clearRightText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
+                    🧹 清除右側文字
                 </button>
             </div>
         </div>
@@ -263,7 +266,7 @@
             initControls();
         }
 
-        // 文字控制（左右都支援）
+        // 文字控制
         function addTextLeft(t) {
             if(!captureTarget.style.display) return alert('請先產生拼圖');
             leftText.textContent = t;
