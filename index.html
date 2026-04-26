@@ -88,13 +88,13 @@
             z-index: 5;
         }
 
-        /* 固定文字層 - 白字更明顯 + 細黑框 + 字間距拉開 + 好看字體 */
+        /* 固定文字層 - 白字更明顯 + 細黑框（清楚不厚重） */
         .fixed-text {
             position: absolute;
             font-size: 26px;
             font-weight: bold;
             font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-            letter-spacing: 2px; /* 字體不黏在一起 */
+            letter-spacing: 3px; /* 文字完全不黏 */
             color: #ffffff;
             -webkit-text-stroke: 1px #000000;
             text-shadow: 0 0 1px rgba(0,0,0,0.3);
@@ -183,31 +183,34 @@
             </div>
         </div>
 
-        <!-- ===== 文字編輯區：分成「左側」「右側」版面超清楚 ===== -->
+        <!-- ===== 文字編輯區：分隔線｜ + 文字不黏 ===== -->
         <div class="result-card p-4 mb-5">
             <div class="section-title">文字編輯</div>
-            <div class="grid grid-cols-2 gap-3">
-                <!-- 左側文字按鈕 -->
+            <div class="flex items-center gap-3 justify-center">
+                <!-- 左側照片按鈕 -->
                 <div class="flex flex-col gap-2">
-                    <p class="text-xs font-semibold text-gray-600 text-left">⬅️ 左側照片</p>
-                    <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-2 py-2 text-xs rounded-lg">
+                    <p class="text-xs font-semibold text-gray-600">⬅️ 左側照片</p>
+                    <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">
                         📅 加入今天日期
                     </button>
-                    <button onclick="clearLeftText()" class="action-btn bg-gray-500 text-white px-2 py-2 text-xs rounded-lg">
+                    <button onclick="clearLeftText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">
                         🧹 清除文字
                     </button>
                 </div>
 
-                <!-- 右側文字按鈕 -->
+                <!-- 中間分隔線｜ -->
+                <div class="h-32 border-r border-gray-300"></div>
+
+                <!-- 右側照片按鈕 -->
                 <div class="flex flex-col gap-2">
-                    <p class="text-xs font-semibold text-gray-600 text-left">➡️ 右側照片</p>
-                    <button onclick="addTextRight('兩小時')" class="action-btn bg-orange-500 text-white px-2 py-2 text-xs rounded-lg">
+                    <p class="text-xs font-semibold text-gray-600">➡️ 右側照片</p>
+                    <button onclick="addTextRight('兩小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">
                         ⏱ 加入兩小時
                     </button>
-                    <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-2 py-2 text-xs rounded-lg">
+                    <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">
                         📅 加入今天日期
                     </button>
-                    <button onclick="clearRightText()" class="action-btn bg-gray-500 text-white px-2 py-2 text-xs rounded-lg">
+                    <button onclick="clearRightText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">
                         🧹 清除文字
                     </button>
                 </div>
