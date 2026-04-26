@@ -61,13 +61,13 @@
             background: #d1d5db;
         }
 
-        /* 🔥 核心：左右分區獨立縮放 */
+        /* 🔥 修改1：加宽对比容器，从350px改为450px，宽度适配 */
         .split-zoom-container {
             position: relative;
             overflow: hidden;
             border-radius: 16px;
             width: 100%;
-            height: 350px;
+            height: 450px; /* 加高容器 */
             touch-action: none;
         }
         /* 左側圖片區域 */
@@ -115,7 +115,7 @@
     </style>
 </head>
 <body class="min-h-screen p-3">
-    <div class="max-w-sm mx-auto">
+    <div class="max-w-md mx-auto"> <!-- 修改2：加宽主容器，从max-w-sm改为max-w-md -->
         <div class="text-center mb-4">
             <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
                 彥彬 AI 比對系統
@@ -648,69 +648,73 @@
             rightSplitImg.style.transform = `translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 🔥 核心：生成調整後的最終圖片
+        // 🔥 修改3：修复生成最终图片的逻辑，精确还原显示效果
         function generateFinalImage() {
-            // 設定最終canvas尺寸與顯示容器一致
-            const containerRect = splitZoomContainer.getBoundingClientRect();
-            finalCanvas.width = containerRect.width;
-            finalCanvas.height = containerRect.height;
-            finalCtx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
-            
-            // 繪製左側調整後的圖片
-            const leftImg = new Image();
-            leftImg.crossOrigin = 'anonymous';
-            leftImg.onload = function() {
-                finalCtx.save();
-                // 移動到左區域中心
-                finalCtx.translate(containerRect.width / 4, containerRect.height / 2);
-                // 應用縮放和偏移
-                finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
-                finalCtx.translate(
-                    zoomState.left.offsetX / zoomState.left.scale,
-                    zoomState.left.offsetY / zoomState.left.scale
-                );
-                // 繪製左圖（居中）
-                finalCtx.drawImage(
-                    leftImg,
-                    -leftImg.width / 2,
-                    -leftImg.height / 2
-                );
-                finalCtx.restore();
+            return new Promise((resolve) => {
+                // 获取容器的实际尺寸
+                const containerRect = splitZoomContainer.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
                 
-                // 繪製右側調整後的圖片
-                const rightImg = new Image();
-                rightImg.crossOrigin = 'anonymous';
-                rightImg.onload = function() {
+                // 设置finalCanvas尺寸与显示容器完全一致
+                finalCanvas.width = containerWidth;
+                finalCanvas.height = containerHeight;
+                finalCtx.clearRect(0, 0, containerWidth, containerHeight);
+                
+                // 先绘制白色背景
+                finalCtx.fillStyle = "#ffffff";
+                finalCtx.fillRect(0, 0, containerWidth, containerHeight);
+                
+                // 加载左侧图片
+                const leftImg = new Image();
+                leftImg.crossOrigin = 'anonymous';
+                leftImg.onload = function() {
+                    // 绘制左侧调整后的图片
                     finalCtx.save();
-                    // 移動到右區域中心
-                    finalCtx.translate(containerRect.width * 3 / 4, containerRect.height / 2);
-                    // 應用縮放和偏移
-                    finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
+                    // 切换到左侧区域坐标系
+                    finalCtx.translate(containerWidth / 4, containerHeight / 2);
+                    // 应用缩放
+                    finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
+                    // 应用偏移
                     finalCtx.translate(
-                        zoomState.right.offsetX / zoomState.right.scale,
-                        zoomState.right.offsetY / zoomState.right.scale
+                        zoomState.left.offsetX / zoomState.left.scale,
+                        zoomState.left.offsetY / zoomState.left.scale
                     );
-                    // 繪製右圖（居中）
-                    finalCtx.drawImage(
-                        rightImg,
-                        -rightImg.width / 2,
-                        -rightImg.height / 2
-                    );
+                    // 居中绘制图片
+                    finalCtx.drawImage(leftImg, -leftImg.width / 2, -leftImg.height / 2);
                     finalCtx.restore();
                     
-                    // 繪製中間分隔線
-                    finalCtx.fillStyle = "#ffffff";
-                    finalCtx.fillRect(containerRect.width / 2 - 1, 0, 2, containerRect.height);
+                    // 加载右侧图片
+                    const rightImg = new Image();
+                    rightImg.crossOrigin = 'anonymous';
+                    rightImg.onload = function() {
+                        // 绘制右侧调整后的图片
+                        finalCtx.save();
+                        // 切换到右侧区域坐标系
+                        finalCtx.translate(containerWidth * 3 / 4, containerHeight / 2);
+                        // 应用缩放
+                        finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
+                        // 应用偏移
+                        finalCtx.translate(
+                            zoomState.right.offsetX / zoomState.right.scale,
+                            zoomState.right.offsetY / zoomState.right.scale
+                        );
+                        // 居中绘制图片
+                        finalCtx.drawImage(rightImg, -rightImg.width / 2, -rightImg.height / 2);
+                        finalCtx.restore();
+                        
+                        // 绘制中间分隔线
+                        finalCtx.fillStyle = "#ffffff";
+                        finalCtx.fillRect(containerWidth / 2 - 1, 0, 2, containerHeight);
+                        
+                        // 等待绘制完成后返回数据URL
+                        setTimeout(() => {
+                            resolve(finalCanvas.toDataURL('image/png', 1.0));
+                        }, 100);
+                    };
+                    rightImg.src = rightSplitImg.src;
                 };
-                rightImg.src = rightSplitImg.src;
-            };
-            leftImg.src = leftSplitImg.src;
-            
-            return new Promise(resolve => {
-                // 等待繪製完成
-                setTimeout(() => {
-                    resolve(finalCanvas.toDataURL('image/png'));
-                }, 100);
+                leftImg.src = leftSplitImg.src;
             });
         }
 
