@@ -111,6 +111,26 @@
             z-index: 5;
             transform: translateX(-50%);
         }
+
+        /* 固定文字圖層 */
+        .fixed-text {
+            position: absolute;
+            bottom: 20px;
+            width: 50%;
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: white;
+            text-shadow: black 0px 0px 6px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        #fixedLeftText {
+            left: 0;
+        }
+        #fixedRightText {
+            right: 0;
+        }
     </style>
 </head>
 <body class="min-h-screen p-3">
@@ -154,7 +174,7 @@
 
         <div class="section-title">文字編輯</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
-            <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
+            <button onclick="setLeftText(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
                 📅 左邊加入日期
             </button>
             <button onclick="clearLeftText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
@@ -162,10 +182,10 @@
             </button>
         </div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
-            <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
+            <button onclick="setRightText('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
                 ⏱ 右邊加入兩小時
             </button>
-            <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
+            <button onclick="setRightText(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
                 📅 右邊加入日期
             </button>
             <button onclick="clearRightText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
@@ -191,6 +211,10 @@
                     <img id="rightSplitImg" class="split-img">
                 </div>
                 <div class="divider-line"></div>
+
+                <!-- 固定文字 -->
+                <div id="fixedLeftText" class="fixedText"></div>
+                <div id="fixedRightText" class="fixedText"></div>
             </div>
 
             <div class="flex gap-2 justify-center mt-3">
@@ -222,6 +246,9 @@
         const rightImgArea = document.getElementById('rightImgArea');
         const captureContainer = document.getElementById('capture-target');
         
+        const fixedLeftText = document.getElementById('fixedLeftText');
+        const fixedRightText = document.getElementById('fixedRightText');
+
         // 匯出尺寸 6:8
         const EXPORT_WIDTH = 600;
         const EXPORT_HEIGHT = 800;
@@ -241,6 +268,18 @@
             const day = String(now.getDate()).padStart(2, '0');
             return `${year}/${month}/${day}`;
         }
+
+        // 固定文字功能（新）
+        function setLeftText(text) {
+            if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
+            fixedLeftText.textContent = text;
+        }
+        function setRightText(text) {
+            if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
+            fixedRightText.textContent = text;
+        }
+        function clearLeftText() { fixedLeftText.textContent = ''; }
+        function clearRightText() { fixedRightText.textContent = ''; }
 
         document.getElementById('leftImg').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -330,115 +369,6 @@
                 imgR.src = rightPreview.src;
             }
             imgL.src = leftPreview.src;
-        }
-
-        // === 左邊圖片文字功能 ===
-        function addTextLeft(text) {
-            if (!splitZoomContainer.style.display) {
-                alert('請先產生拼圖');
-                return;
-            }
-            
-            const imgL = new Image();
-            imgL.crossOrigin = 'anonymous';
-            imgL.onload = function() {
-                const TOP_CROP = 0.02;
-                const BOTTOM_CROP = 0.88;
-                
-                const leftCanvas = document.createElement('canvas');
-                const leftCtx = leftCanvas.getContext('2d');
-                leftCanvas.width = HALF_WIDTH;
-                leftCanvas.height = EXPORT_HEIGHT;
-                leftCtx.clearRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
-                
-                leftCtx.fillStyle = "#ffffff";
-                leftCtx.fillRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
-                
-                const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
-                leftCtx.drawImage(
-                    imgL,
-                    0, imgL.height * TOP_CROP, imgL.width, cropH_L,
-                    BORDER_WIDTH, BORDER_WIDTH,
-                    HALF_WIDTH - BORDER_WIDTH * 2,
-                    EXPORT_HEIGHT - BORDER_WIDTH * 2
-                );
-                
-                leftCtx.font = 'bold 40px Arial';
-                leftCtx.fillStyle = 'white';
-                leftCtx.strokeStyle = 'black';
-                leftCtx.lineWidth = 8;
-                leftCtx.textAlign = 'center';
-                leftCtx.strokeText(text, HALF_WIDTH/2, EXPORT_HEIGHT - 65);
-                leftCtx.fillText(text, HALF_WIDTH/2, EXPORT_HEIGHT - 65);
-                
-                leftSplitImg.src = leftCanvas.toDataURL('image/png');
-                window.shareLeftCanvas = leftCanvas;
-            }
-            imgL.src = leftPreview.src;
-        }
-
-        // === 右邊圖片文字功能 ===
-        function addTextRight(text) {
-            if (!splitZoomContainer.style.display) {
-                alert('請先產生拼圖');
-                return;
-            }
-            
-            const imgR = new Image();
-            imgR.crossOrigin = 'anonymous';
-            imgR.onload = function() {
-                const TOP_CROP = 0.02;
-                const BOTTOM_CROP = 0.88;
-                
-                const rightCanvas = document.createElement('canvas');
-                const rightCtx = rightCanvas.getContext('2d');
-                rightCanvas.width = HALF_WIDTH;
-                rightCanvas.height = EXPORT_HEIGHT;
-                rightCtx.clearRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
-                
-                rightCtx.fillStyle = "#ffffff";
-                rightCtx.fillRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
-                
-                const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
-                rightCtx.drawImage(
-                    imgR,
-                    0, imgR.height * TOP_CROP, imgR.width, cropH_R,
-                    BORDER_WIDTH, BORDER_WIDTH,
-                    HALF_WIDTH - BORDER_WIDTH * 2,
-                    EXPORT_HEIGHT - BORDER_WIDTH * 2
-                );
-                
-                rightCtx.font = 'bold 40px Arial';
-                rightCtx.fillStyle = 'white';
-                rightCtx.strokeStyle = 'black';
-                rightCtx.lineWidth = 8;
-                rightCtx.textAlign = 'center';
-                rightCtx.strokeText(text, HALF_WIDTH/2, EXPORT_HEIGHT - 65);
-                rightCtx.fillText(text, HALF_WIDTH/2, EXPORT_HEIGHT - 65);
-                
-                rightSplitImg.src = rightCanvas.toDataURL('image/png');
-                window.shareRightCanvas = rightCanvas;
-            }
-            imgR.src = rightPreview.src;
-        }
-
-        function clearLeftText() {
-            if (!leftPreview.src || !rightPreview.src) return;
-            mergeImages();
-        }
-
-        function clearRightText() {
-            if (!leftPreview.src || !rightPreview.src) return;
-            mergeImages();
-        }
-
-        function resetZoomState() {
-            zoomState.left = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
-            zoomState.right = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
-            zoomState.currentArea = null;
-            
-            updateLeftTransform();
-            updateRightTransform();
         }
 
         // 完美拖移邊界限制：不超出圖片、不顯示黑底
@@ -583,7 +513,7 @@
             
             if (e.touches.length === 1 && zoomState[area].isDragging) {
                 zoomState[area].offsetX = touch.clientX - rect.left - zoomState[area].startX;
-                zoomState[area].offsetY = touch.clientY - rect.top - zoomState[area].startY;
+                zoomState[area].offsetY = touch.clientY - rect.top - zoomState[area].offsetY;
                 clampOffset(area);
                 area === 'left' ? updateLeftTransform() : updateRightTransform();
             }
