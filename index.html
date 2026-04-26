@@ -80,6 +80,12 @@
             <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-4 py-2.5 font-semibold text-xs">
                 🔗 標準證件照拼圖
             </button>
+            <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2.5 font-semibold text-xs">
+                ⏱ 加入兩小時
+            </button>
+            <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2.5 font-semibold text-xs">
+                📅 加入今日日期
+            </button>
             <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-4 py-2.5 font-semibold text-xs">
                 🤖 AI點評
             </button>
@@ -117,17 +123,19 @@
         const rightPreview = document.getElementById('rightPreview');
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
+        const PORTRAIT_HEIGHT = 840;
+        const PORTRAIT_WIDTH = 580;
 
-        // 日期格式：115/4/26
+        // 日期格式：115/4/02
         function getTaiwanDate() {
             const now = new Date();
             const year = now.getFullYear() - 1911;
-            const month = now.getMonth() + 1;
-            const day = now.getDate();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
             return `${year}/${month}/${day}`;
         }
 
-        // 修復上傳
+        // 上傳圖片
         document.getElementById('leftImg').addEventListener('change', loadLeftImage);
         document.getElementById('rightImg').addEventListener('change', loadRightImage);
 
@@ -157,7 +165,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 🔥 頂級標準：證件照三庭五眼嚴格對比
+        // 🔥 標準證件照拼圖（預設不加入任何文字）
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -171,61 +179,43 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    // ==============================
-                    // 證件照嚴格標準（三庭五眼等比例）
-                    // ==============================
-                    const PORTRAIT_HEIGHT = 840;    // 證件照高度
-                    const PORTRAIT_WIDTH  = 580;    // 證件照寬度（標準1寸比例）
-                    
-                    // 頂部裁切：頭頂上方 8%（標準證件照）
                     const TOP_CROP = 0.08;
-                    // 底部裁切：鎖定下巴到胸上（三庭五眼標準）
                     const BOTTOM_CROP = 0.75;
 
-                    // 畫布設定
-                    mergeCanvas.width  = PORTRAIT_WIDTH * 2;
+                    mergeCanvas.width = PORTRAIT_WIDTH * 2;
                     mergeCanvas.height = PORTRAIT_HEIGHT;
                     ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    // 繪製左圖（嚴格標準）
+                    // 左圖
                     const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
-                    ctx.drawImage(
-                        imgL,
-                        0, imgL.height * TOP_CROP,
-                        imgL.width, cropH_L,
-                        0, 0,
-                        PORTRAIT_WIDTH, PORTRAIT_HEIGHT
-                    );
+                    ctx.drawImage(imgL, 0, imgL.height * TOP_CROP, imgL.width, cropH_L, 0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
 
-                    // 繪製右圖（完全相同標準）
+                    // 右圖
                     const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
-                    ctx.drawImage(
-                        imgR,
-                        0, imgR.height * TOP_CROP,
-                        imgR.width, cropH_R,
-                        PORTRAIT_WIDTH, 0,
-                        PORTRAIT_WIDTH, PORTRAIT_HEIGHT
-                    );
-
-                    // 文字（證件照風格）
-                    ctx.font = 'bold 48px Arial';
-                    ctx.fillStyle = 'white';
-                    ctx.strokeStyle = 'black';
-                    ctx.lineWidth = 9;
-                    ctx.textAlign = 'center';
-                    const ty = PORTRAIT_HEIGHT - 40;
-
-                    ctx.strokeText(getTaiwanDate(), PORTRAIT_WIDTH/2, ty);
-                    ctx.fillText(getTaiwanDate(), PORTRAIT_WIDTH/2, ty);
-                    ctx.strokeText('兩小時', PORTRAIT_WIDTH * 1.5, ty);
-                    ctx.fillText('兩小時', PORTRAIT_WIDTH * 1.5, ty);
+                    ctx.drawImage(imgR, 0, imgR.height * TOP_CROP, imgR.width, cropH_R, PORTRAIT_WIDTH, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
                 }
                 imgR.src = rightPreview.src;
             }
             imgL.src = leftPreview.src;
         }
 
-        // 下載
+        // 在右邊圖片加入文字（你按鈕觸發）
+        function addTextRight(text) {
+            if (!mergeCanvas.width) {
+                alert('請先產生拼圖');
+                return;
+            }
+            ctx.font = 'bold 48px Arial';
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 9;
+            ctx.textAlign = 'center';
+            const ty = PORTRAIT_HEIGHT - 40;
+            ctx.strokeText(text, PORTRAIT_WIDTH * 1.5, ty);
+            ctx.fillText(text, PORTRAIT_WIDTH * 1.5, ty);
+        }
+
+        // ✅ 修復下載
         async function downloadMerge() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
@@ -238,7 +228,9 @@
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = fileName;
+                document.body.appendChild(a);
                 a.click();
+                a.remove();
                 URL.revokeObjectURL(url);
                 alert('✅ 已儲存至手機相簿！');
             } catch (e) {
