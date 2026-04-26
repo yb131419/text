@@ -184,9 +184,6 @@
             <canvas id="finalCanvas" class="hidden"></canvas>
 
             <div class="flex gap-2 justify-center mt-3">
-                <button onclick="captureAndSave()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-indigo-700 transition">
-                    📸 截圖儲存
-                </button>
                 <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">
                     💾 下載相簿
                 </button>
@@ -449,13 +446,11 @@
                 if (zoomState.left.isDragging) {
                     zoomState.left.offsetX = e.clientX - zoomState.left.startX;
                     zoomState.left.offsetY = e.clientY - zoomState.left.startY;
-                    clampTransform('left');
                     updateLeftTransform();
                 }
                 if (zoomState.right.isDragging) {
                     zoomState.right.offsetX = e.clientX - zoomState.right.startX;
                     zoomState.right.offsetY = e.clientY - zoomState.right.startY;
-                    clampTransform('right');
                     updateRightTransform();
                 }
             });
@@ -483,10 +478,9 @@
             });
         }
 
-        // 🔥 修正1：限制縮放 = 1.0（不放大，只可縮小）
         function handleZoom(e, area) {
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            const newScale = Math.min(1.0, Math.max(0.5, zoomState[area].scale + delta));
+            const newScale = Math.min(3, Math.max(0.8, zoomState[area].scale + delta));
             
             const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
@@ -496,21 +490,12 @@
             zoomState[area].offsetY = mouseY - (mouseY - zoomState[area].offsetY) * (newScale / zoomState[area].scale);
             
             zoomState[area].scale = newScale;
-            clampTransform(area);
             
             if (area === 'left') {
                 updateLeftTransform();
             } else {
                 updateRightTransform();
             }
-        }
-
-        // 🔥 修正2：拖動不超出圖片範圍
-        function clampTransform(area) {
-            const z = zoomState[area];
-            const maxOffset = (HALF_SIZE * (z.scale - 1)) / z.scale;
-            z.offsetX = Math.max(-maxOffset, Math.min(maxOffset, z.offsetX));
-            z.offsetY = Math.max(-maxOffset, Math.min(maxOffset, z.offsetY));
         }
 
         function handleTouchStart(e) {
@@ -555,7 +540,6 @@
             if (e.touches.length === 1 && zoomState[area].isDragging) {
                 zoomState[area].offsetX = touch.clientX - zoomState[area].startX;
                 zoomState[area].offsetY = touch.clientY - zoomState[area].startY;
-                clampTransform(area);
                 
                 if (area === 'left') {
                     updateLeftTransform();
@@ -568,8 +552,8 @@
                 const t2 = e.touches[1];
                 const newDistance = getDistance(t1, t2);
                 const scaleRatio = newDistance / zoomState[area].initialDistance;
-                zoomState[area].scale = Math.min(1.0, Math.max(0.5, zoomState[area].lastScale * scaleRatio));
-                clampTransform(area);
+                
+                zoomState[area].scale = Math.min(3, Math.max(0.8, zoomState[area].lastScale * scaleRatio));
                 
                 if (area === 'left') {
                     updateLeftTransform();
@@ -593,58 +577,54 @@
             rightSplitImg.style.transform = `translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 🔥 修正3：截圖永遠儲存 原始800x800標準尺寸
+        // 🔥 核心修正：輸出你「當前調整後的畫面」+「標準800x800」
         function generateFinalImage() {
             return new Promise((resolve) => {
                 finalCanvas.width = FULL_SIZE;
                 finalCanvas.height = FULL_SIZE;
                 finalCtx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
-                
-                finalCtx.fillStyle = "#ffffff";
-                finalCtx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
-                
-                const leftImg = new Image();
-                leftImg.crossOrigin = 'anonymous';
-                leftImg.onload = function() {
-                    finalCtx.drawImage(leftImg, 0, 0, HALF_SIZE, FULL_SIZE);
-                    
-                    const rightImg = new Image();
-                    rightImg.crossOrigin = 'anonymous';
-                    rightImg.onload = function() {
-                        finalCtx.drawImage(rightImg, HALF_SIZE, 0, HALF_SIZE, FULL_SIZE);
-                        finalCtx.fillStyle = "#ffffff";
-                        finalCtx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
-                        
-                        setTimeout(() => {
-                            resolve(finalCanvas.toDataURL('image/png', 1.0));
-                        }, 100);
-                    };
-                    rightImg.src = rightSplitImg.src;
-                };
-                leftImg.src = leftSplitImg.src;
-            });
-        }
 
-        async function captureAndSave() {
-            if (!splitZoomContainer.style.display) {
-                alert('請先產生拼圖');
-                return;
-            }
-            
-            try {
-                const finalDataUrl = await generateFinalImage();
-                const link = document.createElement('a');
-                link.href = finalDataUrl;
-                link.download = "彥彬_證件照_標準版.png";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                alert('✅ 截圖儲存成功！原始標準尺寸');
-            } catch (e) {
-                console.error('截圖失敗', e);
-                alert('❌ 截圖失敗');
-            }
+                finalCtx.fillStyle = "#fff";
+                finalCtx.fillRect(0,0, FULL_SIZE, FULL_SIZE);
+
+                // 繪製左圖（包含縮放＆位移）
+                const l = new Image();
+                l.crossOrigin="anonymous";
+                l.onload = () => {
+                    finalCtx.save();
+                    finalCtx.translate(HALF_SIZE/2, FULL_SIZE/2);
+                    finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
+                    finalCtx.translate(
+                        zoomState.left.offsetX / zoomState.left.scale,
+                        zoomState.left.offsetY / zoomState.left.scale
+                    );
+                    finalCtx.drawImage(l, -HALF_SIZE/2, -FULL_SIZE/2, HALF_SIZE, FULL_SIZE);
+                    finalCtx.restore();
+
+                    // 繪製右圖（包含縮放＆位移）
+                    const r = new Image();
+                    r.crossOrigin="anonymous";
+                    r.onload = () => {
+                        finalCtx.save();
+                        finalCtx.translate(HALF_SIZE + HALF_SIZE/2, FULL_SIZE/2);
+                        finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
+                        finalCtx.translate(
+                            zoomState.right.offsetX / zoomState.right.scale,
+                            zoomState.right.offsetY / zoomState.right.scale
+                        );
+                        finalCtx.drawImage(r, -HALF_SIZE/2, -FULL_SIZE/2, HALF_SIZE, FULL_SIZE);
+                        finalCtx.restore();
+
+                        // 中間白線
+                        finalCtx.fillStyle="#fff";
+                        finalCtx.fillRect(HALF_SIZE-1,0, 2, FULL_SIZE);
+
+                        setTimeout(()=>resolve(finalCanvas.toDataURL("image/png",1)), 100);
+                    };
+                    r.src = rightSplitImg.src;
+                };
+                l.src = leftSplitImg.src;
+            });
         }
 
         async function downloadMerge() {
@@ -661,23 +641,23 @@
                 if (isIOS || isAndroid) {
                     const link = document.createElement('a');
                     link.href = finalDataUrl;
-                    link.download = "彥彬_證件照_標準版.png";
+                    link.download = "彥彬_證件照_調整後.png";
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     
                     setTimeout(() => {
-                        alert('✅ 下載成功！原始標準尺寸');
+                        alert('✅ 下載成功！已儲存你的調整結果');
                     }, 500);
                 } else {
                     const blob = await fetch(finalDataUrl).then(res => res.blob());
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = "彥彬_證件照_標準版.png";
+                    a.download = "彥彬_證件照_調整後.png";
                     a.click();
                     URL.revokeObjectURL(url);
-                    alert('✅ 下載成功！原始標準尺寸');
+                    alert('✅ 下載成功！已儲存你的調整結果');
                 }
             } catch (e) {
                 console.error('下載失敗:', e);
@@ -694,7 +674,7 @@
             try {
                 const finalDataUrl = await generateFinalImage();
                 const blob = await fetch(finalDataUrl).then(res => res.blob());
-                const file = new File([blob], "彥彬_證件照_標準版.png", { type: 'image/png' });
+                const file = new File([blob], "彥彬_證件照_調整後.png", { type: 'image/png' });
                 
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({ 
