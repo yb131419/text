@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彥彬 AI 比對系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 新增：引入html2canvas庫用於截圖 -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         body {
@@ -63,14 +62,16 @@
             background: #d1d5db;
         }
 
-        /* 修复：统一容器和图片的变换基准 */
+        /* 关键修改：统一预览容器比例与最终分享图片一致 */
         .split-zoom-container {
             position: relative;
             overflow: hidden;
             border-radius: 16px;
             width: 100%;
-            height: 480px; /* 略微增高容器，优化显示比例 */
+            max-width: 800px; /* 固定最大宽度 */
+            height: 800px;    /* 保持800x800正方形比例 */
             touch-action: none;
+            margin: 0 auto;   /* 居中显示 */
         }
         .left-img-area {
             position: absolute;
@@ -90,7 +91,6 @@
             overflow: hidden;
             cursor: zoom-in;
         }
-        /* 修复：确保图片初始居中，变换基准点为中心 */
         .split-img {
             position: absolute;
             top: 50%;
@@ -100,7 +100,6 @@
             transition: transform 0.2s ease-out;
             transform-origin: center center;
             user-select: none;
-            /* 初始居中 */
             transform: translate(-50%, -50%) scale(1);
         }
         .divider-line {
@@ -180,7 +179,7 @@
         <div class="result-card p-4 mb-5 text-center">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
             
-            <!-- 修改：單獨給圖片容器加截圖ID，排除標題和按鈕 -->
+            <!-- 截圖容器：僅包含圖片區域 -->
             <div id="capture-container" class="split-zoom-container mx-auto" style="display: none;">
                 <div class="left-img-area" id="leftImgArea">
                     <img id="leftSplitImg" class="split-img">
@@ -217,23 +216,21 @@
         const rightPreview = document.getElementById('rightPreview');
         const mergeCanvas = document.getElementById('mergeCanvas');
         const finalCanvas = document.getElementById('finalCanvas');
-        const splitZoomContainer = document.getElementById('capture-container'); // 修改：直接使用截圖容器
+        const splitZoomContainer = document.getElementById('capture-container');
         const leftSplitImg = document.getElementById('leftSplitImg');
         const rightSplitImg = document.getElementById('rightSplitImg');
         const leftImgArea = document.getElementById('leftImgArea');
         const rightImgArea = document.getElementById('rightImgArea');
-        // 截圖容器（僅包含圖片區域）
         const captureContainer = document.getElementById('capture-container');
         const ctx = mergeCanvas.getContext('2d');
         const finalCtx = finalCanvas.getContext('2d');
         
-        // 修改：調整尺寸比例，從800改為860x800，優化臉型顯示比例
-        const FULL_WIDTH = 860;   // 略微加寬
-        const FULL_HEIGHT = 800;  // 保持高度
-        const HALF_WIDTH = FULL_WIDTH / 2;
+        // 恢复800x800标准正方形比例（与分享图片一致）
+        const FULL_SIZE = 800;
+        const HALF_SIZE = FULL_SIZE / 2;
         const BORDER_WIDTH = 2;
 
-        // 修复：重新定义缩放状态，基于中心偏移
+        // 缩放状态管理
         const zoomState = {
             left: { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 },
             right: { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 },
@@ -290,32 +287,32 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    // 修改：優化裁切比例，減少變形
-                    const TOP_CROP = 0.01;    // 減少頂部裁切
-                    const BOTTOM_CROP = 0.90; // 略微增加底部顯示
+                    const TOP_CROP = 0.01;
+                    const BOTTOM_CROP = 0.90;
 
                     // 生成左側圖片
                     const leftCanvas = document.createElement('canvas');
                     const leftCtx = leftCanvas.getContext('2d');
-                    leftCanvas.width = HALF_WIDTH;  // 使用新的半寬
-                    leftCanvas.height = FULL_HEIGHT;
-                    leftCtx.clearRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
+                    leftCanvas.width = HALF_SIZE;
+                    leftCanvas.height = FULL_SIZE;
+                    leftCtx.clearRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
                     // 左圖白色外框
                     leftCtx.fillStyle = "#ffffff";
-                    leftCtx.fillRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
+                    leftCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
                     const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
-                    // 修改：調整繪製比例，保持圖片原始寬高比
+                    // 計算圖片繪製比例（保持原比例）
                     const scaleRatioL = Math.min(
-                        (HALF_WIDTH - BORDER_WIDTH * 2) / imgL.width,
-                        (FULL_HEIGHT - BORDER_WIDTH * 2) / cropH_L
+                        (HALF_SIZE - BORDER_WIDTH * 2) / imgL.width,
+                        (FULL_SIZE - BORDER_WIDTH * 2) / cropH_L
                     );
                     const drawWidthL = imgL.width * scaleRatioL;
                     const drawHeightL = cropH_L * scaleRatioL;
-                    const offsetXL = (HALF_WIDTH - drawWidthL) / 2;
-                    const offsetYL = (FULL_HEIGHT - drawHeightL) / 2;
+                    const offsetXL = (HALF_SIZE - drawWidthL) / 2;
+                    const offsetYL = (FULL_SIZE - drawHeightL) / 2;
                     
+                    // 繪製圖片（只在圖片區域內）
                     leftCtx.drawImage(
                         imgL,
                         0, imgL.height * TOP_CROP, imgL.width, cropH_L,
@@ -324,36 +321,40 @@
                         drawHeightL
                     );
                     
-                    // 左圖日期（調整位置適配新尺寸）
+                    // 关键修改：日期文字绘制在图片区域内（而非外围）
+                    // 计算文字位置：基于图片实际显示区域
+                    const textX = HALF_SIZE / 2;
+                    // 文字Y坐标：图片底部上方50px（确保在图片内）
+                    const textY = offsetYL + drawHeightL - 50;
+                    
                     leftCtx.font = 'bold 40px Arial';
                     leftCtx.fillStyle = 'white';
                     leftCtx.strokeStyle = 'black';
                     leftCtx.lineWidth = 8;
                     leftCtx.textAlign = 'center';
-                    leftCtx.strokeText(getTaiwanDate(), HALF_WIDTH/2, FULL_HEIGHT - 65);
-                    leftCtx.fillText(getTaiwanDate(), HALF_WIDTH/2, FULL_HEIGHT - 65);
+                    leftCtx.strokeText(getTaiwanDate(), textX, textY);
+                    leftCtx.fillText(getTaiwanDate(), textX, textY);
 
                     // 生成右側圖片
                     const rightCanvas = document.createElement('canvas');
                     const rightCtx = rightCanvas.getContext('2d');
-                    rightCanvas.width = HALF_WIDTH;
-                    rightCanvas.height = FULL_HEIGHT;
-                    rightCtx.clearRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
+                    rightCanvas.width = HALF_SIZE;
+                    rightCanvas.height = FULL_SIZE;
+                    rightCtx.clearRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
                     // 右圖白色外框
                     rightCtx.fillStyle = "#ffffff";
-                    rightCtx.fillRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
+                    rightCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
                     const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
-                    // 修改：保持右圖比例一致
                     const scaleRatioR = Math.min(
-                        (HALF_WIDTH - BORDER_WIDTH * 2) / imgR.width,
-                        (FULL_HEIGHT - BORDER_WIDTH * 2) / cropH_R
+                        (HALF_SIZE - BORDER_WIDTH * 2) / imgR.width,
+                        (FULL_SIZE - BORDER_WIDTH * 2) / cropH_R
                     );
                     const drawWidthR = imgR.width * scaleRatioR;
                     const drawHeightR = cropH_R * scaleRatioR;
-                    const offsetXR = (HALF_WIDTH - drawWidthR) / 2;
-                    const offsetYR = (FULL_HEIGHT - drawHeightR) / 2;
+                    const offsetXR = (HALF_SIZE - drawWidthR) / 2;
+                    const offsetYR = (FULL_SIZE - drawHeightR) / 2;
                     
                     rightCtx.drawImage(
                         imgR,
@@ -368,25 +369,20 @@
                     rightSplitImg.src = rightCanvas.toDataURL('image/png');
                     splitZoomContainer.style.display = 'block';
                     
-                    // 初始化左右分區縮放控制
+                    // 初始化縮放控制
                     initSplitZoomControls();
                     
-                    // 同時生成完整拼圖用於初始下載
-                    mergeCanvas.width = FULL_WIDTH;
-                    mergeCanvas.height = FULL_HEIGHT;
-                    ctx.clearRect(0, 0, FULL_WIDTH, FULL_HEIGHT);
-                    // 完整拼圖白色外框
+                    // 生成完整拼圖
+                    mergeCanvas.width = FULL_SIZE;
+                    mergeCanvas.height = FULL_SIZE;
+                    ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
                     ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, FULL_WIDTH, FULL_HEIGHT);
-                    // 繪製左圖
+                    ctx.fillRect(0, 0, FULL_SIZE, FULL_HEIGHT);
                     ctx.drawImage(leftCanvas, 0, 0);
-                    // 繪製右圖
-                    ctx.drawImage(rightCanvas, HALF_WIDTH, 0);
-                    // 中間分隔線
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(HALF_WIDTH - 1, 0, 2, FULL_HEIGHT);
+                    ctx.drawImage(rightCanvas, HALF_SIZE, 0);
+                    ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
                     
-                    // 保存分享用的画布数据
+                    // 保存分享用画布
                     window.shareLeftCanvas = leftCanvas;
                     window.shareRightCanvas = rightCanvas;
                 }
@@ -410,24 +406,23 @@
                 // 生成右側圖片
                 const rightCanvas = document.createElement('canvas');
                 const rightCtx = rightCanvas.getContext('2d');
-                rightCanvas.width = HALF_WIDTH;
-                rightCanvas.height = FULL_HEIGHT;
-                rightCtx.clearRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
+                rightCanvas.width = HALF_SIZE;
+                rightCanvas.height = FULL_SIZE;
+                rightCtx.clearRect(0, 0, HALF_SIZE, FULL_SIZE);
                 
                 // 右圖白色外框
                 rightCtx.fillStyle = "#ffffff";
-                rightCtx.fillRect(0, 0, HALF_WIDTH, FULL_HEIGHT);
+                rightCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
                 
                 const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
-                // 保持比例繪製
                 const scaleRatioR = Math.min(
-                    (HALF_WIDTH - BORDER_WIDTH * 2) / imgR.width,
-                    (FULL_HEIGHT - BORDER_WIDTH * 2) / cropH_R
+                    (HALF_SIZE - BORDER_WIDTH * 2) / imgR.width,
+                    (FULL_SIZE - BORDER_WIDTH * 2) / cropH_R
                 );
                 const drawWidthR = imgR.width * scaleRatioR;
                 const drawHeightR = cropH_R * scaleRatioR;
-                const offsetXR = (HALF_WIDTH - drawWidthR) / 2;
-                const offsetYR = (FULL_HEIGHT - drawHeightR) / 2;
+                const offsetXR = (HALF_SIZE - drawWidthR) / 2;
+                const offsetYR = (FULL_SIZE - drawHeightR) / 2;
                 
                 rightCtx.drawImage(
                     imgR,
@@ -437,14 +432,17 @@
                     drawHeightR
                 );
                 
-                // 添加文字
+                // 关键修改：文字绘制在图片区域内
+                const textX = HALF_SIZE / 2;
+                const textY = offsetYR + drawHeightR - 50; // 图片底部上方50px
+                
                 rightCtx.font = 'bold 40px Arial';
                 rightCtx.fillStyle = 'white';
                 rightCtx.strokeStyle = 'black';
                 rightCtx.lineWidth = 8;
                 rightCtx.textAlign = 'center';
-                rightCtx.strokeText(text, HALF_WIDTH/2, FULL_HEIGHT - 65);
-                rightCtx.fillText(text, HALF_WIDTH/2, FULL_HEIGHT - 65);
+                rightCtx.strokeText(text, textX, textY);
+                rightCtx.fillText(text, textX, textY);
                 
                 // 更新右側圖片
                 rightSplitImg.src = rightCanvas.toDataURL('image/png');
@@ -453,21 +451,16 @@
                 window.shareRightCanvas = rightCanvas;
                 
                 // 更新完整拼圖
-                mergeCanvas.width = FULL_WIDTH;
-                mergeCanvas.height = FULL_HEIGHT;
-                ctx.clearRect(0, 0, FULL_WIDTH, FULL_HEIGHT);
-                // 完整拼圖白色外框
+                mergeCanvas.width = FULL_SIZE;
+                mergeCanvas.height = FULL_SIZE;
+                ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
                 ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, FULL_WIDTH, FULL_HEIGHT);
-                // 重新繪製左圖
+                ctx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
                 const leftImg = new Image();
                 leftImg.onload = function() {
                     ctx.drawImage(leftImg, 0, 0);
-                    // 繪製更新後的右圖
-                    ctx.drawImage(rightCanvas, HALF_WIDTH, 0);
-                    // 中間分隔線
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(HALF_WIDTH - 1, 0, 2, FULL_HEIGHT);
+                    ctx.drawImage(rightCanvas, HALF_SIZE, 0);
+                    ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
                 }
                 leftImg.src = leftSplitImg.src;
             }
@@ -482,7 +475,6 @@
 
         // 重置縮放狀態
         function resetZoomState() {
-            // 重置縮放狀態
             zoomState.left = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
             zoomState.right = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
             zoomState.currentArea = null;
@@ -492,7 +484,6 @@
         }
 
         function initSplitZoomControls() {
-            // 重置縮放狀態
             zoomState.left = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
             zoomState.right = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
             zoomState.currentArea = null;
@@ -500,56 +491,50 @@
             updateLeftTransform();
             updateRightTransform();
 
-            // ========== 左側區域控制 ==========
-            // 滑鼠滾輪縮放（左區）
+            // 左側滾輪縮放
             leftImgArea.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'left';
                 handleZoom(e, 'left');
             });
 
-            // 左區滑鼠拖動開始
+            // 左側拖動開始
             leftImgArea.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'left';
                 zoomState.left.isDragging = true;
                 const rect = leftImgArea.getBoundingClientRect();
-                // 修复：计算相对于容器的初始位置
                 zoomState.left.startX = e.clientX - rect.left - zoomState.left.offsetX;
                 zoomState.left.startY = e.clientY - rect.top - zoomState.left.offsetY;
                 leftImgArea.style.cursor = 'grabbing';
             });
 
-            // ========== 右側區域控制 ==========
-            // 滑鼠滾輪縮放（右區）
+            // 右側滾輪縮放
             rightImgArea.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'right';
                 handleZoom(e, 'right');
             });
 
-            // 右區滑鼠拖動開始
+            // 右側拖動開始
             rightImgArea.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'right';
                 zoomState.right.isDragging = true;
                 const rect = rightImgArea.getBoundingClientRect();
-                // 修复：计算相对于容器的初始位置
                 zoomState.right.startX = e.clientX - rect.left - zoomState.right.offsetX;
                 zoomState.right.startY = e.clientY - rect.top - zoomState.right.offsetY;
                 rightImgArea.style.cursor = 'grabbing';
             });
 
-            // ========== 全域拖動處理 ==========
+            // 全域拖動處理
             document.addEventListener('mousemove', (e) => {
-                // 左區拖動
                 if (zoomState.left.isDragging) {
                     const rect = leftImgArea.getBoundingClientRect();
                     zoomState.left.offsetX = e.clientX - rect.left - zoomState.left.startX;
                     zoomState.left.offsetY = e.clientY - rect.top - zoomState.left.startY;
                     updateLeftTransform();
                 }
-                // 右區拖動
                 if (zoomState.right.isDragging) {
                     const rect = rightImgArea.getBoundingClientRect();
                     zoomState.right.offsetX = e.clientX - rect.left - zoomState.right.startX;
@@ -571,14 +556,11 @@
                 zoomState.currentArea = null;
             });
 
-            // ========== 手機觸控支援 ==========
-            // 左區觸控
+            // 手機觸控支援
             leftImgArea.addEventListener('touchstart', handleTouchStart);
             leftImgArea.addEventListener('touchmove', handleTouchMove);
-            // 右區觸控
             rightImgArea.addEventListener('touchstart', handleTouchStart);
             rightImgArea.addEventListener('touchmove', handleTouchMove);
-            // 觸控結束
             splitZoomContainer.addEventListener('touchend', () => {
                 zoomState.left.isDragging = false;
                 zoomState.right.isDragging = false;
@@ -586,23 +568,20 @@
             });
         }
 
-        // 修复：滚轮缩放计算逻辑，基于容器中心
+        // 滾輪縮放邏輯
         function handleZoom(e, area) {
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
             const newScale = Math.min(4, Math.max(0.8, zoomState[area].scale + delta));
             
-            // 基於滑鼠位置縮放
             const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
             
-            // 修复：调整偏移量计算，保持缩放中心点
             zoomState[area].offsetX = mouseX - (mouseX - zoomState[area].offsetX) * (newScale / zoomState[area].scale);
             zoomState[area].offsetY = mouseY - (mouseY - zoomState[area].offsetY) * (newScale / zoomState[area].scale);
             
             zoomState[area].scale = newScale;
             
-            // 更新對應區域的變換
             if (area === 'left') {
                 updateLeftTransform();
             } else {
@@ -614,7 +593,6 @@
             e.preventDefault();
             const touch = e.touches[0];
             
-            // 判斷當前操作區域
             const rectLeft = leftImgArea.getBoundingClientRect();
             const rectRight = rightImgArea.getBoundingClientRect();
             let area = null;
@@ -629,15 +607,12 @@
             
             zoomState.currentArea = area;
             
-            // 單指拖動
             if (e.touches.length === 1) {
                 zoomState[area].isDragging = true;
                 const rect = area === 'left' ? rectLeft : rectRight;
                 zoomState[area].startX = touch.clientX - rect.left - zoomState[area].offsetX;
                 zoomState[area].startY = touch.clientY - rect.top - zoomState[area].offsetY;
-            } 
-            // 雙指縮放
-            else if (e.touches.length === 2) {
+            } else if (e.touches.length === 2) {
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
                 const initialDistance = getDistance(t1, t2);
@@ -654,7 +629,6 @@
             const touch = e.touches[0];
             const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
             
-            // 單指拖動
             if (e.touches.length === 1 && zoomState[area].isDragging) {
                 zoomState[area].offsetX = touch.clientX - rect.left - zoomState[area].startX;
                 zoomState[area].offsetY = touch.clientY - rect.top - zoomState[area].startY;
@@ -664,9 +638,7 @@
                 } else {
                     updateRightTransform();
                 }
-            }
-            // 雙指縮放
-            else if (e.touches.length === 2) {
+            } else if (e.touches.length === 2) {
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
                 const newDistance = getDistance(t1, t2);
@@ -688,7 +660,6 @@
             return Math.sqrt(dx * dx + dy * dy);
         }
 
-        // 修复：更新变换逻辑，基于中心偏移
         function updateLeftTransform() {
             leftSplitImg.style.transform = `translate(-50%, -50%) translate(${zoomState.left.offsetX}px, ${zoomState.left.offsetY}px) scale(${zoomState.left.scale})`;
         }
@@ -697,18 +668,16 @@
             rightSplitImg.style.transform = `translate(-50%, -50%) translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 核心修改：使用html2canvas截取當前顯示畫面（僅圖片區域）
+        // 截圖當前畫面
         async function captureCurrentScreen() {
             return new Promise(async (resolve) => {
                 try {
-                    // 僅截取圖片容器區域（排除標題和按鈕）
                     const canvas = await html2canvas(captureContainer, {
-                        scale: 2, // 2倍解析度，保證截圖清晰
-                        useCORS: true, // 解決跨域圖片問題
+                        scale: 2,
+                        useCORS: true,
                         logging: false,
                         backgroundColor: '#ffffff'
                     });
-                    // 返回截圖的dataURL
                     resolve(canvas.toDataURL('image/png', 1.0));
                 } catch (e) {
                     console.error('截圖失敗:', e);
@@ -718,7 +687,7 @@
             });
         }
 
-        // 修改下載邏輯：使用截圖而非重新生成
+        // 下載圖片
         async function downloadMerge() {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -726,7 +695,6 @@
             }
             
             try {
-                // 截取當前顯示的畫面
                 const finalDataUrl = await captureCurrentScreen();
                 if (!finalDataUrl) return;
                 
@@ -760,7 +728,7 @@
             }
         }
 
-        // 修改分享邏輯：使用截圖而非重新生成
+        // 分享圖片
         async function shareImage() {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -768,7 +736,6 @@
             }
             
             try {
-                // 截取當前顯示的畫面
                 const finalDataUrl = await captureCurrentScreen();
                 if (!finalDataUrl) return;
                 
@@ -797,7 +764,7 @@
 
         // AI分析
         async function analyzeBoth() {
-            if (!leftPreview.src || !rightPreview.src) return alert('請上傳兩張照片');
+            if (!leftPreview.src || !rightPreview.src) return alert('請先上傳兩張照片');
             const resBox = document.getElementById('aiResult');
             resBox.innerText = 'AI 分析中...';
             try {
@@ -829,7 +796,7 @@
             }
         }
 
-        // 啟動空白
+        // 啟動初始化
         window.onload = function() {
             leftPreview.classList.add('hidden');
             rightPreview.classList.add('hidden');
