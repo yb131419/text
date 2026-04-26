@@ -62,7 +62,7 @@
             background: #d1d5db;
         }
 
-        /* 畫面單圖顯示比例 3:4 */
+        /* 畫面 6:8 */
         .split-zoom-container {
             position: relative;
             overflow: hidden;
@@ -70,7 +70,7 @@
             width: 100%;
             height: 0;
             padding-top: 133.33%;
-            touch-action: none;
+            touch-action: manipulation;
         }
         .left-img-area {
             position: absolute;
@@ -112,10 +112,10 @@
             transform: translateX(-50%);
         }
 
-        /* 固定文字圖層 */
+        /* 固定文字（位置提高，正常顯示）*/
         .fixed-text {
             position: absolute;
-            bottom: 20px;
+            bottom: 40px;
             width: 50%;
             text-align: center;
             font-size: 22px;
@@ -212,9 +212,8 @@
                 </div>
                 <div class="divider-line"></div>
 
-                <!-- 固定文字 -->
-                <div id="fixedLeftText" class="fixedText"></div>
-                <div id="fixedRightText" class="fixedText"></div>
+                <div id="fixedLeftText" class="fixed-text"></div>
+                <div id="fixedRightText" class="fixed-text"></div>
             </div>
 
             <div class="flex gap-2 justify-center mt-3">
@@ -269,7 +268,7 @@
             return `${year}/${month}/${day}`;
         }
 
-        // 固定文字功能（新）
+        // 固定文字功能
         function setLeftText(text) {
             if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
             fixedLeftText.textContent = text;
@@ -371,7 +370,7 @@
             imgL.src = leftPreview.src;
         }
 
-        // 完美拖移邊界限制：不超出圖片、不顯示黑底
+        // 完美拖移邊界限制
         function clampOffset(area) {
             const container = area === 'left' ? leftImgArea : rightImgArea;
             const containerW = container.clientWidth;
@@ -397,7 +396,6 @@
                 zoomState.currentArea = 'left';
                 handleZoom(e, 'left');
             });
-
             leftImgArea.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'left';
@@ -407,13 +405,11 @@
                 zoomState.left.startY = e.clientY - rect.top - zoomState.left.offsetY;
                 leftImgArea.style.cursor = 'grabbing';
             });
-
             rightImgArea.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'right';
                 handleZoom(e, 'right');
             });
-
             rightImgArea.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'right';
@@ -423,7 +419,6 @@
                 zoomState.right.startY = e.clientY - rect.top - zoomState.right.offsetY;
                 rightImgArea.style.cursor = 'grabbing';
             });
-
             document.addEventListener('mousemove', (e) => {
                 if (zoomState.left.isDragging) {
                     const rect = leftImgArea.getBoundingClientRect();
@@ -440,22 +435,11 @@
                     updateRightTransform();
                 }
             });
-
             document.addEventListener('mouseup', () => {
                 zoomState.left.isDragging = false;
                 zoomState.right.isDragging = false;
                 leftImgArea.style.cursor = 'zoom-in';
                 rightImgArea.style.cursor = 'zoom-in';
-                zoomState.currentArea = null;
-            });
-
-            leftImgArea.addEventListener('touchstart', handleTouchStart);
-            leftImgArea.addEventListener('touchmove', handleTouchMove);
-            rightImgArea.addEventListener('touchstart', handleTouchStart);
-            rightImgArea.addEventListener('touchmove', handleTouchMove);
-            splitZoomContainer.addEventListener('touchend', () => {
-                zoomState.left.isDragging = false;
-                zoomState.right.isDragging = false;
                 zoomState.currentArea = null;
             });
         }
@@ -477,66 +461,9 @@
             area === 'left' ? updateLeftTransform() : updateRightTransform();
         }
 
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rectLeft = leftImgArea.getBoundingClientRect();
-            const rectRight = rightImgArea.getBoundingClientRect();
-            let area = null;
-            
-            if (touch.clientX >= rectLeft.left && touch.clientX <= rectLeft.right) area = 'left';
-            else if (touch.clientX >= rectRight.left && touch.clientX <= rectRight.right) area = 'right';
-            if (!area) return;
-            
-            zoomState.currentArea = area;
-            
-            if (e.touches.length === 1) {
-                zoomState[area].isDragging = true;
-                const rect = area === 'left' ? rectLeft : rectRight;
-                zoomState[area].startX = touch.clientX - rect.left - zoomState[area].offsetX;
-                zoomState[area].startY = touch.clientY - rect.top - zoomState[area].offsetY;
-            } 
-            else if (e.touches.length === 2) {
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-                zoomState[area].initialDistance = getDistance(t1, t2);
-                zoomState[area].lastScale = zoomState[area].scale;
-            }
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-            if (!zoomState.currentArea) return;
-            const area = zoomState.currentArea;
-            const touch = e.touches[0];
-            const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
-            
-            if (e.touches.length === 1 && zoomState[area].isDragging) {
-                zoomState[area].offsetX = touch.clientX - rect.left - zoomState[area].startX;
-                zoomState[area].offsetY = touch.clientY - rect.top - zoomState[area].offsetY;
-                clampOffset(area);
-                area === 'left' ? updateLeftTransform() : updateRightTransform();
-            }
-            else if (e.touches.length === 2) {
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-                const scaleRatio = getDistance(t1, t2) / zoomState[area].initialDistance;
-                zoomState[area].scale = Math.min(1.3, Math.max(0.8, zoomState[area].lastScale * scaleRatio));
-                clampOffset(area);
-                area === 'left' ? updateLeftTransform() : updateRightTransform();
-            }
-        }
-
-        function getDistance(t1, t2) {
-            const dx = t2.clientX - t1.clientX;
-            const dy = t2.clientY - t1.clientY;
-            return Math.sqrt(dx*dx + dy*dy);
-        }
-
         function updateLeftTransform() {
             leftSplitImg.style.transform = `translate(-50%, -50%) translate(${zoomState.left.offsetX}px, ${zoomState.left.offsetY}px) scale(${zoomState.left.scale})`;
         }
-
         function updateRightTransform() {
             rightSplitImg.style.transform = `translate(-50%, -50%) translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
@@ -555,7 +482,6 @@
                 }
             });
         }
-
         async function downloadMerge() {
             if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
             const finalDataUrl = await captureCurrentScreen();
@@ -569,7 +495,6 @@
             document.body.removeChild(link);
             alert('✅ 下載成功！');
         }
-
         async function shareImage() {
             if (!splitZoomContainer.style.display) { alert('請先產生拼圖'); return; }
             const finalDataUrl = await captureCurrentScreen();
