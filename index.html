@@ -93,7 +93,7 @@
             position: absolute;
             font-size: 26px;
             font-weight: 900; /* 超級加粗 */
-            font-family: Arial, "Microsoft JhengHei", sans-serif; /* 穩定新字體 */
+            font-family: Arial, sans-serif; /* 絕對穩定，解決中文異常 */
             letter-spacing: 0px; /* 正常字間距 */
             color: #ffffff;
             -webkit-text-stroke: 0.5px #000000; /* 超細黑框 */
@@ -140,13 +140,10 @@
         <div class="section-title">主要功能</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
             <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-5 py-2.5 font-semibold text-xs">
-                🔗 標準證件照拼圖
+                🔗 自動拼圖
             </button>
             <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-2.5 font-semibold text-xs">
-                🗑 清除全部
-            </button>
-            <button onclick="resetZoomState()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-5 py-2.5 font-semibold text-xs">
-                🔄 還原預設
+                🗑 清除設定
             </button>
         </div>
 
@@ -204,7 +201,7 @@
                 <!-- 右側照片按鈕 -->
                 <div class="flex flex-col gap-2">
                     <p class="text-xs font-semibold text-gray-600">➡️ 右側照片</p>
-                    <button onclick="addTextRight('兩小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">
+                    <button onclick="addTextRight('2小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">
                         ⏱ 加入兩小時
                     </button>
                     <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">
