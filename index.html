@@ -60,6 +60,21 @@
             height: 1px;
             background: #d1d5db;
         }
+
+        /* 🔥 圖片放大縮小專用樣式 */
+        .zoom-container {
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+            border-radius: 16px;
+        }
+        .zoom-img {
+            transform-origin: center;
+            transition: transform 0.1s;
+            width: 100%;
+            height: auto;
+            user-select: none;
+        }
     </style>
 </head>
 <body class="min-h-screen p-3">
@@ -91,7 +106,7 @@
             </div>
         </div>
 
-        <!-- 🔥 主要功能按鈕（拼圖 + 清除）-->
+        <!-- 主要功能 -->
         <div class="section-title">主要功能</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
             <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-5 py-2.5 font-semibold text-xs">
@@ -102,7 +117,7 @@
             </button>
         </div>
 
-        <!-- 🔥 文字編輯按鈕 -->
+        <!-- 文字編輯 -->
         <div class="section-title">文字編輯</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
             <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
@@ -116,7 +131,7 @@
             </button>
         </div>
 
-        <!-- 🔥 AI 分析 -->
+        <!-- AI 分析 -->
         <div class="section-title">AI 分析</div>
         <div class="flex flex-wrap gap-2 justify-center mb-5">
             <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-5 py-2.5 font-semibold text-xs w-full">
@@ -124,18 +139,20 @@
             </button>
         </div>
 
+        <!-- 🔥 對比結果 + 支援放大縮小 -->
         <div class="result-card p-4 mb-5 text-center">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
-            <div class="inline-block max-w-full">
-                <canvas id="mergeCanvas" class="rounded-xl shadow-lg max-w-full max-h-[300px]"></canvas>
-                <div class="flex gap-2 justify-center mt-3">
-                    <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">
-                        💾 下載相簿
-                    </button>
-                    <button onclick="shareImage()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">
-                        📤 分享照片
-                    </button>
-                </div>
+            <h3 class="text-xs text-gray-500 mb-3">👉 點擊圖片可放大、拖動、縮小查看</h3>
+            <div class="zoom-container">
+                <canvas id="mergeCanvas" class="zoom-img rounded-xl shadow-lg max-w-full max-h-[300px]"></canvas>
+            </div>
+            <div class="flex gap-2 justify-center mt-3">
+                <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">
+                    💾 下載相簿
+                </button>
+                <button onclick="shareImage()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">
+                    📤 分享照片
+                </button>
             </div>
         </div>
 
@@ -154,7 +171,6 @@
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
         
-        // 🔥 整體 1:1 正方形（放大、更真實）
         const FULL_SIZE = 800;
         const HALF_SIZE = FULL_SIZE / 2;
 
@@ -195,7 +211,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 🔥 修正：畫面放大 + 頭頂空間縮小 + 文字不擋脖子
+        // 拼圖產生
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -209,25 +225,19 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    // ==========================
-                    // 🔥 核心修正（重點）
-                    // ==========================
-                    const TOP_CROP = 0.03;       // 頭頂空間縮小（更自然）
-                    const BOTTOM_CROP = 0.85;    // 脖子、肩膀完整露出
+                    const TOP_CROP = 0.03;
+                    const BOTTOM_CROP = 0.85;
 
                     mergeCanvas.width = FULL_SIZE;
                     mergeCanvas.height = FULL_SIZE;
                     ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    // 左圖（放大、滿版、真實）
                     const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
                     ctx.drawImage(imgL, 0, imgL.height * TOP_CROP, imgL.width, cropH_L, 0, 0, HALF_SIZE, FULL_SIZE);
                     
-                    // 右圖（放大、滿版、真實）
                     const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
                     ctx.drawImage(imgR, 0, imgR.height * TOP_CROP, imgR.width, cropH_R, HALF_SIZE, 0, HALF_SIZE, FULL_SIZE);
 
-                    // 🔥 文字往上移 → 不擋脖子
                     drawText(getTaiwanDate(), HALF_SIZE/2, FULL_SIZE - 65);
                 }
                 imgR.src = rightPreview.src;
@@ -261,7 +271,7 @@
             mergeImages();
         }
 
-        // ✅ 手機端專用 下載相簿（直接存手機）
+        // 下載（手機直接存）
         async function downloadMerge() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
@@ -359,11 +369,66 @@
             }
         }
 
-        // 🔥 關閉自動讀取照片（永遠空白）
+        // 🔥 圖片放大縮小功能（手機/電腦都能用）
         window.onload = function() {
-            // 完全清空，不讀取任何快取
             leftPreview.classList.add('hidden');
             rightPreview.classList.add('hidden');
+            
+            const img = document.querySelector('.zoom-img');
+            let scale = 1;
+            let startX, startY, initialX, initialY;
+            let isDragging = false;
+
+            img.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                scale = Math.min(3, Math.max(1, scale + delta));
+                img.style.transform = `scale(${scale})`;
+            });
+
+            img.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialX = img.style.transform.replace(/[^0-9.,-]/g, '').split(',')[0] || 0;
+                initialY = img.style.transform.replace(/[^0-9.,-]/g, '').split(',')[1] || 0;
+                img.style.cursor = 'grabbing';
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                img.style.transform = `scale(${scale}) translate(${dx}px, ${dy}px)`;
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                img.style.cursor = 'grab';
+            });
+
+            // 手機雙指縮放
+            let initialDistance = 0;
+            img.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    const dx = e.touches[0].pageX - e.touches[1].pageX;
+                    const dy = e.touches[0].pageY - e.touches[1].pageY;
+                    initialDistance = Math.sqrt(dx * dx + dy * dy);
+                }
+            });
+
+            img.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 2) {
+                    const dx = e.touches[0].pageX - e.touches[1].pageX;
+                    const dy = e.touches[0].pageY - e.touches[1].pageY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const scaleDiff = (distance - initialDistance) / 100;
+                    scale = Math.min(3, Math.max(1, scale + scaleDiff));
+                    img.style.transform = `scale(${scale})`;
+                    initialDistance = distance;
+                }
+            });
         };
     </script>
 </body>
