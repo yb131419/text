@@ -88,16 +88,16 @@
             z-index: 5;
         }
 
-        /* 固定文字層 - 白字更明顯 + 細黑框（清楚不厚重） */
+        /* 固定文字層 - 粗體 + 小黑框 + 正常字間距 */
         .fixed-text {
             position: absolute;
             font-size: 26px;
             font-weight: bold;
             font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-            letter-spacing: 3px; /* 文字完全不黏 */
+            letter-spacing: 0px; /* 正常字間距 */
             color: #ffffff;
-            -webkit-text-stroke: 1px #000000;
-            text-shadow: 0 0 1px rgba(0,0,0,0.3);
+            -webkit-text-stroke: 0.5px #000000; /* 超細黑框 */
+            text-shadow: none;
             text-align: center;
             pointer-events: none;
             z-index: 10;
@@ -183,7 +183,7 @@
             </div>
         </div>
 
-        <!-- ===== 文字編輯區：分隔線｜ + 文字不黏 ===== -->
+        <!-- ===== 文字編輯區 ===== -->
         <div class="result-card p-4 mb-5">
             <div class="section-title">文字編輯</div>
             <div class="flex items-center gap-3 justify-center">
