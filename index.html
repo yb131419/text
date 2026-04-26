@@ -61,15 +61,35 @@
             background: #d1d5db;
         }
 
-        /* 🔥 點擊放大專用 */
-        .zoom-img {
-            cursor: pointer;
-            transition: transform 0.2s;
-            width: 100%;
-            height: auto;
+        /* 🔥 核心：原地放大縮小樣式 */
+        .zoom-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            touch-action: none; /* 關閉默認觸控行為 */
+            cursor: grab;
         }
-        .zoom-img:active {
-            transform: scale(1.02);
+        .zoom-target {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: transform 0.1s ease-out;
+            transform-origin: center center;
+            user-select: none;
+        }
+        /* 縮放控制提示 */
+        .zoom-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            z-index: 10;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -135,11 +155,16 @@
             </button>
         </div>
 
-        <!-- 🔥 對比結果 -->
+        <!-- 🔥 對比結果（原地放大縮小） -->
         <div class="result-card p-4 mb-5 text-center">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
-            <h3 class="text-xs text-gray-500 mb-3">👉 點擊圖片可放大檢視對比</h3>
-            <img id="mergeResult" class="zoom-img rounded-xl shadow-lg max-w-full max-h-[350px]" style="display:none;">
+            <h3 class="text-xs text-gray-500 mb-3">👉 滑鼠滾輪/雙指縮放 | 拖動調整位置</h3>
+            
+            <!-- 放大縮小容器 -->
+            <div id="zoomContainer" class="zoom-container mx-auto" style="width: 100%; height: 350px; display: none;">
+                <img id="mergeResult" class="zoom-target" style="width: 100%; height: auto;">
+                <div class="zoom-hint">滾輪/雙指縮放 | 拖動移動</div>
+            </div>
             <canvas id="mergeCanvas" class="hidden"></canvas>
 
             <div class="flex gap-2 justify-center mt-3">
@@ -166,11 +191,20 @@
         const rightPreview = document.getElementById('rightPreview');
         const mergeCanvas = document.getElementById('mergeCanvas');
         const mergeResult = document.getElementById('mergeResult');
+        const zoomContainer = document.getElementById('zoomContainer');
         const ctx = mergeCanvas.getContext('2d');
         
         const FULL_SIZE = 800;
         const HALF_SIZE = FULL_SIZE / 2;
         const BORDER_WIDTH = 2; // 細白線寬度
+
+        // 縮放控制變量
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let isDragging = false;
+        let startX, startY;
+        let lastScale = 1;
 
         // 日期格式：115/04/02
         function getTaiwanDate() {
@@ -209,7 +243,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 🔥 最終修正：中間細白線 + 外圍白框 + 點擊放大
+        // 拼圖生成（保留細白線）
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -230,7 +264,7 @@
                     mergeCanvas.height = FULL_SIZE;
                     ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
 
-                    // 🔥 外圍白色細框
+                    // 外圍白色細框
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
 
@@ -244,7 +278,7 @@
                         FULL_SIZE - BORDER_WIDTH * 2
                     );
 
-                    // 🔥 中間白色細分隔線
+                    // 中間白色細分隔線
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
 
@@ -261,9 +295,10 @@
                     // 日期
                     drawText(getTaiwanDate(), HALF_SIZE/2, FULL_SIZE - 65);
 
-                    // 顯示最終圖片
+                    // 顯示圖片並初始化縮放
                     mergeResult.src = mergeCanvas.toDataURL('image/png');
-                    mergeResult.style.display = "block";
+                    zoomContainer.style.display = 'block';
+                    initZoomControls();
                 }
                 imgR.src = rightPreview.src;
             }
@@ -297,13 +332,123 @@
             mergeImages();
         }
 
-        // 點擊放大查看
-        mergeResult.onclick = function () {
-            if (!mergeResult.src) return;
-            const w = window.open();
-            w.document.write(`<img src="${mergeResult.src}" style="width:100vw;height:auto;">`);
-            w.document.title = "檢視對比圖";
-        };
+        // 🔥 核心：初始化原地放大縮小控制
+        function initZoomControls() {
+            // 重置縮放狀態
+            scale = 1;
+            offsetX = 0;
+            offsetY = 0;
+            updateTransform();
+
+            // 滑鼠滾輪縮放（電腦）
+            zoomContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                // 計算縮放增量
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                const newScale = Math.min(4, Math.max(0.8, scale + delta));
+                
+                // 基於滑鼠位置縮放（更直觀）
+                const rect = zoomContainer.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                // 調整偏移量，讓縮放圍繞滑鼠位置
+                offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
+                offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
+                
+                scale = newScale;
+                updateTransform();
+            });
+
+            // 滑鼠拖動（電腦）
+            zoomContainer.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - offsetX;
+                startY = e.clientY - offsetY;
+                zoomContainer.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                offsetX = e.clientX - startX;
+                offsetY = e.clientY - startY;
+                updateTransform();
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                zoomContainer.style.cursor = 'grab';
+            });
+
+            // 雙指縮放（手機）
+            let touch1 = null, touch2 = null;
+            let initialDistance = 0;
+            let initialMidX = 0, initialMidY = 0;
+
+            zoomContainer.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 1) {
+                    // 單指拖動
+                    isDragging = true;
+                    startX = e.touches[0].clientX - offsetX;
+                    startY = e.touches[0].clientY - offsetY;
+                } else if (e.touches.length === 2) {
+                    // 雙指縮放
+                    touch1 = e.touches[0];
+                    touch2 = e.touches[1];
+                    initialDistance = getDistance(touch1, touch2);
+                    initialMidX = (touch1.clientX + touch2.clientX) / 2;
+                    initialMidY = (touch1.clientY + touch2.clientY) / 2;
+                    lastScale = scale;
+                }
+            });
+
+            zoomContainer.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 1 && isDragging) {
+                    // 單指拖動
+                    offsetX = e.touches[0].clientX - startX;
+                    offsetY = e.touches[0].clientY - startY;
+                    updateTransform();
+                } else if (e.touches.length === 2) {
+                    // 雙指縮放
+                    const newTouch1 = e.touches[0];
+                    const newTouch2 = e.touches[1];
+                    const newDistance = getDistance(newTouch1, newTouch2);
+                    
+                    // 計算新縮放比例
+                    const scaleRatio = newDistance / initialDistance;
+                    scale = Math.min(4, Math.max(0.8, lastScale * scaleRatio));
+                    
+                    // 基於雙指中點調整偏移
+                    const newMidX = (newTouch1.clientX + newTouch2.clientX) / 2;
+                    const newMidY = (newTouch1.clientY + newTouch2.clientY) / 2;
+                    
+                    offsetX += (newMidX - initialMidX);
+                    offsetY += (newMidY - initialMidY);
+                    
+                    updateTransform();
+                }
+            });
+
+            zoomContainer.addEventListener('touchend', () => {
+                isDragging = false;
+                touch1 = null;
+                touch2 = null;
+            });
+        }
+
+        // 計算兩個觸控點的距離
+        function getDistance(t1, t2) {
+            const dx = t2.clientX - t1.clientX;
+            const dy = t2.clientY - t1.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // 更新圖片變換（縮放+偏移）
+        function updateTransform() {
+            mergeResult.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        }
 
         // 下載（手機直接存）
         async function downloadMerge() {
