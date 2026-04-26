@@ -123,10 +123,11 @@
         const rightPreview = document.getElementById('rightPreview');
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
-        const PORTRAIT_HEIGHT = 840;
-        const PORTRAIT_WIDTH = 580;
+        
+        // 🔥 1:1 正方形證件照標準
+        const SQUARE_SIZE = 800;
 
-        // 日期格式：115/4/02
+        // 日期格式：115/04/02
         function getTaiwanDate() {
             const now = new Date();
             const year = now.getFullYear() - 1911;
@@ -165,7 +166,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 🔥 標準證件照拼圖（預設不加入任何文字）
+        // 🔥 標準 1:1 正方形拼圖 + 左圖自動加日期
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -182,37 +183,44 @@
                     const TOP_CROP = 0.08;
                     const BOTTOM_CROP = 0.75;
 
-                    mergeCanvas.width = PORTRAIT_WIDTH * 2;
-                    mergeCanvas.height = PORTRAIT_HEIGHT;
+                    // 1:1 正方形輸出
+                    mergeCanvas.width = SQUARE_SIZE * 2;
+                    mergeCanvas.height = SQUARE_SIZE;
                     ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    // 左圖
+                    // 繪製左圖 + 右圖（標準裁切）
                     const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
-                    ctx.drawImage(imgL, 0, imgL.height * TOP_CROP, imgL.width, cropH_L, 0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
-
-                    // 右圖
+                    ctx.drawImage(imgL, 0, imgL.height * TOP_CROP, imgL.width, cropH_L, 0, 0, SQUARE_SIZE, SQUARE_SIZE);
+                    
                     const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
-                    ctx.drawImage(imgR, 0, imgR.height * TOP_CROP, imgR.width, cropH_R, PORTRAIT_WIDTH, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
+                    ctx.drawImage(imgR, 0, imgR.height * TOP_CROP, imgR.width, cropH_R, SQUARE_SIZE, 0, SQUARE_SIZE, SQUARE_SIZE);
+
+                    // ✅ 左圖「固定」加上今天日期
+                    drawText(getTaiwanDate(), SQUARE_SIZE/2, SQUARE_SIZE - 45);
                 }
                 imgR.src = rightPreview.src;
             }
             imgL.src = leftPreview.src;
         }
 
-        // 在右邊圖片加入文字（你按鈕觸發）
+        // 文字繪製函式
+        function drawText(text, x, y) {
+            ctx.font = 'bold 46px Arial';
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 9;
+            ctx.textAlign = 'center';
+            ctx.strokeText(text, x, y);
+            ctx.fillText(text, x, y);
+        }
+
+        // 右圖手動添加文字
         function addTextRight(text) {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
                 return;
             }
-            ctx.font = 'bold 48px Arial';
-            ctx.fillStyle = 'white';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 9;
-            ctx.textAlign = 'center';
-            const ty = PORTRAIT_HEIGHT - 40;
-            ctx.strokeText(text, PORTRAIT_WIDTH * 1.5, ty);
-            ctx.fillText(text, PORTRAIT_WIDTH * 1.5, ty);
+            drawText(text, SQUARE_SIZE + SQUARE_SIZE/2, SQUARE_SIZE - 45);
         }
 
         // ✅ 修復下載
