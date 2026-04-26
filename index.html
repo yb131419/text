@@ -88,16 +88,15 @@
             z-index: 5;
         }
 
-        /* 固定文字層 - 全新字體 + 超粗體 + 小黑框 + 正常字間距 */
+        /* 固定文字層 */
         .fixed-text {
             position: absolute;
             font-size: 26px;
-            font-weight: 900; /* 超級加粗 */
-            font-family: Arial, sans-serif; /* 絕對穩定，解決中文異常 */
-            letter-spacing: 0px; /* 正常字間距 */
+            font-weight: 900;
+            font-family: Arial, sans-serif;
+            letter-spacing: 0px;
             color: #ffffff;
-            -webkit-text-stroke: 0.5px #000000; /* 超細黑框 */
-            text-shadow: none;
+            -webkit-text-stroke: 0.5px #000000;
             text-align: center;
             pointer-events: none;
             z-index: 10;
@@ -109,56 +108,94 @@
     </style>
 </head>
 <body class="min-h-screen p-3">
-    <div class="max-w-md mx-auto">
-        <div class="text-center mb-4">
+    <div class="max-w-md mx-auto space-y-4">
+        <!-- 頂部標題 -->
+        <div class="text-center">
             <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
                 彥彬 AI 比對系統
             </h1>
             <p class="text-gray-600 mt-1 text-sm">標準證件照裁切 + 三庭五眼校正 + AI點評</p>
         </div>
 
-        <div class="flex gap-3 mb-5">
-            <div class="upload-card flex-1 p-3 text-center flex flex-col items-center justify-center relative">
-                <h3 class="font-semibold text-gray-700 text-sm mb-2">左邊照片</h3>
-                <input type="file" id="leftImg" accept="image/*" class="hidden">
-                <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
-                    選擇圖片
-                </button>
-                <img id="leftPreview" class="hidden w-full aspect-[3/4] rounded-lg shadow-sm object-cover">
+        <!-- 1. 圖片上傳區 -->
+        <div class="result-card p-4">
+            <div class="section-title">圖片上傳</div>
+            <div class="flex gap-3">
+                <div class="upload-card flex-1 p-3 text-center flex flex-col items-center justify-center">
+                    <h3 class="font-semibold text-gray-700 text-sm mb-2">左邊照片</h3>
+                    <input type="file" id="leftImg" accept="image/*" class="hidden">
+                    <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
+                        選擇圖片
+                    </button>
+                    <img id="leftPreview" class="hidden w-full aspect-[3/4] rounded-lg shadow-sm object-cover">
+                </div>
+
+                <div class="upload-card flex-1 p-3 text-center flex flex-col items-center justify-center">
+                    <h3 class="font-semibold text-gray-700 text-sm mb-2">右邊照片</h3>
+                    <input type="file" id="rightImg" accept="image/*" class="hidden">
+                    <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
+                        選擇圖片
+                    </button>
+                    <img id="rightPreview" class="hidden w-full aspect-[3/4] rounded-lg shadow-sm object-cover">
+                </div>
             </div>
+        </div>
 
-            <div class="upload-card flex-1 p-3 text-center flex flex-col items-center justify-center relative">
-                <h3 class="font-semibold text-gray-700 text-sm mb-2">右邊照片</h3>
-                <input type="file" id="rightImg" accept="image/*" class="hidden">
-                <input type="file" id="rightImg" accept="image/*" class="hidden">
-                <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
-                    選擇圖片
+        <!-- 2. 主要功能區 -->
+        <div class="result-card p-4">
+            <div class="section-title">主要功能</div>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-5 py-2.5 font-semibold text-xs">
+                    🔗 自動拼圖
                 </button>
-                <img id="rightPreview" class="hidden w-full aspect-[3/4] rounded-lg shadow-sm object-cover">
+                <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-2.5 font-semibold text-xs">
+                    🗑 清除設定
+                </button>
             </div>
         </div>
 
-        <div class="section-title">主要功能</div>
-        <div class="flex flex-wrap gap-2 justify-center mb-4">
-            <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-5 py-2.5 font-semibold text-xs">
-                🔗 自動拼圖
-            </button>
-            <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-2.5 font-semibold text-xs">
-                🗑 清除設定
-            </button>
+        <!-- 3. 文字編輯區 -->
+        <div class="result-card p-4">
+            <div class="section-title">文字編輯</div>
+            <div class="flex items-center gap-3 justify-center">
+                <div class="flex flex-col gap-2">
+                    <p class="text-xs font-semibold text-gray-600">⬅️ 左側照片</p>
+                    <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">📅 加入今天日期</button>
+                    <button onclick="clearLeftText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">🧹 清除文字</button>
+                </div>
+                <div class="h-32 border-r border-gray-300"></div>
+                <div class="flex flex-col gap-2">
+                    <p class="text-xs font-semibold text-gray-600">➡️ 右側照片</p>
+                    <button onclick="addTextRight('2小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">⏱ 加入兩小時</button>
+                    <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">📅 加入今天日期</button>
+                    <button onclick="clearRightText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">🧹 清除文字</button>
+                </div>
+            </div>
         </div>
 
-        <div class="section-title">AI 分析</div>
-        <div class="flex-wrap gap-2 justify-center mb-5">
-            <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-5 py-2.5 font-semibold text-xs w-full">
-                🤖 AI 點評
-            </button>
+        <!-- 4. AI分析區 (文字編輯下方、AI點評上方) -->
+        <div class="result-card p-4">
+            <div class="section-title">AI 分析</div>
+            <div class="flex justify-center">
+                <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-8 py-3 font-semibold text-xs w-full">
+                    🤖 執行AI點評分析
+                </button>
+            </div>
         </div>
 
-        <div class="result-card p-4 mb-3 text-center">
-            <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
+        <!-- 5. AI點評區 -->
+        <div class="result-card p-4">
+            <div class="section-title">AI 點評結果</div>
+            <div id="aiResult" class="text-gray-700 text-sm leading-relaxed whitespace-pre-line min-h-[80px]">
+                尚未分析...
+            </div>
+        </div>
+
+        <!-- 6. 對比結果展示區 -->
+        <div class="result-card p-4 text-center">
+            <div class="section-title">證件照對比結果</div>
+            <h2 class="text-lg font-bold text-gray-800 mb-3">✅ 對比預覽</h2>
             
-            <!-- 截圖專用容器（只截圖片） -->
             <div id="capture-target" class="split-zoom-container mx-auto" style="display: none;">
                 <div class="left-img-area" id="leftImgArea">
                     <img id="leftSplitImg" class="split-img">
@@ -180,47 +217,6 @@
                 </button>
             </div>
         </div>
-
-        <!-- ===== 文字編輯區 ===== -->
-        <div class="result-card p-4 mb-5">
-            <div class="section-title">文字編輯</div>
-            <div class="flex items-center gap-3 justify-center">
-                <!-- 左側照片按鈕 -->
-                <div class="flex flex-col gap-2">
-                    <p class="text-xs font-semibold text-gray-600">⬅️ 左側照片</p>
-                    <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">
-                        📅 加入今天日期
-                    </button>
-                    <button onclick="clearLeftText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">
-                        🧹 清除文字
-                    </button>
-                </div>
-
-                <!-- 中間分隔線｜ -->
-                <div class="h-32 border-r border-gray-300"></div>
-
-                <!-- 右側照片按鈕 -->
-                <div class="flex flex-col gap-2">
-                    <p class="text-xs font-semibold text-gray-600">➡️ 右側照片</p>
-                    <button onclick="addTextRight('2小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">
-                        ⏱ 加入兩小時
-                    </button>
-                    <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">
-                        📅 加入今天日期
-                    </button>
-                    <button onclick="clearRightText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">
-                        🧹 清除文字
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="result-card p-4 mb-8">
-            <h2 class="text-lg font-bold text-purple-700 mb-2">🤖 AI 點評</h2>
-            <div id="aiResult" class="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-                尚未分析...
-            </div>
-        </div>
     </div>
 
     <script>
@@ -240,7 +236,7 @@
         const HEIGHT = 800;
         const HALF_WIDTH = WIDTH / 2;
 
-        // 缩放+拖拽状态（新增双指缩放初始距离）
+        // 缩放+拖拽状态
         const zoomState = {
             left: { scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0 },
             right: { scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0 }
@@ -303,34 +299,27 @@
             update();
         }
 
-        // 初始化控制：拖拽 + 滚轮缩放 + 双指缩放
+        // 初始化控制
         function initControls() {
             resetZoomState();
-            
-            // PC端滚轮缩放
             leftImgArea.addEventListener('wheel', (e)=>{e.preventDefault(); zoomWheel(e,'left');}, {passive:false});
             rightImgArea.addEventListener('wheel', (e)=>{e.preventDefault(); zoomWheel(e,'right');}, {passive:false});
-            
-            // 移动端触摸事件（单指拖拽+双指缩放）
             leftImgArea.addEventListener('touchstart', dragStart);
             leftImgArea.addEventListener('touchmove', dragMove);
             leftImgArea.addEventListener('touchend', dragEnd);
             rightImgArea.addEventListener('touchstart', dragStart);
             rightImgArea.addEventListener('touchmove', dragMove);
             rightImgArea.addEventListener('touchend', dragEnd);
-            
-            // PC端鼠标松开
             document.addEventListener('mouseup', dragEnd);
         }
 
-        // 触摸开始：判断单指拖拽/双指缩放
+        // 觸控開始
         function dragStart(e) {
             e.preventDefault();
             const isLeft = e.target.closest('#leftImgArea');
             const a = isLeft ? 'left' : 'right';
             const rect = isLeft ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
             
-            // 双指缩放
             if(e.touches.length === 2) {
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
@@ -339,7 +328,6 @@
                 zoomState[a].startDistance = Math.hypot(xDiff, yDiff);
                 zoomState[a].isDragging = false;
             }
-            // 单指拖拽
             else if(e.touches.length === 1) {
                 const t = e.touches[0];
                 zoomState[a].isDragging = true;
@@ -348,14 +336,13 @@
             }
         }
 
-        // 触摸移动：执行拖拽/缩放
+        // 觸控移動
         function dragMove(e) {
             e.preventDefault();
             const isLeft = e.target.closest('#leftImgArea');
             const a = isLeft ? 'left' : 'right';
             const rect = isLeft ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
 
-            // 双指缩放
             if(e.touches.length === 2) {
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
@@ -367,7 +354,6 @@
                 zoomState[a].startDistance = currentDistance;
                 update();
             }
-            // 单指拖拽
             else if(e.touches.length === 1 && zoomState[a].isDragging) {
                 const t = e.touches[0];
                 zoomState[a].offsetX = t.clientX - rect.left - zoomState[a].startX;
@@ -376,26 +362,26 @@
             }
         }
 
-        // 结束操作
+        // 結束操作
         function dragEnd(e) {
             zoomState.left.isDragging = false;
             zoomState.right.isDragging = false;
         }
 
-        // PC端滚轮缩放（优化顺滑度）
+        // 滾輪縮放
         function zoomWheel(e, a) {
             const delta = e.deltaY > 0 ? -0.08 : 0.08;
             zoomState[a].scale = Math.min(4, Math.max(0.8, zoomState[a].scale + delta));
             update();
         }
 
-        // 更新图片样式
+        // 更新圖片
         function update() {
             leftSplitImg.style.transform = `translate(-50%,-50%) translate(${zoomState.left.offsetX}px,${zoomState.left.offsetY}px) scale(${zoomState.left.scale})`;
             rightSplitImg.style.transform = `translate(-50%,-50%) translate(${zoomState.right.offsetX}px,${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 截圖（只截圖片本體）
+        // 截圖
         async function capture() {
             const c = await html2canvas(captureTarget,{scale:2,useCORS:true,backgroundColor:'#fff'});
             return c.toDataURL('image/png');
