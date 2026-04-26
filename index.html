@@ -112,36 +112,6 @@
             z-index: 5;
             transform: translateX(-50%);
         }
-        /* 操作提示 */
-        .zoom-hint {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.6);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 10px;
-            z-index: 10;
-            pointer-events: none;
-        }
-        .area-hint {
-            position: absolute;
-            top: 10px;
-            color: white;
-            background: rgba(0,0,0,0.5);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 9px;
-            z-index: 9;
-        }
-        .left-hint {
-            left: 10px;
-        }
-        .right-hint {
-            right: 10px;
-        }
     </style>
 </head>
 <body class="min-h-screen p-3">
@@ -209,26 +179,23 @@
         <!-- 🔥 對比結果（左右分區獨立縮放） -->
         <div class="result-card p-4 mb-5 text-center">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
-            <h3 class="text-xs text-gray-500 mb-3">👉 點擊左/右區域滾輪縮放 | 拖動調整細節</h3>
             
             <!-- 左右分區縮放容器 -->
             <div id="splitZoomContainer" class="split-zoom-container mx-auto" style="display: none;">
                 <!-- 左側圖片區 -->
                 <div class="left-img-area" id="leftImgArea">
                     <img id="leftSplitImg" class="split-img">
-                    <div class="area-hint left-hint">左側區域</div>
                 </div>
                 <!-- 右側圖片區 -->
                 <div class="right-img-area" id="rightImgArea">
                     <img id="rightSplitImg" class="split-img">
-                    <div class="area-hint right-hint">右側區域</div>
                 </div>
                 <!-- 中間白色分隔線 -->
                 <div class="divider-line"></div>
-                <!-- 操作提示 -->
-                <div class="zoom-hint">點擊左/右區域 滾輪縮放 | 拖動調整</div>
             </div>
             <canvas id="mergeCanvas" class="hidden"></canvas>
+            <!-- 用於生成最終調整後圖片的canvas -->
+            <canvas id="finalCanvas" class="hidden"></canvas>
 
             <div class="flex gap-2 justify-center mt-3">
                 <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">
@@ -253,12 +220,14 @@
         const leftPreview = document.getElementById('leftPreview');
         const rightPreview = document.getElementById('rightPreview');
         const mergeCanvas = document.getElementById('mergeCanvas');
+        const finalCanvas = document.getElementById('finalCanvas');
         const splitZoomContainer = document.getElementById('splitZoomContainer');
         const leftSplitImg = document.getElementById('leftSplitImg');
         const rightSplitImg = document.getElementById('rightSplitImg');
         const leftImgArea = document.getElementById('leftImgArea');
         const rightImgArea = document.getElementById('rightImgArea');
         const ctx = mergeCanvas.getContext('2d');
+        const finalCtx = finalCanvas.getContext('2d');
         
         const FULL_SIZE = 800;
         const HALF_SIZE = FULL_SIZE / 2;
@@ -381,7 +350,7 @@
                     // 初始化左右分區縮放控制
                     initSplitZoomControls();
                     
-                    // 同時生成完整拼圖用於下載
+                    // 同時生成完整拼圖用於初始下載
                     mergeCanvas.width = FULL_SIZE;
                     mergeCanvas.height = FULL_SIZE;
                     ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
@@ -679,58 +648,135 @@
             rightSplitImg.style.transform = `translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 下載（手機直接存）
+        // 🔥 核心：生成調整後的最終圖片
+        function generateFinalImage() {
+            // 設定最終canvas尺寸與顯示容器一致
+            const containerRect = splitZoomContainer.getBoundingClientRect();
+            finalCanvas.width = containerRect.width;
+            finalCanvas.height = containerRect.height;
+            finalCtx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
+            
+            // 繪製左側調整後的圖片
+            const leftImg = new Image();
+            leftImg.crossOrigin = 'anonymous';
+            leftImg.onload = function() {
+                finalCtx.save();
+                // 移動到左區域中心
+                finalCtx.translate(containerRect.width / 4, containerRect.height / 2);
+                // 應用縮放和偏移
+                finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
+                finalCtx.translate(
+                    zoomState.left.offsetX / zoomState.left.scale,
+                    zoomState.left.offsetY / zoomState.left.scale
+                );
+                // 繪製左圖（居中）
+                finalCtx.drawImage(
+                    leftImg,
+                    -leftImg.width / 2,
+                    -leftImg.height / 2
+                );
+                finalCtx.restore();
+                
+                // 繪製右側調整後的圖片
+                const rightImg = new Image();
+                rightImg.crossOrigin = 'anonymous';
+                rightImg.onload = function() {
+                    finalCtx.save();
+                    // 移動到右區域中心
+                    finalCtx.translate(containerRect.width * 3 / 4, containerRect.height / 2);
+                    // 應用縮放和偏移
+                    finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
+                    finalCtx.translate(
+                        zoomState.right.offsetX / zoomState.right.scale,
+                        zoomState.right.offsetY / zoomState.right.scale
+                    );
+                    // 繪製右圖（居中）
+                    finalCtx.drawImage(
+                        rightImg,
+                        -rightImg.width / 2,
+                        -rightImg.height / 2
+                    );
+                    finalCtx.restore();
+                    
+                    // 繪製中間分隔線
+                    finalCtx.fillStyle = "#ffffff";
+                    finalCtx.fillRect(containerRect.width / 2 - 1, 0, 2, containerRect.height);
+                };
+                rightImg.src = rightSplitImg.src;
+            };
+            leftImg.src = leftSplitImg.src;
+            
+            return new Promise(resolve => {
+                // 等待繪製完成
+                setTimeout(() => {
+                    resolve(finalCanvas.toDataURL('image/png'));
+                }, 100);
+            });
+        }
+
+        // 下載（手機直接存）- 保存調整後的圖片
         async function downloadMerge() {
-            if (!mergeCanvas.width) {
+            if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
                 return;
             }
+            
             try {
-                const dataUrl = mergeCanvas.toDataURL('image/png');
+                // 生成調整後的最終圖片
+                const finalDataUrl = await generateFinalImage();
                 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
                 const isAndroid = /Android/.test(navigator.userAgent);
 
                 if (isIOS || isAndroid) {
                     const link = document.createElement('a');
-                    link.href = dataUrl;
-                    link.download = "彥彬_證件照級對比.png";
+                    link.href = finalDataUrl;
+                    link.download = "彥彬_證件照級對比_調整後.png";
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     
                     setTimeout(() => {
-                        alert('✅ 下載成功！照片已儲存至相簿');
+                        alert('✅ 下載成功！照片已儲存至相簿（包含你的縮放/拖動調整）');
                     }, 500);
                 } else {
-                    const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
+                    const blob = await fetch(finalDataUrl).then(res => res.blob());
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = "彥彬_證件照級對比.png";
+                    a.download = "彥彬_證件照級對比_調整後.png";
                     a.click();
                     URL.revokeObjectURL(url);
-                    alert('✅ 下載成功！');
+                    alert('✅ 下載成功！（包含你的縮放/拖動調整）');
                 }
             } catch (e) {
+                console.error('下載失敗:', e);
                 alert('❌ 下載失敗，請截圖儲存');
             }
         }
 
-        // 分享
+        // 分享 - 分享調整後的圖片
         async function shareImage() {
-            if (!mergeCanvas.width) {
+            if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
                 return;
             }
+            
             try {
-                const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
-                const file = new File([blob], "彥彬_證件照級對比.png", { type: 'image/png' });
+                // 生成調整後的最終圖片
+                const finalDataUrl = await generateFinalImage();
+                const blob = await fetch(finalDataUrl).then(res => res.blob());
+                const file = new File([blob], "彥彬_證件照級對比_調整後.png", { type: 'image/png' });
+                
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: '彥彬 證件照比對' });
+                    await navigator.share({ 
+                        files: [file], 
+                        title: '彥彬 證件照比對（已調整）' 
+                    });
                 } else {
                     alert('❌ 裝置不支援分享');
                 }
             } catch (e) {
+                console.error('分享失敗:', e);
                 alert('❌ 分享失敗');
             }
         }
