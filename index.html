@@ -61,21 +61,33 @@
             background: #d1d5db;
         }
 
-        /* 🔥 核心：原地放大縮小樣式 */
+        /* 🔥 核心：容器固定 + 圖片可縮放 */
         .zoom-container {
             position: relative;
             overflow: hidden;
             border-radius: 16px;
-            touch-action: none; /* 關閉默認觸控行為 */
+            touch-action: none;
             cursor: grab;
+            /* 固定容器尺寸，不會隨圖片縮放變化 */
+            width: 100% !important;
+            height: 350px !important;
+            min-height: 350px !important;
+            max-height: 350px !important;
         }
         .zoom-target {
+            /* 圖片預設居中顯示 */
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
             transition: transform 0.1s ease-out;
             transform-origin: center center;
             user-select: none;
+            /* 保證圖片初始充滿容器 */
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
         }
         /* 縮放控制提示 */
         .zoom-hint {
@@ -155,14 +167,14 @@
             </button>
         </div>
 
-        <!-- 🔥 對比結果（原地放大縮小） -->
+        <!-- 🔥 對比結果（容器固定 + 圖片可縮放） -->
         <div class="result-card p-4 mb-5 text-center">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
             <h3 class="text-xs text-gray-500 mb-3">👉 滑鼠滾輪/雙指縮放 | 拖動調整位置</h3>
             
-            <!-- 放大縮小容器 -->
-            <div id="zoomContainer" class="zoom-container mx-auto" style="width: 100%; height: 350px; display: none;">
-                <img id="mergeResult" class="zoom-target" style="width: 100%; height: auto;">
+            <!-- 固定尺寸的縮放容器 -->
+            <div id="zoomContainer" class="zoom-container mx-auto" style="display: none;">
+                <img id="mergeResult" class="zoom-target">
                 <div class="zoom-hint">滾輪/雙指縮放 | 拖動移動</div>
             </div>
             <canvas id="mergeCanvas" class="hidden"></canvas>
@@ -332,7 +344,7 @@
             mergeImages();
         }
 
-        // 🔥 核心：初始化原地放大縮小控制
+        // 🔥 核心：初始化縮放控制（容器固定，僅圖片縮放）
         function initZoomControls() {
             // 重置縮放狀態
             scale = 1;
@@ -345,12 +357,12 @@
                 e.preventDefault();
                 // 計算縮放增量
                 const delta = e.deltaY > 0 ? -0.1 : 0.1;
-                const newScale = Math.min(4, Math.max(0.8, scale + delta));
+                const newScale = Math.min(4, Math.max(0.5, scale + delta));
                 
                 // 基於滑鼠位置縮放（更直觀）
                 const rect = zoomContainer.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
+                const mouseX = e.clientX - rect.left - rect.width/2;
+                const mouseY = e.clientY - rect.top - rect.height/2;
                 
                 // 調整偏移量，讓縮放圍繞滑鼠位置
                 offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
@@ -363,15 +375,17 @@
             // 滑鼠拖動（電腦）
             zoomContainer.addEventListener('mousedown', (e) => {
                 isDragging = true;
-                startX = e.clientX - offsetX;
-                startY = e.clientY - offsetY;
+                const rect = zoomContainer.getBoundingClientRect();
+                startX = e.clientX - (rect.width/2 + offsetX);
+                startY = e.clientY - (rect.height/2 + offsetY);
                 zoomContainer.style.cursor = 'grabbing';
             });
 
             document.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
-                offsetX = e.clientX - startX;
-                offsetY = e.clientY - startY;
+                const rect = zoomContainer.getBoundingClientRect();
+                offsetX = e.clientX - startX - rect.width/2;
+                offsetY = e.clientY - startY - rect.height/2;
                 updateTransform();
             });
 
@@ -387,28 +401,30 @@
 
             zoomContainer.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                const rect = zoomContainer.getBoundingClientRect();
                 if (e.touches.length === 1) {
                     // 單指拖動
                     isDragging = true;
-                    startX = e.touches[0].clientX - offsetX;
-                    startY = e.touches[0].clientY - offsetY;
+                    startX = e.touches[0].clientX - (rect.width/2 + offsetX);
+                    startY = e.touches[0].clientY - (rect.height/2 + offsetY);
                 } else if (e.touches.length === 2) {
                     // 雙指縮放
                     touch1 = e.touches[0];
                     touch2 = e.touches[1];
                     initialDistance = getDistance(touch1, touch2);
-                    initialMidX = (touch1.clientX + touch2.clientX) / 2;
-                    initialMidY = (touch1.clientY + touch2.clientY) / 2;
+                    initialMidX = (touch1.clientX + touch2.clientX) / 2 - rect.width/2;
+                    initialMidY = (touch1.clientY + touch2.clientY) / 2 - rect.height/2;
                     lastScale = scale;
                 }
             });
 
             zoomContainer.addEventListener('touchmove', (e) => {
                 e.preventDefault();
+                const rect = zoomContainer.getBoundingClientRect();
                 if (e.touches.length === 1 && isDragging) {
                     // 單指拖動
-                    offsetX = e.touches[0].clientX - startX;
-                    offsetY = e.touches[0].clientY - startY;
+                    offsetX = e.touches[0].clientX - startX - rect.width/2;
+                    offsetY = e.touches[0].clientY - startY - rect.height/2;
                     updateTransform();
                 } else if (e.touches.length === 2) {
                     // 雙指縮放
@@ -418,14 +434,14 @@
                     
                     // 計算新縮放比例
                     const scaleRatio = newDistance / initialDistance;
-                    scale = Math.min(4, Math.max(0.8, lastScale * scaleRatio));
+                    scale = Math.min(4, Math.max(0.5, lastScale * scaleRatio));
                     
                     // 基於雙指中點調整偏移
-                    const newMidX = (newTouch1.clientX + newTouch2.clientX) / 2;
-                    const newMidY = (newTouch1.clientY + newTouch2.clientY) / 2;
+                    const newMidX = (newTouch1.clientX + newTouch2.clientX) / 2 - rect.width/2;
+                    const newMidY = (newTouch1.clientY + newTouch2.clientY) / 2 - rect.height/2;
                     
-                    offsetX += (newMidX - initialMidX);
-                    offsetY += (newMidY - initialMidY);
+                    offsetX += (newMidX - initialMidX) * (scale / lastScale);
+                    offsetY += (newMidY - initialMidY) * (scale / lastScale);
                     
                     updateTransform();
                 }
@@ -445,9 +461,9 @@
             return Math.sqrt(dx * dx + dy * dy);
         }
 
-        // 更新圖片變換（縮放+偏移）
+        // 更新圖片變換（僅圖片縮放，容器不動）
         function updateTransform() {
-            mergeResult.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+            mergeResult.style.transform = `translate(-50%, -50%) translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
         }
 
         // 下載（手機直接存）
