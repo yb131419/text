@@ -45,6 +45,21 @@
             object-fit: contain;
             object-position: center;
         }
+        .section-title {
+            font-size: 12px;
+            color: #4b5563;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #d1d5db;
+        }
     </style>
 </head>
 <body class="min-h-screen p-3">
@@ -76,14 +91,20 @@
             </div>
         </div>
 
-        <!-- 按鈕分類整理 -->
-        <div class="flex flex-wrap gap-2 justify-center mb-3">
-            <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-4 py-2.5 font-semibold text-xs">
+        <!-- 🔥 主要功能按鈕（拼圖 + 清除）-->
+        <div class="section-title">主要功能</div>
+        <div class="flex flex-wrap gap-2 justify-center mb-4">
+            <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-5 py-2.5 font-semibold text-xs">
                 🔗 標準證件照拼圖
+            </button>
+            <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-2.5 font-semibold text-xs">
+                🗑 清除全部
             </button>
         </div>
 
-        <div class="flex flex-wrap gap-2 justify-center mb-3">
+        <!-- 🔥 文字編輯按鈕 -->
+        <div class="section-title">文字編輯</div>
+        <div class="flex flex-wrap gap-2 justify-center mb-4">
             <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
                 ⏱ 加入兩小時
             </button>
@@ -95,12 +116,11 @@
             </button>
         </div>
 
+        <!-- 🔥 AI 分析 -->
+        <div class="section-title">AI 分析</div>
         <div class="flex flex-wrap gap-2 justify-center mb-5">
-            <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-4 py-2.5 font-semibold text-xs">
-                🤖 AI點評
-            </button>
-            <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-3.5 py-2.5 text-xs">
-                🗑 清除全部
+            <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-5 py-2.5 font-semibold text-xs w-full">
+                🤖 AI 點評
             </button>
         </div>
 
