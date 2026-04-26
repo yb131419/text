@@ -420,7 +420,6 @@
                 e.preventDefault();
                 zoomState.currentArea = 'left';
                 zoomState.left.isDragging = true;
-                const rect = leftImgArea.getBoundingClientRect();
                 zoomState.left.startX = e.clientX - zoomState.left.offsetX;
                 zoomState.left.startY = e.clientY - zoomState.left.offsetY;
                 leftImgArea.style.cursor = 'grabbing';
@@ -436,7 +435,6 @@
                 e.preventDefault();
                 zoomState.currentArea = 'right';
                 zoomState.right.isDragging = true;
-                const rect = rightImgArea.getBoundingClientRect();
                 zoomState.right.startX = e.clientX - zoomState.right.offsetX;
                 zoomState.right.startY = e.clientY - zoomState.right.offsetY;
                 rightImgArea.style.cursor = 'grabbing';
@@ -446,11 +444,13 @@
                 if (zoomState.left.isDragging) {
                     zoomState.left.offsetX = e.clientX - zoomState.left.startX;
                     zoomState.left.offsetY = e.clientY - zoomState.left.startY;
+                    clampImageBounds('left');
                     updateLeftTransform();
                 }
                 if (zoomState.right.isDragging) {
                     zoomState.right.offsetX = e.clientX - zoomState.right.startX;
                     zoomState.right.offsetY = e.clientY - zoomState.right.startY;
+                    clampImageBounds('right');
                     updateRightTransform();
                 }
             });
@@ -478,9 +478,10 @@
             });
         }
 
+        // 🔥 鎖死：縮放只能 0.5 ~ 1.0（不超過原始圖大小）
         function handleZoom(e, area) {
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            const newScale = Math.min(3, Math.max(0.8, zoomState[area].scale + delta));
+            const newScale = Math.min(1.0, Math.max(0.5, zoomState[area].scale + delta));
             
             const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
@@ -490,28 +491,25 @@
             zoomState[area].offsetY = mouseY - (mouseY - zoomState[area].offsetY) * (newScale / zoomState[area].scale);
             
             zoomState[area].scale = newScale;
+            clampImageBounds(area);
             
-            if (area === 'left') {
-                updateLeftTransform();
-            } else {
-                updateRightTransform();
-            }
+            area === 'left' ? updateLeftTransform() : updateRightTransform();
+        }
+
+        // 🔥 鎖死：圖片絕對不會超出邊界
+        function clampImageBounds(area) {
+            const z = zoomState[area];
+            const maxX = (400 * (z.scale - 1)) / z.scale;
+            const maxY = (800 * (z.scale - 1)) / z.scale;
+
+            z.offsetX = Math.max(-maxX, Math.min(maxX, z.offsetX));
+            z.offsetY = Math.max(-maxY, Math.min(maxY, z.offsetY));
         }
 
         function handleTouchStart(e) {
             e.preventDefault();
             const touch = e.touches[0];
-            
-            const rectLeft = leftImgArea.getBoundingClientRect();
-            const rectRight = rightImgArea.getBoundingClientRect();
-            let area = null;
-            
-            if (touch.clientX >= rectLeft.left && touch.clientX <= rectLeft.right) {
-                area = 'left';
-            } else if (touch.clientX >= rectRight.left && touch.clientX <= rectRight.right) {
-                area = 'right';
-            }
-            
+            const area = touch.clientX < window.innerWidth / 2 ? 'left' : 'right';
             if (!area) return;
             
             zoomState.currentArea = area;
@@ -520,53 +518,37 @@
                 zoomState[area].isDragging = true;
                 zoomState[area].startX = touch.clientX - zoomState[area].offsetX;
                 zoomState[area].startY = touch.clientY - zoomState[area].offsetY;
-            } 
-            else if (e.touches.length === 2) {
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-                const initialDistance = getDistance(t1, t2);
-                zoomState[area].initialDistance = initialDistance;
+            } else if (e.touches.length === 2) {
+                const t1 = e.touches[0], t2 = e.touches[1];
+                zoomState[area].initialDistance = getDistance(t1, t2);
                 zoomState[area].lastScale = zoomState[area].scale;
             }
         }
 
         function handleTouchMove(e) {
             e.preventDefault();
-            if (!zoomState.currentArea) return;
-            
             const area = zoomState.currentArea;
-            const touch = e.touches[0];
-            
+            if (!area) return;
+
             if (e.touches.length === 1 && zoomState[area].isDragging) {
+                const touch = e.touches[0];
                 zoomState[area].offsetX = touch.clientX - zoomState[area].startX;
                 zoomState[area].offsetY = touch.clientY - zoomState[area].startY;
-                
-                if (area === 'left') {
-                    updateLeftTransform();
-                } else {
-                    updateRightTransform();
-                }
+                clampImageBounds(area);
+                area === 'left' ? updateLeftTransform() : updateRightTransform();
             }
-            else if (e.touches.length === 2) {
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-                const newDistance = getDistance(t1, t2);
-                const scaleRatio = newDistance / zoomState[area].initialDistance;
-                
-                zoomState[area].scale = Math.min(3, Math.max(0.8, zoomState[area].lastScale * scaleRatio));
-                
-                if (area === 'left') {
-                    updateLeftTransform();
-                } else {
-                    updateRightTransform();
-                }
+
+            if (e.touches.length === 2) {
+                const t1 = e.touches[0], t2 = e.touches[1];
+                const scale = Math.min(1.0, Math.max(0.5, getDistance(t1, t2) / zoomState[area].initialDistance * zoomState[area].lastScale));
+                zoomState[area].scale = scale;
+                clampImageBounds(area);
+                area === 'left' ? updateLeftTransform() : updateRightTransform();
             }
         }
 
         function getDistance(t1, t2) {
-            const dx = t2.clientX - t1.clientX;
-            const dy = t2.clientY - t1.clientY;
-            return Math.sqrt(dx * dx + dy * dy);
+            return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
         }
 
         function updateLeftTransform() {
@@ -577,48 +559,36 @@
             rightSplitImg.style.transform = `translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 🔥 核心修正：輸出你「當前調整後的畫面」+「標準800x800」
+        // 🔥 輸出永遠 800×800 + 你當前調整後的畫面
         function generateFinalImage() {
             return new Promise((resolve) => {
-                finalCanvas.width = FULL_SIZE;
-                finalCanvas.height = FULL_SIZE;
-                finalCtx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
-
+                finalCanvas.width = 800;
+                finalCanvas.height = 800;
                 finalCtx.fillStyle = "#fff";
-                finalCtx.fillRect(0,0, FULL_SIZE, FULL_SIZE);
+                finalCtx.fillRect(0,0,800,800);
 
-                // 繪製左圖（包含縮放＆位移）
                 const l = new Image();
                 l.crossOrigin="anonymous";
                 l.onload = () => {
                     finalCtx.save();
-                    finalCtx.translate(HALF_SIZE/2, FULL_SIZE/2);
+                    finalCtx.translate(200,400);
                     finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
-                    finalCtx.translate(
-                        zoomState.left.offsetX / zoomState.left.scale,
-                        zoomState.left.offsetY / zoomState.left.scale
-                    );
-                    finalCtx.drawImage(l, -HALF_SIZE/2, -FULL_SIZE/2, HALF_SIZE, FULL_SIZE);
+                    finalCtx.translate(zoomState.left.offsetX/zoomState.left.scale, zoomState.left.offsetY/zoomState.left.scale);
+                    finalCtx.drawImage(l,-200,-400,400,800);
                     finalCtx.restore();
 
-                    // 繪製右圖（包含縮放＆位移）
                     const r = new Image();
                     r.crossOrigin="anonymous";
                     r.onload = () => {
                         finalCtx.save();
-                        finalCtx.translate(HALF_SIZE + HALF_SIZE/2, FULL_SIZE/2);
+                        finalCtx.translate(600,400);
                         finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
-                        finalCtx.translate(
-                            zoomState.right.offsetX / zoomState.right.scale,
-                            zoomState.right.offsetY / zoomState.right.scale
-                        );
-                        finalCtx.drawImage(r, -HALF_SIZE/2, -FULL_SIZE/2, HALF_SIZE, FULL_SIZE);
+                        finalCtx.translate(zoomState.right.offsetX/zoomState.right.scale, zoomState.right.offsetY/zoomState.right.scale);
+                        finalCtx.drawImage(r,-200,-400,400,800);
                         finalCtx.restore();
 
-                        // 中間白線
                         finalCtx.fillStyle="#fff";
-                        finalCtx.fillRect(HALF_SIZE-1,0, 2, FULL_SIZE);
-
+                        finalCtx.fillRect(399,0,2,800);
                         setTimeout(()=>resolve(finalCanvas.toDataURL("image/png",1)), 100);
                     };
                     r.src = rightSplitImg.src;
@@ -628,66 +598,23 @@
         }
 
         async function downloadMerge() {
-            if (!splitZoomContainer.style.display) {
-                alert('請先產生拼圖');
-                return;
-            }
-            
-            try {
-                const finalDataUrl = await generateFinalImage();
-                const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-                const isAndroid = /Android/.test(navigator.userAgent);
-
-                if (isIOS || isAndroid) {
-                    const link = document.createElement('a');
-                    link.href = finalDataUrl;
-                    link.download = "彥彬_證件照_調整後.png";
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    setTimeout(() => {
-                        alert('✅ 下載成功！已儲存你的調整結果');
-                    }, 500);
-                } else {
-                    const blob = await fetch(finalDataUrl).then(res => res.blob());
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = "彥彬_證件照_調整後.png";
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    alert('✅ 下載成功！已儲存你的調整結果');
-                }
-            } catch (e) {
-                console.error('下載失敗:', e);
-                alert('❌ 下載失敗');
-            }
+            if (!splitZoomContainer.style.display) return alert('請先產生拼圖');
+            const url = await generateFinalImage();
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "彥彬_證件照_800x800.png";
+            a.click();
+            alert('✅ 下載成功！800×800 標準尺寸');
         }
 
         async function shareImage() {
-            if (!splitZoomContainer.style.display) {
-                alert('請先產生拼圖');
-                return;
-            }
-            
-            try {
-                const finalDataUrl = await generateFinalImage();
-                const blob = await fetch(finalDataUrl).then(res => res.blob());
-                const file = new File([blob], "彥彬_證件照_調整後.png", { type: 'image/png' });
-                
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ 
-                        files: [file], 
-                        title: '彥彬 證件照比對' 
-                    });
-                } else {
-                    alert('❌ 裝置不支援分享');
-                }
-            } catch (e) {
-                console.error('分享失敗:', e);
-                alert('❌ 分享失敗');
-            }
+            if (!splitZoomContainer.style.display) return alert('請先產生拼圖');
+            const url = await generateFinalImage();
+            const blob = await fetch(url).then(r=>r.blob());
+            const file = new File([blob], "彥彬_證件照_800x800.png", {type:'image/png'});
+            if (navigator.canShare && navigator.canShare({files:[file]})) {
+                navigator.share({files:[file],title:'彥彬證件照'});
+            } else alert('❌ 裝置不支援分享');
         }
 
         function clearAll() {
@@ -696,15 +623,11 @@
         }
 
         async function analyzeBoth() {
-            if (!leftPreview.src || !rightPreview.src) {
-                alert('請上傳兩張照片');
-                return;
-            }
+            if (!leftPreview.src || !rightPreview.src) return alert('請上傳兩張照片');
             const resBox = document.getElementById('aiResult');
             resBox.innerText = 'AI 分析中...';
-
             try {
-                const response = await fetch("https://api.together.xyz/v1/chat/completions", {
+                const res = await fetch("https://api.together.xyz/v1/chat/completions", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -724,17 +647,12 @@
                         temperature: 0.7
                     })
                 });
-                const data = await response.json();
+                const data = await res.json();
                 resBox.innerText = data.choices?.[0]?.message?.content || '分析失敗';
-            } catch (e) {
+            } catch {
                 resBox.innerText = '❌ AI 分析異常';
             }
         }
-
-        window.onload = function() {
-            leftPreview.classList.add('hidden');
-            rightPreview.classList.add('hidden');
-        };
     </script>
 </body>
 </html>
