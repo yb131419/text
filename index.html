@@ -53,7 +53,7 @@
             <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
                 彥彬 AI 比對系統
             </h1>
-            <p class="text-gray-600 mt-1 text-sm">自動裁切 + 大小臉校正 + AI點評</p>
+            <p class="text-gray-600 mt-1 text-sm">標準證件照裁切 + 三庭五眼校正 + AI點評</p>
         </div>
 
         <div class="flex gap-3 mb-5">
@@ -78,7 +78,7 @@
 
         <div class="flex flex-wrap gap-2 justify-center mb-5">
             <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-4 py-2.5 font-semibold text-xs">
-                🔗 自動拼圖+校正臉型
+                🔗 標準證件照拼圖
             </button>
             <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-4 py-2.5 font-semibold text-xs">
                 🤖 AI點評
@@ -89,9 +89,9 @@
         </div>
 
         <div class="result-card p-4 mb-5 text-center">
-            <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 對比拼圖結果</h2>
+            <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
             <div class="inline-block max-w-full">
-                <canvas id="mergeCanvas" class="rounded-xl shadow-lg max-w-full max-h-[280px]"></canvas>
+                <canvas id="mergeCanvas" class="rounded-xl shadow-lg max-w-full max-h-[300px]"></canvas>
                 <div class="flex gap-2 justify-center mt-3">
                     <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">
                         💾 下載相簿
@@ -157,85 +157,73 @@
             reader.readAsDataURL(file);
         }
 
-        // 🔥 核心：固定焦距 + 标准裁切（头顶到胸下，彻底解决大小脸）
-function mergeImages() {
-    if (!leftPreview.src || !rightPreview.src) {
-        alert('請先上傳兩張照片');
-        return;
-    }
+        // 🔥 頂級標準：證件照三庭五眼嚴格對比
+        function mergeImages() {
+            if (!leftPreview.src || !rightPreview.src) {
+                alert('請先上傳兩張照片');
+                return;
+            }
 
-    const imgL = new Image();
-    const imgR = new Image();
-    imgL.crossOrigin = 'anonymous';
-    imgR.crossOrigin = 'anonymous';
+            const imgL = new Image();
+            const imgR = new Image();
+            imgL.crossOrigin = 'anonymous';
+            imgR.crossOrigin = 'anonymous';
 
-    imgL.onload = function() {
-        imgR.onload = function() {
-            // ======================
-            // 固定标准设定（你可以微调这里）
-            // ======================
-            const CANVAS_HEIGHT = 800;       // 画布高度
-            const FACE_HEIGHT_RATIO = 0.50;   // 人脸占画面高度比例（固定焦距）
-            const TOP_CROP_RATIO = 0.10;      // 裁切：头顶上方 10%
-            const BOTTOM_CROP_RATIO = 0.80;   // 裁切：胸下（脖子下方完整）
+            imgL.onload = function() {
+                imgR.onload = function() {
+                    // ==============================
+                    // 證件照嚴格標準（三庭五眼等比例）
+                    // ==============================
+                    const PORTRAIT_HEIGHT = 840;    // 證件照高度
+                    const PORTRAIT_WIDTH  = 580;    // 證件照寬度（標準1寸比例）
+                    
+                    // 頂部裁切：頭頂上方 8%（標準證件照）
+                    const TOP_CROP = 0.08;
+                    // 底部裁切：鎖定下巴到胸上（三庭五眼標準）
+                    const BOTTOM_CROP = 0.75;
 
-            // 固定两边宽度（强制一样大，彻底解决大小脸）
-            const FIXED_WIDTH = 540;
+                    // 畫布設定
+                    mergeCanvas.width  = PORTRAIT_WIDTH * 2;
+                    mergeCanvas.height = PORTRAIT_HEIGHT;
+                    ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-            // 画布总尺寸
-            mergeCanvas.width = FIXED_WIDTH * 2;
-            mergeCanvas.height = CANVAS_HEIGHT;
-            ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
+                    // 繪製左圖（嚴格標準）
+                    const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
+                    ctx.drawImage(
+                        imgL,
+                        0, imgL.height * TOP_CROP,
+                        imgL.width, cropH_L,
+                        0, 0,
+                        PORTRAIT_WIDTH, PORTRAIT_HEIGHT
+                    );
 
-            // ======================
-            // 绘制左边图（标准裁切）
-            // ======================
-            const srcHeightL = imgL.height;
-            const cropTopL = srcHeightL * TOP_CROP_RATIO;
-            const cropHeightL = srcHeightL * (BOTTOM_CROP_RATIO - TOP_CROP_RATIO);
-            
-            ctx.drawImage(
-                imgL,
-                0, cropTopL,          // 原图起点
-                imgL.width, cropHeightL,  // 原图裁切范围
-                0, 0,                 // 画布绘制起点
-                FIXED_WIDTH, CANVAS_HEIGHT  // 固定大小
-            );
+                    // 繪製右圖（完全相同標準）
+                    const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
+                    ctx.drawImage(
+                        imgR,
+                        0, imgR.height * TOP_CROP,
+                        imgR.width, cropH_R,
+                        PORTRAIT_WIDTH, 0,
+                        PORTRAIT_WIDTH, PORTRAIT_HEIGHT
+                    );
 
-            // ======================
-            // 绘制右边图（完全一样的标准）
-            // ======================
-            const srcHeightR = imgR.height;
-            const cropTopR = srcHeightR * TOP_CROP_RATIO;
-            const cropHeightR = srcHeightR * (BOTTOM_CROP_RATIO - TOP_CROP_RATIO);
-            
-            ctx.drawImage(
-                imgR,
-                0, cropTopR,
-                imgR.width, cropHeightR,
-                FIXED_WIDTH, 0,
-                FIXED_WIDTH, CANVAS_HEIGHT
-            );
+                    // 文字（證件照風格）
+                    ctx.font = 'bold 48px Arial';
+                    ctx.fillStyle = 'white';
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 9;
+                    ctx.textAlign = 'center';
+                    const ty = PORTRAIT_HEIGHT - 40;
 
-            // ======================
-            // 文字（日期 + 标注）
-            // ======================
-            ctx.font = 'bold 52px Arial';
-            ctx.fillStyle = 'white';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 10;
-            ctx.textAlign = 'center';
-            const textY = CANVAS_HEIGHT - 35;
-
-            ctx.strokeText(getTaiwanDate(), FIXED_WIDTH/2, textY);
-            ctx.fillText(getTaiwanDate(), FIXED_WIDTH/2, textY);
-            ctx.strokeText('兩小時', FIXED_WIDTH * 1.5, textY);
-            ctx.fillText('兩小時', FIXED_WIDTH * 1.5, textY);
+                    ctx.strokeText(getTaiwanDate(), PORTRAIT_WIDTH/2, ty);
+                    ctx.fillText(getTaiwanDate(), PORTRAIT_WIDTH/2, ty);
+                    ctx.strokeText('兩小時', PORTRAIT_WIDTH * 1.5, ty);
+                    ctx.fillText('兩小時', PORTRAIT_WIDTH * 1.5, ty);
+                }
+                imgR.src = rightPreview.src;
+            }
+            imgL.src = leftPreview.src;
         }
-        imgR.src = rightPreview.src;
-    }
-    imgL.src = leftPreview.src;
-}
 
         // 下載
         async function downloadMerge() {
@@ -245,7 +233,7 @@ function mergeImages() {
             }
             try {
                 const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
-                const fileName = "彥彬_對比拼圖.png";
+                const fileName = "彥彬_證件照級對比.png";
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -266,9 +254,9 @@ function mergeImages() {
             }
             try {
                 const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
-                const file = new File([blob], "彥彬_對比拼圖.png", { type: 'image/png' });
+                const file = new File([blob], "彥彬_證件照級對比.png", { type: 'image/png' });
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: '彥彬 照片比對' });
+                    await navigator.share({ files: [file], title: '彥彬 證件照比對' });
                 } else {
                     alert('❌ 裝置不支援分享');
                 }
