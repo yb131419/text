@@ -76,21 +76,31 @@
             </div>
         </div>
 
-        <div class="flex flex-wrap gap-2 justify-center mb-5">
+        <!-- 按鈕分類整理 -->
+        <div class="flex flex-wrap gap-2 justify-center mb-3">
             <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-4 py-2.5 font-semibold text-xs">
                 🔗 標準證件照拼圖
             </button>
-            <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2.5 font-semibold text-xs">
+        </div>
+
+        <div class="flex flex-wrap gap-2 justify-center mb-3">
+            <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
                 ⏱ 加入兩小時
             </button>
-            <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2.5 font-semibold text-xs">
+            <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
                 📅 加入今日日期
             </button>
+            <button onclick="clearRightText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
+                🧹 清除右側文字
+            </button>
+        </div>
+
+        <div class="flex flex-wrap gap-2 justify-center mb-5">
             <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-4 py-2.5 font-semibold text-xs">
                 🤖 AI點評
             </button>
             <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-3.5 py-2.5 text-xs">
-                🗑 清除
+                🗑 清除全部
             </button>
         </div>
 
@@ -124,8 +134,9 @@
         const mergeCanvas = document.getElementById('mergeCanvas');
         const ctx = mergeCanvas.getContext('2d');
         
-        // 🔥 1:1 正方形證件照標準
-        const SQUARE_SIZE = 800;
+        // 🔥 整體輸出 1:1 正方形（兩張拼起來）
+        const FULL_SIZE = 800;
+        const HALF_SIZE = FULL_SIZE / 2;
 
         // 日期格式：115/04/02
         function getTaiwanDate() {
@@ -166,7 +177,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 🔥 標準 1:1 正方形拼圖 + 左圖自動加日期
+        // 🔥 整體 1:1 正方形 + 左圖自動日期
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -183,47 +194,54 @@
                     const TOP_CROP = 0.08;
                     const BOTTOM_CROP = 0.75;
 
-                    // 1:1 正方形輸出
-                    mergeCanvas.width = SQUARE_SIZE * 2;
-                    mergeCanvas.height = SQUARE_SIZE;
+                    // 整體 1:1 正方形
+                    mergeCanvas.width = FULL_SIZE;
+                    mergeCanvas.height = FULL_SIZE;
                     ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    // 繪製左圖 + 右圖（標準裁切）
+                    // 左圖（半寬）
                     const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
-                    ctx.drawImage(imgL, 0, imgL.height * TOP_CROP, imgL.width, cropH_L, 0, 0, SQUARE_SIZE, SQUARE_SIZE);
+                    ctx.drawImage(imgL, 0, imgL.height * TOP_CROP, imgL.width, cropH_L, 0, 0, HALF_SIZE, FULL_SIZE);
                     
+                    // 右圖（半寬）
                     const cropH_R = imgR.height * (BOTTOM_CROP - TOP_CROP);
-                    ctx.drawImage(imgR, 0, imgR.height * TOP_CROP, imgR.width, cropH_R, SQUARE_SIZE, 0, SQUARE_SIZE, SQUARE_SIZE);
+                    ctx.drawImage(imgR, 0, imgR.height * TOP_CROP, imgR.width, cropH_R, HALF_SIZE, 0, HALF_SIZE, FULL_SIZE);
 
-                    // ✅ 左圖「固定」加上今天日期
-                    drawText(getTaiwanDate(), SQUARE_SIZE/2, SQUARE_SIZE - 45);
+                    // 左圖固定日期
+                    drawText(getTaiwanDate(), HALF_SIZE/2, FULL_SIZE - 45);
                 }
                 imgR.src = rightPreview.src;
             }
             imgL.src = leftPreview.src;
         }
 
-        // 文字繪製函式
+        // 文字繪製
         function drawText(text, x, y) {
-            ctx.font = 'bold 46px Arial';
+            ctx.font = 'bold 42px Arial';
             ctx.fillStyle = 'white';
             ctx.strokeStyle = 'black';
-            ctx.lineWidth = 9;
+            ctx.lineWidth = 8;
             ctx.textAlign = 'center';
             ctx.strokeText(text, x, y);
             ctx.fillText(text, x, y);
         }
 
-        // 右圖手動添加文字
+        // 右圖加入文字
         function addTextRight(text) {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
                 return;
             }
-            drawText(text, SQUARE_SIZE + SQUARE_SIZE/2, SQUARE_SIZE - 45);
+            drawText(text, HALF_SIZE + HALF_SIZE/2, FULL_SIZE - 45);
         }
 
-        // ✅ 修復下載
+        // 清除右側文字（重新繪製圖片）
+        function clearRightText() {
+            if (!leftPreview.src || !rightPreview.src) return;
+            mergeImages();
+        }
+
+        // 下載
         async function downloadMerge() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
