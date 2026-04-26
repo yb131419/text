@@ -72,6 +72,9 @@
             height: 800px;    /* 高度800px → 6:8比例 */
             touch-action: none;
             margin: 0 auto;   /* 居中顯示 */
+            /* 減少容器本身的外邊距 */
+            margin-top: 4px;
+            margin-bottom: 4px;
         }
         .left-img-area {
             position: absolute;
@@ -177,7 +180,8 @@
         </div>
 
         <div class="result-card p-4 mb-5 text-center">
-            <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
+            <!-- 大幅減少標題下方的margin -->
+            <h2 class="text-lg font-bold text-gray-800 mb-1">✅ 證件照級對比結果</h2>
             
             <!-- 截圖容器：僅包含圖片區域 -->
             <div id="capture-container" class="split-zoom-container mx-auto" style="display: none;">
@@ -192,7 +196,8 @@
             <canvas id="mergeCanvas" class="hidden"></canvas>
             <canvas id="finalCanvas" class="hidden"></canvas>
 
-            <div class="flex gap-2 justify-center mt-3">
+            <!-- 大幅減少按鈕上方的margin -->
+            <div class="flex gap-2 justify-center mt-1">
                 <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">
                     💾 下載相簿
                 </button>
@@ -288,8 +293,8 @@
 
             imgL.onload = function() {
                 imgR.onload = function() {
-                    const TOP_CROP = 0.01;
-                    const BOTTOM_CROP = 0.95; // 調整裁切比例，減少上下留白
+                    const TOP_CROP = 0.00; // 進一步減少頂部裁切，最大化利用空間
+                    const BOTTOM_CROP = 0.98; // 進一步減少底部裁切
 
                     // 生成左側圖片（6:8 比例單側）
                     const leftCanvas = document.createElement('canvas');
@@ -324,7 +329,7 @@
                     
                     // 日期文字繪製在圖片區域內（6:8比例優化位置）
                     const textX = HALF_WIDTH / 2;
-                    const textY = offsetYL + drawHeightL - 40; // 靠近底部但不超出圖片
+                    const textY = offsetYL + drawHeightL - 20; // 進一步靠近底部
                     
                     leftCtx.font = 'bold 36px Arial'; // 适配600px寬度調整字體大小
                     leftCtx.fillStyle = 'white';
@@ -399,8 +404,8 @@
             const imgR = new Image();
             imgR.crossOrigin = 'anonymous';
             imgR.onload = function() {
-                const TOP_CROP = 0.01;
-                const BOTTOM_CROP = 0.95;
+                const TOP_CROP = 0.00;
+                const BOTTOM_CROP = 0.98;
                 
                 // 生成右側圖片（6:8比例）
                 const rightCanvas = document.createElement('canvas');
@@ -433,7 +438,7 @@
                 
                 // 文字繪製（适配6:8比例）
                 const textX = HALF_WIDTH / 2;
-                const textY = offsetYR + drawHeightR - 40;
+                const textY = offsetYR + drawHeightR - 20; // 進一步靠近底部
                 
                 rightCtx.font = 'bold 36px Arial';
                 rightCtx.fillStyle = 'white';
