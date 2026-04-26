@@ -216,7 +216,7 @@
         const finalCtx = finalCanvas.getContext('2d');
         
         const FULL_SIZE = 800;
-        const HALF_SIZE = FULL_SIZE / 2;
+        const HALF_SIZE = 400;
         const BORDER_WIDTH = 2;
 
         const zoomState = {
@@ -444,13 +444,13 @@
                 if (zoomState.left.isDragging) {
                     zoomState.left.offsetX = e.clientX - zoomState.left.startX;
                     zoomState.left.offsetY = e.clientY - zoomState.left.startY;
-                    clampImageBounds('left');
+                    clampTo400x800('left');
                     updateLeftTransform();
                 }
                 if (zoomState.right.isDragging) {
                     zoomState.right.offsetX = e.clientX - zoomState.right.startX;
                     zoomState.right.offsetY = e.clientY - zoomState.right.startY;
-                    clampImageBounds('right');
+                    clampTo400x800('right');
                     updateRightTransform();
                 }
             });
@@ -478,7 +478,7 @@
             });
         }
 
-        // 🔥 鎖死：縮放只能 0.5 ~ 1.0（不超過原始圖大小）
+        // 🔥 鎖死：縮放只能 0.5 ~ 1.0（不超過 400×800）
         function handleZoom(e, area) {
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
             const newScale = Math.min(1.0, Math.max(0.5, zoomState[area].scale + delta));
@@ -491,19 +491,19 @@
             zoomState[area].offsetY = mouseY - (mouseY - zoomState[area].offsetY) * (newScale / zoomState[area].scale);
             
             zoomState[area].scale = newScale;
-            clampImageBounds(area);
+            clampTo400x800(area);
             
             area === 'left' ? updateLeftTransform() : updateRightTransform();
         }
 
-        // 🔥 鎖死：圖片絕對不會超出邊界
-        function clampImageBounds(area) {
+        // ✅ 核心修正：永遠鎖在 400×800 範圍內，絕對不會跑出去
+        function clampTo400x800(area) {
             const z = zoomState[area];
-            const maxX = (400 * (z.scale - 1)) / z.scale;
-            const maxY = (800 * (z.scale - 1)) / z.scale;
+            const maxOffsetX = (400 * (z.scale - 1)) / z.scale;
+            const maxOffsetY = (800 * (z.scale - 1)) / z.scale;
 
-            z.offsetX = Math.max(-maxX, Math.min(maxX, z.offsetX));
-            z.offsetY = Math.max(-maxY, Math.min(maxY, z.offsetY));
+            z.offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, z.offsetX));
+            z.offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, z.offsetY));
         }
 
         function handleTouchStart(e) {
@@ -534,7 +534,7 @@
                 const touch = e.touches[0];
                 zoomState[area].offsetX = touch.clientX - zoomState[area].startX;
                 zoomState[area].offsetY = touch.clientY - zoomState[area].startY;
-                clampImageBounds(area);
+                clampTo400x800(area);
                 area === 'left' ? updateLeftTransform() : updateRightTransform();
             }
 
@@ -542,7 +542,7 @@
                 const t1 = e.touches[0], t2 = e.touches[1];
                 const scale = Math.min(1.0, Math.max(0.5, getDistance(t1, t2) / zoomState[area].initialDistance * zoomState[area].lastScale));
                 zoomState[area].scale = scale;
-                clampImageBounds(area);
+                clampTo400x800(area);
                 area === 'left' ? updateLeftTransform() : updateRightTransform();
             }
         }
