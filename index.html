@@ -88,17 +88,16 @@
             z-index: 5;
         }
 
-        /* 固定文字層 - 不會跟圖片移動 */
+        /* 固定文字層 - 純白色 + 更靠近底部 */
         .fixed-text {
             position: absolute;
             font-size: 24px;
             font-weight: bold;
-            color: white;
-            -webkit-text-stroke: 4px black;
+            color: #ffffff; /* 純白色 */
             text-align: center;
             pointer-events: none;
             z-index: 10;
-            bottom: 24px;
+            bottom: 12px; /* 更靠近底部 */
             transform: translateX(-50%);
         }
         .fixed-text.left { left: 25%; }
@@ -147,13 +146,20 @@
             </button>
         </div>
 
+        <!-- 文字編輯區 → 移到 AI 點評上方 -->
         <div class="section-title">文字編輯</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
+            <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
+                📅 左側加入日期
+            </button>
+            <button onclick="clearLeftText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
+                🧹 清除左側文字
+            </button>
             <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
-                ⏱ 加入兩小時
+                ⏱ 右側加入兩小時
             </button>
             <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
-                📅 加入今日日期
+                📅 右側加入日期
             </button>
             <button onclick="clearRightText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
                 🧹 清除右側文字
@@ -252,15 +258,22 @@
             leftSplitImg.src = leftPreview.src;
             rightSplitImg.src = rightPreview.src;
             captureTarget.style.display = 'block';
-            leftText.textContent = getTaiwanDate();
+            leftText.textContent = '';
             rightText.textContent = '';
             initControls();
         }
 
-        // 文字控制
+        // 文字控制（左右都支援）
+        function addTextLeft(t) {
+            if(!captureTarget.style.display) return alert('請先產生拼圖');
+            leftText.textContent = t;
+        }
         function addTextRight(t) {
             if(!captureTarget.style.display) return alert('請先產生拼圖');
             rightText.textContent = t;
+        }
+        function clearLeftText() {
+            leftText.textContent = '';
         }
         function clearRightText() {
             rightText.textContent = '';
