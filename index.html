@@ -61,16 +61,14 @@
             background: #d1d5db;
         }
 
-        /* 🔥 修改1：加宽对比容器，从350px改为450px，宽度适配 */
         .split-zoom-container {
             position: relative;
             overflow: hidden;
             border-radius: 16px;
             width: 100%;
-            height: 450px; /* 加高容器 */
+            height: 450px;
             touch-action: none;
         }
-        /* 左側圖片區域 */
         .left-img-area {
             position: absolute;
             top: 0;
@@ -80,7 +78,6 @@
             overflow: hidden;
             cursor: zoom-in;
         }
-        /* 右側圖片區域 */
         .right-img-area {
             position: absolute;
             top: 0;
@@ -90,7 +87,6 @@
             overflow: hidden;
             cursor: zoom-in;
         }
-        /* 左右圖片元素 */
         .split-img {
             position: absolute;
             top: 0;
@@ -101,7 +97,6 @@
             transform-origin: center center;
             user-select: none;
         }
-        /* 中間分隔線 */
         .divider-line {
             position: absolute;
             top: 0;
@@ -115,7 +110,7 @@
     </style>
 </head>
 <body class="min-h-screen p-3">
-    <div class="max-w-md mx-auto"> <!-- 修改2：加宽主容器，从max-w-sm改为max-w-md -->
+    <div class="max-w-md mx-auto">
         <div class="text-center mb-4">
             <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
                 彥彬 AI 比對系統
@@ -143,7 +138,6 @@
             </div>
         </div>
 
-        <!-- 主要功能 -->
         <div class="section-title">主要功能</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
             <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-5 py-2.5 font-semibold text-xs">
@@ -154,7 +148,6 @@
             </button>
         </div>
 
-        <!-- 文字編輯 -->
         <div class="section-title">文字編輯</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
             <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
@@ -168,7 +161,6 @@
             </button>
         </div>
 
-        <!-- AI 分析 -->
         <div class="section-title">AI 分析</div>
         <div class="flex flex-wrap gap-2 justify-center mb-5">
             <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-5 py-2.5 font-semibold text-xs w-full">
@@ -176,28 +168,26 @@
             </button>
         </div>
 
-        <!-- 🔥 對比結果（左右分區獨立縮放） -->
         <div class="result-card p-4 mb-5 text-center">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
             
-            <!-- 左右分區縮放容器 -->
             <div id="splitZoomContainer" class="split-zoom-container mx-auto" style="display: none;">
-                <!-- 左側圖片區 -->
                 <div class="left-img-area" id="leftImgArea">
                     <img id="leftSplitImg" class="split-img">
                 </div>
-                <!-- 右側圖片區 -->
                 <div class="right-img-area" id="rightImgArea">
                     <img id="rightSplitImg" class="split-img">
                 </div>
-                <!-- 中間白色分隔線 -->
                 <div class="divider-line"></div>
             </div>
             <canvas id="mergeCanvas" class="hidden"></canvas>
-            <!-- 用於生成最終調整後圖片的canvas -->
             <canvas id="finalCanvas" class="hidden"></canvas>
 
+            <!-- 按鈕列：截圖儲存 + 下載相簿 + 分享照片 -->
             <div class="flex gap-2 justify-center mt-3">
+                <button onclick="captureAndSave()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-indigo-700 transition">
+                    📸 截圖儲存
+                </button>
                 <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">
                     💾 下載相簿
                 </button>
@@ -231,16 +221,14 @@
         
         const FULL_SIZE = 800;
         const HALF_SIZE = FULL_SIZE / 2;
-        const BORDER_WIDTH = 2; // 細白線寬度
+        const BORDER_WIDTH = 2;
 
-        // 左右分區縮放控制變量
         const zoomState = {
             left: { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 },
             right: { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 },
-            currentArea: null // 當前操作的區域：left/right/null
+            currentArea: null
         };
 
-        // 日期格式：115/04/02
         function getTaiwanDate() {
             const now = new Date();
             const year = now.getFullYear() - 1911;
@@ -249,7 +237,6 @@
             return `${year}/${month}/${day}`;
         }
 
-        // 上傳圖片
         document.getElementById('leftImg').addEventListener('change', loadLeftImage);
         document.getElementById('rightImg').addEventListener('change', loadRightImage);
 
@@ -277,7 +264,6 @@
             reader.readAsDataURL(file);
         }
 
-        // 生成左右分區圖片（保留細白線）
         function mergeImages() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請先上傳兩張照片');
@@ -294,14 +280,12 @@
                     const TOP_CROP = 0.02;
                     const BOTTOM_CROP = 0.88;
 
-                    // 生成左側圖片
                     const leftCanvas = document.createElement('canvas');
                     const leftCtx = leftCanvas.getContext('2d');
                     leftCanvas.width = HALF_SIZE;
                     leftCanvas.height = FULL_SIZE;
                     leftCtx.clearRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
-                    // 左圖白色外框
                     leftCtx.fillStyle = "#ffffff";
                     leftCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
@@ -313,7 +297,6 @@
                         HALF_SIZE - BORDER_WIDTH * 2,
                         FULL_SIZE - BORDER_WIDTH * 2
                     );
-                    // 左圖日期
                     leftCtx.font = 'bold 40px Arial';
                     leftCtx.fillStyle = 'white';
                     leftCtx.strokeStyle = 'black';
@@ -322,14 +305,12 @@
                     leftCtx.strokeText(getTaiwanDate(), HALF_SIZE/2, FULL_SIZE - 65);
                     leftCtx.fillText(getTaiwanDate(), HALF_SIZE/2, FULL_SIZE - 65);
 
-                    // 生成右側圖片
                     const rightCanvas = document.createElement('canvas');
                     const rightCtx = rightCanvas.getContext('2d');
                     rightCanvas.width = HALF_SIZE;
                     rightCanvas.height = FULL_SIZE;
                     rightCtx.clearRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
-                    // 右圖白色外框
                     rightCtx.fillStyle = "#ffffff";
                     rightCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
                     
@@ -342,26 +323,19 @@
                         FULL_SIZE - BORDER_WIDTH * 2
                     );
 
-                    // 顯示左右分區圖片
                     leftSplitImg.src = leftCanvas.toDataURL('image/png');
                     rightSplitImg.src = rightCanvas.toDataURL('image/png');
                     splitZoomContainer.style.display = 'block';
                     
-                    // 初始化左右分區縮放控制
                     initSplitZoomControls();
                     
-                    // 同時生成完整拼圖用於初始下載
                     mergeCanvas.width = FULL_SIZE;
                     mergeCanvas.height = FULL_SIZE;
                     ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
-                    // 完整拼圖白色外框
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
-                    // 繪製左圖
                     ctx.drawImage(leftCanvas, 0, 0);
-                    // 繪製右圖
                     ctx.drawImage(rightCanvas, HALF_SIZE, 0);
-                    // 中間分隔線
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
                 }
@@ -370,14 +344,12 @@
             imgL.src = leftPreview.src;
         }
 
-        // 右圖加入文字
         function addTextRight(text) {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
                 return;
             }
             
-            // 重新生成右側圖片並添加文字
             const imgR = new Image();
             imgR.crossOrigin = 'anonymous';
             imgR.onload = function() {
@@ -390,7 +362,6 @@
                 rightCanvas.height = FULL_SIZE;
                 rightCtx.clearRect(0, 0, HALF_SIZE, FULL_SIZE);
                 
-                // 右圖白色外框
                 rightCtx.fillStyle = "#ffffff";
                 rightCtx.fillRect(0, 0, HALF_SIZE, FULL_SIZE);
                 
@@ -403,7 +374,6 @@
                     FULL_SIZE - BORDER_WIDTH * 2
                 );
                 
-                // 添加文字
                 rightCtx.font = 'bold 40px Arial';
                 rightCtx.fillStyle = 'white';
                 rightCtx.strokeStyle = 'black';
@@ -412,23 +382,17 @@
                 rightCtx.strokeText(text, HALF_SIZE/2, FULL_SIZE - 65);
                 rightCtx.fillText(text, HALF_SIZE/2, FULL_SIZE - 65);
                 
-                // 更新右側圖片
                 rightSplitImg.src = rightCanvas.toDataURL('image/png');
                 
-                // 更新完整拼圖
                 mergeCanvas.width = FULL_SIZE;
                 mergeCanvas.height = FULL_SIZE;
                 ctx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
-                // 完整拼圖白色外框
                 ctx.fillStyle = "#ffffff";
                 ctx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
-                // 重新繪製左圖
                 const leftImg = new Image();
                 leftImg.onload = function() {
                     ctx.drawImage(leftImg, 0, 0);
-                    // 繪製更新後的右圖
                     ctx.drawImage(rightCanvas, HALF_SIZE, 0);
-                    // 中間分隔線
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
                 }
@@ -437,15 +401,12 @@
             imgR.src = rightPreview.src;
         }
 
-        // 清除右側文字
         function clearRightText() {
             if (!leftPreview.src || !rightPreview.src) return;
             mergeImages();
         }
 
-        // 🔥 核心：初始化左右分區獨立縮放控制
         function initSplitZoomControls() {
-            // 重置縮放狀態
             zoomState.left = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
             zoomState.right = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
             zoomState.currentArea = null;
@@ -453,15 +414,12 @@
             updateLeftTransform();
             updateRightTransform();
 
-            // ========== 左側區域控制 ==========
-            // 滑鼠滾輪縮放（左區）
             leftImgArea.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'left';
                 handleZoom(e, 'left');
             });
 
-            // 左區滑鼠拖動開始
             leftImgArea.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'left';
@@ -472,15 +430,12 @@
                 leftImgArea.style.cursor = 'grabbing';
             });
 
-            // ========== 右側區域控制 ==========
-            // 滑鼠滾輪縮放（右區）
             rightImgArea.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'right';
                 handleZoom(e, 'right');
             });
 
-            // 右區滑鼠拖動開始
             rightImgArea.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 zoomState.currentArea = 'right';
@@ -491,15 +446,12 @@
                 rightImgArea.style.cursor = 'grabbing';
             });
 
-            // ========== 全域拖動處理 ==========
             document.addEventListener('mousemove', (e) => {
-                // 左區拖動
                 if (zoomState.left.isDragging) {
                     zoomState.left.offsetX = e.clientX - zoomState.left.startX;
                     zoomState.left.offsetY = e.clientY - zoomState.left.startY;
                     updateLeftTransform();
                 }
-                // 右區拖動
                 if (zoomState.right.isDragging) {
                     zoomState.right.offsetX = e.clientX - zoomState.right.startX;
                     zoomState.right.offsetY = e.clientY - zoomState.right.startY;
@@ -507,7 +459,6 @@
                 }
             });
 
-            // 拖動結束
             document.addEventListener('mouseup', () => {
                 if (zoomState.left.isDragging) {
                     zoomState.left.isDragging = false;
@@ -520,14 +471,10 @@
                 zoomState.currentArea = null;
             });
 
-            // ========== 手機觸控支援 ==========
-            // 左區觸控
             leftImgArea.addEventListener('touchstart', handleTouchStart);
             leftImgArea.addEventListener('touchmove', handleTouchMove);
-            // 右區觸控
             rightImgArea.addEventListener('touchstart', handleTouchStart);
             rightImgArea.addEventListener('touchmove', handleTouchMove);
-            // 觸控結束
             splitZoomContainer.addEventListener('touchend', () => {
                 zoomState.left.isDragging = false;
                 zoomState.right.isDragging = false;
@@ -535,23 +482,19 @@
             });
         }
 
-        // 處理滾輪縮放
         function handleZoom(e, area) {
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
             const newScale = Math.min(4, Math.max(0.8, zoomState[area].scale + delta));
             
-            // 基於滑鼠位置縮放
             const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
             
-            // 調整偏移量，讓縮放圍繞滑鼠位置
             zoomState[area].offsetX = mouseX - (mouseX - zoomState[area].offsetX) * (newScale / zoomState[area].scale);
             zoomState[area].offsetY = mouseY - (mouseY - zoomState[area].offsetY) * (newScale / zoomState[area].scale);
             
             zoomState[area].scale = newScale;
             
-            // 更新對應區域的變換
             if (area === 'left') {
                 updateLeftTransform();
             } else {
@@ -559,12 +502,10 @@
             }
         }
 
-        // 處理觸控開始
         function handleTouchStart(e) {
             e.preventDefault();
             const touch = e.touches[0];
             
-            // 判斷當前操作區域
             const rectLeft = leftImgArea.getBoundingClientRect();
             const rectRight = rightImgArea.getBoundingClientRect();
             let area = null;
@@ -579,13 +520,11 @@
             
             zoomState.currentArea = area;
             
-            // 單指拖動
             if (e.touches.length === 1) {
                 zoomState[area].isDragging = true;
                 zoomState[area].startX = touch.clientX - zoomState[area].offsetX;
                 zoomState[area].startY = touch.clientY - zoomState[area].offsetY;
             } 
-            // 雙指縮放
             else if (e.touches.length === 2) {
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
@@ -595,7 +534,6 @@
             }
         }
 
-        // 處理觸控移動
         function handleTouchMove(e) {
             e.preventDefault();
             if (!zoomState.currentArea) return;
@@ -603,7 +541,6 @@
             const area = zoomState.currentArea;
             const touch = e.touches[0];
             
-            // 單指拖動
             if (e.touches.length === 1 && zoomState[area].isDragging) {
                 zoomState[area].offsetX = touch.clientX - zoomState[area].startX;
                 zoomState[area].offsetY = touch.clientY - zoomState[area].startY;
@@ -614,7 +551,6 @@
                     updateRightTransform();
                 }
             }
-            // 雙指縮放
             else if (e.touches.length === 2) {
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
@@ -631,83 +567,62 @@
             }
         }
 
-        // 計算兩個觸控點的距離
         function getDistance(t1, t2) {
             const dx = t2.clientX - t1.clientX;
             const dy = t2.clientY - t1.clientY;
             return Math.sqrt(dx * dx + dy * dy);
         }
 
-        // 更新左側圖片變換
         function updateLeftTransform() {
             leftSplitImg.style.transform = `translate(${zoomState.left.offsetX}px, ${zoomState.left.offsetY}px) scale(${zoomState.left.scale})`;
         }
 
-        // 更新右側圖片變換
         function updateRightTransform() {
             rightSplitImg.style.transform = `translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 🔥 修改3：修复生成最终图片的逻辑，精确还原显示效果
         function generateFinalImage() {
             return new Promise((resolve) => {
-                // 获取容器的实际尺寸
                 const containerRect = splitZoomContainer.getBoundingClientRect();
                 const containerWidth = containerRect.width;
                 const containerHeight = containerRect.height;
                 
-                // 设置finalCanvas尺寸与显示容器完全一致
                 finalCanvas.width = containerWidth;
                 finalCanvas.height = containerHeight;
                 finalCtx.clearRect(0, 0, containerWidth, containerHeight);
                 
-                // 先绘制白色背景
                 finalCtx.fillStyle = "#ffffff";
                 finalCtx.fillRect(0, 0, containerWidth, containerHeight);
                 
-                // 加载左侧图片
                 const leftImg = new Image();
                 leftImg.crossOrigin = 'anonymous';
                 leftImg.onload = function() {
-                    // 绘制左侧调整后的图片
                     finalCtx.save();
-                    // 切换到左侧区域坐标系
                     finalCtx.translate(containerWidth / 4, containerHeight / 2);
-                    // 应用缩放
                     finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
-                    // 应用偏移
                     finalCtx.translate(
                         zoomState.left.offsetX / zoomState.left.scale,
                         zoomState.left.offsetY / zoomState.left.scale
                     );
-                    // 居中绘制图片
                     finalCtx.drawImage(leftImg, -leftImg.width / 2, -leftImg.height / 2);
                     finalCtx.restore();
                     
-                    // 加载右侧图片
                     const rightImg = new Image();
                     rightImg.crossOrigin = 'anonymous';
                     rightImg.onload = function() {
-                        // 绘制右侧调整后的图片
                         finalCtx.save();
-                        // 切换到右侧区域坐标系
                         finalCtx.translate(containerWidth * 3 / 4, containerHeight / 2);
-                        // 应用缩放
                         finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
-                        // 应用偏移
                         finalCtx.translate(
                             zoomState.right.offsetX / zoomState.right.scale,
                             zoomState.right.offsetY / zoomState.right.scale
                         );
-                        // 居中绘制图片
                         finalCtx.drawImage(rightImg, -rightImg.width / 2, -rightImg.height / 2);
                         finalCtx.restore();
                         
-                        // 绘制中间分隔线
                         finalCtx.fillStyle = "#ffffff";
                         finalCtx.fillRect(containerWidth / 2 - 1, 0, 2, containerHeight);
                         
-                        // 等待绘制完成后返回数据URL
                         setTimeout(() => {
                             resolve(finalCanvas.toDataURL('image/png', 1.0));
                         }, 100);
@@ -718,7 +633,31 @@
             });
         }
 
-        // 下載（手機直接存）- 保存調整後的圖片
+        // 🔥 新增：截圖並儲存（精準擷取對比區域）
+        async function captureAndSave() {
+            if (!splitZoomContainer.style.display) {
+                alert('請先產生拼圖');
+                return;
+            }
+            
+            try {
+                const finalDataUrl = await generateFinalImage();
+                const link = document.createElement('a');
+                link.href = finalDataUrl;
+                link.download = "彥彬_證件照截圖.png";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setTimeout(() => {
+                    alert('✅ 截圖儲存成功！已保留所有縮放/文字/調整');
+                }, 300);
+            } catch (e) {
+                console.error('截圖失敗', e);
+                alert('❌ 截圖失敗，請稍後再試');
+            }
+        }
+
         async function downloadMerge() {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -726,7 +665,6 @@
             }
             
             try {
-                // 生成調整後的最終圖片
                 const finalDataUrl = await generateFinalImage();
                 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
                 const isAndroid = /Android/.test(navigator.userAgent);
@@ -740,7 +678,7 @@
                     document.body.removeChild(link);
                     
                     setTimeout(() => {
-                        alert('✅ 下載成功！照片已儲存至相簿（包含你的縮放/拖動調整）');
+                        alert('✅ 下載成功！照片已儲存至相簿');
                     }, 500);
                 } else {
                     const blob = await fetch(finalDataUrl).then(res => res.blob());
@@ -750,7 +688,7 @@
                     a.download = "彥彬_證件照級對比_調整後.png";
                     a.click();
                     URL.revokeObjectURL(url);
-                    alert('✅ 下載成功！（包含你的縮放/拖動調整）');
+                    alert('✅ 下載成功！');
                 }
             } catch (e) {
                 console.error('下載失敗:', e);
@@ -758,7 +696,6 @@
             }
         }
 
-        // 分享 - 分享調整後的圖片
         async function shareImage() {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -766,7 +703,6 @@
             }
             
             try {
-                // 生成調整後的最終圖片
                 const finalDataUrl = await generateFinalImage();
                 const blob = await fetch(finalDataUrl).then(res => res.blob());
                 const file = new File([blob], "彥彬_證件照級對比_調整後.png", { type: 'image/png' });
@@ -790,7 +726,6 @@
             location.reload();
         }
 
-        // AI 分析
         async function analyzeBoth() {
             if (!leftPreview.src || !rightPreview.src) {
                 alert('請上傳兩張照片');
@@ -827,7 +762,6 @@
             }
         }
 
-        // 啟動空白
         window.onload = function() {
             leftPreview.classList.add('hidden');
             rightPreview.classList.add('hidden');
