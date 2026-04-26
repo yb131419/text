@@ -154,44 +154,7 @@
             </div>
         </div>
 
-        <!-- 3. 文字編輯區 -->
-        <div class="result-card p-4">
-            <div class="section-title">文字編輯</div>
-            <div class="flex items-center gap-3 justify-center">
-                <div class="flex flex-col gap-2">
-                    <p class="text-xs font-semibold text-gray-600">⬅️ 左側照片</p>
-                    <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">📅 加入今天日期</button>
-                    <button onclick="clearLeftText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">🧹 清除文字</button>
-                </div>
-                <div class="h-32 border-r border-gray-300"></div>
-                <div class="flex flex-col gap-2">
-                    <p class="text-xs font-semibold text-gray-600">➡️ 右側照片</p>
-                    <button onclick="addTextRight('2小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">⏱ 加入兩小時</button>
-                    <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">📅 加入今天日期</button>
-                    <button onclick="clearRightText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">🧹 清除文字</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 4. AI分析區 (文字編輯下方、AI點評上方) -->
-        <div class="result-card p-4">
-            <div class="section-title">AI 分析</div>
-            <div class="flex justify-center">
-                <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-8 py-3 font-semibold text-xs w-full">
-                    🤖 執行AI點評分析
-                </button>
-            </div>
-        </div>
-
-        <!-- 5. AI點評區 -->
-        <div class="result-card p-4">
-            <div class="section-title">AI 點評結果</div>
-            <div id="aiResult" class="text-gray-700 text-sm leading-relaxed whitespace-pre-line min-h-[80px]">
-                尚未分析...
-            </div>
-        </div>
-
-        <!-- 6. 對比結果展示區 -->
+        <!-- 🔥 3. 對比結果展示區（已移動到：主要功能下方、文字編輯上方） -->
         <div class="result-card p-4 text-center">
             <div class="section-title">證件照對比結果</div>
             <h2 class="text-lg font-bold text-gray-800 mb-3">✅ 對比預覽</h2>
@@ -215,6 +178,43 @@
                 <button onclick="shareImage()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">
                     📤 分享照片
                 </button>
+            </div>
+        </div>
+
+        <!-- 4. 文字編輯區 -->
+        <div class="result-card p-4">
+            <div class="section-title">文字編輯</div>
+            <div class="flex items-center gap-3 justify-center">
+                <div class="flex flex-col gap-2">
+                    <p class="text-xs font-semibold text-gray-600">⬅️ 左側照片</p>
+                    <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">📅 加入今天日期</button>
+                    <button onclick="clearLeftText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">🧹 清除文字</button>
+                </div>
+                <div class="h-32 border-r border-gray-300"></div>
+                <div class="flex flex-col gap-2">
+                    <p class="text-xs font-semibold text-gray-600">➡️ 右側照片</p>
+                    <button onclick="addTextRight('2小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">⏱ 加入兩小時</button>
+                    <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">📅 加入今天日期</button>
+                    <button onclick="clearRightText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">🧹 清除文字</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. AI分析區 (文字編輯下方、AI點評上方) -->
+        <div class="result-card p-4">
+            <div class="section-title">AI 分析</div>
+            <div class="flex justify-center">
+                <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-8 py-3 font-semibold text-xs w-full">
+                    🤖 執行AI點評分析
+                </button>
+            </div>
+        </div>
+
+        <!-- 6. AI點評區 -->
+        <div class="result-card p-4">
+            <div class="section-title">AI 點評結果</div>
+            <div id="aiResult" class="text-gray-700 text-sm leading-relaxed whitespace-pre-line min-h-[80px]">
+                尚未分析...
             </div>
         </div>
     </div>
