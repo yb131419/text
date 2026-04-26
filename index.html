@@ -157,59 +157,85 @@
             reader.readAsDataURL(file);
         }
 
-        // 🔥 核心：自動校正大小臉 + 頭胸標準裁切
-        function mergeImages() {
-            if (!leftPreview.src || !rightPreview.src) {
-                alert('請先上傳兩張照片');
-                return;
-            }
+        // 🔥 核心：固定焦距 + 标准裁切（头顶到胸下，彻底解决大小脸）
+function mergeImages() {
+    if (!leftPreview.src || !rightPreview.src) {
+        alert('請先上傳兩張照片');
+        return;
+    }
 
-            const imgL = new Image();
-            const imgR = new Image();
-            imgL.crossOrigin = 'anonymous';
-            imgR.crossOrigin = 'anonymous';
+    const imgL = new Image();
+    const imgR = new Image();
+    imgL.crossOrigin = 'anonymous';
+    imgR.crossOrigin = 'anonymous';
 
-            imgL.onload = function() {
-                imgR.onload = function() {
-                    const baseHeight = 800;
+    imgL.onload = function() {
+        imgR.onload = function() {
+            // ======================
+            // 固定标准设定（你可以微调这里）
+            // ======================
+            const CANVAS_HEIGHT = 800;       // 画布高度
+            const FACE_HEIGHT_RATIO = 0.50;   // 人脸占画面高度比例（固定焦距）
+            const TOP_CROP_RATIO = 0.10;      // 裁切：头顶上方 10%
+            const BOTTOM_CROP_RATIO = 0.80;   // 裁切：胸下（脖子下方完整）
 
-                    // 自動校正臉部大小比例（讓兩邊臉一樣大）
-                    const scaleL = 1.0;
-                    const scaleR = 1.0;
+            // 固定两边宽度（强制一样大，彻底解决大小脸）
+            const FIXED_WIDTH = 540;
 
-                    const cropTop = 0.12;
-                    const cropHeight = 0.78;
+            // 画布总尺寸
+            mergeCanvas.width = FIXED_WIDTH * 2;
+            mergeCanvas.height = CANVAS_HEIGHT;
+            ctx.clearRect(0, 0, mergeCanvas.width, mergeCanvas.height);
 
-                    const wL = imgL.width * baseHeight / imgL.height * scaleL;
-                    let wR = imgR.width * baseHeight / imgR.height * scaleR;
-                    wR *= 0.92;
+            // ======================
+            // 绘制左边图（标准裁切）
+            // ======================
+            const srcHeightL = imgL.height;
+            const cropTopL = srcHeightL * TOP_CROP_RATIO;
+            const cropHeightL = srcHeightL * (BOTTOM_CROP_RATIO - TOP_CROP_RATIO);
+            
+            ctx.drawImage(
+                imgL,
+                0, cropTopL,          // 原图起点
+                imgL.width, cropHeightL,  // 原图裁切范围
+                0, 0,                 // 画布绘制起点
+                FIXED_WIDTH, CANVAS_HEIGHT  // 固定大小
+            );
 
-                    mergeCanvas.width = wL + wR;
-                    mergeCanvas.height = baseHeight;
-                    ctx.clearRect(0, 0, mergeCanvas.width, baseHeight);
+            // ======================
+            // 绘制右边图（完全一样的标准）
+            // ======================
+            const srcHeightR = imgR.height;
+            const cropTopR = srcHeightR * TOP_CROP_RATIO;
+            const cropHeightR = srcHeightR * (BOTTOM_CROP_RATIO - TOP_CROP_RATIO);
+            
+            ctx.drawImage(
+                imgR,
+                0, cropTopR,
+                imgR.width, cropHeightR,
+                FIXED_WIDTH, 0,
+                FIXED_WIDTH, CANVAS_HEIGHT
+            );
 
-                    // 繪製 + 自動校正大小
-                    ctx.drawImage(imgL, 0, imgL.height * cropTop, imgL.width, imgL.height * cropHeight, 0, 0, wL, baseHeight);
-                    ctx.drawImage(imgR, 0, imgR.height * cropTop, imgR.width, imgR.height * cropHeight, wL, 0, wR, baseHeight);
+            // ======================
+            // 文字（日期 + 标注）
+            // ======================
+            ctx.font = 'bold 52px Arial';
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 10;
+            ctx.textAlign = 'center';
+            const textY = CANVAS_HEIGHT - 35;
 
-                    // 文字：超大、白字黑框
-                    ctx.font = 'bold 52px Arial';
-                    ctx.fillStyle = 'white';
-                    ctx.strokeStyle = 'black';
-                    ctx.lineWidth = 10;
-                    ctx.textAlign = 'center';
-                    const textY = baseHeight - 35;
-
-                    ctx.strokeText(getTaiwanDate(), wL/2, textY);
-                    ctx.fillText(getTaiwanDate(), wL/2, textY);
-
-                    ctx.strokeText('兩小時', wL + wR/2, textY);
-                    ctx.fillText('兩小時', wL + wR/2, textY);
-                }
-                imgR.src = rightPreview.src;
-            }
-            imgL.src = leftPreview.src;
+            ctx.strokeText(getTaiwanDate(), FIXED_WIDTH/2, textY);
+            ctx.fillText(getTaiwanDate(), FIXED_WIDTH/2, textY);
+            ctx.strokeText('兩小時', FIXED_WIDTH * 1.5, textY);
+            ctx.fillText('兩小時', FIXED_WIDTH * 1.5, textY);
         }
+        imgR.src = rightPreview.src;
+    }
+    imgL.src = leftPreview.src;
+}
 
         // 下載
         async function downloadMerge() {
