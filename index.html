@@ -179,7 +179,6 @@
             reader.onload = e => {
                 leftPreview.src = e.target.result;
                 leftPreview.classList.remove('hidden');
-                localStorage.setItem('leftImgCache', e.target.result);
             };
             reader.readAsDataURL(file);
         }
@@ -192,7 +191,6 @@
             reader.onload = e => {
                 rightPreview.src = e.target.result;
                 rightPreview.classList.remove('hidden');
-                localStorage.setItem('rightImgCache', e.target.result);
             };
             reader.readAsDataURL(file);
         }
@@ -263,26 +261,40 @@
             mergeImages();
         }
 
-        // 下載
+        // ✅ 手機端專用 下載相簿（直接存手機）
         async function downloadMerge() {
             if (!mergeCanvas.width) {
                 alert('請先產生拼圖');
                 return;
             }
             try {
-                const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
-                const fileName = "彥彬_證件照級對比.png";
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-                alert('✅ 已儲存至手機相簿！');
+                const dataUrl = mergeCanvas.toDataURL('image/png');
+                const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+                const isAndroid = /Android/.test(navigator.userAgent);
+
+                if (isIOS || isAndroid) {
+                    const link = document.createElement('a');
+                    link.href = dataUrl;
+                    link.download = "彥彬_證件照級對比.png";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    setTimeout(() => {
+                        alert('✅ 下載成功！照片已儲存至相簿');
+                    }, 500);
+                } else {
+                    const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png', 1.0));
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "彥彬_證件照級對比.png";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    alert('✅ 下載成功！');
+                }
             } catch (e) {
-                alert('❌ 下載失敗');
+                alert('❌ 下載失敗，請截圖儲存');
             }
         }
 
@@ -347,12 +359,11 @@
             }
         }
 
-        // 讀取暫存
+        // 🔥 關閉自動讀取照片（永遠空白）
         window.onload = function() {
-            const leftCache = localStorage.getItem('leftImgCache');
-            const rightCache = localStorage.getItem('rightImgCache');
-            if (leftCache) { leftPreview.src = leftCache; leftPreview.classList.remove('hidden'); }
-            if (rightCache) { rightPreview.src = rightCache; rightPreview.classList.remove('hidden'); }
+            // 完全清空，不讀取任何快取
+            leftPreview.classList.add('hidden');
+            rightPreview.classList.add('hidden');
         };
     </script>
 </body>
