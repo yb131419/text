@@ -183,7 +183,6 @@
             <canvas id="mergeCanvas" class="hidden"></canvas>
             <canvas id="finalCanvas" class="hidden"></canvas>
 
-            <!-- 按鈕列：截圖儲存 + 下載相簿 + 分享照片 -->
             <div class="flex gap-2 justify-center mt-3">
                 <button onclick="captureAndSave()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-indigo-700 transition">
                     📸 截圖儲存
@@ -450,11 +449,13 @@
                 if (zoomState.left.isDragging) {
                     zoomState.left.offsetX = e.clientX - zoomState.left.startX;
                     zoomState.left.offsetY = e.clientY - zoomState.left.startY;
+                    clampTransform('left');
                     updateLeftTransform();
                 }
                 if (zoomState.right.isDragging) {
                     zoomState.right.offsetX = e.clientX - zoomState.right.startX;
                     zoomState.right.offsetY = e.clientY - zoomState.right.startY;
+                    clampTransform('right');
                     updateRightTransform();
                 }
             });
@@ -482,9 +483,10 @@
             });
         }
 
+        // 🔥 修正1：限制縮放 = 1.0（不放大，只可縮小）
         function handleZoom(e, area) {
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            const newScale = Math.min(4, Math.max(0.8, zoomState[area].scale + delta));
+            const newScale = Math.min(1.0, Math.max(0.5, zoomState[area].scale + delta));
             
             const rect = area === 'left' ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
@@ -494,12 +496,21 @@
             zoomState[area].offsetY = mouseY - (mouseY - zoomState[area].offsetY) * (newScale / zoomState[area].scale);
             
             zoomState[area].scale = newScale;
+            clampTransform(area);
             
             if (area === 'left') {
                 updateLeftTransform();
             } else {
                 updateRightTransform();
             }
+        }
+
+        // 🔥 修正2：拖動不超出圖片範圍
+        function clampTransform(area) {
+            const z = zoomState[area];
+            const maxOffset = (HALF_SIZE * (z.scale - 1)) / z.scale;
+            z.offsetX = Math.max(-maxOffset, Math.min(maxOffset, z.offsetX));
+            z.offsetY = Math.max(-maxOffset, Math.min(maxOffset, z.offsetY));
         }
 
         function handleTouchStart(e) {
@@ -544,6 +555,7 @@
             if (e.touches.length === 1 && zoomState[area].isDragging) {
                 zoomState[area].offsetX = touch.clientX - zoomState[area].startX;
                 zoomState[area].offsetY = touch.clientY - zoomState[area].startY;
+                clampTransform(area);
                 
                 if (area === 'left') {
                     updateLeftTransform();
@@ -556,8 +568,8 @@
                 const t2 = e.touches[1];
                 const newDistance = getDistance(t1, t2);
                 const scaleRatio = newDistance / zoomState[area].initialDistance;
-                
-                zoomState[area].scale = Math.min(4, Math.max(0.8, zoomState[area].lastScale * scaleRatio));
+                zoomState[area].scale = Math.min(1.0, Math.max(0.5, zoomState[area].lastScale * scaleRatio));
+                clampTransform(area);
                 
                 if (area === 'left') {
                     updateLeftTransform();
@@ -581,47 +593,27 @@
             rightSplitImg.style.transform = `translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
+        // 🔥 修正3：截圖永遠儲存 原始800x800標準尺寸
         function generateFinalImage() {
             return new Promise((resolve) => {
-                const containerRect = splitZoomContainer.getBoundingClientRect();
-                const containerWidth = containerRect.width;
-                const containerHeight = containerRect.height;
-                
-                finalCanvas.width = containerWidth;
-                finalCanvas.height = containerHeight;
-                finalCtx.clearRect(0, 0, containerWidth, containerHeight);
+                finalCanvas.width = FULL_SIZE;
+                finalCanvas.height = FULL_SIZE;
+                finalCtx.clearRect(0, 0, FULL_SIZE, FULL_SIZE);
                 
                 finalCtx.fillStyle = "#ffffff";
-                finalCtx.fillRect(0, 0, containerWidth, containerHeight);
+                finalCtx.fillRect(0, 0, FULL_SIZE, FULL_SIZE);
                 
                 const leftImg = new Image();
                 leftImg.crossOrigin = 'anonymous';
                 leftImg.onload = function() {
-                    finalCtx.save();
-                    finalCtx.translate(containerWidth / 4, containerHeight / 2);
-                    finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
-                    finalCtx.translate(
-                        zoomState.left.offsetX / zoomState.left.scale,
-                        zoomState.left.offsetY / zoomState.left.scale
-                    );
-                    finalCtx.drawImage(leftImg, -leftImg.width / 2, -leftImg.height / 2);
-                    finalCtx.restore();
+                    finalCtx.drawImage(leftImg, 0, 0, HALF_SIZE, FULL_SIZE);
                     
                     const rightImg = new Image();
                     rightImg.crossOrigin = 'anonymous';
                     rightImg.onload = function() {
-                        finalCtx.save();
-                        finalCtx.translate(containerWidth * 3 / 4, containerHeight / 2);
-                        finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
-                        finalCtx.translate(
-                            zoomState.right.offsetX / zoomState.right.scale,
-                            zoomState.right.offsetY / zoomState.right.scale
-                        );
-                        finalCtx.drawImage(rightImg, -rightImg.width / 2, -rightImg.height / 2);
-                        finalCtx.restore();
-                        
+                        finalCtx.drawImage(rightImg, HALF_SIZE, 0, HALF_SIZE, FULL_SIZE);
                         finalCtx.fillStyle = "#ffffff";
-                        finalCtx.fillRect(containerWidth / 2 - 1, 0, 2, containerHeight);
+                        finalCtx.fillRect(HALF_SIZE - 1, 0, 2, FULL_SIZE);
                         
                         setTimeout(() => {
                             resolve(finalCanvas.toDataURL('image/png', 1.0));
@@ -633,7 +625,6 @@
             });
         }
 
-        // 🔥 新增：截圖並儲存（精準擷取對比區域）
         async function captureAndSave() {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -644,17 +635,15 @@
                 const finalDataUrl = await generateFinalImage();
                 const link = document.createElement('a');
                 link.href = finalDataUrl;
-                link.download = "彥彬_證件照截圖.png";
+                link.download = "彥彬_證件照_標準版.png";
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 
-                setTimeout(() => {
-                    alert('✅ 截圖儲存成功！已保留所有縮放/文字/調整');
-                }, 300);
+                alert('✅ 截圖儲存成功！原始標準尺寸');
             } catch (e) {
                 console.error('截圖失敗', e);
-                alert('❌ 截圖失敗，請稍後再試');
+                alert('❌ 截圖失敗');
             }
         }
 
@@ -672,27 +661,27 @@
                 if (isIOS || isAndroid) {
                     const link = document.createElement('a');
                     link.href = finalDataUrl;
-                    link.download = "彥彬_證件照級對比_調整後.png";
+                    link.download = "彥彬_證件照_標準版.png";
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     
                     setTimeout(() => {
-                        alert('✅ 下載成功！照片已儲存至相簿');
+                        alert('✅ 下載成功！原始標準尺寸');
                     }, 500);
                 } else {
                     const blob = await fetch(finalDataUrl).then(res => res.blob());
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = "彥彬_證件照級對比_調整後.png";
+                    a.download = "彥彬_證件照_標準版.png";
                     a.click();
                     URL.revokeObjectURL(url);
-                    alert('✅ 下載成功！');
+                    alert('✅ 下載成功！原始標準尺寸');
                 }
             } catch (e) {
                 console.error('下載失敗:', e);
-                alert('❌ 下載失敗，請截圖儲存');
+                alert('❌ 下載失敗');
             }
         }
 
@@ -705,12 +694,12 @@
             try {
                 const finalDataUrl = await generateFinalImage();
                 const blob = await fetch(finalDataUrl).then(res => res.blob());
-                const file = new File([blob], "彥彬_證件照級對比_調整後.png", { type: 'image/png' });
+                const file = new File([blob], "彥彬_證件照_標準版.png", { type: 'image/png' });
                 
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({ 
                         files: [file], 
-                        title: '彥彬 證件照比對（已調整）' 
+                        title: '彥彬 證件照比對' 
                     });
                 } else {
                     alert('❌ 裝置不支援分享');
