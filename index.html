@@ -150,21 +150,26 @@
             <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-2.5 font-semibold text-xs">
                 🗑 清除全部
             </button>
-            <button onclick="resetZoomState()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-5 py-2.5 font-semibold text-xs">
-                🔄 還原預設
-            </button>
         </div>
 
         <div class="section-title">文字編輯</div>
         <div class="flex flex-wrap gap-2 justify-center mb-4">
+            <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
+                📅 左邊加入日期
+            </button>
+            <button onclick="clearLeftText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
+                🧹 清除左邊文字
+            </button>
+        </div>
+        <div class="flex flex-wrap gap-2 justify-center mb-4">
             <button onclick="addTextRight('兩小時')" class="action-btn bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 text-xs">
-                ⏱ 加入兩小時
+                ⏱ 右邊加入兩小時
             </button>
             <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-2 text-xs">
-                📅 加入今日日期
+                📅 右邊加入日期
             </button>
             <button onclick="clearRightText()" class="action-btn bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-2 text-xs">
-                🧹 清除右側文字
+                🧹 清除右邊文字
             </button>
         </div>
 
@@ -294,13 +299,6 @@
                         HALF_WIDTH - BORDER_WIDTH * 2,
                         EXPORT_HEIGHT - BORDER_WIDTH * 2
                     );
-                    leftCtx.font = 'bold 40px Arial';
-                    leftCtx.fillStyle = 'white';
-                    leftCtx.strokeStyle = 'black';
-                    leftCtx.lineWidth = 8;
-                    leftCtx.textAlign = 'center';
-                    leftCtx.strokeText(getTaiwanDate(), HALF_WIDTH/2, EXPORT_HEIGHT - 65);
-                    leftCtx.fillText(getTaiwanDate(), HALF_WIDTH/2, EXPORT_HEIGHT - 65);
 
                     const rightCanvas = document.createElement('canvas');
                     const rightCtx = rightCanvas.getContext('2d');
@@ -334,6 +332,52 @@
             imgL.src = leftPreview.src;
         }
 
+        // === 左邊圖片文字功能 ===
+        function addTextLeft(text) {
+            if (!splitZoomContainer.style.display) {
+                alert('請先產生拼圖');
+                return;
+            }
+            
+            const imgL = new Image();
+            imgL.crossOrigin = 'anonymous';
+            imgL.onload = function() {
+                const TOP_CROP = 0.02;
+                const BOTTOM_CROP = 0.88;
+                
+                const leftCanvas = document.createElement('canvas');
+                const leftCtx = leftCanvas.getContext('2d');
+                leftCanvas.width = HALF_WIDTH;
+                leftCanvas.height = EXPORT_HEIGHT;
+                leftCtx.clearRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
+                
+                leftCtx.fillStyle = "#ffffff";
+                leftCtx.fillRect(0, 0, HALF_WIDTH, EXPORT_HEIGHT);
+                
+                const cropH_L = imgL.height * (BOTTOM_CROP - TOP_CROP);
+                leftCtx.drawImage(
+                    imgL,
+                    0, imgL.height * TOP_CROP, imgL.width, cropH_L,
+                    BORDER_WIDTH, BORDER_WIDTH,
+                    HALF_WIDTH - BORDER_WIDTH * 2,
+                    EXPORT_HEIGHT - BORDER_WIDTH * 2
+                );
+                
+                leftCtx.font = 'bold 40px Arial';
+                leftCtx.fillStyle = 'white';
+                leftCtx.strokeStyle = 'black';
+                leftCtx.lineWidth = 8;
+                leftCtx.textAlign = 'center';
+                leftCtx.strokeText(text, HALF_WIDTH/2, EXPORT_HEIGHT - 65);
+                leftCtx.fillText(text, HALF_WIDTH/2, EXPORT_HEIGHT - 65);
+                
+                leftSplitImg.src = leftCanvas.toDataURL('image/png');
+                window.shareLeftCanvas = leftCanvas;
+            }
+            imgL.src = leftPreview.src;
+        }
+
+        // === 右邊圖片文字功能 ===
         function addTextRight(text) {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -378,6 +422,11 @@
             imgR.src = rightPreview.src;
         }
 
+        function clearLeftText() {
+            if (!leftPreview.src || !rightPreview.src) return;
+            mergeImages();
+        }
+
         function clearRightText() {
             if (!leftPreview.src || !rightPreview.src) return;
             mergeImages();
@@ -394,9 +443,13 @@
 
         // 完美拖移邊界限制：不超出圖片、不顯示黑底
         function clampOffset(area) {
+            const container = area === 'left' ? leftImgArea : rightImgArea;
+            const containerW = container.clientWidth;
+            const containerH = container.clientHeight;
             const state = zoomState[area];
-            const maxOffsetX = 1000;
-            const maxOffsetY = 1000;
+            const maxOffsetX = (containerW * state.scale - containerW) / 2;
+            const maxOffsetY = (containerH * state.scale - containerH) / 2;
+
             state.offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, state.offsetX));
             state.offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, state.offsetY));
         }
