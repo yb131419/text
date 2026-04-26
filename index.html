@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彥彬 AI 比對系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 新增：引入html2canvas庫用於截圖 -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         body {
             background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
@@ -175,7 +177,8 @@
             </button>
         </div>
 
-        <div class="result-card p-4 mb-5 text-center">
+        <!-- 新增ID：capture-container 用於截圖 -->
+        <div class="result-card p-4 mb-5 text-center" id="capture-container">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✅ 證件照級對比結果</h2>
             
             <div id="splitZoomContainer" class="split-zoom-container mx-auto" style="display: none;">
@@ -219,6 +222,8 @@
         const rightSplitImg = document.getElementById('rightSplitImg');
         const leftImgArea = document.getElementById('leftImgArea');
         const rightImgArea = document.getElementById('rightImgArea');
+        // 新增：截圖容器
+        const captureContainer = document.getElementById('capture-container');
         const ctx = mergeCanvas.getContext('2d');
         const finalCtx = finalCanvas.getContext('2d');
         
@@ -658,85 +663,28 @@
             rightSplitImg.style.transform = `translate(-50%, -50%) translate(${zoomState.right.offsetX}px, ${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
         }
 
-        // 修复：最终图片生成逻辑，精确还原视觉效果
-        function generateFinalImage() {
-            return new Promise((resolve) => {
-                // 获取容器的实际尺寸
-                const containerRect = splitZoomContainer.getBoundingClientRect();
-                const containerWidth = containerRect.width;
-                const containerHeight = containerRect.height;
-                
-                // 设置finalCanvas尺寸与显示容器完全一致
-                finalCanvas.width = containerWidth;
-                finalCanvas.height = containerHeight;
-                finalCtx.clearRect(0, 0, containerWidth, containerHeight);
-                
-                // 先绘制白色背景
-                finalCtx.fillStyle = "#ffffff";
-                finalCtx.fillRect(0, 0, containerWidth, containerHeight);
-                
-                // 加载左侧图片
-                const leftImg = new Image();
-                leftImg.crossOrigin = 'anonymous';
-                leftImg.onload = function() {
-                    // 绘制左侧调整后的图片
-                    finalCtx.save();
-                    // 切换到左侧区域坐标系（容器左半部分）
-                    const leftAreaCenterX = containerWidth / 4;
-                    const leftAreaCenterY = containerHeight / 2;
-                    
-                    // 1. 移动到左侧区域中心
-                    finalCtx.translate(leftAreaCenterX, leftAreaCenterY);
-                    // 2. 应用用户的偏移
-                    finalCtx.translate(zoomState.left.offsetX, zoomState.left.offsetY);
-                    // 3. 应用缩放
-                    finalCtx.scale(zoomState.left.scale, zoomState.left.scale);
-                    // 4. 图片居中（相对于自身）
-                    finalCtx.translate(-leftImg.width / 2, -leftImg.height / 2);
-                    
-                    // 绘制图片
-                    finalCtx.drawImage(leftImg, 0, 0);
-                    finalCtx.restore();
-                    
-                    // 加载右侧图片
-                    const rightImg = new Image();
-                    rightImg.crossOrigin = 'anonymous';
-                    rightImg.onload = function() {
-                        // 绘制右侧调整后的图片
-                        finalCtx.save();
-                        // 切换到右侧区域坐标系（容器右半部分）
-                        const rightAreaCenterX = containerWidth * 3 / 4;
-                        const rightAreaCenterY = containerHeight / 2;
-                        
-                        // 1. 移动到右侧区域中心
-                        finalCtx.translate(rightAreaCenterX, rightAreaCenterY);
-                        // 2. 应用用户的偏移
-                        finalCtx.translate(zoomState.right.offsetX, zoomState.right.offsetY);
-                        // 3. 应用缩放
-                        finalCtx.scale(zoomState.right.scale, zoomState.right.scale);
-                        // 4. 图片居中（相对于自身）
-                        finalCtx.translate(-rightImg.width / 2, -rightImg.height / 2);
-                        
-                        // 绘制图片
-                        finalCtx.drawImage(rightImg, 0, 0);
-                        finalCtx.restore();
-                        
-                        // 绘制中间分隔线
-                        finalCtx.fillStyle = "#ffffff";
-                        finalCtx.fillRect(containerWidth / 2 - 1, 0, 2, containerHeight);
-                        
-                        // 等待绘制完成后返回数据URL
-                        setTimeout(() => {
-                            resolve(finalCanvas.toDataURL('image/png', 1.0));
-                        }, 100);
-                    };
-                    rightImg.src = rightSplitImg.src;
-                };
-                leftImg.src = leftSplitImg.src;
+        // 核心修改：使用html2canvas截取當前顯示畫面
+        async function captureCurrentScreen() {
+            return new Promise(async (resolve) => {
+                try {
+                    // 截取「證件照級對比結果」整個區域
+                    const canvas = await html2canvas(captureContainer, {
+                        scale: 2, // 2倍解析度，保證截圖清晰
+                        useCORS: true, // 解決跨域圖片問題
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+                    // 返回截圖的dataURL
+                    resolve(canvas.toDataURL('image/png', 1.0));
+                } catch (e) {
+                    console.error('截圖失敗:', e);
+                    alert('截圖失敗，請重試');
+                    resolve(null);
+                }
             });
         }
 
-        // 下载逻辑保持不变（已修复生成逻辑）
+        // 修改下載邏輯：使用截圖而非重新生成
         async function downloadMerge() {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -744,31 +692,33 @@
             }
             
             try {
-                // 生成調整後的最終圖片
-                const finalDataUrl = await generateFinalImage();
+                // 截取當前顯示的畫面
+                const finalDataUrl = await captureCurrentScreen();
+                if (!finalDataUrl) return;
+                
                 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
                 const isAndroid = /Android/.test(navigator.userAgent);
 
                 if (isIOS || isAndroid) {
                     const link = document.createElement('a');
                     link.href = finalDataUrl;
-                    link.download = "彥彬_證件照級對比_調整後.png";
+                    link.download = "彥彬_證件照級對比_當前畫面.png";
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     
                     setTimeout(() => {
-                        alert('✅ 下載成功！照片已儲存至相簿（包含你的縮放/拖動調整）');
+                        alert('✅ 下載成功！照片已儲存至相簿（當前調整畫面的完整截圖）');
                     }, 500);
                 } else {
                     const blob = await fetch(finalDataUrl).then(res => res.blob());
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = "彥彬_證件照級對比_調整後.png";
+                    a.download = "彥彬_證件照級對比_當前畫面.png";
                     a.click();
                     URL.revokeObjectURL(url);
-                    alert('✅ 下載成功！（包含你的縮放/拖動調整）');
+                    alert('✅ 下載成功！（當前調整畫面的完整截圖）');
                 }
             } catch (e) {
                 console.error('下載失敗:', e);
@@ -776,7 +726,7 @@
             }
         }
 
-        // 分享逻辑保持不变（已修复生成逻辑）
+        // 修改分享邏輯：使用截圖而非重新生成
         async function shareImage() {
             if (!splitZoomContainer.style.display) {
                 alert('請先產生拼圖');
@@ -784,22 +734,24 @@
             }
             
             try {
-                // 生成調整後的最終圖片
-                const finalDataUrl = await generateFinalImage();
+                // 截取當前顯示的畫面
+                const finalDataUrl = await captureCurrentScreen();
+                if (!finalDataUrl) return;
+                
                 const blob = await fetch(finalDataUrl).then(res => res.blob());
-                const file = new File([blob], "彥彬_證件照級對比_調整後.png", { type: 'image/png' });
+                const file = new File([blob], "彥彬_證件照級對比_當前畫面.png", { type: 'image/png' });
                 
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({ 
                         files: [file], 
-                        title: '彥彬 證件照比對（已調整）' 
+                        title: '彥彬 證件照比對（當前調整畫面）' 
                     });
                 } else {
-                    alert('❌ 裝置不支援分享');
+                    alert('❌ 裝置不支援分享，請先下載圖片後手動分享');
                 }
             } catch (e) {
                 console.error('分享失敗:', e);
-                alert('❌ 分享失敗');
+                alert('❌ 分享失敗，請先下載圖片後手動分享');
             }
         }
 
