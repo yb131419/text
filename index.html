@@ -211,13 +211,14 @@ body{
 #resetCalculatorBtn:hover{background:#555;transform:scale(1.05);}
 #resetCalculatorBtn:active{transform:scale(0.95);}
 #addBtn{width:100%!important;padding:10px 14px!important;font-size:14px!important;font-weight:600!important;border-radius:8px!important;height:auto!important;}
-/* 🔴 手机端适配：康园报表栏位+字体优化（字体加大，清晰不拥挤） */
+
+/* 🔴 手机端适配：康园报表栏位+字体优化（全面加大+加宽+加高） */
 #reportTable{
   width:100%;
   min-width:320px;
   max-width:100%;
   border-collapse:collapse;
-  font-size:11px; /* 核心加大：从9px→11px，手机端清晰可读 */
+  font-size:13px; /* 整体文字再加大：11px→13px */
   border-radius:8px;
   overflow:hidden;
   background:#f9fafb;
@@ -225,26 +226,27 @@ body{
   margin:0 auto;
   table-layout:fixed;
 }
-/* 🔴 栏宽比例（保持不变，完美适配手机） */
-#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:30%!important;}
-#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:10%!important;}
+/* 🔴 栏宽比例：数量/操作栏加宽，不截断内容 */
+#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:28%!important;}
+#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:12%!important;}  /* 数量栏加宽：10%→12% */
 #reportTable th:nth-child(3),#reportTable td:nth-child(3){width:10%!important;}
 #reportTable th:nth-child(4),#reportTable td:nth-child(4){width:10%!important;}
 #reportTable th:nth-child(5),#reportTable td:nth-child(5){width:14%!important;}
 #reportTable th:nth-child(6),#reportTable td:nth-child(6){width:14%!important;}
-#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:6%!important;}
+#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:8%!important;}   /* 操作栏加宽：6%→8% */
 #reportTable th,#reportTable td{
   border:1px solid #d1d5db;
-  padding:2px 1px;
+  padding:4px 2px; /* 栏位高度加高：2px 1px→4px 2px */
   text-align:center;
   word-wrap:break-word;
   white-space:normal;
   transition:all 0.3s ease;
   overflow:hidden;
+  min-height: 32px; /* 强制最小高度，文字不拥挤 */
 }
-/* 🔴 控件字体同步加大（清晰不模糊） */
-#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect{font-size:11px!important;font-weight:bold!important;}
-#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6){font-weight:500;text-align:center!important;font-size:11px;}
+/* 🔴 字体同步加大，清晰可读 */
+#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect{font-size:13px!important;font-weight:bold!important;}
+#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6){font-weight:500;text-align:center!important;font-size:13px;}
 
 #reportTable thead{background:#555555;color:#fff;font-weight:600;}
 #reportTable tbody tr { background: #e9e9e9; }
@@ -256,20 +258,23 @@ body{
   border:1px solid rgba(255,255,255,0.8);
   color:#fff;
   border-radius:4px;
-  padding:4px 2px;
+  padding:2px 1px;
   cursor:pointer;
-  font-size:9px;
-  display:inline-block;
+  font-size:11px; /* 删除按钮文字加大 */
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   margin:0 auto;
   transition:var(--btn-transition);
-  /* 强制垂直单列显示，文字不换行 */
   white-space:nowrap;
-  line-height:1.2;
-  height:100%;
+  line-height:1;
+  height: 28px; /* 固定按钮高度，不截断 */
+  width: 22px;
 }
 .deleteBtn:hover{transform:scale(1.1);box-shadow:0 0 8px rgba(255,82,82,0.5);}
 .deleteBtn:active{transform:scale(0.95);}
 .deleteBtn:disabled{opacity:0.7;cursor:not-allowed;transform:none;}
+
 .summaryBox{text-align:center;margin-top:10px;font-size:0.9rem;font-weight:bold;color:var(--highlight);line-height:1.5;}
 .summaryBox .extra{display:block;font-size:0.8rem;color:var(--accent);margin-top:4px;}
 .summaryBox .done{color:#4caf50;font-weight:bold;}
