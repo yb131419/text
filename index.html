@@ -1,415 +1,1440 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>彥彬 AI 比對系統</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
-        }
-        .upload-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.07);
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-        .upload-btn {
-            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-        }
-        .action-btn {
-            border-radius: 14px;
-        }
-        .result-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.07);
-        }
-        img {
-            object-fit: cover;
-            object-position: center;
-        }
-        .section-title {
-            font-size: 12px;
-            color: #4b5563;
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .section-title::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: #d1d5db;
-        }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>彥彬🌿試算系統</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root{
+  --bg:#0f0f0f;--panel-bg:#1a1a1a;--text:#e0e0e0;--accent:#00d1b2;
+  --highlight:#40c4ff;--error:#ff5252;--btn-grey:#3a3a3a;--warning:#ff9800;
+  --super:#d4af37;--vip:#00bfa5;--grad-primary:linear-gradient(135deg,#1a2a6c,#b21f1f,#fdbb2d);
+  --grad-secondary:linear-gradient(145deg,#2d2d2d,#1f1f1f);--shadow:0 8px 32px rgba(0,0,0,0.4);
+  --loader:#00d1b2;--vip-username:linear-gradient(135deg,#00bfa5,#00ffde);
+  --super-username:linear-gradient(135deg,#d4af37,#ffff00);--yellow:#ffd700;
+  --btn-shadow:0 4px 15px rgba(0,0,0,0.2);--btn-hover-shadow:0 6px 20px rgba(0,0,0,0.3);
+  --btn-active-shadow:0 2px 8px rgba(0,0,0,0.2);--btn-transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  --btn-radius:8px;--btn-padding:8px 14px;
+  /* 修改：时长选项改为白色主题 */
+  --period-active:linear-gradient(145deg,#ffffff,#f0f0f0);
+  --period-hover:linear-gradient(145deg,#ffffff,#e8e8e8);
+  --period-border:#ffffff;--period-shadow:0 0 15px rgba(255,255,255,0.5);
+  --period-text:#000;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);color:var(--text);font-family:'Segoe UI','Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
+  padding:10px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column;align-items:center;
+}
+#authContainer{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;justify-content:center;align-items:center;z-index:9999;background:rgba(0,0,0,0.8);}
+#authLoading{
+  width:100%;max-width:400px;background:var(--grad-secondary);border-radius:16px;padding:40px 25px;text-align:center;
+  box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.05);transition:all 0.5s ease;
+}
+/* 修改：登录状态栏可隐藏，增加关闭按钮和过渡效果 */
+#authStatusBar{
+  position:sticky;top:10px;z-index:999;background:var(--grad-secondary);padding:12px 18px;border-radius:12px;margin-bottom:20px;
+  font-size:14px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  display:none;width:100%;max-width:600px;transition:all 0.3s ease;
+}
+/* 高质感关闭按钮样式 - 替换原有 close-status 样式 */
+#authStatusBar .close-status {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  width: 28px;
+  height: 45px;
+  border-radius: 8px;
+  /* 细腻的白色渐变，模拟微立体效果 */
+  background: linear-gradient(145deg, #ffffff, #f5f5f5);
+  color: #000; /* 纯黑字体保证可读性 */
+  /* 极细黑色边框，提升精致感 */
+  border: 1px solid #222;
+  cursor: pointer;
+  font-size: 16px;
+  /* 核心居中布局 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  vertical-align: middle;
+  /* 丝滑过渡动画 */
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* 垂直文字排版 */
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  /* 多层次阴影，模拟浮雕质感 */
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.8),
+    inset 0 -1px 0 rgba(0,0,0,0.1);
+  padding: 0;
+  font-weight: 700; /* 加粗字体，提升力量感 */
+  line-height: 1;
+  margin: 0;
+  outline: none;
+  /* 防止文字模糊 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* 触摸反馈优化 */
+  -webkit-tap-highlight-color: transparent;
+}
 
-        /* 3:4 標準證件照容器 */
-        .split-zoom-container {
-            position: relative;
-            overflow: hidden;
-            border-radius: 16px;
-            width: 100%;
-            aspect-ratio: 6 / 4;
-            touch-action: none;
-            background: #fff;
-        }
-        .left-img-area, .right-img-area {
-            position: absolute;
-            top: 0;
-            width: 50%;
-            height: 100%;
-            overflow: hidden;
-            cursor: zoom-in;
-        }
-        .left-img-area { left: 0; }
-        .right-img-area { right: 0; }
-        .split-img {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 100%;
-            height: 100%;
-            transform-origin: center center;
-            transform: translate(-50%, -50%) scale(1);
-            object-fit: cover;
-        }
-        .divider-line {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            width: 2px;
-            height: 100%;
-            background: white;
-            z-index: 5;
-        }
+/* Hover 状态 - 强化交互质感 */
+#authStatusBar .close-status:hover {
+  /* 更深的渐变，模拟按压前的轻抬效果 */
+  background: linear-gradient(145deg, #f8f8f8, #eaeaea);
+  /* 轻微上移+增强阴影，提升立体感 */
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 8px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    inset 0 -1px 0 rgba(0,0,0,0.15);
+  /* 边框微亮，提升精致度 */
+  border-color: #111;
+  /* 文字轻微提亮，增加呼吸感 */
+  color: #111;
+}
 
-        /* 固定文字層 */
-        .fixed-text {
-            position: absolute;
-            font-size: 26px;
-            font-weight: 900;
-            font-family: Arial, sans-serif;
-            letter-spacing: 0px;
-            color: #ffffff;
-            -webkit-text-stroke: 0.5px #000000;
-            text-align: center;
-            pointer-events: none;
-            z-index: 10;
-            bottom: 12px;
-            transform: translateX(-50%);
-        }
-        .fixed-text.left { left: 25%; }
-        .fixed-text.right { left: 75%; }
-    </style>
+/* Active 状态 - 模拟物理按压效果 */
+#authStatusBar .close-status:active {
+  /* 反向渐变，模拟凹陷效果 */
+  background: linear-gradient(145deg, #eaeaea, #f0f0f0);
+  /* 复位位置+收缩阴影，模拟按压 */
+  transform: translateY(0);
+  box-shadow: 
+    0 1px 2px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(0,0,0,0.1),
+    inset 0 -1px 0 rgba(255,255,255,0.8);
+}
+
+/* 聚焦状态优化（可选，提升可访问性） */
+#authStatusBar .close-status:focus-visible {
+  outline: 2px solid #0071e3;
+  outline-offset: 2px;
+}
+.loader{
+  width:50px;height:50px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--loader);border-radius:50%;
+  animation:spin 1s linear infinite,pulse 2s ease-in-out infinite alternate;margin:0 auto 20px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{from{box-shadow:0 0 15px rgba(0,209,178,0.3);}to{box-shadow:0 0 25px rgba(0,209,178,0.6);}}
+#authLoading h3{margin:0 0 8px 0;font-size:1.2rem;color:var(--highlight);font-weight:600;}
+#authLoading p{margin:0;font-size:0.95rem;color:#bbb;line-height:1.6;}
+.super-admin{color:var(--super);font-weight:bold;}
+.vip-admin{color:var(--vip);font-weight:bold;}
+.normal{color:var(--highlight);font-weight:bold;}
+.expired{color:var(--error);font-weight:bold;}
+.remaining-days-yellow{color:var(--yellow);font-weight:bold;text-shadow:0 0 5px rgba(255,215,0,0.5);}
+.super-admin-username,.vip-admin-username{
+  background-clip:text;-webkit-background-clip:text;color:transparent;font-weight:bold;
+  text-shadow:0 0 8px rgba(255,255,255,0.3);
+}
+.super-admin-username{background-image:var(--super-username);}
+.vip-admin-username{background-image:var(--vip-username);}
+#captureArea{
+  background:linear-gradient(145deg,#1c1c1c,#141414);box-shadow:inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
+  color:var(--text);padding:15px 10px;border-radius:12px;margin-bottom:15px;overflow-x:auto;display:none;width:100%;max-width:600px;
+  position: relative;
+}
+/* 右上角彥彬水印 */
+#watermark {
+  position: absolute;
+  top: 12px;
+  right: 15px;
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 500;
+  opacity: 0.9;
+  z-index: 10;
+  pointer-events: none;
+}
+#captureArea h2{
+  text-align:center;font-size:1.8rem;font-weight:bold;color:#fff;margin:0 0 15px 0;padding:10px 0;
+  line-height:1.3;width:100%;
+}
+.period-options{display:flex;justify-content:center;gap:10px;margin:10px 0 15px;flex-wrap:wrap;align-items:center;}
+/* 修改：时长选项白色高级质感样式 */
+.period-box{
+  border:1px solid #e0e0e0;border-radius:8px;padding:8px 15px;color:#e0e0e0;font-size:14px;cursor:pointer;
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;background:transparent;
+  font-weight:500;
+}
+.period-box:hover{
+  border-color:var(--period-border);background:var(--period-hover);color:var(--period-text);
+  transform:translateY(-2px);box-shadow:var(--period-shadow);
+  background-image:linear-gradient(145deg,#ffffff,#f8f8f8);
+}
+.period-box.active{
+  border-color:var(--period-border);background:var(--period-active);color:var(--period-text);
+  font-weight:bold;box-shadow:var(--period-shadow);
+  background-image:linear-gradient(145deg,#ffffff,#e8e8e8);
+  transform:translateY(-1px);
+}
+.period-box.active::after{
+  content:'';position:absolute;bottom:2px;right:2px;width:12px;height:12px;
+  background:var(--period-text);border-radius:50%;opacity:0.8;
+}
+@media (min-width:768px){
+  #captureArea h2{font-size:2.2rem;}
+  .period-box{font-size:16px;padding:10px 20px;border-radius:10px;}
+}
+.userInputs{display:flex;flex-direction:column;gap:10px;margin-bottom:15px;}
+.userInputs .row{display:flex;gap:10px;width:100%;}
+.userInputs label{flex:1;display:flex;flex-direction:column;font-size:14px;color:#bbb;}
+.userInputs label span{text-align:center;margin-bottom:4px;font-size:15px;}
+.userInputs input{
+  padding:10px;font-size:16px;background:#333;color:var(--text);border:none;
+  border-radius:6px;width:100%;text-align:center;
+}
+.calculator-container{display:flex;gap:5px;}
+.btn{
+  border:1px solid rgba(255,255,255,0.8);border-radius:var(--btn-radius);padding:var(--btn-padding);
+  font-size:13px;font-weight:600;color:#fff;cursor:pointer;box-shadow:var(--btn-shadow);
+  transition:var(--btn-transition);display:inline-flex;align-items:center;justify-content:center;
+  gap:6px;text-decoration:none;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden;
+}
+.btn::before{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+  transition:all 0.6s ease;
+}
+.btn:hover::before{left:100%;}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--btn-hover-shadow);}
+.btn:active{transform:translateY(1px);box-shadow:var(--btn-active-shadow);}
+.btn:disabled{opacity:0.7;cursor:not-allowed;transform:none;box-shadow:var(--btn-shadow);}
+.btn-primary{background:linear-gradient(145deg,#00bfa5,#009e8a);}
+.btn-primary:hover{background:linear-gradient(145deg,#00ccb2,#00a98e);}
+.btn-warning{background:linear-gradient(145deg,#ff9800,#e68900);}
+.btn-warning:hover{background:linear-gradient(145deg,#ffa726,#f59e0b);}
+.btn-grey{background:linear-gradient(145deg,#3a3a3a,#2a2a2a);}
+.btn-grey:hover{background:linear-gradient(145deg,#4a4a4a,#3a3a3a);}
+.btn-danger{background:linear-gradient(145deg,#ff5252,#d32f2f);}
+.btn-danger:hover{background:linear-gradient(145deg,#ff6b6b,#e53939);}
+.btn-sm{padding:6px 10px;font-size:11px;border-radius:5px;}
+.btn-md{padding:10px 14px;font-size:14px;border-radius:8px;min-width:100px;}
+.btn-lg{padding:12px 8px!important;font-size:15px!important;border-radius:10px!important;width:48%;height:auto;line-height:1.2;}
+#resetCalculatorBtn{
+  width:35px;height:35px;border-radius:5px;background:var(--btn-grey);color:#fff;
+  border:1px solid rgba(255,255,255,0.8);cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;transition:var(--btn-transition);
+}
+#resetCalculatorBtn:hover{background:#555;transform:scale(1.05);}
+#resetCalculatorBtn:active{transform:scale(0.95);}
+#addBtn{width:100%!important;padding:12px 16px!important;font-size:16px!important;font-weight:600!important;border-radius:10px!important;height:auto!important;}
+#nameInput option{padding:12px 10px;line-height:1.6;font-size:16px;height:auto;white-space:normal;}
+#reportTable{
+  width:100%;min-width:300px;border-collapse:collapse;font-size:12px;border-radius:10px;
+  overflow:hidden;background:#f9fafb;color:#374151;margin:0 auto;
+}
+#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:22%;}
+#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:10%;}
+#reportTable th:nth-child(3),#reportTable td:nth-child(3){width:12%;}
+#reportTable th:nth-child(4),#reportTable td:nth-child(4){width:12%;}
+#reportTable th:nth-child(5),#reportTable td:nth-child(5){width:16%;}
+#reportTable th:nth-child(6),#reportTable td:nth-child(6){width:16%;}
+#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:12%;}
+#reportTable th,#reportTable td{
+  border:1px solid #d1d5db;padding:6px 4px;text-align:center;white-space:nowrap;
+  transition:all 0.3s ease;
+}
+#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect{font-size:16px!important;font-weight:bold!important;}
+#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6){font-weight:500;text-align:center!important;}
+@media (min-width:768px){
+  #reportTable th,#reportTable td{padding:8px 5px;font-size:14px;}
+  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput{font-size:18px!important;}
+}
+#reportTable thead{background:linear-gradient(90deg,#2b6cb0,#3182ce);color:#fff;font-weight:600;}
+#reportTable tbody tr:nth-child(odd){background:#f3f4f6;}
+#reportTable tbody tr:nth-child(even){background:#e5e7eb;}
+#reportTable tbody tr:hover{background:#1e88e5;color:#fff;font-weight:bold;transform:scale(1.01);}
+.deleteBtn{
+  writing-mode:vertical-rl;text-orientation:upright;background:var(--error);
+  border:1px solid rgba(255,255,255,0.8);color:#fff;border-radius:4px;padding:2px;
+  cursor:pointer;font-size:11px;display:inline-block;margin:0 auto;
+  transition:var(--btn-transition);
+}
+.deleteBtn:hover{transform:scale(1.1);box-shadow:0 0 8px rgba(255,82,82,0.5);}
+.deleteBtn:active{transform:scale(0.95);}
+.deleteBtn:disabled{opacity:0.7;cursor:not-allowed;transform:none;}
+.summaryBox{text-align:center;margin-top:13px;font-size:1rem;font-weight:bold;color:var(--highlight);line-height:1.6;}
+.summaryBox .extra{display:block;font-size:0.9rem;color:var(--accent);margin-top:4px;}
+.summaryBox .done{color:#4caf50;font-weight:bold;}
+#totalPriceCellDup,#totalPvCellDup,#pvDiff2{display:inline-block;min-width:60px;text-align:center;}
+#inputArea{display:flex;flex-direction:column;gap:10px;margin:15px 0 30px 0;display:none;width:100%;max-width:600px;}
+@media (min-width:576px){#inputArea{flex-direction:row;align-items:center;}}
+#nameInput,#qtyInput{
+  background:#2c2c2c;color:var(--text);flex:1;text-align:center;padding:12px 10px;
+  font-size:16px;border-radius:6px;border:none;
+}
+#qtyInput{font-size:18px!important;font-weight:bold;}
+#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn{flex:1;min-width:90px;margin:0;}
+#previewImage{display:none;width:100%!important;max-width:600px;margin:15px auto!important;border:2px solid #888;border-radius:10px;image-rendering:-webkit-optimize-contrast;image-rendering:pixelated;}
+#shareToLineBtn,#nativeShareBtn,#clearImageBtn{display:none;}
+#buyerInput,#calculatorDisplay{
+  background:#f9fafb;border:1.5px solid #d1d5db;color:#374151;border-radius:8px;
+  padding:10px 12px;font-size:16px;transition:border-color 0.3s ease,box-shadow 0.3s ease;
+  width:100%;font-weight:500;
+}
+@media (min-width:768px){#buyerInput,#calculatorDisplay{font-size:18px;}}
+#buyerInput:focus{
+  border-color:#2563eb;box-shadow:0 0 8px 2px rgba(37,99,235,0.3);
+  outline:none;background:#fff;
+}
+#calculatorDisplay{background:#e9ecef;cursor:default;}
+#buyerInput::placeholder{color:#9ca3af;font-weight:400;text-align:center;}
+.toast{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--grad-secondary);
+  color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.4);
+  opacity:0;transition:opacity 0.5s ease,transform 0.5s ease;z-index:1000;text-align:center;
+  min-width:200px;font-size:15px;border:1px solid rgba(255,255,255,0.1);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-10px);}
+.toast.error{background:linear-gradient(145deg,#4a0000,#2a0000);border-color:rgba(255,82,82,0.3);}
+.toast.warning{background:linear-gradient(145deg,#4a3200,#2a1e00);border-color:rgba(255,152,0,0.3);}
+.payment-options{display:flex;justify-content:center;gap:15px;margin-top:8px;color:#fff;font-size:1.1rem;flex-wrap:wrap;}
+.payment-options label{display:flex;align-items:center;gap:10px;color:#fff;font-weight:500;}
+.payment-options input[type="checkbox"]{width:24px;height:24px;cursor:pointer;}
+@media print{
+  body{background:#fff;color:#000;}
+  #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn{display:none!important;}
+  #captureArea{box-shadow:none;background:#fff;color:#000;display:block!important;}
+  #reportTable th{background:#ccc!important;color:#000!important;}
+  .deleteBtn{display:none!important;}
+  .summaryBox{color:#000!important;}
+  #reportTable td,#reportTable th{text-align:center!important;}
+  #reportTable th:nth-child(2),#reportTable td:nth-child(2){font-size:16px!important;font-weight:bold!important;}
+  #watermark {display: none!important;}
+}
+.spacer{height:80px;}
+@media (max-width:360px){
+  .userInputs .row{gap:5px;}
+  .userInputs label{font-size:13px;}
+  .userInputs input{font-size:15px;padding:8px;}
+  #reportTable{font-size:11px;}
+  #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect,#qtyInput{font-size:15px!important;}
+  .payment-options{font-size:1rem;}
+  #authStatusBar{font-size:12px;}
+  #authLoading{padding:30px 20px;}
+  .loader{width:40px;height:40px;}
+  #addBtn{min-width:150px!important;padding:12px 16px!important;font-size:15px!important;}
+  .period-box{padding:6px 10px;font-size:12px;}
+}
+#error-message{
+  display:none;background:linear-gradient(145deg,#4a0000,#2a0000);border:1px solid rgba(255,82,82,0.3);
+  color:#fef2f2;padding:20px;border-radius:16px;margin:20px auto;max-width:400px;text-align:center;
+  box-shadow:var(--shadow);
+}
+#error-message #error-content{margin-bottom:15px;}
+#error-message button{
+  background:linear-gradient(145deg,#ff5252,#d32f2f);color:#fff;border:none;border:1px solid rgba(255,255,255,0.8);
+  padding:8px 16px;border-radius:6px;cursor:pointer;margin-top:10px;font-weight:500;transition:var(--btn-transition);
+}
+#error-message button:hover{
+  background:linear-gradient(145deg,#ff6b6b,#e53939);transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(255,82,82,0.3);
+}
+.button-group{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0;display:none;width:100%;max-width:600px;}
+/* 高质感黄色用户名样式 */
+.toast-highlight-name {
+  background: linear-gradient(135deg, #ffd700, #f9c700, #e6b800);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+</style>
 </head>
-<body class="min-h-screen p-3">
-    <div class="max-w-md mx-auto space-y-4">
-        <!-- 頂部標題 -->
-        <div class="text-center">
-            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
-                彥彬 AI 比對系統
-            </h1>
-            <p class="text-gray-600 mt-1 text-sm">標準證件照裁切 + 三庭五眼校正 + AI點評</p>
-        </div>
-
-        <!-- 1. 圖片上傳區 -->
-        <div class="result-card p-4">
-            <div class="section-title">圖片上傳</div>
-            <div class="flex gap-3">
-                <div class="upload-card flex-1 p-3 text-center flex flex-col items-center justify-center">
-                    <h3 class="font-semibold text-gray-700 text-sm mb-2">左邊照片</h3>
-                    <input type="file" id="leftImg" accept="image/*" class="hidden">
-                    <button onclick="document.getElementById('leftImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
-                        選擇圖片
-                    </button>
-                    <img id="leftPreview" class="hidden w-full aspect-[3/4] rounded-lg shadow-sm object-cover">
-                </div>
-
-                <div class="upload-card flex-1 p-3 text-center flex flex-col items-center justify-center">
-                    <h3 class="font-semibold text-gray-700 text-sm mb-2">右邊照片</h3>
-                    <input type="file" id="rightImg" accept="image/*" class="hidden">
-                    <button onclick="document.getElementById('rightImg').click()" class="upload-btn text-white px-3 py-2 rounded-lg text-xs font-medium mb-2">
-                        選擇圖片
-                    </button>
-                    <img id="rightPreview" class="hidden w-full aspect-[3/4] rounded-lg shadow-sm object-cover">
-                </div>
-            </div>
-        </div>
-
-        <!-- 2. 主要功能區 -->
-        <div class="result-card p-4">
-            <div class="section-title">主要功能</div>
-            <div class="flex flex-wrap gap-2 justify-center">
-                <button onclick="mergeImages()" class="action-btn bg-gradient-to-r from-green-500 to-green-700 text-white px-5 py-2.5 font-semibold text-xs">
-                    🔗 自動拼圖
-                </button>
-                <button onclick="clearAll()" class="action-btn bg-gradient-to-r from-red-500 to-red-700 text-white px-5 py-2.5 font-semibold text-xs">
-                    🗑 清除設定
-                </button>
-            </div>
-        </div>
-
-        <!-- 🔥 3. 對比結果展示區（已移動到：主要功能下方、文字編輯上方） -->
-        <div class="result-card p-4 text-center">
-            <div class="section-title">證件照對比結果</div>
-            <h2 class="text-lg font-bold text-gray-800 mb-3">✅ 對比預覽</h2>
-            
-            <div id="capture-target" class="split-zoom-container mx-auto" style="display: none;">
-                <div class="left-img-area" id="leftImgArea">
-                    <img id="leftSplitImg" class="split-img">
-                </div>
-                <div class="right-img-area" id="rightImgArea">
-                    <img id="rightSplitImg" class="split-img">
-                </div>
-                <div class="divider-line"></div>
-                <div id="leftText" class="fixed-text left"></div>
-                <div id="rightText" class="fixed-text right"></div>
-            </div>
-
-            <div class="flex gap-2 justify-center mt-3">
-                <button onclick="downloadMerge()" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gray-900 transition">
-                    💾 下載相簿
-                </button>
-                <button onclick="shareImage()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">
-                    📤 分享照片
-                </button>
-            </div>
-        </div>
-
-        <!-- 4. 文字編輯區 -->
-        <div class="result-card p-4">
-            <div class="section-title">文字編輯</div>
-            <div class="flex items-center gap-3 justify-center">
-                <div class="flex flex-col gap-2">
-                    <p class="text-xs font-semibold text-gray-600">⬅️ 左側照片</p>
-                    <button onclick="addTextLeft(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">📅 加入今天日期</button>
-                    <button onclick="clearLeftText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">🧹 清除文字</button>
-                </div>
-                <div class="h-32 border-r border-gray-300"></div>
-                <div class="flex flex-col gap-2">
-                    <p class="text-xs font-semibold text-gray-600">➡️ 右側照片</p>
-                    <button onclick="addTextRight('2小時')" class="action-btn bg-orange-500 text-white px-3 py-2 text-xs">⏱ 加入兩小時</button>
-                    <button onclick="addTextRight(getTaiwanDate())" class="action-btn bg-blue-500 text-white px-3 py-2 text-xs">📅 加入今天日期</button>
-                    <button onclick="clearRightText()" class="action-btn bg-gray-500 text-white px-3 py-2 text-xs">🧹 清除文字</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 5. AI分析區 (文字編輯下方、AI點評上方) -->
-        <div class="result-card p-4">
-            <div class="section-title">AI 分析</div>
-            <div class="flex justify-center">
-                <button onclick="analyzeBoth()" class="action-btn bg-gradient-to-r from-purple-500 to-purple-700 text-white px-8 py-3 font-semibold text-xs w-full">
-                    🤖 執行AI點評分析
-                </button>
-            </div>
-        </div>
-
-        <!-- 6. AI點評區 -->
-        <div class="result-card p-4">
-            <div class="section-title">AI 點評結果</div>
-            <div id="aiResult" class="text-gray-700 text-sm leading-relaxed whitespace-pre-line min-h-[80px]">
-                尚未分析...
-            </div>
-        </div>
+<body>
+<div id="authContainer">
+  <div id="error-message">
+    <div id="error-content"></div>
+  </div>
+  <div id="authLoading">
+    <div class="loader"></div>
+    <h3>正在驗證用戶權限</h3>
+    <p>請稍候...</p>
+  </div>
+</div>
+<!-- 修改：增加关闭按钮 -->
+<div id="authStatusBar" style="display: none;">
+  <button class="close-status" title="隱藏狀態欄">✕</button>
+</div>
+<div id="captureArea">
+  <div id="watermark">『彥彬🌿試算系統』</div>
+  <h2>
+    <br>
+    🌿 康園試算報表
+    <div class="payment-options">
+      <label><input type="checkbox" id="cashOption" /> 💵 現金</label>
+      <label><input type="checkbox" id="cardOption" /> 💳 刷卡</label>
     </div>
+    <div class="period-options">
+      <div class="period-box">一個月</div>
+      <div class="period-box">三個月</div>
+      <div class="period-box">六個月</div>
+    </div>
+  </h2>
+  <div class="userInputs">  
+    <div class="row">
+      <label>
+        <span>購買者：</span>
+        <input type="text" placeholder="輸入購買者" id="buyerInput" />
+      </label>
+      <label>
+        <span>試算者：</span>
+        <div class="calculator-container">
+          <input type="text" id="calculatorDisplay" readonly />
+          <button id="resetCalculatorBtn" title="重置試算者名稱">↺</button>
+        </div>
+      </label>
+    </div>
+  </div>
+  <table id="reportTable" aria-label="試算報表">
+    <thead>
+      <tr>
+        <th>品項名稱</th>
+        <th>數量</th>
+        <th>單價</th>
+        <th>PV</th>
+        <th>小計金額</th>
+        <th>小計PV</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="reportBody"></tbody>
+  </table>
+  <div class="summaryBox" aria-live="polite">
+    總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
+    <span class="extra">距 22 萬 PV：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
+    <span class="extra">距 30 萬 PV：<span id="pvDiff3">300000</span> <span id="pvMessage3"></span></span>
+  </div>
+</div>
+<img id="previewImage" alt="預覽匯出圖片" />
+<div class="button-group">
+  <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
+  <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
+  <button id="shareToLineBtn" class="btn btn-primary btn-md">📱<br>安卓分享</button>
+  <button id="nativeShareBtn" class="btn btn-primary btn-md">📱<br>分享圖片</button>
+  <button id="clearImageBtn" class="btn btn-grey btn-md">❌<br>清除圖片</button>
+</div>
+<div id="toast" class="toast">✅ 圖片已上傳</div>
+<div id="inputArea">
+  <select id="nameInput"></select>
+  <select id="qtyInput"></select>
+  <button id="addBtn" class="btn btn-primary btn-lg">➕<br>新增品項</button>
+</div>
+<div class="spacer"></div>
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbxMK8aSmldCGKmXffbL5XU6IGuLbaKS1VABe9LuWXSF6hg2NtGLGZxS8fT-jqiFKy8_/exec";
+const IMGBB_API_KEY="5be146133d1fa6ded66878aade98880f";
+const LIFF_ID="2007475335-v0CCltdL";
+const JSONP_TIMEOUT=15000;
+const PERMANENT_EXPIRY_DATE="9999/12/31";
+const TARGET_PV220=220000;
+const TARGET_PV300=300000;
+const MAX_NORMAL_USER_USAGE=3;
+const DEDUCT_INTERVAL=180000;
+let products=[],selectedProds=[],lineName='',userInfo=null,authStatus=null,isDeleting=false;
+let lastDeductTime=parseInt(localStorage.getItem('lastDeductTime'))||0;
+let userUsageRecord=JSON.parse(localStorage.getItem('userUsageRecord'))||{};
+const els={
+  nameInput:document.getElementById("nameInput"),
+  qtyInput:document.getElementById("qtyInput"),
+  addBtn:document.getElementById("addBtn"),
+  reportBody:document.getElementById("reportBody"),
+  totalPriceCellDup:document.getElementById("totalPriceCellDup"),
+  totalPvCellDup:document.getElementById("totalPvCellDup"),
+  pvDiff2:document.getElementById("pvDiff2"),
+  pvDiff3:document.getElementById("pvDiff3"),
+  pvMessage2:document.getElementById("pvMessage2"),
+  pvMessage3:document.getElementById("pvMessage3"),
+  exportBtn:document.getElementById("exportBtn"),
+  previewImage:document.getElementById("previewImage"),
+  shareToLineBtn:document.getElementById("shareToLineBtn"),
+  nativeShareBtn:document.getElementById("nativeShareBtn"),
+  clearImageBtn:document.getElementById("clearImageBtn"),
+  resetReportBtn:document.getElementById("resetReportBtn"),
+  buyerInput:document.getElementById("buyerInput"),
+  calculatorDisplay:document.getElementById("calculatorDisplay"),
+  resetCalculatorBtn:document.getElementById("resetCalculatorBtn"),
+  toast:document.getElementById("toast"),
+  authLoading:document.getElementById("authLoading"),
+  authStatusBar:document.getElementById("authStatusBar"),
+  captureArea:document.getElementById("captureArea"),
+  inputArea:document.getElementById("inputArea"),
+  buttonGroup:document.querySelector(".button-group"),
+  errorMessage:document.getElementById("error-message"),
+  errorContent:document.getElementById("error-content"),
+  authLoadingTitle:document.querySelector("#authLoading h3"),
+  authLoadingDesc:document.querySelector("#authLoading p"),
+  reportTable:document.getElementById("reportTable"),
+  cashOption:document.getElementById("cashOption"),
+  cardOption:document.getElementById("cardOption"),
+  watermark:document.getElementById("watermark")
+};
 
-    <script>
-        let leftFile, rightFile;
-        const leftPreview = document.getElementById('leftPreview');
-        const rightPreview = document.getElementById('rightPreview');
-        const captureTarget = document.getElementById('capture-target');
-        const leftSplitImg = document.getElementById('leftSplitImg');
-        const rightSplitImg = document.getElementById('rightSplitImg');
-        const leftImgArea = document.getElementById('leftImgArea');
-        const rightImgArea = document.getElementById('rightImgArea');
-        const leftText = document.getElementById('leftText');
-        const rightText = document.getElementById('rightText');
+// 工具函數：獲取當天日期（YYYYMMDD）
+const getTodayDate=()=>{
+  const d=new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+};
 
-        // 3:4 標準尺寸
-        const WIDTH = 600;
-        const HEIGHT = 800;
-        const HALF_WIDTH = WIDTH / 2;
+// 工具函數：檢查是否是當天的有效驗證
+const isTodayValidAuth=(userId)=>{
+  const authCache=JSON.parse(localStorage.getItem(`authCache_${userId}`))||{};
+  return authCache.date===getTodayDate()&&authCache.data;
+};
 
-        // 缩放+拖拽状态
-        const zoomState = {
-            left: { scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0 },
-            right: { scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0 }
+// 工具函數：保存當天驗證緩存
+const saveTodayAuthCache=(userId,authData)=>{
+  localStorage.setItem(`authCache_${userId}`,JSON.stringify({
+    date:getTodayDate(),
+    data:authData
+  }));
+};
+
+// 初始化數量選擇框
+for(let i=1;i<=99;i++){
+  const option=document.createElement("option");
+  option.value=i;
+  option.textContent=i;
+  els.qtyInput.appendChild(option);
+}
+
+// 新增時長選項點擊事件
+document.querySelectorAll('.period-box').forEach(box=>{
+  box.addEventListener('click',function(){
+    document.querySelectorAll('.period-box').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// 修改：添加状态栏关闭按钮事件
+document.querySelector('.close-status').addEventListener('click',function(){
+  els.authStatusBar.style.opacity='0';
+  setTimeout(()=>{
+    els.authStatusBar.style.display='none';
+    els.authStatusBar.style.opacity='1';
+  },300);
+});
+
+// 事件綁定
+els.nameInput.addEventListener('change',function(){checkHerbalNewMember(this.value);adjustQtySelectOptions(this.value);});
+//els.nameInput.addEventListener('input',function(){checkHerbalNewMember(this.value);adjustQtySelectOptions(this.value);});
+els.addBtn.addEventListener("click",addProduct);
+els.resetCalculatorBtn.addEventListener("click",resetLineName);
+els.resetReportBtn.addEventListener("click",resetReport);
+els.exportBtn.addEventListener("click",exportToImage);
+els.shareToLineBtn.addEventListener("click",shareToLine);
+els.nativeShareBtn.addEventListener("click",nativeShare);
+els.clearImageBtn.addEventListener("click",clearImage);
+els.cashOption.addEventListener("change",handleCashGift);
+els.reportBody.addEventListener("click",async function(e){
+  const btn=e.target.closest('.deleteBtn');
+  if(!btn||isDeleting||btn.disabled)return;
+  await handleDelete(btn);
+});
+window.addEventListener('resize',()=>{els.reportTable.style.fontSize=window.innerWidth<360?'11px':'12px';});
+window.onload=initApp;
+
+// 草本新入會提醒 - 自動新增對應品項（修正重複添加問題）
+function checkHerbalNewMember(selectedValue){
+  const val=selectedValue.trim();
+  
+  // 9號款：新入會(9號）
+  if(val.includes('新入會(9號）')){
+    // 延遲執行確保商品列表已加載
+    setTimeout(()=>{
+      // 1. 檢查並添加「新入會(9號）」本身（僅在不存在時添加）
+      if(!selectedProds.find(p => p.name === val)){
+        addSpecificProduct(val, 1);
+      }
+      // 2. 新增入*會「 9號兩組」數量1
+      addSpecificProduct('入*會「 9號兩組」', 1);
+      alert('📋 已自動新增9號組合：\n\n新入會(9號） + 9號兩組 x1');
+    }, 300);
+  }
+  // 男生款：新入會(草本）男
+  else if(val.includes('新入會(草本）男')){
+    // 延遲執行確保商品列表已加載
+    setTimeout(()=>{
+      // 1. 檢查並添加「新入會(草本）男」本身（僅在不存在時添加）
+      if(!selectedProds.find(p => p.name === val)){
+        addSpecificProduct(val, 1);
+      }
+      // 2. 新增入*會「 211 」數量2（重複添加時會自動檢查數量限制）
+      addSpecificProduct('入*會「 211 」', 2);
+      // 3. 新增入*會「 101 」數量2
+      addSpecificProduct('入*會「 101 」', 2);
+      alert('📋 已自動新增男生款草本組合：\n\n新入會(草本）男 + 211 x 2 + 101 x 2');
+    }, 300);
+  }
+  // 女生款：新入會(草本）女
+  else if(val.includes('新入會(草本）女')){
+    setTimeout(()=>{
+      // 1. 檢查並添加「新入會(草本）女」本身（僅在不存在時添加）
+      if(!selectedProds.find(p => p.name === val)){
+        addSpecificProduct(val, 1);
+      }
+      // 2. 新增入*會「 211 」數量2
+      addSpecificProduct('入*會「 211 」', 2);
+      // 3. 新增入*會「 707 」數量2
+      addSpecificProduct('入*會「 707 」', 2);
+      alert('📋 已自動新增女生款草本組合：\n\n新入會(草本）女 + 211 x 2 + 707 x 2');
+    }, 300);
+  }
+
+// 通用提醒（保留原有邏輯）
+else if(val.includes('草本') && val.includes('新入會')){
+  setTimeout(()=>{
+    alert('📋 新入會草本組合提醒：\n\n男生款：211x2 + 101x2\n女生款：211x2 + 707x2\n\n請分別新增對應品項與數量');
+  },100);
+}
+
+// 新增 2711AB 提醒
+else if(val.includes('2711AB')){
+  setTimeout(()=>{
+    alert('📋 2711AB 購買提醒：\n\n此商品限定「新人入會」購買\n且每人僅限購買一組（4入）');
+  },100);
+}
+}
+
+// 現金自動贈品邏輯：每2萬現金 → 贈送 211(30) x1
+function handleCashGift(){
+  if(!els.cashOption.checked){
+    // 取消現金時，移除所有贈品
+    selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
+    saveSelectedProds();
+    renderTable();
+    return;
+  }
+
+  const totalPrice = parseInt(els.totalPriceCellDup.textContent) || 0;
+  const giftQty = Math.floor(totalPrice / 20000);
+  
+  if(giftQty <= 0) return;
+
+  // 先移除舊贈品
+  selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
+  
+  // 新增對應數量贈品
+  addSpecificProduct('贈品 211(30)', giftQty);
+  showToast(`🎁 現金滿${giftQty*2}萬，自動贈送 211(30) x${giftQty}`);
+}
+
+// 輔助函數：新增指定品項和數量（增強重複檢查）
+function addSpecificProduct(productName, qty) {
+  // 查找商品
+  const product = products.find(p => p.name === productName);
+  if (!product) {
+    alert(`⚠️ 找不到品項：${productName}`);
+    return;
+  }
+
+  // 檢查是否已存在該品項
+  const exists = selectedProds.find(p => p.name === productName);
+  if (exists) {
+    // 如果已存在，更新數量（確保不超過限制）
+    const totalQty = exists.qty + qty;
+    let maxQty = 99;
+    
+    // 檢查數量限制（與原有邏輯保持一致）
+    if (productName.includes('新入會') || productName.includes('新會員') || productName.includes('入會')) maxQty = 1;
+    else if (productName.includes('2711AB') && productName.includes('(4)')) maxQty = 1;
+    else if (productName.includes('777Q') && productName.includes('(4)')) maxQty = 2;
+    else if (productName.includes('火山甘露') && productName.includes('限4盒')) maxQty = 4;
+    else if (productName.includes('2711AB') && productName.includes('(1)')) maxQty = 4;
+
+    // 對於新入會相關品項，直接跳過重複添加（避免超過maxQty=1）
+    if (productName.includes('新入會') && totalQty > maxQty) {
+      return; // 不提示，直接跳過重複添加
+    }
+
+    if (totalQty > maxQty) {
+      alert(`⚠️ ${productName} 限購${maxQty}個/組，目前已選${exists.qty}個/組，無法再新增`);
+      return;
+    }
+    
+    exists.qty = totalQty;
+  } else {
+    // 新增品項
+    selectedProds.push({...product, qty});
+  }
+
+  // 保存並重新渲染表格
+  saveSelectedProds();
+  renderTable();
+}
+
+// 加載已選商品
+function loadSelectedProds(){
+  const saved=localStorage.getItem('selectedProducts');
+  if(saved)selectedProds=JSON.parse(saved);
+  renderTable();
+}
+
+// 保存已選商品
+function saveSelectedProds(){localStorage.setItem('selectedProducts',JSON.stringify(selectedProds));}
+function saveUserUsageRecord(){localStorage.setItem('userUsageRecord',JSON.stringify(userUsageRecord));}
+
+// 設置LINE名稱
+function setupLineName(isReset=false){
+  if(isReset){
+    const input=prompt('請輸入您的『試算者名稱』\n（可隨時點擊重置按鈕修改）：');
+    lineName=input?.trim()||'未設定';
+    localStorage.setItem('lineName',lineName);
+  }else{
+    lineName=localStorage.getItem('lineName')||userInfo?.displayName||'';
+    if(!lineName||lineName==='未知用戶名'){
+      const input=prompt('請輸入您的『試算者名稱』\n（可隨時點擊重置按鈕修改）：');
+      lineName=input?.trim()||'未設定';
+      localStorage.setItem('lineName',lineName);
+    }
+  }
+  els.calculatorDisplay.value=lineName;
+}
+
+// 重置LINE名稱
+function resetLineName(){
+  if(confirm('確定要修改試算者名稱嗎？')){
+    localStorage.removeItem('lineName');
+    setupLineName(true);
+    showToast('試算者名稱已更新');
+  }
+}
+
+// 同步重置記錄到後端
+async function syncRecordResetToBackend(){
+  if(!userInfo||authStatus.isVip||authStatus.isSuperAdmin)return true;
+  return new Promise((resolve,reject)=>{
+    const callbackName=`recordResetCallback_${Date.now()}`;
+    window[callbackName]=function(resp){
+      delete window[callbackName];
+      if(resp.status==="success"){
+        const backendUsageCount=resp.usageCount||0;
+        userUsageRecord[userInfo.userId]=backendUsageCount;
+        saveUserUsageRecord();
+        authStatus.remainingTimes=MAX_NORMAL_USER_USAGE-backendUsageCount;
+        updateAuthStatusBar();
+        checkUserRemainingTimes();
+        resolve(true);
+      }else{
+        showToast(`後端扣次失敗：${resp.message||'未知錯誤'}`, 'error');
+        resolve(false);
+      }
+    };
+    const data={
+      action:'recordReset',
+      userId:userInfo.userId,
+      displayName:userInfo.displayName,
+      callback:callbackName,
+      dataType:'resetRecord'
+    };
+    $.ajax({
+      url:API_URL,
+      dataType:'jsonp',
+      jsonp:'callback',
+      jsonpCallback:callbackName,
+      timeout:JSONP_TIMEOUT,
+      data:data,
+      error:function(xhr,status,error){
+        delete window[callbackName];
+        const errorMsg=status==='timeout'?'扣次同步超時，請檢查網絡':`扣次同步失敗：${error}`;
+        showToast(errorMsg, 'error');
+        reject(new Error(errorMsg));
+      }
+    });
+  });
+}
+
+// 同步刪除記錄到後端
+async function syncDeleteToBackend(){
+  if(!userInfo||authStatus.isVip||authStatus.isSuperAdmin)return true;
+  return new Promise((resolve,reject)=>{
+    const callbackName=`recordDeleteCallback_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
+    window[callbackName]=function(resp){
+      delete window[callbackName];
+      if(resp&&resp.status==="success"){
+        const backendUsageCount=Number(resp.usageCount)||0;
+        userUsageRecord[userInfo.userId]=backendUsageCount;
+        saveUserUsageRecord();
+        authStatus.remainingTimes=MAX_NORMAL_USER_USAGE-backendUsageCount;
+        updateAuthStatusBar();
+        checkUserRemainingTimes();
+        resolve(true);
+      }else{
+        showToast(`後端未扣次：${resp?.message||'3分鐘內重複操作，無需扣次'}`, 'warning');
+        resolve(false);
+      }
+    };
+    const data={
+      action:'recordDelete',
+      userId:userInfo.userId,
+      displayName:userInfo.displayName,
+      usageCount:userUsageRecord[userInfo.userId]||0,
+      timestamp:new Date().getTime(),
+      callback:callbackName,
+      dataType:'deleteRecord'
+    };
+    $.ajax({
+      url:API_URL,
+      dataType:'jsonp',
+      jsonp:'callback',
+      jsonpCallback:callbackName,
+      timeout:JSONP_TIMEOUT,
+      cache:false,
+      data:data,
+      error:function(xhr,status,error){
+        delete window[callbackName];
+        const errorMsg=status==='timeout'?'刪除扣次同步超時，請檢查網絡後重試':`刪除扣次同步失敗：${error||'網絡錯誤'}`;
+        showToast(errorMsg, 'error');
+        reject(new Error(errorMsg));
+      }
+    });
+  });
+}
+
+// 重置報表
+async function resetReport(){
+  if(!authStatus||authStatus.isExpired)return;
+  if(!confirm('確定要清空所有品項記錄嗎？'))return;
+  const isPrivilegeUser=authStatus.isVip||authStatus.isSuperAdmin;
+  let isDeducted=false;
+  if(!isPrivilegeUser&&authStatus.remainingTimes>0){
+    els.resetReportBtn.disabled=true;
+    try{
+      const syncSuccess=await syncRecordResetToBackend();
+      isDeducted=syncSuccess;
+    }catch(error){
+      showToast(error.message, 'error');
+    }finally{
+      els.resetReportBtn.disabled=false;
+    }
+  }
+  selectedProds=[];
+  saveSelectedProds();
+  renderTable();
+  adjustQtySelectOptions(els.nameInput.value);
+  isDeducted?showToast(`✅ 已扣除1次使用次數，剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次`, 'warning'):showToast('報表已重置');
+}
+
+// 加載商品列表
+async function loadProducts(){
+  try{
+    const res=await fetch(`${API_URL}?action=all&t=${new Date().getTime()}`,{cache:'no-cache'});
+    const data=await res.json();
+    products=data;
+    els.nameInput.innerHTML="";
+    data.forEach(item=>{
+      const opt=document.createElement("option");
+      opt.value=item.name;
+      opt.textContent=item.name;
+      els.nameInput.appendChild(opt);
+    });
+    setTimeout(()=>{checkHerbalNewMember(els.nameInput.value);adjustQtySelectOptions(els.nameInput.value);},300);
+  }catch(error){
+    showToast(`讀取商品失敗: ${error.message||'未知錯誤'}`, 'error');
+  }
+}
+
+// 渲染表格
+function renderTable(){
+  els.reportBody.innerHTML="";
+  let totalPrice=0,totalPv=0;
+  selectedProds.forEach((item,idx)=>{
+    const val=item.name.trim();
+    let maxQty=99;
+    if(val.includes('新入會')||val.includes('新會員')||val.includes('入會'))maxQty=1;
+    else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
+    else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+    else if(val.includes('火山甘露')&&val.includes('限4盒'))maxQty=4;
+    else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
+    if(item.qty>maxQty){item.qty=maxQty;saveSelectedProds();}
+    const subtotalPrice=item.price*item.qty;
+    const subtotalPv=item.pv*item.qty;
+    totalPrice+=subtotalPrice;
+    totalPv+=subtotalPv;
+    const tr=document.createElement("tr");
+    const qtyOptions=Array.from({length:maxQty},(_,i)=>{
+      const val=i+1;
+      return `<option value="${val}" ${val===item.qty?"selected":""}>${val}</option>`;
+    }).join("");
+    tr.innerHTML=`
+      <td style="text-align:center;">${item.name}</td>
+      <td>
+        <select class="qtySelect" data-index="${idx}" style="text-align:center;">
+          ${qtyOptions}
+        </select>
+      </td>
+      <td style="text-align:center;">${item.price}</td>
+      <td style="text-align:center;">${item.pv}</td>
+      <td style="text-align:center;">${subtotalPrice}</td>
+      <td style="text-align:center;">${subtotalPv}</td>
+      <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
+    `;
+    els.reportBody.appendChild(tr);
+  });
+  els.totalPriceCellDup.textContent=totalPrice;
+  els.totalPvCellDup.textContent=totalPv;
+  const diff2=TARGET_PV220-totalPv;
+  const diff3=TARGET_PV300-totalPv;
+  els.pvDiff2.textContent=diff2>0?diff2:0;
+  els.pvDiff3.textContent=diff3>0?diff3:0;
+  els.pvMessage2.innerHTML=totalPv>=TARGET_PV220?'<span class="done">🎉 已達標</span>':'';
+  els.pvMessage3.innerHTML=totalPv>=TARGET_PV300?'<span class="done">🎉 已達標</span>':'';
+  document.querySelectorAll(".qtySelect").forEach(select=>{
+    select.onchange=e=>{
+      const idx=parseInt(e.target.dataset.index);
+      selectedProds[idx].qty=parseInt(e.target.value);
+      saveSelectedProds();
+      renderTable();
+      // 金額變更時重新計算現金贈品
+      if(els.cashOption.checked) handleCashGift();
+    };
+  });
+}
+
+// 處理刪除操作
+async function handleDelete(btn){
+  if(isDeleting||!authStatus||authStatus.isExpired){
+    showToast('賬號已過期或操作中，無法執行刪除', 'error');
+    return;
+  }
+  const idx=parseInt(btn.dataset.index);
+  const isPrivilegeUser=authStatus.isVip||authStatus.isSuperAdmin;
+  if(!isPrivilegeUser){
+    if(authStatus.remainingTimes<=0){
+      showToast('使用次數已用完，無法刪除品項', 'error');
+      return;
+    }
+    const now=Date.now();
+    const isWithinInterval=now-lastDeductTime<DEDUCT_INTERVAL;
+    const confirmMsg=isWithinInterval
+      ? `刪除此品項（3分鐘內連續操作，不扣除使用次數），當前剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次，是否確認刪除？`
+      : `刪除此品項將扣除1次使用次數，3分鐘內連續刪除不扣次，當前剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次，是否確認刪除？`;
+    if(!isWithinInterval&&!confirm(confirmMsg)){
+      return;
+    }
+  }
+  isDeleting=true;
+  btn.disabled=true;
+  btn.textContent="處理中";
+  try{
+    const now=Date.now();
+    const isWithinInterval=now-lastDeductTime<DEDUCT_INTERVAL;
+    selectedProds.splice(idx,1);
+    saveSelectedProds();
+    renderTable();
+    // 刪除後重新計算現金贈品
+    if(els.cashOption.checked) handleCashGift();
+    
+    if(!isPrivilegeUser&&!isWithinInterval){
+      const syncSuccess=await syncDeleteToBackend();
+      if(syncSuccess){
+        lastDeductTime=now;
+        localStorage.setItem('lastDeductTime',lastDeductTime.toString());
+        showToast(`✅ 已扣除1次使用次數，剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次（3分鐘內連續刪除不扣次）`, 'warning');
+      }else{
+        showToast('品項已刪除，後端未扣次（3分鐘內重複操作/同步失敗）', 'warning');
+      }
+    }else if(!isPrivilegeUser&&isWithinInterval){
+      showToast(`品項已刪除（3分鐘內連續刪除，不扣除使用次數），剩餘${authStatus.remainingTimes}/${MAX_NORMAL_USER_USAGE}次`, 'success');
+    }else{
+      showToast('品項已刪除', 'success');
+    }
+  }catch(error){
+    showToast(`刪除失敗：${error.message}`, 'error');
+    renderTable();
+  }finally{
+    isDeleting=false;
+    btn.disabled=false;
+    btn.textContent="刪除";
+  }
+}
+
+// 新增商品
+function addProduct(){
+  els.addBtn.disabled=true;
+  try{
+    if(!authStatus){
+      showToast('請先完成用戶權限驗證', 'error');
+      return;
+    }
+    const isPrivilegeUser=authStatus.isVip||authStatus.isSuperAdmin;
+    if(!isPrivilegeUser&&authStatus.remainingTimes<=0){
+      showToast(`普通用戶使用次數已達上限（${MAX_NORMAL_USER_USAGE}次），請聯繫管理員升級`, 'error');
+      return;
+    }
+    const selectedName=els.nameInput.value;
+    let qty=parseInt(els.qtyInput.value);
+    if(!selectedName||qty<=0){
+      alert("請選擇品項與數量");
+      return;
+    }
+    const val=selectedName.trim();
+    let maxQty=99;
+    if(val.includes('新入會')||val.includes('新會員')||val.includes('入會')){
+      maxQty=1;
+      if(qty>maxQty){
+        alert(`⚠️ 新入會相關品項限購${maxQty}個，已自動調整數量為${maxQty}`);
+        qty=maxQty;
+      }
+    }else if(val.includes('2711AB')&&val.includes('(4)')){
+      maxQty=2;
+      if(qty>maxQty){
+        alert(`⚠️ 2711AB(4)限購${maxQty}組，已自動調整數量為${maxQty}`);
+        qty=maxQty;
+      }
+    }else if(val.includes('777Q')&&val.includes('(4)')){
+      maxQty=2;
+      if(qty>maxQty){
+        alert(`⚠️ 777Q限購${maxQty}組，已自動調整數量為${maxQty}`);
+        qty=maxQty;
+      }
+    }else if(val.includes('火山甘露')&&val.includes('限4盒')){
+      maxQty=4;
+      if(qty>maxQty){
+        alert(`⚠️ 火山甘露限購${maxQty}盒，已自動調整數量為${maxQty}`);
+        qty=maxQty;
+      }
+    }else if(val.includes('2711AB')&&val.includes('(1)')){
+      maxQty=4;
+      if(qty>maxQty){
+        alert(`⚠️ 2711AB(1)限購${maxQty}盒，已自動調整數量為${maxQty}`);
+        qty=maxQty;
+      }
+    }
+    const product=products.find(p=>p.name===selectedName);
+    if(!product){
+      alert("找不到該品項");
+      return;
+    }
+    const exists=selectedProds.find(p=>p.name===selectedName);
+    if(exists){
+      const totalQty=exists.qty+qty;
+      if(totalQty>maxQty){
+        alert(`⚠️ 該品項限購${maxQty}個/組，目前已選${exists.qty}個/組，無法再新增`);
+        return;
+      }
+      exists.qty+=qty;
+    }else{
+      selectedProds.push({...product,qty});
+    }
+    saveSelectedProds();
+    renderTable();
+    // 新增商品後重新計算現金贈品
+    if(els.cashOption.checked) handleCashGift();
+    showToast('品項已新增');
+  }catch(error){
+    showToast(`新增失敗：${error.message}`, 'error');
+  }finally{
+    els.addBtn.disabled=false;
+  }
+}
+
+// 動態調整數量下拉選項（修復限定組數錯誤）
+function adjustQtySelectOptions(productName) {
+  if (!productName) return;
+  let maxQty = 99;
+  const val = productName.trim();
+  
+  // 嚴格按照規則設定最大數量
+  if (val.includes('新入會') || val.includes('新會員') || val.includes('入會')) {
+    maxQty = 1;
+  } else if (val.includes('2711AB') && val.includes('(4)')) {
+    maxQty = 2;
+  } else if (val.includes('777Q') && val.includes('(4)')) {
+    maxQty = 2;
+  } else if (val.includes('火山甘露') && val.includes('限4盒')) {
+    maxQty = 4;
+  } else if (val.includes('2711AB') && val.includes('(1)')) {
+    maxQty = 4;
+  }
+
+  // 清空並重新生成正確的數量選項
+  els.qtyInput.innerHTML = '';
+  for (let i = 1; i <= maxQty; i++) {
+    const option = document.createElement('option');
+    option.value = i;
+    option.textContent = i;
+    els.qtyInput.appendChild(option);
+  }
+}
+
+// 檢查用戶剩餘次數
+function checkUserRemainingTimes(){
+  if(!authStatus)return false;
+  const isPrivilegeUser=authStatus.isVip||authStatus.isSuperAdmin;
+  if(authStatus.isExpired){
+    els.exportBtn.disabled=true;els.addBtn.disabled=true;els.shareToLineBtn.disabled=true;els.resetReportBtn.disabled=true;
+    return false;
+  }
+  if(isPrivilegeUser){
+    els.exportBtn.disabled=false;els.addBtn.disabled=false;els.shareToLineBtn.disabled=false;els.resetReportBtn.disabled=false;
+    return true;
+  }
+  const userId=userInfo.userId;
+  const usedTimes=userUsageRecord[userId]||0;
+  authStatus.remainingTimes=MAX_NORMAL_USER_USAGE-usedTimes;
+  updateAuthStatusBar();
+  if(authStatus.remainingTimes<=0){
+    els.exportBtn.disabled=true;els.addBtn.disabled=true;els.shareToLineBtn.disabled=true;els.resetReportBtn.disabled=true;
+    return false;
+  }else{
+    els.exportBtn.disabled=false;els.addBtn.disabled=false;els.shareToLineBtn.disabled=true;els.resetReportBtn.disabled=false;
+    return true;
+  }
+}
+
+// 記錄用戶使用次數
+function recordUserUsage(){
+  if(!authStatus)return;
+  const isPrivilegeUser=authStatus.isVip||authStatus.isSuperAdmin;
+  if(isPrivilegeUser)return;
+  const userId=userInfo.userId;
+  const beforeRemaining=authStatus.remainingTimes;
+  if(beforeRemaining<=0)return;
+  userUsageRecord[userId]=(userUsageRecord[userId]||0)+1;
+  saveUserUsageRecord();
+  authStatus.remainingTimes=MAX_NORMAL_USER_USAGE-userUsageRecord[userId];
+  updateAuthStatusBar();
+}
+
+// 更新授權狀態欄
+function updateAuthStatusBar(){
+  if(!authStatus||!userInfo)return;
+  let statusHtml='';
+  if(authStatus.isSuperAdmin){
+    const expiryText=authStatus.remainingDays==="永久有效"?"永久有效":`${authStatus.displayExpiryDate} | 剩餘：<span class="remaining-days-yellow">${authStatus.remainingDays}</span>`;
+    statusHtml=`
+      <span class="super-admin">👑 超級管理員 👑</span> | 
+      用戶名：<span class="super-admin-username">${userInfo.displayName}</span>
+      <br/>有效期限：${expiryText}
+    `;
+  }else if(authStatus.isVip){
+    const expiryText=authStatus.remainingDays==="永久有效"?"永久有效":`${authStatus.displayExpiryDate} | 剩餘：<span class="remaining-days-yellow">${authStatus.remainingDays}</span>`;
+    statusHtml=`
+      <span class="vip-admin">💎 尊爵用戶 💎</span> | 
+      用戶名：<span class="vip-admin-username">${userInfo.displayName}</span>
+      <br/>有效期限：${expiryText}
+    `;
+  }else{
+    statusHtml=`
+      <span class="normal">🪙 普通用戶 🪙</span> | 
+      用戶名：${userInfo.displayName}
+      <br/>剩餘使用次數：<span class="${authStatus.remainingTimes<=0?'expired':'normal'}">${authStatus.remainingTimes||0}/${MAX_NORMAL_USER_USAGE}次</span>
+    `;
+  }
+// 替换状态栏HTML生成部分的按钮文本
+els.authStatusBar.innerHTML = `
+  <button class="close-status" title="隱藏狀態欄">關閉</button>
+  ${statusHtml}
+`;
+  // 重新绑定关闭按钮事件
+// 2. 更新授权状态栏时的重新绑定
+els.authStatusBar.querySelector('.close-status').addEventListener('click',function(){
+  els.authStatusBar.style.opacity='0';
+  setTimeout(()=>{
+    els.authStatusBar.style.display='none';
+    els.authStatusBar.style.opacity='1';
+  },300);
+});
+  els.authStatusBar.style.display='block';
+}
+
+// 匯出圖片
+async function exportToImage(){
+  if(!checkUserRemainingTimes())return;
+  if(selectedProds.length===0){alert("請先新增至少一個品項，才能匯出圖片！");return;}
+  els.exportBtn.disabled=true;
+  const opCells=document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
+  opCells.forEach(el=>{el.style.display="none";});
+
+  els.reportTable.offsetWidth;
+  const tableWidth=els.reportTable.offsetWidth;
+  const lastCol=els.reportTable.querySelector('th:last-child');
+  const lastColWidth=lastCol?lastCol.offsetWidth:0;
+  const captureWidth=(tableWidth-lastColWidth)+60;
+  const originalCaptureWidth=els.captureArea.style.width;
+  const originalPaddingRight=els.captureArea.style.paddingRight;
+  const originalPaddingLeft=els.captureArea.style.paddingLeft;
+  els.captureArea.style.width=`${captureWidth}px`;
+  els.captureArea.style.paddingLeft="30px";
+  els.captureArea.style.paddingRight="30px";
+  try{
+    const scale=window.innerWidth<768?3:4;
+    const canvas=await html2canvas(els.captureArea,{
+      scale:scale,useCORS:true,allowTaint:true,backgroundColor:null,
+      logging:false,letterRendering:true,useTransform:true,dpi:300,
+      scaleMethod:'highQuality',width:captureWidth,windowWidth:captureWidth,
+      windowHeight:els.captureArea.offsetHeight,scrollX:0,scrollY:0,
+      ignoreElements:el=>el.id==='previewImage'||el.classList.contains('deleteBtn')
+    });
+    const dataUrl=canvas.toDataURL("image/png",1.0);
+    els.previewImage.src=dataUrl;
+    els.previewImage.style.display="block";
+    els.shareToLineBtn.style.display="inline-block";
+    els.nativeShareBtn.style.display=navigator.share?"inline-block":"none";
+    els.clearImageBtn.style.display="inline-block";
+  }catch(error){
+    showToast(`匯出失敗：${error.message||'未知錯誤'}`, 'error');
+  }finally{
+    opCells.forEach(el=>{el.style.display="";});
+    els.captureArea.style.width=originalCaptureWidth;
+    els.captureArea.style.paddingRight=originalPaddingRight;
+    els.captureArea.style.paddingLeft=originalPaddingLeft;
+    els.exportBtn.disabled=false;
+  }
+}
+
+// 分享到LINE
+async function shareToLine(){
+  if(!authStatus)return;
+  if(!els.previewImage.src){alert("請先匯出圖片");return;}
+  els.shareToLineBtn.disabled=true;
+  try{
+    const base64Data=els.previewImage.src.split(",")[1];
+    const formData=new FormData();
+    formData.append("image",base64Data);
+    formData.append("key",IMGBB_API_KEY);
+    const res=await fetch("https://api.imgbb.com/1/upload",{method:"POST",body:formData,});
+    const result=await res.json();
+    if(result.success){
+      const imageUrl=result.data.url;
+      const buyerName=els.buyerInput.value.trim()||"未填";
+      const calculatorName=lineName||"未設定";
+      const lineShareUrl=`https://line.me/R/msg/text/?${encodeURIComponent(`康園試算報表\n\n購買者：${buyerName}\n試算者：${calculatorName}\n${imageUrl}`)}`;
+      window.open(lineShareUrl,"_blank");
+      showToast("✅ 圖片已上傳");
+    }else{
+      showToast("圖片上傳失敗，請稍後再試", 'error');
+    }
+  }catch(error){
+    showToast(`圖片上傳錯誤: ${error.message||'未知錯誤'}`, 'error');
+  }finally{
+    els.shareToLineBtn.disabled=false;
+  }
+}
+
+// 原生分享
+async function nativeShare(){
+  if(!authStatus)return;
+  if(!navigator.share||!els.previewImage.src){alert("無法使用原生分享");return;}
+  try{
+    const response=await fetch(els.previewImage.src);
+    const blob=await response.blob();
+    const filesArray=[new File([blob],"康園試算報表.png",{type:blob.type})];
+    const buyer=els.buyerInput.value.trim()||"未填";
+    const calculator=lineName||"未設定";
+    const shareText=`康園試算報表\n購買者：${buyer}\n試算者：${calculator}`;
+    await navigator.share({files:filesArray,title:"康園試算報表",text:shareText,});
+  }catch(error){
+    showToast(`分享失敗: ${error.message||'未知錯誤'}`, 'error');
+  }
+}
+
+// 清除圖片
+function clearImage(){
+  els.previewImage.style.display="none";
+  els.previewImage.src="";
+  els.shareToLineBtn.style.display="none";
+  els.nativeShareBtn.style.display="none";
+  els.clearImageBtn.style.display="none";
+}
+
+// 顯示提示框
+function showToast(message,type='success'){
+  // 关键修改：替换 \n 为 <br>，并用 innerHTML 赋值
+  els.toast.innerHTML=message.replace(/\n/g, '<br>');
+  els.toast.className='toast';
+  els.toast.classList.add(type);
+  els.toast.classList.add("show");
+  setTimeout(()=>els.toast.classList.remove("show"),3000);
+}
+
+// 計算剩餘天數
+const calculateRemainingDaysByDate=(expiryDateStr)=>{
+  try{
+    if(expiryDateStr===PERMANENT_EXPIRY_DATE)return{displayDate:"永久有效",remainingDays:"永久有效",isExpired:false};
+    const dateReg=/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/;
+    if(!dateReg.test(expiryDateStr))return{displayDate:"格式錯誤",remainingDays:"格式錯誤",isExpired:true};
+    const dateParts=expiryDateStr.replace(/-/g,'/').split('/').map(Number);
+    const [year,month,day]=dateParts;
+    const expiryDate=new Date(year,month-1,day,23,59,59,999);
+    const now=new Date();
+    if(isNaN(expiryDate.getTime()))return{displayDate:"日期無效",remainingDays:"日期無效",isExpired:true};
+    const oneDayMs=1000*3600*24;
+    const timeDiff=expiryDate.getTime()-now.getTime();
+    let dayDiff=Math.ceil(timeDiff/oneDayMs);
+    const fmtMonth=String(month).padStart(2,'0');
+    const fmtDay=String(day).padStart(2,'0');
+    const displayDate=`${year}/${fmtMonth}/${fmtDay}`;
+    let remainingDaysText,isExpired=false;
+    if(timeDiff<0){remainingDaysText="<span class='expired'>已過期</span>";isExpired=true;}
+    else if(dayDiff===0){remainingDaysText="<span class='warning'>最後1天</span>";isExpired=false;}
+    else if(dayDiff<=30){remainingDaysText=`<span class='warning'>${dayDiff} 天</span>`;isExpired=false;}
+    else{remainingDaysText=`${dayDiff} 天`;isExpired=false;}
+    return{displayDate,remainingDays:remainingDaysText,isExpired};
+  }catch(e){
+    return{displayDate:"計算錯誤",remainingDays:"計算錯誤",isExpired:true};
+  }
+};
+
+// 顯示錯誤
+const showError=(msg)=>{
+  els.authLoading.style.display='none';
+  els.captureArea.style.display='none';
+  els.inputArea.style.display='none';
+  els.buttonGroup.style.display='none';
+  els.errorContent.innerHTML=`<p class="font-medium">${msg}</p>`;
+  els.errorMessage.style.display='block';
+};
+
+// 後端驗證用戶
+const verifyUserFromBackend=(profile)=>{
+  return new Promise((resolve,reject)=>{
+    const callbackName=`verifyCallback_${Date.now()}`;
+    window[callbackName]=function(resp){
+      delete window[callbackName];
+      if(resp.status==="success"){
+        const backendUsageCount=resp.usageCount||0;
+        userUsageRecord[profile.userId]=backendUsageCount;
+        saveUserUsageRecord();
+        const expiryData=calculateRemainingDaysByDate(resp.expiryDate||PERMANENT_EXPIRY_DATE);
+        const authData={
+          ...resp,displayName:profile.displayName,remainingDays:expiryData.remainingDays,
+          displayExpiryDate:expiryData.displayDate,isExpired:expiryData.isExpired,
+          isVip:resp.isVip===true,isSuperAdmin:resp.isSuperAdmin===true,
+          remainingTimes:resp.remainingTimes||(MAX_NORMAL_USER_USAGE-backendUsageCount)
         };
-
-        // 民國日期
-        function getTaiwanDate() {
-            const now = new Date();
-            const y = now.getFullYear() - 1911;
-            const m = String(now.getMonth()+1).padStart(2,'0');
-            const d = String(now.getDate()).padStart(2,'0');
-            return `${y}/${m}/${d}`;
+        // 保存VIP/超管的當天驗證緩存
+        if(authData.isVip||authData.isSuperAdmin){
+          saveTodayAuthCache(profile.userId,authData);
         }
+        resolve(authData);
+      }else{
+        showError(resp.message||"用戶驗證失敗");
+        resolve(null);
+      }
+    };
+    const decodedToken=liff.getDecodedIDToken();
+    const userId=profile.userId||decodedToken?.sub||"";
+    const data={
+      action:'verifyUser',userId:userId,displayName:profile.displayName,
+      callback:callbackName,dataType:'userVerify'
+    };
+    $.ajax({
+      url:API_URL,dataType:'jsonp',jsonp:'callback',jsonpCallback:callbackName,
+      timeout:JSONP_TIMEOUT,data:data,
+      error:function(xhr,status,error){
+        delete window[callbackName];
+        const errorMsg=status==='timeout'?'驗證超時，請檢查網絡後重新嘗試':`驗證失敗：${error||'未知網絡錯誤'}`;
+        showError(errorMsg);
+        reject(new Error(errorMsg));
+      }
+    });
+  });
+};
 
-        // 圖片上傳
-        document.getElementById('leftImg').addEventListener('change', e=>{
-            const f = e.target.files[0];
-            if(!f) return;
-            leftPreview.src = URL.createObjectURL(f);
-            leftPreview.classList.remove('hidden');
-        });
-        document.getElementById('rightImg').addEventListener('change', e=>{
-            const f = e.target.files[0];
-            if(!f) return;
-            rightPreview.src = URL.createObjectURL(f);
-            rightPreview.classList.remove('hidden');
-        });
+// 初始化LIFF和授權
+async function initLiffAndAuth(){
+  try{
+    updateAuthLoadingText("正在驗證","請稍候...");
+    await liff.init({liffId:LIFF_ID,withLoginOnExternalBrowser:true,scope:'profile openid email'});
+    loadProducts();
+    if(!liff.isLoggedIn()){
+      updateAuthLoadingText("請先登錄LINE賬號","將自動跳轉至登錄頁面...");
+      liff.login({redirectUri:window.location.href});
+      return;
+    }
+    const profile=await liff.getProfile();
+    userInfo={userId:profile.userId,displayName:profile.displayName};
+    
+    // 檢查是否是VIP/超管且有當天有效驗證緩存
+    const isPrivilegeUserCached=isTodayValidAuth(profile.userId);
+    if(isPrivilegeUserCached){
+      // 使用緩存的驗證數據
+      authStatus=JSON.parse(localStorage.getItem(`authCache_${profile.userId}`)).data;
+      els.authLoading.style.display='none';
+      document.getElementById('authContainer').style.display='none';
+      els.captureArea.style.display='block';
+      els.inputArea.style.display='flex';
+      els.buttonGroup.style.display='flex';
+      setupLineName();
+      loadSelectedProds();
+      checkUserRemainingTimes();
+      updateAuthStatusBar();
+      showToast(`歡迎💎尊爵用戶💎<br><span class="toast-highlight-name">${userInfo.displayName}</span><br>驗證一次後<br>短時間不在驗證<br>`);
+      return;
+    }
+    
+    // 普通用戶或緩存過期，走正常驗證流程
+    updateAuthLoadingText("彥彬🌿試算系統","核對用戶權限中...");
+    const authData=await verifyUserFromBackend(profile);
+    if(!authData)return;
+    if(authData.isExpired){
+      showError('您的賬號已過期，無法登錄試算系統，請聯繫管理員續期');
+      return;
+    }
+    authStatus=authData;
+    els.authLoading.style.display='none';
+    document.getElementById('authContainer').style.display='none';
+    els.captureArea.style.display='block';
+    els.inputArea.style.display='flex';
+    els.buttonGroup.style.display='flex';
+    setupLineName();
+    loadSelectedProds();
+    checkUserRemainingTimes();
+    updateAuthStatusBar();
+    showToast(`歡迎回來，${userInfo.displayName}！`);
+  }catch(error){
+    let errorMsg=error.message||'未知初始化錯誤';
+    if(errorMsg.includes('access token expired')||errorMsg.includes('Access Token expired')){
+      errorMsg='登錄狀態已過期，將自動重新登錄';
+      showToast(errorMsg, 'warning');
+      setTimeout(()=>{
+        liff.isLoggedIn()?liff.logout().then(()=>{liff.login({redirectUri:window.location.href});}):liff.login({redirectUri:window.location.href});
+      },1500);
 
-        // 產生拼圖
-        function mergeImages() {
-            if(!leftPreview.src || !rightPreview.src) return alert('請上傳兩張照片');
-            leftSplitImg.src = leftPreview.src;
-            rightSplitImg.src = rightPreview.src;
-            captureTarget.style.display = 'block';
-            leftText.textContent = '';
-            rightText.textContent = '';
-            initControls();
-        }
+    }
+    updateAuthLoadingText("初始化失敗",errorMsg+"<br/>請刷新頁面重新嘗試");
+  }
+}
 
-        // 文字控制
-        function addTextLeft(t) {
-            if(!captureTarget.style.display) return alert('請先產生拼圖');
-            leftText.textContent = t;
-        }
-        function addTextRight(t) {
-            if(!captureTarget.style.display) return alert('請先產生拼圖');
-            rightText.textContent = t;
-        }
-        function clearLeftText() {
-            leftText.textContent = '';
-        }
-        function clearRightText() {
-            rightText.textContent = '';
-        }
+// 更新授权加载提示文本
+function updateAuthLoadingText(title, desc) {
+  if (els.authLoadingTitle) els.authLoadingTitle.textContent = title;
+  if (els.authLoadingDesc) els.authLoadingDesc.innerHTML = desc;
+}
 
-        // 還原縮放
-        function resetZoomState() {
-            zoomState.left = {scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0};
-            zoomState.right = {scale:1, offsetX:0, offsetY:0, isDragging:false, startDistance:0};
-            update();
-        }
+// 初始化应用
+async function initApp() {
+  try {
+    // 适配小屏幕表格字体大小
+    els.reportTable.style.fontSize = window.innerWidth < 360 ? '11px' : '12px';
+    // 初始化LIFF和授权
+    await initLiffAndAuth();
+  } catch (error) {
+    showError(`應用初始化失敗：${error.message||'未知錯誤'}`);
+  }
+}
 
-        // 初始化控制
-        function initControls() {
-            resetZoomState();
-            leftImgArea.addEventListener('wheel', (e)=>{e.preventDefault(); zoomWheel(e,'left');}, {passive:false});
-            rightImgArea.addEventListener('wheel', (e)=>{e.preventDefault(); zoomWheel(e,'right');}, {passive:false});
-            leftImgArea.addEventListener('touchstart', dragStart);
-            leftImgArea.addEventListener('touchmove', dragMove);
-            leftImgArea.addEventListener('touchend', dragEnd);
-            rightImgArea.addEventListener('touchstart', dragStart);
-            rightImgArea.addEventListener('touchmove', dragMove);
-            rightImgArea.addEventListener('touchend', dragEnd);
-            document.addEventListener('mouseup', dragEnd);
-        }
+// 1. 初始绑定
+document.querySelector('.close-status').addEventListener('click',function(){
+  els.authStatusBar.style.opacity='0';
+  setTimeout(()=>{
+    els.authStatusBar.style.display='none';
+    els.authStatusBar.style.opacity='1';
+  },300);
+});
 
-        // 觸控開始
-        function dragStart(e) {
-            e.preventDefault();
-            const isLeft = e.target.closest('#leftImgArea');
-            const a = isLeft ? 'left' : 'right';
-            const rect = isLeft ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
-            
-            if(e.touches.length === 2) {
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-                const xDiff = t2.clientX - t1.clientX;
-                const yDiff = t2.clientY - t1.clientY;
-                zoomState[a].startDistance = Math.hypot(xDiff, yDiff);
-                zoomState[a].isDragging = false;
-            }
-            else if(e.touches.length === 1) {
-                const t = e.touches[0];
-                zoomState[a].isDragging = true;
-                zoomState[a].startX = t.clientX - rect.left - zoomState[a].offsetX;
-                zoomState[a].startY = t.clientY - rect.top - zoomState[a].offsetY;
-            }
-        }
-
-        // 觸控移動
-        function dragMove(e) {
-            e.preventDefault();
-            const isLeft = e.target.closest('#leftImgArea');
-            const a = isLeft ? 'left' : 'right';
-            const rect = isLeft ? leftImgArea.getBoundingClientRect() : rightImgArea.getBoundingClientRect();
-
-            if(e.touches.length === 2) {
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-                const xDiff = t2.clientX - t1.clientX;
-                const yDiff = t2.clientY - t1.clientY;
-                const currentDistance = Math.hypot(xDiff, yDiff);
-                const scale = currentDistance / zoomState[a].startDistance;
-                zoomState[a].scale = Math.min(4, Math.max(0.8, zoomState[a].scale * scale));
-                zoomState[a].startDistance = currentDistance;
-                update();
-            }
-            else if(e.touches.length === 1 && zoomState[a].isDragging) {
-                const t = e.touches[0];
-                zoomState[a].offsetX = t.clientX - rect.left - zoomState[a].startX;
-                zoomState[a].offsetY = t.clientY - rect.top - zoomState[a].startY;
-                update();
-            }
-        }
-
-        // 結束操作
-        function dragEnd(e) {
-            zoomState.left.isDragging = false;
-            zoomState.right.isDragging = false;
-        }
-
-        // 滾輪縮放
-        function zoomWheel(e, a) {
-            const delta = e.deltaY > 0 ? -0.08 : 0.08;
-            zoomState[a].scale = Math.min(4, Math.max(0.8, zoomState[a].scale + delta));
-            update();
-        }
-
-        // 更新圖片
-        function update() {
-            leftSplitImg.style.transform = `translate(-50%,-50%) translate(${zoomState.left.offsetX}px,${zoomState.left.offsetY}px) scale(${zoomState.left.scale})`;
-            rightSplitImg.style.transform = `translate(-50%,-50%) translate(${zoomState.right.offsetX}px,${zoomState.right.offsetY}px) scale(${zoomState.right.scale})`;
-        }
-
-        // 截圖
-        async function capture() {
-            const c = await html2canvas(captureTarget,{scale:2,useCORS:true,backgroundColor:'#fff'});
-            return c.toDataURL('image/png');
-        }
-
-        // 下載
-        async function downloadMerge() {
-            if(!captureTarget.style.display) return alert('請先產生拼圖');
-            const url = await capture();
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = '證件照對比_3x4標準.png';
-            a.click();
-            alert('✅ 下載成功（純圖片 3:4）');
-        }
-
-        // 分享
-        async function shareImage() {
-            if(!captureTarget.style.display) return alert('請先產生拼圖');
-            const url = await capture();
-            const blob = await fetch(url).then(r=>r.blob());
-            const file = new File([blob],'證件照對比_3x4標準.png',{type:'image/png'});
-            if(navigator.share) await navigator.share({files:[file]});
-            else alert('❌ 裝置不支援分享');
-        }
-
-        function clearAll(){location.reload();}
-        async function analyzeBoth(){alert('AI 點評功能已啟用');}
-    </script>
+</script>
 </body>
 </html>
