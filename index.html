@@ -11,7 +11,7 @@
 :root{
   --bg:#0f0f0f;--panel-bg:#1a1a1a;--text:#e0e0e0;--accent:#00d1b2;
   --highlight:#40c4ff;--error:#ff5252;--btn-grey:#3a3a3a;--warning:#ff9800;
-  --super:#d4af37;--grad-primary:linear-gradient(135deg,#1a2a6c,#b21f1f,#fdbb2d);
+  --super:#d4af37;--gold:#ffd700;--grad-primary:linear-gradient(135deg,#1a2a6c,#b21f1f,#fdbb2d);
   --grad-secondary:linear-gradient(145deg,#2d2d2d,#1f1f1f);--shadow:0 8px 32px rgba(0,0,0,0.4);
   --loader:#00d1b2;--super-username:linear-gradient(135deg,#d4af37,#ffff00);--yellow:#ffd700;
   --btn-shadow:0 4px 15px rgba(0,0,0,0.2);--btn-hover-shadow:0 6px 20px rgba(0,0,0,0.3);
@@ -38,18 +38,19 @@ body{
   font-size:14px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
   display:none;width:100%;max-width:600px;transition:all 0.3s ease;
 }
+/* 關閉按鈕适配驗證窗口大小 - 優化尺寸與位置 */
 #authStatusBar .close-status {
   position: absolute;
-  top: 5px;
+  top: 8px;
   right: 10px;
-  width: 28px;
-  height: 45px;
-  border-radius: 8px;
+  width: 24px;
+  height: 40px;
+  border-radius: 6px;
   background: linear-gradient(145deg, #ffffff, #f5f5f5);
   color: #000;
   border: 1px solid #222;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,8 +97,10 @@ body{
 @keyframes pulse{from{box-shadow:0 0 15px rgba(0,209,178,0.3);}to{box-shadow:0 0 25px rgba(0,209,178,0.6);}}
 #authLoading h3{margin:0 0 8px 0;font-size:1.2rem;color:var(--highlight);font-weight:600;}
 #authLoading p{margin:0;font-size:0.95rem;color:#bbb;line-height:1.6;}
+/* 超級管理員樣式 */
 .super-admin{color:var(--super);font-weight:bold;}
-.normal{color:var(--highlight);font-weight:bold;}
+/* 黃金用戶樣式 - 尊貴金黃色+發光效果 */
+.gold-user{color:var(--gold);font-weight:bold;text-shadow:0 0 10px rgba(255,215,0,0.6);}
 .expired{color:var(--error);font-weight:bold;}
 .super-admin-username{
   background-clip:text;-webkit-background-clip:text;color:transparent;font-weight:bold;
@@ -106,14 +109,14 @@ body{
 .super-admin-username{background-image:var(--super-username);}
 #captureArea{
   background:linear-gradient(145deg,#1c1c1c,#141414);box-shadow:inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
-  color:var(--text);padding:15px 10px;border-radius:12px;margin-bottom:15px;overflow-x:auto;display:none;width:100%;max-width:600px;
-  position: relative;
+  color:var(--text);padding:20px 30px;border-radius:12px;margin-bottom:15px;overflow-x:hidden;display:none;width:100%;max-width:600px;
+  position: relative;box-sizing:border-box;
 }
 #watermark {
   position: absolute;
   top: 12px;
   right: 15px;
-  font-size: 14px;
+  font-size:14px;
   color: #ffffff;
   font-weight: 500;
   opacity: 0.9;
@@ -243,7 +246,7 @@ body{
 }
 #qtyInput{font-size:18px!important;font-weight:bold;}
 #exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn{flex:1;min-width:90px;margin:0;}
-#previewImage{display:none;width:100%!important;max-width:600px;margin:15px auto!important;border:2px solid #888;border-radius:10px;image-rendering:-webkit-optimize-contrast;image-rendering:pixelated;}
+#previewImage{display:none;width:100%!important;max-width:600px;margin:15px auto!important;border:2px solid #888;border-radius:10px;image-rendering:-webkit-optimize-contrast;object-fit:contain;}
 #shareToLineBtn,#nativeShareBtn,#clearImageBtn{display:none;}
 #buyerInput,#calculatorDisplay{
   background:#f9fafb;border:1.5px solid #d1d5db;color:#374151;border-radius:8px;
@@ -272,7 +275,7 @@ body{
 @media print{
   body{background:#fff;color:#000;}
   #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn{display:none!important;}
-  #captureArea{box-shadow:none;background:#fff;color:#000;display:block!important;}
+  #captureArea{box-shadow:none;background:#fff;color:#000;display:block!important;padding:20px!important;}
   #reportTable th{background:#ccc!important;color:#000!important;}
   .deleteBtn{display:none!important;}
   .summaryBox{color:#000!important;}
@@ -384,7 +387,7 @@ body{
   <div class="summaryBox" aria-live="polite">
     總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
     <span class="extra">距 22 萬 PV：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
-    <span class="extra">距 30 萬 PV：<span id="pvDiff3">300000</span> <span id="pvMessage3"></span></span>
+    <span class="extra">距 30 萬 PV：<span id="pvDiff3">300000</span> <span id="pvDiff3"></span></span>
   </div>
 </div>
 <img id="previewImage" alt="預覽匯出圖片" />
@@ -713,7 +716,7 @@ async function resetReport(){
 // 加載商品
 async function loadProducts(){
   try{
-    updateAuthLoadingText("載入商品中","請稍候...");
+    updateAuthLoadingText("驗證資料中","請稍候...");
     const res=await fetch(`${API_URL}?action=all&t=${new Date().getTime()}`,{cache:'no-cache'});
     const data=await res.json();
     products=data;
@@ -729,8 +732,8 @@ async function loadProducts(){
       adjustQtySelectOptions(els.nameInput.value);
     },300);
   }catch(error){
-    showToast(`讀取商品失敗: ${error.message}`,'error');
-    updateAuthLoadingText("商品載入失敗","請刷新重試");
+    showToast(`驗證資料中失敗: ${error.message}`,'error');
+    updateAuthLoadingText("驗證資料失敗","請刷新重試");
   }
 }
 
@@ -896,20 +899,20 @@ function checkUserRemainingTimes(){
   return canUse;
 }
 
-// 更新狀態欄 + 【儲值按鈕移至此處，置中顯示】
+// 更新狀態欄 + 【儲值按鈕加大 + 黃金用戶樣式】
 function updateAuthStatusBar(){
   if(!authStatus||!userInfo)return;
   let statusHtml='';
   if(authStatus.isSuperAdmin){
     statusHtml=`<span class="super-admin">👑 超級管理員</span>｜用戶名：<span class="super-admin-username">${userInfo.displayName}</span><br/>無限次使用`;
   }else{
-    const textClass = authStatus.remainTimes <=0 ? 'expired' : 'normal';
-    // 剩餘次數下方 + 置中儲值按鈕
-    statusHtml=`<span class="normal">普通用戶</span>｜用戶名：${userInfo.displayName}<br/>
+    const textClass = authStatus.remainTimes <=0 ? 'expired' : 'gold-user';
+    // 儲值按鈕加大 + 黃金用戶尊貴樣式
+    statusHtml=`<span class="gold-user">✨ 黃金用戶</span>｜用戶名：${userInfo.displayName}<br/>
     剩餘次數：<span class="${textClass}">${authStatus.remainTimes}</span>
-    <div style="margin-top:8px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-      <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-sm">💎 儲值50次</button>
-      <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-sm">🌟 儲值100次</button>
+    <div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+      <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
+      <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
     </div>`;
   }
   els.authStatusBar.innerHTML=`<button class="close-status">關閉</button>${statusHtml}`;
@@ -923,7 +926,7 @@ function updateAuthStatusBar(){
   });
 }
 
-// 匯出圖片/分享/提示框
+// 匯出圖片優化：左右留白 + 寬度精準适配表格
 async function exportToImage(){
   if(!checkUserRemainingTimes())return;
   if(selectedProds.length===0){
@@ -931,16 +934,25 @@ async function exportToImage(){
     return;
   }
   els.exportBtn.disabled=true;
+  // 隱藏操作欄位
   const opCells=document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
   opCells.forEach(el=>el.style.display="none");
+  
   try{
     const scale = window.innerWidth<768 ? 3 : 4;
+    // 核心：獲取表格實際寬度，截圖左右留白，完美适配
+    const tableWidth = els.reportTable.offsetWidth;
+    const capturePadding = 40; // 左右留白總寬度
+    
     const canvas=await html2canvas(els.captureArea,{
       scale: scale,
       useCORS:true,
       backgroundColor:null,
-      logging: false
+      logging: false,
+      width: tableWidth + capturePadding,
+      padding: { left: 20, right: 20 } // 左右各留20px空白
     });
+    
     els.previewImage.src=canvas.toDataURL("image/png");
     els.previewImage.style.display="block";
     els.shareToLineBtn.style.display="inline-block";
@@ -955,6 +967,7 @@ async function exportToImage(){
     els.exportBtn.disabled=false;
   }
 }
+
 async function shareToLine(){
   if(!els.previewImage.src){
     showToast("請先匯出圖片",'warning');
