@@ -211,33 +211,41 @@ body{
 #resetCalculatorBtn:hover{background:#555;transform:scale(1.05);}
 #resetCalculatorBtn:active{transform:scale(0.95);}
 #addBtn{width:100%!important;padding:10px 14px!important;font-size:14px!important;font-weight:600!important;border-radius:8px!important;height:auto!important;}
-/* 🔴 核心修复：报表栏位缩小，适配手机端 */
+/* 🔴 终极手机端适配：康园报表栏位完美比例调整 */
 #reportTable{
   width:100%;
-  min-width:500px; /* 缩小表格最小宽度，解决栏位过大 */
+  min-width:320px; /* 手机端最小宽度，彻底解决溢出 */
+  max-width:100%;
   border-collapse:collapse;
-  font-size:10px; /* 强制缩小表格字体 */
+  font-size:9px; /* 手机端最优字体 */
   border-radius:8px;
   overflow:hidden;
   background:#f9fafb;
   color:#374151;
   margin:0 auto;
+  table-layout:fixed; /* 固定布局，强制栏位比例生效 */
 }
-/* 🔴 重新调整栏宽比例，更紧凑 */
-#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:22%;}
-#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:10%;}
-#reportTable th:nth-child(3),#reportTable td:nth-child(3){width:12%;}
-#reportTable th:nth-child(4),#reportTable td:nth-child(4){width:12%;}
-#reportTable th:nth-child(5),#reportTable td:nth-child(5){width:16%;}
-#reportTable th:nth-child(6),#reportTable td:nth-child(6){width:16%;}
-#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:12%;}
+/* 🔴 手机端专属栏宽比例（无溢出、紧凑美观） */
+#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:30%!important;} /* 品项名称（最大空间） */
+#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:8%!important;}  /* 数量 */
+#reportTable th:nth-child(3),#reportTable td:nth-child(3){width:10%!important;} /* 单价 */
+#reportTable th:nth-child(4),#reportTable td:nth-child(4){width:10%!important;} /* PV */
+#reportTable th:nth-child(5),#reportTable td:nth-child(5){width:14%!important;} /* 小计金额 */
+#reportTable th:nth-child(6),#reportTable td:nth-child(6){width:14%!important;} /* 小计PV */
+#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:14%!important;} /* 操作 */
 #reportTable th,#reportTable td{
-  border:1px solid #d1d5db;padding:3px 2px;text-align:center;white-space:nowrap;
+  border:1px solid #d1d5db;
+  padding:2px 1px; /* 手机端极致紧凑内边距 */
+  text-align:center;
+  word-wrap:break-word; /* 文字自动换行，防止溢出 */
+  white-space:normal; /* 允许换行，适配手机窄屏 */
   transition:all 0.3s ease;
+  overflow:hidden;
 }
-/* 🔴 缩小数量选择框字体 */
-#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect{font-size:12px!important;font-weight:bold!important;}
-#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6){font-weight:500;text-align:center!important;font-size:10px;}
+/* 🔴 手机端控件字体优化 */
+#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect{font-size:10px!important;font-weight:bold!important;}
+#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6){font-weight:500;text-align:center!important;font-size:9px;}
+
 #reportTable thead{background:#555555;color:#fff;font-weight:600;}
 #reportTable tbody tr { background: #e9e9e9; }
 #reportTable tbody tr:hover{background:#1e88e5;color:#fff;font-weight:bold;transform:scale(1.01);}
