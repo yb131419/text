@@ -105,7 +105,7 @@ body{
 }
 .super-admin-username{background-image:var(--super-username);}
 #captureArea{
-  background:linear-gradient(145deg,#1c1c1c,#141414);box-shadow:inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
+  background:linear-gradient(145deg,#1c1c,#141414);box-shadow:inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
   color:var(--text);padding:15px 10px;border-radius:12px;margin-bottom:15px;overflow-x:auto;display:none;width:100%;max-width:600px;
   position: relative;
 }
@@ -330,6 +330,9 @@ body{
 </style>
 </head>
 <body>
+<!-- 核心修复：新增Toast提示DOM -->
+<div id="toast" class="toast"></div>
+
 <div id="authContainer">
   <div id="error-message">
     <div id="error-content"></div>
@@ -467,17 +470,6 @@ function initElements() {
   };
 }
 
-// 初始化數量選擇框
-for(let i=1;i<=99;i++){const option=document.createElement("option");option.value=i;option.textContent=i;els.qtyInput.appendChild(option);}
-
-// 時長選項
-document.querySelectorAll('.period-box').forEach(box=>{box.addEventListener('click',function(){document.querySelectorAll('.period-box').forEach(b=>b.classList.remove('active'));this.classList.add('active');});});
-
-// 狀態欄關閉
-document.querySelector('.close-status').addEventListener('click',function(){
-  els.authStatusBar.style.opacity='0';setTimeout(()=>{els.authStatusBar.style.display='none';els.authStatusBar.style.opacity='1';},300);
-});
-
 // 事件綁定
 function bindEvents() {
   els.nameInput.addEventListener('change',function(){checkHerbalNewMember(this.value);adjustQtySelectOptions(this.value);});
@@ -491,6 +483,38 @@ function bindEvents() {
   els.cashOption.addEventListener("change",handleCashGift);
   els.reportBody.addEventListener("click",async function(e){const btn=e.target.closest('.deleteBtn');if(!btn||isDeleting||btn.disabled)return;await handleDelete(btn);});
   window.addEventListener('resize',()=>{els.reportTable.style.fontSize=window.innerWidth<360?'11px':'12px';});
+}
+
+// 初始化數量選擇框（修复：元素初始化后再执行）
+function initQtySelect() {
+  els.qtyInput.innerHTML = '';
+  for(let i=1;i<=99;i++){
+    const option=document.createElement("option");
+    option.value=i;
+    option.textContent=i;
+    els.qtyInput.appendChild(option);
+  }
+}
+
+// 時長選項
+function initPeriodBox() {
+  document.querySelectorAll('.period-box').forEach(box=>{
+    box.addEventListener('click',function(){
+      document.querySelectorAll('.period-box').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+}
+
+// 狀態欄關閉（修复：元素初始化后再绑定）
+function initCloseStatusBar() {
+  document.querySelector('.close-status').addEventListener('click',function(){
+    els.authStatusBar.style.opacity='0';
+    setTimeout(()=>{
+      els.authStatusBar.style.display='none';
+      els.authStatusBar.style.opacity='1';
+    },300);
+  });
 }
 
 // 自動組合邏輯
@@ -573,9 +597,21 @@ async function resetReport(){
 
 // 加載商品
 async function loadProducts(){
-  try{const res=await fetch(`${API_URL}?action=all&t=${new Date().getTime()}`,{cache:'no-cache'});
-    const data=await res.json();products=data;els.nameInput.innerHTML="";data.forEach(item=>{const opt=document.createElement("option");opt.value=item.name;opt.textContent=item.name;els.nameInput.appendChild(opt);});
-    setTimeout(()=>{checkHerbalNewMember(els.nameInput.value);adjustQtySelectOptions(els.nameInput.value);},300);
+  try{
+    const res=await fetch(`${API_URL}?action=all&t=${new Date().getTime()}`,{cache:'no-cache'});
+    const data=await res.json();
+    products=data;
+    els.nameInput.innerHTML="";
+    data.forEach(item=>{
+      const opt=document.createElement("option");
+      opt.value=item.name;
+      opt.textContent=item.name;
+      els.nameInput.appendChild(opt);
+    });
+    setTimeout(()=>{
+      checkHerbalNewMember(els.nameInput.value);
+      adjustQtySelectOptions(els.nameInput.value);
+    },300);
   }catch(error){showToast(`讀取商品失敗: ${error.message}`,'error');}
 }
 
@@ -669,9 +705,7 @@ function updateAuthStatusBar(){
   }
   els.authStatusBar.innerHTML=`<button class="close-status">關閉</button>${statusHtml}`;
   els.authStatusBar.style.display='block';
-  els.authStatusBar.querySelector('.close-status').addEventListener('click',function(){
-    els.authStatusBar.style.opacity='0';setTimeout(()=>{els.authStatusBar.style.display='none';els.authStatusBar.style.opacity='1';},300);
-  });
+  initCloseStatusBar();
 }
 
 // 匯出圖片/分享/提示框
@@ -718,31 +752,59 @@ const verifyUserFromBackend=(profile)=>{
   });
 };
 
-// 初始化LIFF
+// 初始化LIFF（修复：执行顺序优化）
 async function initLiffAndAuth(){
-  try{updateAuthLoadingText("正在驗證","請稍候...");await liff.init({liffId:LIFF_ID,withLoginOnExternalBrowser:true});
-    loadProducts();if(!liff.isLoggedIn()){updateAuthLoadingText("請登錄","跳轉登錄中...");liff.login({redirectUri:window.location.href});return;}
-    const profile=await liff.getProfile();userInfo={userId:profile.userId,displayName:profile.displayName};
+  try{
+    updateAuthLoadingText("正在驗證","請稍候...");
+    await liff.init({liffId:LIFF_ID,withLoginOnExternalBrowser:true});
     
-    const authData=await verifyUserFromBackend(profile);if(!authData)return;
+    if(!liff.isLoggedIn()){
+      updateAuthLoadingText("請登錄","跳轉登錄中...");
+      liff.login({redirectUri:window.location.href});
+      return;
+    }
+
+    const profile=await liff.getProfile();
+    userInfo={userId:profile.userId,displayName:profile.displayName};
     
+    const authData=await verifyUserFromBackend(profile);
+    if(!authData)return;
+
+    // 驗證成功后加载商品
+    await loadProducts();
+    
+    // 隱藏驗證遮罩，顯示主界面
     els.authContainer.style.display='none';
     els.captureArea.style.display='block';
     els.inputArea.style.display='flex';
     els.buttonGroup.style.display='flex';
     els.skoolRenewSection.classList.remove('hidden');
 
-    setupLineName();loadSelectedProds();checkUserRemainingTimes();updateAuthStatusBar();
+    setupLineName();
+    loadSelectedProds();
+    checkUserRemainingTimes();
+    updateAuthStatusBar();
     showToast(`歡迎，<span class="toast-highlight-name">${userInfo.displayName}</span>！`);
-  }catch(error){updateAuthLoadingText("初始化失敗",error.message+"<br/>請刷新重試");}
+  }catch(error){
+    updateAuthLoadingText("初始化失敗",error.message+"<br/>請刷新重試");
+    console.error(error);
+  }
 }
 
-// 初始化應用
+// 初始化應用（修复：标准初始化顺序）
 async function initApp(){
-  initElements();
-  bindEvents();
-  els.reportTable.style.fontSize=window.innerWidth<360?'11px':'12px';
-  await initLiffAndAuth();
+  try {
+    initElements();       // 1. 先获取所有元素
+    initQtySelect();      // 2. 初始化数量框
+    initPeriodBox();      // 3. 初始化周期选项
+    initCloseStatusBar(); // 4. 初始化状态栏关闭
+    bindEvents();         // 5. 绑定所有事件
+    els.reportTable.style.fontSize=window.innerWidth<360?'11px':'12px';
+    await initLiffAndAuth(); // 6. 最后启动LIFF验证
+  } catch (e) {
+    console.error("初始化异常", e);
+    updateAuthLoadingText("系統異常", "請刷新頁面重試");
+  }
 }
 
 window.onload = initApp;
