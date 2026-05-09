@@ -27,6 +27,7 @@ body{
   background:var(--bg);color:var(--text);font-family:'Segoe UI','Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
   padding:10px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column;align-items:center;
 }
+.hidden { display: none !important; }
 #authContainer{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;justify-content:center;align-items:center;z-index:9999;background:rgba(0,0,0,0.8);}
 #authLoading{
   width:100%;max-width:400px;background:var(--grad-secondary);border-radius:16px;padding:40px 25px;text-align:center;
@@ -174,6 +175,8 @@ body{
 .btn:disabled{opacity:0.7;cursor:not-allowed;transform:none;box-shadow:var(--btn-shadow);}
 .btn-primary{background:linear-gradient(145deg,#00bfa5,#009e8a);}
 .btn-primary:hover{background:linear-gradient(145deg,#00ccb2,#00a98e);}
+.btn-purple{background:linear-gradient(145deg,#9c27b0,#7b1fa2);}
+.btn-purple:hover{background:linear-gradient(145deg,#ab47bc,#8e24aa);}
 .btn-warning{background:linear-gradient(145deg,#ff9800,#e68900);}
 .btn-warning:hover{background:linear-gradient(145deg,#ffa726,#f59e0b);}
 .btn-grey{background:linear-gradient(145deg,#3a3a3a,#2a2a2a);}
@@ -263,9 +266,20 @@ body{
 .payment-options{display:flex;justify-content:center;gap:15px;margin-top:8px;color:#fff;font-size:1.1rem;flex-wrap:wrap;}
 .payment-options label{display:flex;align-items:center;gap:10px;color:#fff;font-weight:500;}
 .payment-options input[type="checkbox"]{width:24px;height:24px;cursor:pointer;}
+#skoolRenewSection {
+  margin: 12px auto;
+  width: 100%;
+  max-width: 600px;
+}
+#skoolRenewSection button {
+  flex: 1;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: bold;
+}
 @media print{
   body{background:#fff;color:#000;}
-  #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn{display:none!important;}
+  #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn,#skoolRenewSection{display:none!important;}
   #captureArea{box-shadow:none;background:#fff;color:#000;display:block!important;}
   #reportTable th{background:#ccc!important;color:#000!important;}
   .deleteBtn{display:none!important;}
@@ -329,6 +343,12 @@ body{
 <div id="authStatusBar" style="display: none;">
   <button class="close-status" title="隱藏狀態欄">關閉</button>
 </div>
+
+<div id="skoolRenewSection" class="hidden mt-4 flex gap-2 justify-center">
+    <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary w-full">💎 儲值50次</button>
+    <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple w-full">🌟 儲值100次</button>
+</div>
+
 <div id="captureArea">
   <div id="watermark">『彥彬🌿試算系統』</div>
   <h2>
@@ -387,7 +407,6 @@ body{
   <button id="nativeShareBtn" class="btn btn-primary btn-md">📱<br>分享圖片</button>
   <button id="clearImageBtn" class="btn btn-grey btn-md">❌<br>清除圖片</button>
 </div>
-<div id="toast" class="toast">✅ 圖片已上傳</div>
 <div id="inputArea">
   <select id="nameInput"></select>
   <select id="qtyInput"></select>
@@ -406,23 +425,47 @@ const DEDUCT_INTERVAL=180000;
 
 let products=[],selectedProds=[],lineName='',userInfo=null,authStatus=null,isDeleting=false;
 let lastDeductTime=parseInt(localStorage.getItem('lastDeductTime'))||0;
+let els = {};
 
-const els={
-  nameInput:document.getElementById("nameInput"),qtyInput:document.getElementById("qtyInput"),addBtn:document.getElementById("addBtn"),
-  reportBody:document.getElementById("reportBody"),totalPriceCellDup:document.getElementById("totalPriceCellDup"),
-  totalPvCellDup:document.getElementById("totalPvCellDup"),pvDiff2:document.getElementById("pvDiff2"),pvDiff3:document.getElementById("pvDiff3"),
-  pvMessage2:document.getElementById("pvMessage2"),pvMessage3:document.getElementById("pvMessage3"),exportBtn:document.getElementById("exportBtn"),
-  previewImage:document.getElementById("previewImage"),shareToLineBtn:document.getElementById("shareToLineBtn"),
-  nativeShareBtn:document.getElementById("nativeShareBtn"),clearImageBtn:document.getElementById("clearImageBtn"),
-  resetReportBtn:document.getElementById("resetReportBtn"),buyerInput:document.getElementById("buyerInput"),
-  calculatorDisplay:document.getElementById("calculatorDisplay"),resetCalculatorBtn:document.getElementById("resetCalculatorBtn"),
-  toast:document.getElementById("toast"),authLoading:document.getElementById("authLoading"),authStatusBar:document.getElementById("authStatusBar"),
-  captureArea:document.getElementById("captureArea"),inputArea:document.getElementById("inputArea"),buttonGroup:document.querySelector(".button-group"),
-  errorMessage:document.getElementById("error-message"),errorContent:document.getElementById("error-content"),
-  authLoadingTitle:document.querySelector("#authLoading h3"),authLoadingDesc:document.querySelector("#authLoading p"),
-  reportTable:document.getElementById("reportTable"),cashOption:document.getElementById("cashOption"),cardOption:document.getElementById("cardOption"),
-  watermark:document.getElementById("watermark")
-};
+function initElements() {
+  els = {
+    nameInput: document.getElementById("nameInput"),
+    qtyInput: document.getElementById("qtyInput"),
+    addBtn: document.getElementById("addBtn"),
+    reportBody: document.getElementById("reportBody"),
+    totalPriceCellDup: document.getElementById("totalPriceCellDup"),
+    totalPvCellDup: document.getElementById("totalPvCellDup"),
+    pvDiff2: document.getElementById("pvDiff2"),
+    pvDiff3: document.getElementById("pvDiff3"),
+    pvMessage2: document.getElementById("pvMessage2"),
+    pvMessage3: document.getElementById("pvMessage3"),
+    exportBtn: document.getElementById("exportBtn"),
+    previewImage: document.getElementById("previewImage"),
+    shareToLineBtn: document.getElementById("shareToLineBtn"),
+    nativeShareBtn: document.getElementById("nativeShareBtn"),
+    clearImageBtn: document.getElementById("clearImageBtn"),
+    resetReportBtn: document.getElementById("resetReportBtn"),
+    buyerInput: document.getElementById("buyerInput"),
+    calculatorDisplay: document.getElementById("calculatorDisplay"),
+    resetCalculatorBtn: document.getElementById("resetCalculatorBtn"),
+    toast: document.getElementById("toast"),
+    authLoading: document.getElementById("authLoading"),
+    authStatusBar: document.getElementById("authStatusBar"),
+    authContainer: document.getElementById("authContainer"),
+    captureArea: document.getElementById("captureArea"),
+    inputArea: document.getElementById("inputArea"),
+    buttonGroup: document.querySelector(".button-group"),
+    errorMessage: document.getElementById("error-message"),
+    errorContent: document.getElementById("error-content"),
+    authLoadingTitle: document.querySelector("#authLoading h3"),
+    authLoadingDesc: document.querySelector("#authLoading p"),
+    reportTable: document.getElementById("reportTable"),
+    cashOption: document.getElementById("cashOption"),
+    cardOption: document.getElementById("cardOption"),
+    watermark: document.getElementById("watermark"),
+    skoolRenewSection: document.getElementById("skoolRenewSection")
+  };
+}
 
 // 初始化數量選擇框
 for(let i=1;i<=99;i++){const option=document.createElement("option");option.value=i;option.textContent=i;els.qtyInput.appendChild(option);}
@@ -436,14 +479,19 @@ document.querySelector('.close-status').addEventListener('click',function(){
 });
 
 // 事件綁定
-els.nameInput.addEventListener('change',function(){checkHerbalNewMember(this.value);adjustQtySelectOptions(this.value);});
-els.addBtn.addEventListener("click",addProduct);els.resetCalculatorBtn.addEventListener("click",resetLineName);
-els.resetReportBtn.addEventListener("click",resetReport);els.exportBtn.addEventListener("click",exportToImage);
-els.shareToLineBtn.addEventListener("click",shareToLine);els.nativeShareBtn.addEventListener("click",nativeShare);
-els.clearImageBtn.addEventListener("click",clearImage);els.cashOption.addEventListener("change",handleCashGift);
-els.reportBody.addEventListener("click",async function(e){const btn=e.target.closest('.deleteBtn');if(!btn||isDeleting||btn.disabled)return;await handleDelete(btn);});
-window.addEventListener('resize',()=>{els.reportTable.style.fontSize=window.innerWidth<360?'11px':'12px';});
-window.onload=initApp;
+function bindEvents() {
+  els.nameInput.addEventListener('change',function(){checkHerbalNewMember(this.value);adjustQtySelectOptions(this.value);});
+  els.addBtn.addEventListener("click",addProduct);
+  els.resetCalculatorBtn.addEventListener("click",resetLineName);
+  els.resetReportBtn.addEventListener("click",resetReport);
+  els.exportBtn.addEventListener("click",exportToImage);
+  els.shareToLineBtn.addEventListener("click",shareToLine);
+  els.nativeShareBtn.addEventListener("click",nativeShare);
+  els.clearImageBtn.addEventListener("click",clearImage);
+  els.cashOption.addEventListener("change",handleCashGift);
+  els.reportBody.addEventListener("click",async function(e){const btn=e.target.closest('.deleteBtn');if(!btn||isDeleting||btn.disabled)return;await handleDelete(btn);});
+  window.addEventListener('resize',()=>{els.reportTable.style.fontSize=window.innerWidth<360?'11px':'12px';});
+}
 
 // 自動組合邏輯
 function checkHerbalNewMember(selectedValue){
@@ -604,7 +652,6 @@ function adjustQtySelectOptions(productName) {
 // 檢查剩餘次數（核心權限判斷）
 function checkUserRemainingTimes(){
   if(!authStatus) return false;
-  // 超管無限次 / 普通用戶次數>0
   const canUse = authStatus.isSuperAdmin || authStatus.remainTimes > 0;
   els.exportBtn.disabled = !canUse;els.addBtn.disabled = !canUse;els.resetReportBtn.disabled = !canUse;
   return canUse;
@@ -627,7 +674,7 @@ function updateAuthStatusBar(){
   });
 }
 
-// 匯出圖片/分享/提示框（保留原有邏輯，無修改）
+// 匯出圖片/分享/提示框
 async function exportToImage(){
   if(!checkUserRemainingTimes())return;if(selectedProds.length===0){alert("請先新增品項");return;}
   els.exportBtn.disabled=true;const opCells=document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
@@ -652,7 +699,7 @@ function clearImage(){els.previewImage.style.display="none";els.previewImage.src
 function showToast(message,type='success'){els.toast.innerHTML=message.replace(/\n/g,'<br>');els.toast.className='toast';els.toast.classList.add(type, 'show');setTimeout(()=>els.toast.classList.remove('show'),3000);}
 
 // 錯誤提示
-const showError=(msg)=>{els.authLoading.style.display='none';els.captureArea.style.display='none';els.inputArea.style.display='none';els.buttonGroup.style.display='none';els.errorContent.innerHTML=msg;els.errorMessage.style.display='block';};
+const showError=(msg)=>{els.authLoading.style.display='none';els.captureArea.style.display='none';els.inputArea.style.display='none';els.buttonGroup.style.display='none';els.skoolRenewSection.classList.add('hidden');els.errorContent.innerHTML=msg;els.errorMessage.style.display='block';};
 function updateAuthLoadingText(title, desc){els.authLoadingTitle.textContent=title;els.authLoadingDesc.innerHTML=desc;}
 
 // 後端驗證
@@ -679,14 +726,26 @@ async function initLiffAndAuth(){
     
     const authData=await verifyUserFromBackend(profile);if(!authData)return;
     
-    els.authContainer.style.display='none';els.captureArea.style.display='block';els.inputArea.style.display='flex';els.buttonGroup.style.display='flex';
+    els.authContainer.style.display='none';
+    els.captureArea.style.display='block';
+    els.inputArea.style.display='flex';
+    els.buttonGroup.style.display='flex';
+    els.skoolRenewSection.classList.remove('hidden');
+
     setupLineName();loadSelectedProds();checkUserRemainingTimes();updateAuthStatusBar();
     showToast(`歡迎，<span class="toast-highlight-name">${userInfo.displayName}</span>！`);
   }catch(error){updateAuthLoadingText("初始化失敗",error.message+"<br/>請刷新重試");}
 }
 
 // 初始化應用
-async function initApp(){els.reportTable.style.fontSize=window.innerWidth<360?'11px':'12px';await initLiffAndAuth();}
+async function initApp(){
+  initElements();
+  bindEvents();
+  els.reportTable.style.fontSize=window.innerWidth<360?'11px':'12px';
+  await initLiffAndAuth();
+}
+
+window.onload = initApp;
 </script>
 </body>
 </html>
