@@ -218,7 +218,7 @@ body{
   min-width:320px;
   max-width:100%;
   border-collapse:collapse;
-  font-size:12px; /* 整体文字再加大：11px→12px */
+  font-size:12px;
   border-radius:8px;
   overflow:hidden;
   background:#f9fafb;
@@ -236,17 +236,25 @@ body{
 #reportTable th:nth-child(7),#reportTable td:nth-child(7){width:10%;}
 #reportTable th,#reportTable td{
   border:1px solid #d1d5db;
-  padding:6px 4px;* 栏位高度加高
+  padding:6px 4px;
   text-align:center;
-  word-wrap:break-word;
   white-space:normal;
   transition:all 0.3s ease;
-  //overflow:hidden;
-  //min-height: 32px; /* 强制最小高度，文字不拥挤 */
+  overflow:hidden;
+  min-height: 32px;
 }
-/* 🔴 字体同步加大，清晰可读 */
+/* 品项名称禁止换行，超出省略 */
+#reportTable td:nth-child(1){
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align:left;
+  padding-left:8px;
+}
+/* 数量栏字体 */
 #reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect{font-size:13px!important;font-weight:bold!important;}
-#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6){font-weight:500;text-align:center!important;font-size:13px;}
+/* 单价/PV/小計金額/小計PV 文字缩小 */
+#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6){font-weight:500;text-align:center!important;font-size:11px;}
 
 #reportTable thead{background:#555555;color:#fff;font-weight:600;}
 #reportTable tbody tr { background: #e9e9e9; }
@@ -260,7 +268,7 @@ body{
   border-radius:4px;
   padding:2px 1px;
   cursor:pointer;
-  font-size:11px; /* 删除按钮文字加大 */
+  font-size:11px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -268,7 +276,7 @@ body{
   transition:var(--btn-transition);
   white-space:nowrap;
   line-height:1;
-  height: 28px; /* 固定按钮高度，不截断 */
+  height: 28px;
   width: 22px;
 }
 .deleteBtn:hover{transform:scale(1.1);box-shadow:0 0 8px rgba(255,82,82,0.5);}
