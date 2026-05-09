@@ -963,17 +963,14 @@ async function exportToImage(){
   opCells.forEach(el=>el.style.display="none");
   
   try{
-    const scale = window.innerWidth<768 ? 3 : 4;
-    const tableWidth = els.reportTable.offsetWidth;
-    const capturePadding = 60;
-    
+    // 增大缩放比例 + 自动适配宽度，手机端截图更大更清晰
     const canvas=await html2canvas(els.captureArea,{
-      scale: scale,
+      scale: 5, // 核心修改：提升缩放比例，截图更大
       useCORS:true,
       backgroundColor:null,
       logging: false,
-      width: tableWidth + capturePadding,
-      padding: { left: 20, right: 40 }
+      // 移除固定宽度，自动适配手机屏幕
+      padding: { left: 30, right: 50, top:10, bottom:10 } // 增加内边距，排版更舒展
     });
     
     els.previewImage.src=canvas.toDataURL("image/png");
