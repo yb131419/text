@@ -211,40 +211,40 @@ body{
 #resetCalculatorBtn:hover{background:#555;transform:scale(1.05);}
 #resetCalculatorBtn:active{transform:scale(0.95);}
 #addBtn{width:100%!important;padding:10px 14px!important;font-size:14px!important;font-weight:600!important;border-radius:8px!important;height:auto!important;}
-/* 🔴 终极手机端适配：康园报表栏位完美比例调整 */
+/* 🔴 手机端适配：康园报表栏位+字体优化（字体加大，清晰不拥挤） */
 #reportTable{
   width:100%;
-  min-width:320px; /* 手机端最小宽度，彻底解决溢出 */
+  min-width:320px;
   max-width:100%;
   border-collapse:collapse;
-  font-size:9px; /* 手机端最优字体 */
+  font-size:11px; /* 核心加大：从9px→11px，手机端清晰可读 */
   border-radius:8px;
   overflow:hidden;
   background:#f9fafb;
   color:#374151;
   margin:0 auto;
-  table-layout:fixed; /* 固定布局，强制栏位比例生效 */
+  table-layout:fixed;
 }
-/* 🔴 手机端专属栏宽比例（无溢出、紧凑美观） */
-#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:30%!important;} /* 品项名称（最大空间） */
-#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:8%!important;}  /* 数量 */
-#reportTable th:nth-child(3),#reportTable td:nth-child(3){width:10%!important;} /* 单价 */
-#reportTable th:nth-child(4),#reportTable td:nth-child(4){width:10%!important;} /* PV */
-#reportTable th:nth-child(5),#reportTable td:nth-child(5){width:14%!important;} /* 小计金额 */
-#reportTable th:nth-child(6),#reportTable td:nth-child(6){width:14%!important;} /* 小计PV */
-#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:14%!important;} /* 操作 */
+/* 🔴 栏宽比例（保持不变，完美适配手机） */
+#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:30%!important;}
+#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:8%!important;}
+#reportTable th:nth-child(3),#reportTable td:nth-child(3){width:10%!important;}
+#reportTable th:nth-child(4),#reportTable td:nth-child(4){width:10%!important;}
+#reportTable th:nth-child(5),#reportTable td:nth-child(5){width:14%!important;}
+#reportTable th:nth-child(6),#reportTable td:nth-child(6){width:14%!important;}
+#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:14%!important;}
 #reportTable th,#reportTable td{
   border:1px solid #d1d5db;
-  padding:2px 1px; /* 手机端极致紧凑内边距 */
+  padding:2px 1px;
   text-align:center;
-  word-wrap:break-word; /* 文字自动换行，防止溢出 */
-  white-space:normal; /* 允许换行，适配手机窄屏 */
+  word-wrap:break-word;
+  white-space:normal;
   transition:all 0.3s ease;
   overflow:hidden;
 }
-/* 🔴 手机端控件字体优化 */
-#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect{font-size:10px!important;font-weight:bold!important;}
-#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6){font-weight:500;text-align:center!important;font-size:9px;}
+/* 🔴 控件字体同步加大（清晰不模糊） */
+#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect{font-size:11px!important;font-weight:bold!important;}
+#reportTable td:nth-child(3),#reportTable td:nth-child(4),#reportTable td:nth-child(5),#reportTable td:nth-child(6){font-weight:500;text-align:center!important;font-size:11px;}
 
 #reportTable thead{background:#555555;color:#fff;font-weight:600;}
 #reportTable tbody tr { background: #e9e9e9; }
