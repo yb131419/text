@@ -785,12 +785,9 @@ function loadProductList() {
   });
 }
 
-// 安全加入產品（不重複）
+// 允許重複加入（AI自動組合用）
 function safeAddProduct(newProd) {
-  const exists = selectedProds.some(item => item.name === newProd.name);
-  if (!exists) {
-    selectedProds.push(newProd);
-  }
+  selectedProds.push(newProd);
 }
 
 // AI辨識後 自動加入入會組合
