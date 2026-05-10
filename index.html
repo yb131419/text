@@ -86,28 +86,22 @@ body{
   display: none;
 }
 
-/* ============== AI辨識高質感浮窗遮罩（修改後）============== */
+/* ============== AI辨識高質感浮窗遮罩（新增）============== */
 #ocrOverlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100vh;
-  /* 高級灰色半透明底 */
-  background: rgba(30, 30, 30, 0.85);
+  background: rgba(0, 0, 0, 0.9);
   z-index: 99999;
   display: none;
-  /* 核心：垂直+水平完美置中 */
   justify-content: center;
   align-items: center;
   flex-direction: column;
   gap: 20px;
-  /* 高質感毛玻璃效果 */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  /* 內邊距避免手機端貼邊 */
-  padding: 20px;
-  box-sizing: border-box;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 .ocr-loader {
   width: 60px;
@@ -684,10 +678,6 @@ let TARGET_PV220 = 220000;
 let TARGET_PV300 = 300000;
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
 
-// 男/女 辨識產品清單
-const MALE_PRODUCTS = ["101", "168", "111"];
-const FEMALE_PRODUCTS = ["701", "702", "703", "705", "706", "707", "708"];
-
 // ==================== DOM 加載完成 ====================
 window.addEventListener('DOMContentLoaded', () => {
   initElements();
@@ -785,41 +775,6 @@ function loadProductList() {
   });
 }
 
-// 允許重複加入（AI自動組合用）
-function safeAddProduct(newProd) {
-  selectedProds.push(newProd);
-}
-
-// AI辨識後 自動加入入會組合
-function autoAddMembershipProducts(recognizedNames) {
-  const hasMale = recognizedNames.some(name => MALE_PRODUCTS.includes(name));
-  const hasFemale = recognizedNames.some(name => FEMALE_PRODUCTS.includes(name));
-
-  if (hasMale) {
-    safeAddProduct({ name: "新入會(草本）男", pv: 9000, price: 15400, qty: 1 });
-    safeAddProduct({ name: "入*會「 211 」", pv: 0, price: 0, qty: 2 });
-    safeAddProduct({ name: "入*會「 101 」", pv: 0, price: 0, qty: 2 });
-    showToast("👨 偵測男生產品，自動加入男入會組合", "success");
-  }
-
-  if (hasFemale) {
-    safeAddProduct({ name: "新入會(草本）女", pv: 9000, price: 15400, qty: 1 });
-    safeAddProduct({ name: "入*會「 211 」", pv: 0, price: 0, qty: 2 });
-    safeAddProduct({ name: "入*會「 707 」", pv: 0, price: 0, qty: 2 });
-    showToast("👩 偵測女生產品，自動加入女入會組合", "success");
-  }
-
-  // 入會組合 強制加購
-  const hasMembership = selectedProds.some(p => 
-    p.name === "新入會(草本）男" || p.name === "新入會(草本）女"
-  );
-  if (hasMembership) {
-    safeAddProduct({ name: "2711AB(1)限4盒", pv: 3600, price: 4880, qty: 4 });
-    safeAddProduct({ name: "火山甘露_限4盒", pv: 2250, price: 3220, qty: 4 });
-    showToast("🎁 偵測入會組合，自動加購指定商品", "success");
-  }
-}
-
 // AI圖片辨識
 function initImageUpload() {
   let base64Image = "";
@@ -873,28 +828,15 @@ function initImageUpload() {
         return;
       }
 
-selectedProds = [];
-const recognizedNames = [];
-
-// 先加入AI辨識的產品
-result.products.forEach(item => {
-  recognizedNames.push(item.name);
-  const matchProd = products.find(p => 
-    p.name === item.name || p.name.includes(item.name) || item.name.includes(p.name)
-  );
-  if (matchProd) {
-    selectedProds.push({ ...matchProd, qty: item.qty || 1 });
-  }
-});
-
-// 備份目前清單
-const tempProds = [...selectedProds];
-
-// 自動加入入會組合
-autoAddMembershipProducts(recognizedNames);
-
-// 合併：辨識產品 + 入會組合 + 加購品
-selectedProds = [...tempProds, ...selectedProds];
+      selectedProds = [];
+      result.products.forEach(item => {
+        const matchProd = products.find(p => 
+          p.name === item.name || p.name.includes(item.name) || item.name.includes(p.name)
+        );
+        if (matchProd) {
+          selectedProds.push({ ...matchProd, qty: item.qty || 1 });
+        }
+      });
 
       saveSelectedProds();
       renderTable();
