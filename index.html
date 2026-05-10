@@ -402,7 +402,25 @@ body{
   background:linear-gradient(145deg,#ff6b6b,#e53939);transform:translateY(-2px);
   box-shadow:0 4px 12px rgba(255,82,82,0.3);
 }
-.button-group{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0;display:none;width:100%;max-width:600px;}
+.button-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:center;
+  margin:8px 0;
+  display:none;
+  width:100%;
+  max-width:600px;
+}
+/* 按鈕寬度排版：3個 + 2個 對齊 */
+.button-group .btn-lg {
+  flex: 1 1 calc(33.333% - 4px);
+  max-width: calc(33.333% - 4px);
+}
+.button-group .btn-md {
+  flex: 1 1 calc(50% - 4px);
+  max-width: calc(50% - 4px);
+}
 .toast-highlight-name {
   background: linear-gradient(135deg, #ffd700, #f9c700, #e6b800);
   -webkit-background-clip: text;
