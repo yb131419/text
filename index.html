@@ -86,6 +86,43 @@ body{
   display: none;
 }
 
+/* ============== AI辨識高質感浮窗遮罩（新增）============== */
+#ocrOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 99999;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 20px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.ocr-loader {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255,255,255,0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite, pulse 2s ease-in-out infinite alternate;
+}
+.ocr-text {
+  font-size: 1.2rem;
+  color: var(--highlight);
+  font-weight: 600;
+  text-shadow: 0 0 15px rgba(0,209,178,0.5);
+}
+.ocr-subtext {
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-top: -10px;
+}
+
 #authContainer{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;justify-content:center;align-items:center;z-index:9999;background:rgba(0,0,0,0.8);}
 #authLoading{
   width:100%;max-width:360px;background:var(--grad-secondary);border-radius:16px;padding:30px 20px;text-align:center;
@@ -456,6 +493,13 @@ body{
 </head>
 <body>
 
+<!-- ============== AI辨識高質感浮窗（新增）============== -->
+<div id="ocrOverlay">
+  <div class="ocr-loader"></div>
+  <div class="ocr-text">🔍 AI 產品辨識中</div>
+  <div class="ocr-subtext">請稍候，正在解析圖片內容...</div>
+</div>
+
 <!-- 圖片上傳區 -->
 <div class="upload-area" onclick="document.getElementById('imgUpload').click()">
   <h3>📷 上傳產品圖片自動辨識</h3>
@@ -535,13 +579,6 @@ body{
 <script>
 // ==================== 產品資料庫（可自行編輯）====================
 const products = [
-  { name: "新入會(9號）", pv: 17280, price: 29800 },
-  { name: "入*會「 9號兩組」", pv: 0, price: 0 },
-  { name: "新入會(草本）男", pv: 9000, price: 15400 },
-  { name: "新入會(草本）女", pv: 9000, price: 15400 },
-  { name: "入*會「 211 」", pv: 0, price: 0 },
-  { name: "入*會「 101 」", pv: 0, price: 0 },
-  { name: "入*會「 707 」", pv: 0, price: 0 },
   { name: "2711AB(1)限4盒", pv: 3600, price: 4880 },
   { name: "限入會2711AB(4)限1組", pv: 12600, price: 17920 },
   { name: "211", pv: 2160, price: 2960 },
@@ -661,7 +698,8 @@ function initElements() {
     imgUpload: $("#imgUpload"),
     previewUploadImg: $("#previewUploadImg"),
     recognizeBtn: $("#recognizeBtn"),
-    uploadArea: $(".upload-area")
+    uploadArea: $(".upload-area"),
+    ocrOverlay: $("#ocrOverlay") // 新增遮罩元素
   };
 }
 
@@ -720,7 +758,7 @@ function loadProductList() {
   });
 }
 
-// ==================== ✅ 真實AI圖片辨識（核心修復）====================
+// ==================== ✅ 真實AI圖片辨識（核心修復+浮窗）====================
 function initImageUpload() {
   let base64Image = "";
   
@@ -748,6 +786,8 @@ function initImageUpload() {
     const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
     const displayName = els.calculatorDisplay.val() || "使用者";
 
+    // 顯示AI辨識浮窗 + 禁用按鈕
+    els.ocrOverlay.show();
     els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
     showToast("🔍 正在調用 AI辨識報表...", "warning");
 
@@ -798,6 +838,8 @@ function initImageUpload() {
       console.error("OCR請求失敗：", err);
       showToast("❌ 網路錯誤，請重試", "error");
     } finally {
+      // 隱藏浮窗 + 恢復按鈕
+      els.ocrOverlay.hide();
       els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
     }
   });
