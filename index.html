@@ -873,20 +873,28 @@ function initImageUpload() {
         return;
       }
 
-      selectedProds = [];
-      const recognizedNames = [];
-      result.products.forEach(item => {
-        recognizedNames.push(item.name);
-        const matchProd = products.find(p => 
-          p.name === item.name || p.name.includes(item.name) || item.name.includes(p.name)
-        );
-        if (matchProd) {
-          selectedProds.push({ ...matchProd, qty: item.qty || 1 });
-        }
-      });
+selectedProds = [];
+const recognizedNames = [];
 
-      // 自動加入入會組合
-      autoAddMembershipProducts(recognizedNames);
+// 先加入AI辨識的產品
+result.products.forEach(item => {
+  recognizedNames.push(item.name);
+  const matchProd = products.find(p => 
+    p.name === item.name || p.name.includes(item.name) || item.name.includes(p.name)
+  );
+  if (matchProd) {
+    selectedProds.push({ ...matchProd, qty: item.qty || 1 });
+  }
+});
+
+// 備份目前清單
+const tempProds = [...selectedProds];
+
+// 自動加入入會組合
+autoAddMembershipProducts(recognizedNames);
+
+// 合併：辨識產品 + 入會組合 + 加購品
+selectedProds = [...tempProds, ...selectedProds];
 
       saveSelectedProds();
       renderTable();
