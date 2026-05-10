@@ -718,7 +718,7 @@ function loadProductList() {
   });
 }
 
-// 圖片上傳 + 自動辨識添加產品（核心修正）
+// 圖片上傳 + 自動辨識添加產品（核心修正：分月份+顆數轉盒數）
 function initImageUpload() {
   els.imgUpload.change(function (e) {
     const file = e.target.files[0];
@@ -731,38 +731,67 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   });
 
-  // 🔥 核心：點擊辨識 → 自動添加所有指定產品
+  // ==================== 【可自訂參數】顆數轉盒數規則 ====================
+  // 3顆=2盒 / 4顆=3盒 / 5顆=4盒 (固定規則，無需修改)
+  function getBoxCount(颗数) {
+    if(颗数 === 3) return 2;
+    if(颗数 === 4) return 3;
+    if(颗数 === 5) return 4;
+    return 2; // 預設3顆=2盒
+  }
+
+  // ==================== 【可自訂】三個月產品清單（優先：第一月→第二月→第三月） ====================
+  // 每個產品格式：{ name: "產品名", 颗数: 3/4/5 }  自動計算盒數
+  const monthProducts = [
+    // 🔥 第一個月（優先加載）
+    [
+      { name: "211", 颗数: 3 },
+      { name: "300", 颗数: 3 },
+      { name: "299A", 颗数: 3 },
+      { name: "火山甘露_限4盒", 颗数: 3 },
+      { name: "2711AB(1)限4盒", 颗数: 3 }
+    ],
+    // 🔥 第二個月
+    [
+      { name: "211", 颗数: 3 },
+      { name: "300", 颗数: 3 },
+      { name: "299A", 颗数: 3 }
+    ],
+    // 🔥 第三個月
+    [
+      { name: "211", 颗数: 3 },
+      { name: "300", 颗数: 3 },
+      { name: "299A", 颗数: 3 }
+    ]
+  ];
+
+  // 🔥 核心：點擊辨識 → 按月份自動添加產品
   els.recognizeBtn.click(() => {
-    showToast("🔍 自動生成產品報表中...", "warning");
+    showToast("🔍 按月份自動生成產品報表中...", "warning");
     
     // 清空原有產品
     selectedProds = [];
     
-    // 定義自動添加的產品 + 數量
-    const autoAddList = [
-      { name: "211", qty: 2 },          // 3顆 → 2盒
-      { name: "300", qty: 3 },          // 4顆 → 3盒
-      { name: "299A", qty: 4 },         // 5顆 → 4盒
-      { name: "火山甘露_限4盒", qty: 1 },// 火山甘露 → 1盒
-      { name: "2711AB(1)限4盒", qty: 4 } // 自動4盒
-    ];
-
-    // 批量添加產品
-    autoAddList.forEach(item => {
-      const prod = products.find(p => p.name === item.name);
-      if (prod) {
-        selectedProds.push({ ...prod, qty: item.qty });
-      }
+    // 遍歷三個月，依次添加產品
+    monthProducts.forEach((monthList, monthIndex) => {
+      monthList.forEach(item => {
+        const prod = products.find(p => p.name === item.name);
+        if (prod) {
+          // 自動根據顆數計算盒數
+          const boxCount = getBoxCount(item.颗数);
+          selectedProds.push({ ...prod, qty: boxCount });
+        }
+      });
     });
 
-    // 保存並渲染
+    // 保存並渲染表格
     saveSelectedProds();
     renderTable();
     
-    // 自動�發現金滿額贈（勾選現金）
+    // 自動勾選現金，觸發滿額贈
     els.cashOption.prop('checked', true).trigger('change');
     
-    showToast("✅ 報表自動生成完成！", "success");
+    showToast("✅ 三個月報表自動生成完成！", "success");
   });
 }
 
