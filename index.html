@@ -817,7 +817,7 @@ function initImageUpload() {
         return;
       }
 
-      // 清空原有產品，加入AI辨識結果（✅ 修复：超强模糊匹配，解决识别不全）
+      // 清空原有產品，加入AI辨識結果（✅ 修复：超强模糊匹配+去重累加，解决重复品项）
 selectedProds = [];
 // 预处理本地产品名：去除特殊符号、空格、统一格式
 const formatName = (str) => str.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '').trim();
@@ -835,7 +835,15 @@ result.products.forEach(item => {
   );
   
   if (matchProd) {
-    selectedProds.push({ ...matchProd, qty: item.qty || 1 });
+    // 🔥 核心修复：去重逻辑 - 同名产品累加数量，不重复添加
+    const existingProduct = selectedProds.find(p => p.name === matchProd.name);
+    if (existingProduct) {
+      // 产品已存在 → 数量相加
+      existingProduct.qty += (item.qty || 1);
+    } else {
+      // 产品不存在 → 新增
+      selectedProds.push({ ...matchProd, qty: item.qty || 1 });
+    }
   } else {
     // 调试：打印未匹配的产品（可选）
     console.log("未匹配產品：", item.name);
