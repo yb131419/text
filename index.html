@@ -528,7 +528,7 @@ body{
 <button id="recognizeBtn" class="btn btn-primary btn-md">🔍 開始AI辨識產品</button>
 
 <div id="captureArea">
-  <div id="watermark">『彥彬🌿試算系統』</div>
+  <div id="watermark">『彥彬🌿試算系統』</div><br>
   <h2>
     🌿 康園試算報表
     <div class="payment-options">
@@ -737,7 +737,7 @@ function initPeriodBox() {
     $('.period-box').removeClass('active');
     $(this).addClass('active');
   });
-  $('.period-box').eq(0).addClass('active');
+  // 刪除原本預設選取第一個的程式碼，讓全部預設不點擊
 }
 
 // 綁定事件
