@@ -26,7 +26,7 @@
 html, body {
   -webkit-text-size-adjust: none !important;
   text-size-adjust: none !important;
-  font-size: 14px !important; /* 固定基础字体，所有设备统一 */
+  font-size: 16px !important; /* 全域基礎字體放大 */
   touch-action: manipulation; /* 禁止双击缩放 */
 }
 * {
@@ -57,7 +57,7 @@ body{
 }
 #authStatusBar{
   position:sticky;top:8px;z-index:999;background:var(--grad-secondary);padding:10px 16px;border-radius:12px;margin-bottom:15px;
-  font-size:13px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  font-size:15px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
   display:none;width:100%;max-width:600px;transition:all 0.3s ease;
 }
 /* 🔴 状态栏关闭按钮 + 白框 */
@@ -108,14 +108,14 @@ body{
 }
 @keyframes spin{to{transform:rotate(360deg);}}
 @keyframes pulse{from{box-shadow:0 0 15px rgba(0,209,178,0.3);}to{box-shadow:0 0 25px rgba(0,209,178,0.6);}}
-#authLoading h3{margin:0 0 8px 0;font-size:1.1rem;color:var(--highlight);font-weight:600;}
-#authLoading p{margin:0;font-size:0.9rem;color:#bbb;line-height:1.5;}
-.super-admin{color:var(--super);font-weight:bold;}
-.gold-user{color:var(--gold);font-weight:bold;text-shadow:0 0 10px rgba(255,215,0,0.6);}
-.expired{color:var(--error);font-weight:bold;}
+#authLoading h3{margin:0 0 8px 0;font-size:1.3rem;color:var(--highlight);font-weight:600;}
+#authLoading p{margin:0;font-size:1rem;color:#bbb;line-height:1.5;}
+.super-admin{color:var(--super);font-weight:bold;font-size:15px;}
+.gold-user{color:var(--gold);font-weight:bold;text-shadow:0 0 10px rgba(255,215,0,0.6);font-size:15px;}
+.expired{color:var(--error);font-weight:bold;font-size:15px;}
 .super-admin-username{
   background-clip:text;-webkit-background-clip:text;color:transparent;font-weight:bold;
-  text-shadow:0 0 8px rgba(255,255,255,0.3);
+  text-shadow:0 0 8px rgba(255,255,255,0.3);font-size:15px;
 }
 .super-admin-username{background-image:var(--super-username);}
 #captureArea{
@@ -136,7 +136,7 @@ body{
   position: absolute;
   top: 10px;
   right: 12px;
-  font-size:12px;
+  font-size:14px;
   color: #ffffff;
   font-weight: 500;
   opacity: 0.9;
@@ -144,12 +144,12 @@ body{
   pointer-events: none;
 }
 #captureArea h2{
-  text-align:center;font-size:1.4rem;font-weight:bold;color:#fff;margin:0 0 12px 0;padding:8px 0;
+  text-align:center;font-size:1.6rem;font-weight:bold;color:#fff;margin:0 0 12px 0;padding:8px 0;
   line-height:1.3;width:100%;
 }
 .period-options{display:flex;justify-content:center;gap:8px;margin:8px 0 12px;flex-wrap:wrap;align-items:center;}
 .period-box{
-  border:1px solid #e0e0e0;border-radius:6px;padding:6px 12px;color:#e0e0e0;font-size:12px;cursor:pointer;
+  border:1px solid #e0e0e0;border-radius:6px;padding:6px 12px;color:#e0e0e0;font-size:14px;cursor:pointer;
   transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;background:transparent;
   font-weight:500;
 }
@@ -170,10 +170,10 @@ body{
 }
 .userInputs{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
 .userInputs .row{display:flex;gap:8px;width:100%;}
-.userInputs label{flex:1;display:flex;flex-direction:column;font-size:12px;color:#bbb;}
-.userInputs label span{text-align:center;margin-bottom:4px;font-size:13px;}
+.userInputs label{flex:1;display:flex;flex-direction:column;font-size:14px;color:#bbb;}
+.userInputs label span{text-align:center;margin-bottom:4px;font-size:15px;}
 .userInputs input{
-  padding:8px;font-size:14px;background:#333;color:var(--text);border:none;
+  padding:8px;font-size:16px;background:#333;color:var(--text);border:none;
   border-radius:6px;width:100%;text-align:center;
 }
 .calculator-container{display:flex;gap:5px;}
@@ -182,7 +182,7 @@ body{
   border: none;
   border-radius: var(--btn-radius);
   padding: var(--btn-padding);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: #fff;
   cursor: pointer;
@@ -244,20 +244,20 @@ body{
 .btn-danger{background: linear-gradient(145deg, #ef5350, #e53935);}
 
 /* 尺寸保持不变 */
-.btn-sm{padding:5px 8px;font-size:10px;border-radius:4px;}
-.btn-md{padding:8px 12px;font-size:12px;border-radius:6px;min-width:80px;}
-.btn-lg{padding:10px 6px!important;font-size:13px!important;border-radius:8px!important;width:48%;height:auto;line-height:1.2;}
+.btn-sm{padding:5px 8px;font-size:12px;border-radius:4px;}
+.btn-md{padding:8px 12px;font-size:14px;border-radius:6px;min-width:80px;}
+.btn-lg{padding:10px 6px!important;font-size:15px!important;border-radius:8px!important;width:48%;height:auto;line-height:1.2;}
 
 /* 🔴 重置试算者按钮 + 白框 */
 #resetCalculatorBtn{
   width:32px;height:32px;border-radius:5px;background:var(--btn-grey);color:#fff;
-  border:1px solid rgba(255,255,255,0.85);cursor:pointer;font-size:12px;
+  border:1px solid rgba(255,255,255,0.85);cursor:pointer;font-size:14px;
   display:flex;align-items:center;justify-content:center;transition:var(--btn-transition);
 }
 #resetCalculatorBtn:hover{background:#555;transform:scale(1.05);border-color:#fff;}
 #resetCalculatorBtn:active{transform:scale(0.95);}
 
-#addBtn{width:100%!important;padding:10px 14px!important;font-size:14px!important;font-weight:600!important;border-radius:8px!important;height:auto!important;}
+#addBtn{width:100%!important;padding:10px 14px!important;font-size:16px!important;font-weight:600!important;border-radius:8px!important;height:auto!important;}
 
 /* 🔴 手机端适配：康园试算报表 优化排版 + 全部文字置中 */
 #reportTable{
@@ -350,23 +350,23 @@ body{
 .deleteBtn:active{transform:scale(0.95);}
 .deleteBtn:disabled{opacity:0.7;cursor:not-allowed;}
 
-.summaryBox{text-align:center;margin-top:10px;font-size:0.9rem;font-weight:bold;color:var(--highlight);line-height:1.5;}
-.summaryBox .extra{display:block;font-size:0.8rem;color:var(--accent);margin-top:4px;}
+.summaryBox{text-align:center;margin-top:10px;font-size:1.1rem;font-weight:bold;color:var(--highlight);line-height:1.5;}
+.summaryBox .extra{display:block;font-size:1rem;color:var(--accent);margin-top:4px;}
 .summaryBox .done{color:#4caf50;font-weight:bold;}
 #totalPriceCellDup,#totalPvCellDup,#pvDiff2{display:inline-block;min-width:50px;text-align:center;}
 #inputArea{display:flex;flex-direction:column;gap:8px;margin:10px 0 20px 0;display:none;width:100%;max-width:600px;}
 @media (min-width:576px){#inputArea{flex-direction:row;align-items:center;}}
 #nameInput,#qtyInput{
   background:#2c2c2c;color:var(--text);flex:1;text-align:center;padding:10px 8px;
-  font-size:14px;border-radius:6px;border:none;
+  font-size:16px;border-radius:6px;border:none;
 }
-#qtyInput{font-size:14px!important;font-weight:bold;}
+#qtyInput{font-size:16px!important;font-weight:bold;}
 #exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn{flex:1;min-width:80px;margin:0;}
 #previewImage{display:none;width:100%!important;max-width:600px;margin:10px auto!important;border:2px solid #888;border-radius:8px;image-rendering:-webkit-optimize-contrast;object-fit:contain;}
 #shareToLineBtn,#nativeShareBtn,#clearImageBtn{display:none;}
 #buyerInput,#calculatorDisplay{
   background:#f9fafb;border:1.5px solid #d1d5db;color:#374151;border-radius:6px;
-  padding:8px 10px;font-size:14px;transition:border-color 0.3s ease,box-shadow 0.3s ease;
+  padding:8px 10px;font-size:16px;transition:border-color 0.3s ease,box-shadow 0.3s ease;
   width:100%;font-weight:500;
 }
 #buyerInput:focus{
@@ -379,12 +379,12 @@ body{
   position:fixed;bottom:25px;left:50%;transform:translateX(-50%);background:var(--grad-secondary);
   color:#fff;padding:10px 16px;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.4);
   opacity:0;transition:opacity 0.5s ease,transform 0.5s ease;z-index:1000;text-align:center;
-  min-width:180px;font-size:13px;border:1px solid rgba(255,255,255,0.1);
+  min-width:180px;font-size:15px;border:1px solid rgba(255,255,255,0.1);
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-10px);}
 .toast.error{background:linear-gradient(145deg,#4a0000,#2a0000);border-color:rgba(255,82,82,0.3);}
 .toast.warning{background:linear-gradient(145deg,#4a3200,#2a1e00);border-color:rgba(255,152,0,0.3);}
-.payment-options{display:flex;justify-content:center;gap:12px;margin-top:6px;color:#fff;font-size:1rem;flex-wrap:wrap;}
+.payment-options{display:flex;justify-content:center;gap:12px;margin-top:6px;color:#fff;font-size:1.1rem;flex-wrap:wrap;}
 .payment-options label{display:flex;align-items:center;gap:8px;color:#fff;font-weight:500;}
 .payment-options input[type="checkbox"]{width:20px;height:20px;cursor:pointer;}
 .spacer{height:60px;}
@@ -393,10 +393,10 @@ body{
   color:#fef2f2;padding:15px;border-radius:12px;margin:15px auto;max-width:360px;text-align:center;
   box-shadow:var(--shadow);
 }
-#error-message #error-content{margin-bottom:12px;font-size:13px;}
+#error-message #error-content{margin-bottom:12px;font-size:15px;}
 #error-message button{
   background:linear-gradient(145deg,#ff5252,#d32f2f);color:#fff;border:none;border:1px solid rgba(255,255,255,0.8);
-  padding:6px 12px;border-radius:6px;cursor:pointer;margin-top:8px;font-weight:500;transition:var(--btn-transition);
+  padding:6px 12px;border-radius:6px;cursor:pointer;margin-top:8px;font-weight:500;transition:var(--btn-transition);font-size:14px;
 }
 #error-message button:hover{
   background:linear-gradient(145deg,#ff6b6b,#e53939);transform:translateY(-2px);
@@ -412,6 +412,7 @@ body{
   text-shadow:0 1px 3px rgba(0,0,0,0.3);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size:15px;
 }
 /* 打印样式 */
 @media print{
