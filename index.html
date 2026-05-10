@@ -60,6 +60,7 @@ body{
   font-size:13px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
   display:none;width:100%;max-width:600px;transition:all 0.3s ease;
 }
+/* 🔴 状态栏关闭按钮 + 白框 */
 #authStatusBar .close-status {
   position: absolute;
   top: 8px;
@@ -89,6 +90,7 @@ body{
   margin: 0;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  border: 1px solid rgba(255,255,255,0.9) !important;
 }
 #authStatusBar .close-status:hover {
   background: linear-gradient(145deg, #f8f8f8, #eaeaea);
@@ -97,7 +99,7 @@ body{
     0 4px 8px rgba(0,0,0,0.15),
     inset 0 1px 0 rgba(255,255,255,0.9),
     inset 0 -1px 0 rgba(0,0,0,0.15);
-  border-color: #111;
+  border-color: #ffffff !important;
   color: #111;
 }
 .loader{
@@ -175,7 +177,7 @@ body{
   border-radius:6px;width:100%;text-align:center;
 }
 .calculator-container{display:flex;gap:5px;}
-/* 🔴 高质感双层按压按钮 - 核心样式 */
+/* 🔴 高质感双层按压按钮 - 核心样式 + 白框 */
 .btn{
   border: none;
   border-radius: var(--btn-radius);
@@ -197,6 +199,8 @@ body{
   overflow: hidden;
   background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
   backdrop-filter: blur(4px);
+  /* 白色外框 */
+  border: 1px solid rgba(255,255,255,0.85) !important;
 }
 /* 柔和高光流光 */
 .btn::before{
@@ -217,6 +221,7 @@ body{
   transform: translateY(-2px);
   box-shadow: 0 5px 0 rgba(0,0,0,0.25), 0 8px 16px rgba(0,0,0,0.2);
   filter: brightness(1.08);
+  border-color: #ffffff !important;
 }
 /* 点击 - 双层内凹按压感 */
 .btn:active{
@@ -231,7 +236,6 @@ body{
   box-shadow: 0 3px 0 rgba(0,0,0,0.15);
   filter: grayscale(30%);
 }
-
 /* 🔴 高质感配色系列 */
 .btn-primary{background: linear-gradient(145deg, #00bfa5, #00897b);}
 .btn-purple{background: linear-gradient(145deg, #ab47bc, #8e24aa);}
@@ -244,13 +248,15 @@ body{
 .btn-md{padding:8px 12px;font-size:12px;border-radius:6px;min-width:80px;}
 .btn-lg{padding:10px 6px!important;font-size:13px!important;border-radius:8px!important;width:48%;height:auto;line-height:1.2;}
 
+/* 🔴 重置试算者按钮 + 白框 */
 #resetCalculatorBtn{
   width:32px;height:32px;border-radius:5px;background:var(--btn-grey);color:#fff;
-  border:1px solid rgba(255,255,255,0.8);cursor:pointer;font-size:12px;
+  border:1px solid rgba(255,255,255,0.85);cursor:pointer;font-size:12px;
   display:flex;align-items:center;justify-content:center;transition:var(--btn-transition);
 }
-#resetCalculatorBtn:hover{background:#555;transform:scale(1.05);}
+#resetCalculatorBtn:hover{background:#555;transform:scale(1.05);border-color:#fff;}
 #resetCalculatorBtn:active{transform:scale(0.95);}
+
 #addBtn{width:100%!important;padding:10px 14px!important;font-size:14px!important;font-weight:600!important;border-radius:8px!important;height:auto!important;}
 
 /* 🔴 手机端适配：康园试算报表 优化排版 */
@@ -317,12 +323,12 @@ body{
 #reportTable thead{background:#555555;color:#fff;font-weight:600;}
 #reportTable tbody tr { background: #e9e9e9; }
 #reportTable tbody tr:hover{background:#1e88e5;color:#fff;font-weight:bold;}
-/* 删除按钮：手机端适配 */
+/* 🔴 删除按钮 + 白框 */
 .deleteBtn{
   writing-mode:vertical-rl;
   text-orientation:upright;
   background:var(--error);
-  border:1px solid #fff;
+  border:1px solid rgba(255,255,255,0.85);
   color:#fff;
   border-radius:3px;
   padding:0;
@@ -336,7 +342,7 @@ body{
   line-height:1;
   transition:var(--btn-transition);
 }
-.deleteBtn:hover{transform:scale(1.05);}
+.deleteBtn:hover{transform:scale(1.05);border-color:#fff;}
 .deleteBtn:active{transform:scale(0.95);}
 .deleteBtn:disabled{opacity:0.7;cursor:not-allowed;}
 
