@@ -817,16 +817,30 @@ function initImageUpload() {
         return;
       }
 
-      // 清空原有產品，加入AI辨識結果
-      selectedProds = [];
-      result.products.forEach(item => {
-        const matchProd = products.find(p => 
-          p.name === item.name || p.name.includes(item.name) || item.name.includes(p.name)
-        );
-        if (matchProd) {
-          selectedProds.push({ ...matchProd, qty: item.qty || 1 });
-        }
-      });
+      // 清空原有產品，加入AI辨識結果（✅ 修复：超强模糊匹配，解决识别不全）
+selectedProds = [];
+// 预处理本地产品名：去除特殊符号、空格、统一格式
+const formatName = (str) => str.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '').trim();
+const formattedProducts = products.map(p => ({
+  ...p,
+  formatted: formatName(p.name)
+}));
+
+result.products.forEach(item => {
+  if (!item.name) return;
+  const targetName = formatName(item.name);
+  // 模糊匹配：包含关键词就命中，容错率拉满
+  const matchProd = formattedProducts.find(p => 
+    p.formatted.includes(targetName) || targetName.includes(p.formatted)
+  );
+  
+  if (matchProd) {
+    selectedProds.push({ ...matchProd, qty: item.qty || 1 });
+  } else {
+    // 调试：打印未匹配的产品（可选）
+    console.log("未匹配產品：", item.name);
+  }
+});
 
       // 保存並渲染
       saveSelectedProds();
@@ -1012,6 +1026,16 @@ function showToast(msg, type = "success") {
   setTimeout(() => toast.addClass("show"), 10);
   setTimeout(() => toast.remove(), 3000);
 }
+
+
+// 保存並渲染
+// 👈 加去重兜底，避免重复产品
+selectedProds = selectedProds.filter((item, index, self) =>
+  self.findIndex(i => i.name === item.name) === index
+);
+saveSelectedProds();
+renderTable();
+
 </script>
 </body>
 </html>
