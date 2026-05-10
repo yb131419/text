@@ -65,18 +65,16 @@ body{
   position: absolute;
   top: 8px;
   right: 10px;
-  width: 22px;
-  height: 36px;
-  border-radius: 6px;
+  width: 32px;
+  height: 46px;
+  border-radius: 8px;
   background: linear-gradient(145deg, #ffffff, #f5f5f5);
   color: #000;
-  border: 1px solid #222;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   writing-mode: vertical-rl;
   text-orientation: upright;
@@ -459,7 +457,7 @@ body{
   </div>
 </div>
 <div id="authStatusBar" style="display: none;">
-  <button class="close-status" title="隱藏狀態欄">關閉</button>
+  <button class="close-status" title="隱藏狀態欄">點我關閉</button>
 </div>
 
 <div id="captureArea">
@@ -1002,10 +1000,10 @@ function updateAuthStatusBar(){
   if(!authStatus||!userInfo)return;
   let statusHtml='';
   if(authStatus.isSuperAdmin){
-    statusHtml=`<span class="super-admin">👑 超級管理員</span>｜用戶名：<span class="super-admin-username">${userInfo.displayName}</span><br/>無限次使用`;
+    statusHtml=`<span class="super-admin">👑 超級管理員</span><br>用戶名：<span class="super-admin-username">${userInfo.displayName}</span><br/>無限次使用`;
   }else{
     const textClass = authStatus.remainTimes <=0 ? 'expired' : 'gold-user';
-    statusHtml=`<span class="gold-user">✨ 黃金用戶</span>｜用戶名：${userInfo.displayName}<br/>
+    statusHtml=`<span class="gold-user">✨ 黃金用戶</span><br>用戶名：${userInfo.displayName}<br/>
     剩餘次數：<span class="${textClass}">${authStatus.remainTimes}</span>
     <div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
       <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
