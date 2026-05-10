@@ -463,7 +463,7 @@ body{
   <input type="file" id="imgUpload" accept="image/*">
   <img id="previewUploadImg" alt="預覽圖">
 </div>
-<button id="recognizeBtn" class="btn btn-primary btn-md">🔍 開始辨識產品</button>
+<button id="recognizeBtn" class="btn btn-primary btn-md">🔍 開始AI辨識產品</button>
 
 <div id="captureArea">
   <div id="watermark">『彥彬🌿試算系統』</div>
@@ -618,6 +618,8 @@ let lineName = '';
 let els = {};
 let TARGET_PV220 = 220000;
 let TARGET_PV300 = 300000;
+// ⚠️ 請替換為你的GAS Web應用網址
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
 
 // ==================== DOM 加載完成 ====================
 window.addEventListener('DOMContentLoaded', () => {
@@ -718,80 +720,87 @@ function loadProductList() {
   });
 }
 
-// 圖片上傳 + 自動辨識添加產品（核心修正：分月份+顆數轉盒數）
+// ==================== ✅ 真實AI圖片辨識（核心修復）====================
 function initImageUpload() {
+  let base64Image = "";
+  
+  // 圖片上傳預覽
   els.imgUpload.change(function (e) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function (ev) {
-      els.previewUploadImg.attr("src", ev.target.result).show();
+      base64Image = ev.target.result;
+      els.previewUploadImg.attr("src", base64Image).show();
       els.recognizeBtn.show();
     };
     reader.readAsDataURL(file);
   });
 
-  // ==================== 【可自訂參數】顆數轉盒數規則 ====================
-  // 3顆=2盒 / 4顆=3盒 / 5顆=4盒 (固定規則，無需修改)
-  function getBoxCount(颗数) {
-    if(颗数 === 3) return 2;
-    if(颗数 === 4) return 3;
-    if(颗数 === 5) return 4;
-    return 2; // 預設3顆=2盒
-  }
+  // 點擊按鈕 → 呼叫GAS後端AI辨識
+  els.recognizeBtn.click(async () => {
+    if (!base64Image) {
+      showToast("❌ 請先上傳產品圖片", "error");
+      return;
+    }
 
-  // ==================== 【可自訂】三個月產品清單（優先：第一月→第二月→第三月） ====================
-  // 每個產品格式：{ name: "產品名", 颗数: 3/4/5 }  自動計算盒數
-  const monthProducts = [
-    // 🔥 第一個月（優先加載）
-    [
-      { name: "211", 颗数: 3 },
-      { name: "300", 颗数: 3 },
-      { name: "299A", 颗数: 3 },
-      { name: "火山甘露_限4盒", 颗数: 3 },
-      { name: "2711AB(1)限4盒", 颗数: 3 }
-    ],
-    // 🔥 第二個月
-    [
-      { name: "211", 颗数: 3 },
-      { name: "300", 颗数: 3 },
-      { name: "299A", 颗数: 3 }
-    ],
-    // 🔥 第三個月
-    [
-      { name: "211", 颗数: 3 },
-      { name: "300", 颗数: 3 },
-      { name: "299A", 颗数: 3 }
-    ]
-  ];
+    // 獲取LINE用戶ID（LIFF環境）
+    const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
+    const displayName = els.calculatorDisplay.val() || "使用者";
 
-  // 🔥 核心：點擊辨識 → 按月份自動添加產品
-  els.recognizeBtn.click(() => {
-    showToast("🔍 按月份自動生成產品報表中...", "warning");
-    
-    // 清空原有產品
-    selectedProds = [];
-    
-    // 遍歷三個月，依次添加產品
-    monthProducts.forEach((monthList, monthIndex) => {
-      monthList.forEach(item => {
-        const prod = products.find(p => p.name === item.name);
-        if (prod) {
-          // 自動根據顆數計算盒數
-          const boxCount = getBoxCount(item.颗数);
-          selectedProds.push({ ...prod, qty: boxCount });
+    els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
+    showToast("🔍 正在調用GPT-4o-mini辨識產品...", "warning");
+
+    try {
+      // 發送請求到GAS後端
+      const res = await fetch(GAS_API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "ocrCalc",
+          img: base64Image,
+          userId: userId,
+          displayName: displayName
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      const result = await res.json();
+
+      // 處理後端返回
+      if (result.status === "exceeded" || result.error) {
+        const msg = result.message || result.error || "❌ 辨識失敗";
+        showToast(msg, "error");
+        return;
+      }
+
+      if (!result.products || result.products.length === 0) {
+        showToast("❌ 未識別到任何產品，請重新拍攝", "error");
+        return;
+      }
+
+      // 清空原有產品，加入AI辨識結果
+      selectedProds = [];
+      result.products.forEach(item => {
+        const matchProd = products.find(p => 
+          p.name === item.name || p.name.includes(item.name) || item.name.includes(p.name)
+        );
+        if (matchProd) {
+          selectedProds.push({ ...matchProd, qty: item.qty || 1 });
         }
       });
-    });
 
-    // 保存並渲染表格
-    saveSelectedProds();
-    renderTable();
-    
-    // 自動勾選現金，觸發滿額贈
-    els.cashOption.prop('checked', true).trigger('change');
-    
-    showToast("✅ 三個月報表自動生成完成！", "success");
+      // 保存並渲染
+      saveSelectedProds();
+      renderTable();
+      els.cashOption.prop('checked', true).trigger('change');
+      showToast(`✅ AI辨識成功！共加入 ${result.products.length} 個產品`, "success");
+
+    } catch (err) {
+      console.error("OCR請求失敗：", err);
+      showToast("❌ 網路錯誤，請重試", "error");
+    } finally {
+      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+    }
   });
 }
 
