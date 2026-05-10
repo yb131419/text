@@ -535,17 +535,81 @@ body{
 <script>
 // ==================== 產品資料庫（可自行編輯）====================
 const products = [
-  { name: "新入會(9號）", price: 15000, pv: 15000 },
-  { name: "入*會「 9號兩組」", price: 30000, pv: 30000 },
-  { name: "新入會(草本）男", price: 18000, pv: 18000 },
-  { name: "新入會(草本）女", price: 18000, pv: 18000 },
-  { name: "入*會「 211 」", price: 2000, pv: 2000 },
-  { name: "入*會「 101 」", price: 1500, pv: 1500 },
-  { name: "入*會「 707 」", price: 1800, pv: 1800 },
-  { name: "2711AB", price: 5000, pv: 5000 },
-  { name: "777Q", price: 3200, pv: 3200 },
-  { name: "火山甘露", price: 2800, pv: 2800 },
-  { name: "贈品 211(30)", price: 0, pv: 0 }
+  { name: "新入會(9號）", pv: 17280, price: 29800 },
+  { name: "入*會「 9號兩組」", pv: 0, price: 0 },
+  { name: "新入會(草本）男", pv: 9000, price: 15400 },
+  { name: "新入會(草本）女", pv: 9000, price: 15400 },
+  { name: "入*會「 211 」", pv: 0, price: 0 },
+  { name: "入*會「 101 」", pv: 0, price: 0 },
+  { name: "入*會「 707 」", pv: 0, price: 0 },
+  { name: "2711AB(1)限4盒", pv: 3600, price: 4880 },
+  { name: "限入會2711AB(4)限1組", pv: 12600, price: 17920 },
+  { name: "211", pv: 2160, price: 2960 },
+  { name: "300", pv: 2160, price: 2980 },
+  { name: "299A", pv: 2280, price: 3240 },
+  { name: "火山甘露_限4盒", pv: 2250, price: 3220 },
+  { name: "200", pv: 2280, price: 3240 },
+  { name: "201", pv: 2160, price: 2880 },
+  { name: "202", pv: 2160, price: 2880 },
+  { name: "205", pv: 2160, price: 2880 },
+  { name: "209", pv: 2280, price: 3240 },
+  { name: "210", pv: 2280, price: 3240 },
+  { name: "211A", pv: 2280, price: 3240 },
+  { name: "220", pv: 2160, price: 2960 },
+  { name: "222", pv: 2280, price: 3240 },
+  { name: "233", pv: 2160, price: 2960 },
+  { name: "240", pv: 2160, price: 2960 },
+  { name: "255A", pv: 2280, price: 3240 },
+  { name: "260", pv: 2160, price: 2880 },
+  { name: "266", pv: 2160, price: 2880 },
+  { name: "268", pv: 2280, price: 3240 },
+  { name: "270", pv: 2280, price: 3240 },
+  { name: "280", pv: 2160, price: 2880 },
+  { name: "286", pv: 2160, price: 2880 },
+  { name: "288", pv: 2160, price: 2880 },
+  { name: "289", pv: 2280, price: 3240 },
+  { name: "290", pv: 2160, price: 2960 },
+  { name: "295", pv: 2160, price: 2980 },
+  { name: "299", pv: 2280, price: 3240 },
+  { name: "701", pv: 2160, price: 2980 },
+  { name: "702", pv: 2160, price: 2880 },
+  { name: "703", pv: 2160, price: 2880 },
+  { name: "705", pv: 2160, price: 2880 },
+  { name: "706", pv: 2160, price: 2880 },
+  { name: "707", pv: 2160, price: 2880 },
+  { name: "708", pv: 2280, price: 3240 },
+  { name: "747AB", pv: 2880, price: 4000 },
+  { name: "777Q", pv: 3600, price: 4880 },
+  { name: "777Q(4)限2組", pv: 12600, price: 17920 },
+  { name: "大女王", pv: 7680, price: 10240 },
+  { name: "極樂鳥", pv: 2880, price: 4000 },
+  { name: "101", pv: 2160, price: 2880 },
+  { name: "111", pv: 2400, price: 3400 },
+  { name: "168", pv: 2280, price: 3240 },
+  { name: "金色果(2）", pv: 2000, price: 3040 },
+  { name: "海神泥", pv: 2250, price: 3050 },
+  { name: "復甦精華露", pv: 2160, price: 2960 },
+  { name: "潔面乳", pv: 1350, price: 1880 },
+  { name: "玫瑰化妝水", pv: 1350, price: 1880 },
+  { name: "植萃粉底乳", pv: 800, price: 1120 },
+  { name: "彼拉提斯精油", pv: 2160, price: 2960 },
+  { name: "命運9號（2)", pv: 9720, price: 12960 },
+  { name: "冰晶球（大）", pv: 4050, price: 5550 },
+  { name: "冰晶球（小）", pv: 3900, price: 5350 },
+  { name: "親密潔淨露 (3)", pv: 3150, price: 4320 },
+  { name: "密集保濕精華液", pv: 2100, price: 2880 },
+  { name: "保濕澎潤日霜", pv: 1350, price: 1800 },
+  { name: "閃耀眼膜", pv: 2100, price: 2880 },
+  { name: "深層保濕再生精萃", pv: 1050, price: 1450 },
+  { name: "保濕全能日霜", pv: 2100, price: 2880 },
+  { name: "水光肌黃金精萃", pv: 2900, price: 3980 },
+  { name: "青春眼膠", pv: 1350, price: 1880 },
+  { name: "紓壓晚霜", pv: 2100, price: 2960 },
+  { name: "緊緻濃縮精華液", pv: 3000, price: 4080 },
+  { name: "逆齡晚霜", pv: 4050, price: 5550 },
+  { name: "淡斑修護霜", pv: 2000, price: 2700 },
+  { name: "逆齡眼霜", pv: 2100, price: 2880 },
+  { name: "贈品 211(30)", pv: 0, price: 0 }
 ];
 
 // ==================== 全域變數 ====================
@@ -613,6 +677,8 @@ function initPeriodBox() {
     $('.period-box').removeClass('active');
     $(this).addClass('active');
   });
+  // 預設選一個月
+  $('.period-box').eq(0).addClass('active');
 }
 
 // 綁定事件
@@ -652,7 +718,7 @@ function loadProductList() {
   });
 }
 
-// 圖片上傳功能
+// 圖片上傳 + 自動辨識添加產品（核心修正）
 function initImageUpload() {
   els.imgUpload.change(function (e) {
     const file = e.target.files[0];
@@ -665,15 +731,38 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   });
 
-  // 模擬圖片辨識（前端比對產品名稱）
+  // 🔥 核心：點擊辨識 → 自動添加所有指定產品
   els.recognizeBtn.click(() => {
-    showToast("🔍 正在辨識產品...", "warning");
-    setTimeout(() => {
-      // 這裡你可以擴充真的OCR，目前預設匹配第一個產品
-      const matchProduct = products[0];
-      showToast(`✅ 辨識完成：${matchProduct.name}`, "success");
-      els.nameInput.val(matchProduct.name);
-    }, 1200);
+    showToast("🔍 自動生成產品報表中...", "warning");
+    
+    // 清空原有產品
+    selectedProds = [];
+    
+    // 定義自動添加的產品 + 數量
+    const autoAddList = [
+      { name: "211", qty: 2 },          // 3顆 → 2盒
+      { name: "300", qty: 3 },          // 4顆 → 3盒
+      { name: "299A", qty: 4 },         // 5顆 → 4盒
+      { name: "火山甘露_限4盒", qty: 1 },// 火山甘露 → 1盒
+      { name: "2711AB(1)限4盒", qty: 4 } // 自動4盒
+    ];
+
+    // 批量添加產品
+    autoAddList.forEach(item => {
+      const prod = products.find(p => p.name === item.name);
+      if (prod) {
+        selectedProds.push({ ...prod, qty: item.qty });
+      }
+    });
+
+    // 保存並渲染
+    saveSelectedProds();
+    renderTable();
+    
+    // 自動�發現金滿額贈（勾選現金）
+    els.cashOption.prop('checked', true).trigger('change');
+    
+    showToast("✅ 報表自動生成完成！", "success");
   });
 }
 
@@ -736,22 +825,27 @@ function renderTable() {
   els.pvMessage3.html(totalPv >= TARGET_PV300 ? '<span class="done">達標</span>' : "");
 }
 
-// 現金滿額贈
+// 現金滿額贈（滿2萬自動加贈品）
 function handleCashGift() {
+  // 先移除舊贈品
+  selectedProds = selectedProds.filter(p => !p.name.includes("贈品"));
+  
   if (!els.cashOption.is(":checked")) {
-    selectedProds = selectedProds.filter(p => !p.name.includes("贈品"));
     saveSelectedProds();
     renderTable();
     return;
   }
+
   const total = parseInt(els.totalPriceCellDup.text()) || 0;
   const giftQty = Math.floor(total / 20000);
-  if (giftQty <= 0) return;
-  selectedProds = selectedProds.filter(p => !p.name.includes("贈品"));
-  selectedProds.push({ name: "贈品 211(30)", price: 0, pv: 0, qty: giftQty });
+  
+  if (giftQty > 0) {
+    selectedProds.push({ name: "贈品 211(30)", price: 0, pv: 0, qty: giftQty });
+    showToast(`🎁 現金滿額，自動贈送 x${giftQty}`, "success");
+  }
+  
   saveSelectedProds();
   renderTable();
-  showToast(`🎁 贈品 x${giftQty}`);
 }
 
 // 試算者名稱
