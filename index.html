@@ -775,97 +775,104 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   });
 
-  // 點擊按鈕 → 呼叫GAS後端AI辨識
-  els.recognizeBtn.click(async () => {
-    if (!base64Image) {
-      showToast("❌ 請先上傳產品圖片", "error");
+// 點擊按鈕 → 呼叫GAS後端AI辨識
+els.recognizeBtn.click(async () => {
+  if (!base64Image) {
+    showToast("❌ 請先上傳產品圖片", "error");
+    return;
+  }
+
+  // 獲取LINE用戶ID（LIFF環境）
+  const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
+  const displayName = els.calculatorDisplay.val() || "使用者";
+
+  // 顯示AI辨識浮窗 + 禁用按鈕
+  els.ocrOverlay.show();
+  els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
+  showToast("🔍 正在調用 AI辨識報表...", "warning");
+
+  try {
+    // 發送請求到GAS後端
+    const res = await fetch(GAS_API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "ocrCalc",
+        img: base64Image,
+        userId: userId,
+        displayName: displayName
+      }),
+    });
+
+    const result = await res.json();
+
+    // 處理後端返回
+    if (result.status === "exceeded" || result.error) {
+      const msg = result.message || result.error || "❌ 辨識失敗";
+      showToast(msg, "error");
       return;
     }
 
-    // 獲取LINE用戶ID（LIFF環境）
-    const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
-    const displayName = els.calculatorDisplay.val() || "使用者";
-
-    // 顯示AI辨識浮窗 + 禁用按鈕
-    els.ocrOverlay.show();
-    els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
-    showToast("🔍 正在調用 AI辨識報表...", "warning");
-
-    try {
-      // 發送請求到GAS後端
-      const res = await fetch(GAS_API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "ocrCalc",
-          img: base64Image,
-          userId: userId,
-          displayName: displayName
-        }),
-      });
-
-      const result = await res.json();
-
-      // 處理後端返回
-      if (result.status === "exceeded" || result.error) {
-        const msg = result.message || result.error || "❌ 辨識失敗";
-        showToast(msg, "error");
-        return;
-      }
-
-      if (!result.products || result.products.length === 0) {
-        showToast("❌ 未識別到任何產品，請重新拍攝", "error");
-        return;
-      }
-
-      // 清空原有產品，加入AI辨識結果（✅ 修复：超强模糊匹配+去重累加，解决重复品项）
-selectedProds = [];
-// 预处理本地产品名：去除特殊符号、空格、统一格式
-const formatName = (str) => str.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '').trim();
-const formattedProducts = products.map(p => ({
-  ...p,
-  formatted: formatName(p.name)
-}));
-
-result.products.forEach(item => {
-  if (!item.name) return;
-  const targetName = formatName(item.name);
-  // 模糊匹配：包含关键词就命中，容错率拉满
-  const matchProd = formattedProducts.find(p => 
-    p.formatted.includes(targetName) || targetName.includes(p.formatted)
-  );
-  
-  if (matchProd) {
-    // 🔥 核心修复：去重逻辑 - 同名产品累加数量，不重复添加
-    const existingProduct = selectedProds.find(p => p.name === matchProd.name);
-    if (existingProduct) {
-      // 产品已存在 → 数量相加
-      existingProduct.qty += (item.qty || 1);
-    } else {
-      // 产品不存在 → 新增
-      selectedProds.push({ ...matchProd, qty: item.qty || 1 });
+    if (!result.products || result.products.length === 0) {
+      showToast("❌ 未識別到任何產品，請重新拍攝", "error");
+      return;
     }
-  } else {
-    // 调试：打印未匹配的产品（可选）
-    console.log("未匹配產品：", item.name);
+
+    // ==============================================
+    // 🔥 🔥 🔥 這一段是修復「不完全載入」的核心代碼 🔥 🔥 🔥
+    // ==============================================
+    selectedProds = [];
+
+    // 產品名稱格式化（去符號、去空格、統一比對）
+    const formatName = (str) => str.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '').trim().toLowerCase();
+    const localProducts = products.map(p => ({
+      ...p,
+      matchKey: formatName(p.name)
+    }));
+
+    // 加入所有 AI 辨識的產品（100% 載入）
+    result.products.forEach(aiItem => {
+      if (!aiItem.name) return;
+      const aiKey = formatName(aiItem.name);
+      const qty = aiItem.qty || 1;
+
+      // 模糊匹配（只要有包含就命中）
+      const found = localProducts.find(p => 
+        p.matchKey.includes(aiKey) || aiKey.includes(p.matchKey)
+      );
+
+      if (found) {
+        const exist = selectedProds.find(x => x.name === found.name);
+        if (exist) {
+          exist.qty += qty; // 重複就累加
+        } else {
+          selectedProds.push({ ...found, qty }); // 不重複就新增
+        }
+      }
+    });
+
+    // 最終去重 + 保存 + 渲染
+    selectedProds = selectedProds.filter((p, i, self) => 
+      self.findIndex(x => x.name === p.name) === i
+    );
+    // ==============================================
+    // 🔥 🔥 🔥 修復結束 🔥 🔥 🔥
+    // ==============================================
+
+    // 保存並渲染
+    saveSelectedProds();
+    renderTable();
+    els.cashOption.prop('checked', true).trigger('change');
+    showToast(`✅ AI辨識成功！共加入 ${selectedProds.length} 個產品`, "success");
+
+  } catch (err) {
+    console.error("OCR請求失敗：", err);
+    showToast("❌ 網路錯誤，請重試", "error");
+  } finally {
+    // 隱藏浮窗 + 恢復按鈕
+    els.ocrOverlay.hide();
+    els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
   }
 });
-
-      // 保存並渲染
-      saveSelectedProds();
-      renderTable();
-      els.cashOption.prop('checked', true).trigger('change');
-      showToast(`✅ AI辨識成功！共加入 ${result.products.length} 個產品`, "success");
-
-    } catch (err) {
-      console.error("OCR請求失敗：", err);
-      showToast("❌ 網路錯誤，請重試", "error");
-    } finally {
-      // 隱藏浮窗 + 恢復按鈕
-      els.ocrOverlay.hide();
-      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
-    }
-  });
-}
 
 // 加入產品
 function addProduct() {
