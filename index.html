@@ -1009,7 +1009,7 @@ function updateAuthStatusBar(){
       <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
     </div>`;
   }
-  els.authStatusBar.innerHTML=`<button class="close-status">關閉</button>${statusHtml}`;
+  els.authStatusBar.innerHTML=`<button class="close-status">點我關閉</button>${statusHtml}`;
   els.authStatusBar.style.display='block';
   els.authStatusBar.querySelector('.close-status').addEventListener('click',function(){
     els.authStatusBar.style.opacity='0';
