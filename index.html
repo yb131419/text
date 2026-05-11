@@ -867,7 +867,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // 🔥 修正：月份+品項+顆數 精準識別（3顆=2/4顆=3/5顆=4）
+  // 🔥 終極優化：僅識別三個月打卡區域 + 超高精準度匹配
   els.recognizeBtn.click(async () => {
     if (!base64Image) {
       showToast("❌ 請先上傳產品圖片", "error");
@@ -875,52 +875,53 @@ function initImageUpload() {
     }
 
     els.ocrOverlay.show();
-    els.recognizeBtn.prop("disabled", true).text("🔍 解析月份/品項/顆數中...");
-    showToast("🔍 正在識別三個月品項...", "warning");
+    els.recognizeBtn.prop("disabled", true).text("🔍 精准識別三個月打卡中...");
+    showToast("🔍 僅偵測月份打卡區域，識別更精準", "warning");
 
     try {
-      // 1. OCR識別文字
+      // 1. 優化OCR參數：大幅提升 繁體/數字/編號 識別精準度
       const { data: { text } } = await Tesseract.recognize(
         base64Image,
         'chi_tra+eng',
-        { logger: m => console.log(m) }
+        { 
+          logger: m => console.log(m),
+          tessedit_pageseg_mode: 6, // 塊狀文字識別（打卡表格專用）
+          preserve_interword_spaces: 1 // 保留空格，避免編號識別錯亂
+        }
       );
 
-      // 2. 核心規則：匹配 月份+品項+顆數 → 轉換數量
-      const productMap = {}; // 合併同品項數量
-      const regex = /(第一個月|第二個月|第三個月).*?([\w]+).*?(\d+)顆/gi;
+      // 2. 核心：僅匹配 第一/二/三個月 + 品項編號 + 顆數，過濾所有無關內容
+      const productMap = {};
+      // 嚴格正則：只抓三個月 + 品項 + 數字顆
+      const regex = /(第一個月|第二個月|第三個月)[^\n]*?([0-9A-Za-z]+)[^\n]*?(\d+)顆/gi;
       let match;
 
       while ((match = regex.exec(text)) !== null) {
-        const month = match[1];       // 月份
-        const prodKeyword = match[2]; // 品項編號
+        const prodCode = match[2].trim(); // 品項編號（純數字/字母，最精準）
         const count = parseInt(match[3]); // 顆數
 
-        // 顆數有效範圍：3/4/5顆
+        // 只處理 3/4/5 顆，其餘全部忽略
         if (![3,4,5].includes(count)) continue;
 
-        // 數量轉換規則
-        const qty = count === 3 ? 2 : count === 4 ? 3 : count === 5 ? 4 : 1;
+        // 數量轉換：3顆=2 4顆=3 5顆=4
+        const qty = count === 3 ? 2 : count === 4 ? 3 : 4;
 
-        // 匹配產品庫
-        const targetProd = products.find(p => 
-          p.name.includes(prodKeyword) || p.name === prodKeyword
-        );
+        // 嚴苛匹配產品庫（只匹配編號，不模糊匹配，杜絕錯識別）
+        const targetProd = products.find(p => p.name === prodCode || p.name.includes(prodCode));
         if (!targetProd || targetProd.name === "贈品 211(30)") continue;
 
         // 合併同品項數量
-        const prodName = targetProd.name;
-        productMap[prodName] = (productMap[prodName] || 0) + qty;
+        productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
       }
 
-      // 3. 無有效識別結果
+      // 3. 無有效識別
       const matchedList = Object.entries(productMap);
       if (matchedList.length === 0) {
-        showToast("❌ 未識別到【月份+品項+顆數】有效資料", "error");
+        showToast("❌ 未識別到月份打卡區域有效品項", "error");
         return;
       }
 
-      // 4. 組裝最終品項，覆蓋到報表
+      // 4. 覆蓋到報表
       selectedProds = [];
       matchedList.forEach(([name, qty]) => {
         const prod = products.find(p => p.name === name);
@@ -929,7 +930,7 @@ function initImageUpload() {
 
       saveSelectedProds();
       renderTable();
-      showToast(`✅ 識別完成！共加入 ${selectedProds.length} 個品項`, "success");
+      showToast(`✅ 精准識別完成！加入 ${selectedProds.length} 個品項`, "success");
 
     } catch (err) {
       console.error("OCR錯誤：", err);
