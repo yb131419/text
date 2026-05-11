@@ -368,7 +368,7 @@ body{
 #reportTable td:nth-child(5),
 #reportTable td:nth-child(6){
   font-size:10px;
-  font-weight:500;
+  font-weight:50;
   text-align:center!important;
 }
 
@@ -402,14 +402,42 @@ body{
 .summaryBox .extra{display:block;font-size:1rem;color:var(--accent);margin-top:4px;}
 .summaryBox .done{color:#4caf50;font-weight:bold;}
 #totalPriceCellDup,#totalPvCellDup,#pvDiff2{display:inline-block;min-width:50px;text-align:center;}
-#inputArea{display:flex;flex-direction:column;gap:8px;margin:10px 0 20px 0;display:block;width:100%;max-width:600px;}
+
+/* 修正按鈕組排版 對齊代碼二 */
+#inputArea{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin:10px 0 20px 0;
+  width:100%;
+  max-width:600px;
+}
 @media (min-width:576px){#inputArea{flex-direction:row;align-items:center;}}
 #nameInput,#qtyInput{
   background:#2c2c2c;color:var(--text);flex:1;text-align:center;padding:10px 8px;
   font-size:16px;border-radius:6px;border:none;
 }
 #qtyInput{font-size:16px!important;font-weight:bold;}
-#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn{flex:1;min-width:80px;margin:0;}
+
+/* 核心修正：按鈕組樣式 完全對齊代碼二 */
+.button-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:center;
+  margin:8px 0;
+  width:100%;
+  max-width:600px;
+}
+.button-group .btn-lg {
+  flex: 1 1 calc(33.333% - 4px);
+  max-width: calc(33.333% - 4px);
+}
+.button-group .btn-md {
+  flex: 1 1 calc(50% - 4px);
+  max-width: calc(50% - 4px);
+}
+
 #previewImage{display:none;width:100%!important;max-width:600px;margin:10px auto!important;border:2px solid #888;border-radius:8px;image-rendering:-webkit-optimize-contrast;object-fit:contain;}
 #shareToLineBtn,#nativeShareBtn,#clearImageBtn{display:none;}
 #buyerInput,#calculatorDisplay{
@@ -450,24 +478,6 @@ body{
   background:linear-gradient(145deg,#ff6b6b,#e53939);transform:translateY(-2px);
   box-shadow:0 4px 12px rgba(255,82,82,0.3);
 }
-.button-group{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  justify-content:center;
-  margin:8px 0;
-  display:block;
-  width:100%;
-  max-width:600px;
-}
-.button-group .btn-lg {
-  flex: 1 1 calc(33.333% - 4px);
-  max-width: calc(33.333% - 4px);
-}
-.button-group .btn-md {
-  flex: 1 1 calc(50% - 4px);
-  max-width: calc(50% - 4px);
-}
 .toast-highlight-name {
   background: linear-gradient(135deg, #ffd700, #f9c700, #e6b800);
   -webkit-background-clip: text;
@@ -493,7 +503,7 @@ body{
 </head>
 <body>
 
-<!-- ============== AI辨識高質感浮窗（新增）============== -->
+<!-- ============== AI辨識高質感浮窗（新增）============== */ -->
 <div id="ocrOverlay">
   <div class="ocr-loader"></div>
   <div class="ocr-text">🔍 AI 產品辨識中</div>
@@ -560,6 +570,8 @@ body{
 </div>
 
 <img id="previewImage" alt="預覽匯出圖片" />
+
+<!-- 修正後按鈕組 對齊代碼二 -->
 <div class="button-group">
   <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
   <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
@@ -568,6 +580,7 @@ body{
   <button id="clearImageBtn" class="btn btn-grey btn-md">❌<br>清除圖片</button>
 </div>
 
+<!-- 修正後輸入區 -->
 <div id="inputArea">
   <select id="nameInput"></select>
   <select id="qtyInput"></select>
@@ -1020,7 +1033,6 @@ function showToast(msg, type = "success") {
   setTimeout(() => toast.addClass("show"), 10);
   setTimeout(() => toast.remove(), 3000);
 }
-
 </script>
 </body>
 </html>
