@@ -89,9 +89,10 @@ body{
   max-width: 100%;
   max-height: 200px;
   border-radius: 8px;
-  margin-top: 10px;
+  margin: 10px auto !important; /* 强制居中 */
   display: none;
   cursor: zoom-in;
+  display: block; /* 块级元素保证居中 */
 }
 #recognizeBtn {
   margin-top: 10px;
@@ -866,56 +867,68 @@ function initImageUpload() {
   }
 
   // 🔥 修复版：AI辨識的 fetch 請求（彻底解决跨域）
-els.recognizeBtn.click(async () => {
-  if (!base64Image) {
-    showToast("❌ 請先上傳產品圖片", "error");
-    return;
-  }
-
-  const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
-  const displayName = els.calculatorDisplay.val() || "使用者";
-
-  els.ocrOverlay.show();
-  els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
-  showToast("🔍 正在調用 AI辨識報表...", "warning");
-
-  try {
-    // ✅ 修复：绝对不要加 mode: 'no-cors'（会导致无法获取响应数据）
-    const res = await fetch(GAS_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify({
-        action: "ocrCalc",
-        img: base64Image,
-        userId: userId,
-        displayName: displayName
-      })
-    });
-
-    const result = await res.json();
-
-    if (result.error) {
-      showToast(`❌ ${result.error}`, "error");
-      return;
-    }
-    if (result.status === "exceeded") {
-      showToast("❌ 使用次數不足", "error");
-      return;
-    }
-    if (!result.products || result.products.length === 0) {
-      showToast("❌ 未識別到產品，請重新拍攝", "error");
+  els.recognizeBtn.click(async () => {
+    if (!base64Image) {
+      showToast("❌ 請先上傳產品圖片", "error");
       return;
     }
 
-    // ...後續邏輯省略
-  } catch (err) {
-    console.error("OCR請求失敗：", err);
-    showToast("❌ 網路錯誤/跨域異常，請重試", "error");
-  } finally {
-    els.ocrOverlay.hide();
-    els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
-  }
-})
+    const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
+    const displayName = els.calculatorDisplay.val() || "使用者";
+
+    els.ocrOverlay.show();
+    els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
+    showToast("🔍 正在調用 AI辨識報表...", "warning");
+
+    try {
+      const res = await fetch(GAS_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({
+          action: "ocrCalc",
+          img: base64Image,
+          userId: userId,
+          displayName: displayName
+        })
+      });
+
+      const result = await res.json();
+
+      if (result.error) {
+        showToast(`❌ ${result.error}`, "error");
+        return;
+      }
+      if (result.status === "exceeded") {
+        showToast("❌ 使用次數不足", "error");
+        return;
+      }
+      if (!result.products || result.products.length === 0) {
+        showToast("❌ 未識別到產品，請重新拍攝", "error");
+        return;
+      }
+
+      // ✅ 修复：补全识别后自动添加产品到表格（核心缺失逻辑）
+      selectedProds = [];
+      result.products.forEach(item => {
+        const prod = products.find(p => p.name === item.name);
+        if (prod) {
+          selectedProds.push({ ...prod, qty: item.qty });
+        }
+      });
+      saveSelectedProds();
+      renderTable();
+      showToast(`✅ 識別成功！共加入 ${result.products.length} 個品項`, "success");
+
+    } catch (err) {
+      console.error("OCR請求失敗：", err);
+      showToast("❌ 網路錯誤/跨域異常，請重試", "error");
+    } finally {
+      els.ocrOverlay.hide();
+      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+    }
+  });
+} 
+
 
 // 加入產品
 function addProduct() {
@@ -938,6 +951,8 @@ function addProduct() {
   renderTable();
   showToast("✅ 加入成功");
 }
+
+
 
 // 渲染表格
 function renderTable() {
