@@ -867,7 +867,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // ✅ 修复版：OCR产品识别（解决编号识别不符问题）
+  // ✅ 终极修复版：OCR产品识别（解决编号不符+语法错误）
 els.recognizeBtn.click(async () => {
   if (!base64Image) {
     showToast("❌ 請先上傳產品圖片", "error");
@@ -878,7 +878,7 @@ els.recognizeBtn.click(async () => {
   els.recognizeBtn.prop("disabled", true).text("🔍 識別中，請稍候...");
 
   try {
-    // OCR识别（繁體+英文，优化手写/印刷体）
+    // OCR识别（纯英文，数字识别更精准）
     const { data: { text } } = await Tesseract.recognize(
       base64Image,
       'eng',
@@ -890,45 +890,43 @@ els.recognizeBtn.click(async () => {
     );
 
     console.log("OCR原始識別文本：", text);
-    // 🔥 核心修复1：清理所有噪点！去除符号、空格、换行、乱码，只留字母数字
+    // 核心修复1：清理所有噪点，只保留字母数字
     const cleanText = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     console.log("清理後文本：", cleanText);
     const productMap = {};
 
-    // 🔥 核心修复2：精准匹配【康园3位数字产品编号】+ 颗数（容错率拉满）
-    // 匹配规则：3位数字(211/300/299) + 后面的数字(颗数)
+    // 核心修复2：匹配3位数字编号 + 颗数
     const regex = /(\d{3})(\d{1,2})/g;
     let match;
 
     while ((match = regex.exec(cleanText)) !== null) {
-      const prodCode = match[1]; // 核心：3位产品编号（211、300、299）
-      const count = parseInt(match[2]); // 颗数
+      const prodCode = match[1];
+      const count = parseInt(match[2]);
 
-      // 过滤无效颗数（只保留2-5颗，符合你的使用场景）
+      // 过滤无效数量
       if (isNaN(count) || count < 2 || count > 5) continue;
 
-      // 🔥 核心修复3：数量转换规则（3→2 /4→3 /5→4 /2→2）
+      // 数量转换规则
       let qty = count;
       if (count === 3) qty = 2;
       else if (count === 4) qty = 3;
       else if (count === 5) qty = 4;
 
-      // 🔥 核心修复4：模糊匹配产品库（无视后缀，只匹配3位核心编号）
+      // 匹配产品库
       const targetProd = products.find(p => p.name.includes(prodCode));
       if (!targetProd || targetProd.name === "贈品 211(30)") continue;
 
-      // 累加数量
       productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
     }
 
-    // 无匹配结果提示
+    // 结果处理
     const matchedList = Object.entries(productMap);
     if (matchedList.length === 0) {
       showToast("❌ 未識別到有效產品編號", "error");
       return;
     }
 
-    // 清空并添加识别到的产品
+    // 刷新产品列表
     selectedProds = [];
     matchedList.forEach(([name, qty]) => {
       const prod = products.find(p => p.name === name);
@@ -943,6 +941,7 @@ els.recognizeBtn.click(async () => {
     console.error("OCR錯誤：", err);
     showToast("❌ 識別失敗，請重試", "error");
   } finally {
+    // 恢复按钮状态
     els.ocrOverlay.hide();
     els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
   }
