@@ -867,7 +867,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // 🔥 纯本地OCR辨識（零网络/零跨域/零异常）
+  // 🔥 修正：月份+品項+顆數 精準識別（3顆=2/4顆=3/5顆=4）
   els.recognizeBtn.click(async () => {
     if (!base64Image) {
       showToast("❌ 請先上傳產品圖片", "error");
@@ -875,46 +875,65 @@ function initImageUpload() {
     }
 
     els.ocrOverlay.show();
-    els.recognizeBtn.prop("disabled", true).text("🔍 本地辨識中...");
-    showToast("🔍 正在本地識別產品...", "warning");
+    els.recognizeBtn.prop("disabled", true).text("🔍 解析月份/品項/顆數中...");
+    showToast("🔍 正在識別三個月品項...", "warning");
 
     try {
-      // 1. 本地OCR识别图片文字
+      // 1. OCR識別文字
       const { data: { text } } = await Tesseract.recognize(
         base64Image,
-        'chi_tra+eng', // 繁體+英文识别
+        'chi_tra+eng',
         { logger: m => console.log(m) }
       );
 
-      // 2. 匹配本地产品库（自动识别产品）
-      const matchedProducts = [];
-      const ocrText = text.replace(/\s+/g, ''); // 去除空格统一匹配
-      products.forEach(prod => {
-        const prodName = prod.name.replace(/\s+/g, '');
-        if (ocrText.includes(prodName) && prodName !== "贈品 211(30)") {
-          matchedProducts.push({ name: prod.name, qty: 1 });
-        }
-      });
+      // 2. 核心規則：匹配 月份+品項+顆數 → 轉換數量
+      const productMap = {}; // 合併同品項數量
+      const regex = /(第一個月|第二個月|第三個月).*?([\w]+).*?(\d+)顆/gi;
+      let match;
 
-      // 3. 无识别结果处理
-      if (matchedProducts.length === 0) {
-        showToast("❌ 未識別到產品，請重新拍攝", "error");
+      while ((match = regex.exec(text)) !== null) {
+        const month = match[1];       // 月份
+        const prodKeyword = match[2]; // 品項編號
+        const count = parseInt(match[3]); // 顆數
+
+        // 顆數有效範圍：3/4/5顆
+        if (![3,4,5].includes(count)) continue;
+
+        // 數量轉換規則
+        const qty = count === 3 ? 2 : count === 4 ? 3 : count === 5 ? 4 : 1;
+
+        // 匹配產品庫
+        const targetProd = products.find(p => 
+          p.name.includes(prodKeyword) || p.name === prodKeyword
+        );
+        if (!targetProd || targetProd.name === "贈品 211(30)") continue;
+
+        // 合併同品項數量
+        const prodName = targetProd.name;
+        productMap[prodName] = (productMap[prodName] || 0) + qty;
+      }
+
+      // 3. 無有效識別結果
+      const matchedList = Object.entries(productMap);
+      if (matchedList.length === 0) {
+        showToast("❌ 未識別到【月份+品項+顆數】有效資料", "error");
         return;
       }
 
-      // 4. 自动添加到报表
+      // 4. 組裝最終品項，覆蓋到報表
       selectedProds = [];
-      matchedProducts.forEach(item => {
-        const prod = products.find(p => p.name === item.name);
-        if (prod) selectedProds.push({ ...prod, qty: item.qty });
+      matchedList.forEach(([name, qty]) => {
+        const prod = products.find(p => p.name === name);
+        if (prod) selectedProds.push({ ...prod, qty });
       });
+
       saveSelectedProds();
       renderTable();
-      showToast(`✅ 本地識別成功！加入 ${matchedProducts.length} 個品項`, "success");
+      showToast(`✅ 識別完成！共加入 ${selectedProds.length} 個品項`, "success");
 
     } catch (err) {
-      console.error("本地OCR错误：", err);
-      showToast("❌ 圖片識別失敗，請重試", "error");
+      console.error("OCR錯誤：", err);
+      showToast("❌ 識別失敗，請重試", "error");
     } finally {
       els.ocrOverlay.hide();
       els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
