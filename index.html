@@ -551,7 +551,7 @@ body{
 <div id="ocrOverlay">
   <div class="ocr-loader"></div>
   <div class="ocr-text">🔍 圖片文字辨識中</div>
-  <div class="ocr-subtext">請稍後不要關閉...</div>
+  <div class="ocr-subtext">本地OCR讀取圖片...</div>
 </div>
 
 <div class="upload-area" onclick="document.getElementById('imgUpload').click()">
@@ -678,12 +678,10 @@ window.addEventListener('DOMContentLoaded', () => {
   initPeriodBox();
   bindEvents();
   initImageUpload();
-  // 🔥 删除远程验证，直接加载本地产品
-  loadProductList();
+  verifyUser();
   setupLineName();
   loadSelectedProds();
   renderTable();
-  showToast("🌿 系統載入完成");
 });
 
 // 初始化元素
@@ -871,59 +869,55 @@ async function runLocalOCR() {
     // 載入繁體中文語言包 + 執行OCR
     const result = await Tesseract.recognize(
       base64Image,
-      'chi_tra',
+      'chi_tra', // 繁體中文
       { logger: m => console.log(m) }
     );
 
     const text = result.data.text;
     console.log("OCR辨識文字：", text);
+
+    // 🔴 修复：清空原有数据，优化识别逻辑
     selectedProds = []; 
+    const lines = text.split(/\n/).map(line => line.trim().replace(/\s+/g, '')) // 去除所有空格
+                      .filter(line => line.length > 1); // 过滤空行/短行
+    
+    // 放宽匹配规则：不强制依赖月份，直接全局匹配产品+数量
+    const qtyRegex = /(\d+)[顆粒pc份個]/i; // 匹配数字+单位
 
-    // 🔥 你的规则：数量转换
-    const qtyConvertMap = { 3: 2, 4: 3, 5: 4 };
-    // 🔥 优先识别：第一/二/三个月
-    const monthKeywords = ['第一個月', '第二個月', '第三個月'];
-    const lines = text.split(/\n/).map(line => line.trim().replace(/\s+/g, '')).filter(line => line.length > 2);
-
-    // 遍历识别行
     lines.forEach(line => {
-      // 1. 只处理包含月份的行（优先识别）
-      const isMonthLine = monthKeywords.some(kw => line.includes(kw));
-      if (!isMonthLine) return;
+      let qty = 1;
+      // 提取数量（兜底：匹配不到数量默认1）
+      const qtyMatch = line.match(qtyRegex);
+      if (qtyMatch) {
+        qty = parseInt(qtyMatch[1]) || 1;
+      }
 
-      // 2. 提取颗数（双验证：必须有数量）
-      const qtyMatch = line.match(/(\d+)[顆粒]/);
-      if (!qtyMatch) return;
-      const rawQty = parseInt(qtyMatch[1]);
-      
-      // 3. 数量转换
-      const finalQty = qtyConvertMap[rawQty] || rawQty;
-      if (finalQty <= 0) return;
-
-      // 4. 匹配本地产品
-      products.forEach(prod => {
-        const prodName = prod.name.replace(/\s+/g, '');
-        const currentLine = line.replace(/\s+/g, '');
+      // 🔴 修复：模糊匹配产品（忽略空格/符号，强制匹配）
+      products.forEach(p => {
+        const productName = p.name.trim().replace(/\s+/g, '');
+        const productDispName = (p.displayName || '').trim().replace(/\s+/g, '');
         
-        if (currentLine.includes(prodName)) {
-          // 5. 合并三个月的品项
-          const exist = selectedProds.find(x => x.name === prod.name);
+        // 只要包含产品名称就匹配
+        if (line.includes(productName) || line.includes(productDispName)) {
+          const exist = selectedProds.find(x => x.name === p.name);
           if (exist) {
-            exist.qty += finalQty;
+            exist.qty += qty;
           } else {
-            selectedProds.push({ ...prod, qty: finalQty });
+            selectedProds.push({ ...p, qty });
           }
         }
       });
     });
 
+    // 强制保存+渲染（修复未触发更新的问题）
     saveSelectedProds();
     renderTable();
     
+    // 状态提示
     if(selectedProds.length > 0){
-      showToast(`✅ 辨識完成！自動合併三個月品項，共 ${selectedProds.length} 項`);
+      showToast(`✅ 辨識完成，自動加入 ${selectedProds.length} 個品項`);
     }else{
-      showToast("⚠️ 未識別到有效品項，請重新拍攝", "warning");
+      showToast("⚠️ 未識別到產品，請確認圖片內容", "warning");
     }
   } catch (err) {
     showToast("❌ 辨識失敗：" + err.message, "error");
