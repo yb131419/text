@@ -876,18 +876,47 @@ async function runLocalOCR() {
     const text = result.data.text;
     console.log("OCR辨識文字：", text);
 
-    // 自動比對產品名稱，加入報表
-    selectedProds = [];
-    products.forEach(p => {
-      // 模糊匹配：圖片文字包含產品名稱就自動加入
-      if(text.includes(p.name) || text.includes(p.displayName)){
-        selectedProds.push({ ...p, qty: 1 });
+    // 🔴 改造：識別 第一/二/三個月 區域的 品項 + 顆數
+    selectedProds = []; // 清空原有數據
+    const lines = text.split(/\n/).map(line => line.trim()).filter(line => line);
+    
+    // 規則：匹配月份 + 產品編號/名稱 + 顆數（數字）
+    const monthRegex = /第一個月|第二個月|第三個月/;
+    const qtyRegex = /(\d+)顆|(\d+)粒|(\d+)pc/i;
+    let currentMonth = false;
+
+    lines.forEach(line => {
+      // 檢測是否進入月份區域
+      if (monthRegex.test(line)) {
+        currentMonth = true;
+        return;
       }
+      if (!currentMonth) return;
+
+      // 提取數量（顆數）
+      let qty = 1;
+      const qtyMatch = line.match(qtyRegex);
+      if (qtyMatch) {
+        qty = parseInt(qtyMatch[1] || qtyMatch[2] || qtyMatch[3]) || 1;
+      }
+
+      // 匹配產品名稱/編號
+      products.forEach(p => {
+        if (line.includes(p.name) || line.includes(p.displayName)) {
+          // 避免重複添加
+          const exist = selectedProds.find(x => x.name === p.name);
+          if (exist) {
+            exist.qty += qty;
+          } else {
+            selectedProds.push({ ...p, qty });
+          }
+        }
+      });
     });
 
     saveSelectedProds();
     renderTable();
-    showToast("✅ 圖片辨識完成，已自動加入");
+    showToast("✅ 月份品項辨識完成，已自動加入報表");
   } catch (err) {
     showToast("❌ 辨識失敗：" + err.message, "error");
   } finally {
