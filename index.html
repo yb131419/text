@@ -785,87 +785,81 @@ function initImageUpload() {
   });
 
   // AI辨識
-  els.recognizeBtn.click(async () => {
-    if (!base64Image) {
-      showToast("❌ 請先上傳產品圖片", "error");
+els.recognizeBtn.click(async () => {
+  if (!base64Image) {
+    showToast("❌ 請先上傳產品圖片", "error");
+    return;
+  }
+
+  const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
+  const displayName = els.calculatorDisplay.val() || "使用者";
+
+  els.ocrOverlay.show();
+  els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
+  showToast("🔍 正在調用 AI辨識報表...", "warning");
+
+  try {
+    const res = await fetch(GAS_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }, // 🔥 修复：添加请求头
+      body: JSON.stringify({
+        action: "ocrCalc",
+        img: base64Image,
+        userId: userId,
+        displayName: displayName
+      }),
+    });
+
+    const result = await res.json();
+
+    // 🔥 修复：统一错误处理
+    if (result.error) {
+      showToast(`❌ ${result.error}`, "error");
+      return;
+    }
+    if (result.status === "exceeded") {
+      showToast("❌ 使用次數不足", "error");
+      return;
+    }
+    if (!result.products || result.products.length === 0) {
+      showToast("❌ 未識別到產品，請重新拍攝", "error");
       return;
     }
 
-    const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
-    const displayName = els.calculatorDisplay.val() || "使用者";
+    selectedProds = [];
+    // 🔥 修复：超级模糊匹配，兼容AI识别名称差异
+    result.products.forEach(aiItem => {
+      const aiName = (aiItem.name || "").toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
+      const aiQty = aiItem.qty || 1;
+      if (!aiName) return;
 
-    els.ocrOverlay.show();
-    els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
-    showToast("🔍 正在調用 AI辨識報表...", "warning");
-
-    try {
-      const res = await fetch(GAS_API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "ocrCalc",
-          img: base64Image,
-          userId: userId,
-          displayName: displayName
-        }),
+      // 模糊匹配本地产品库
+      const foundProd = products.find(p => {
+        const pName = p.name.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
+        return pName.includes(aiName) || aiName.includes(pName);
       });
 
-      const result = await res.json();
-
-      if (result.status === "exceeded" || result.error) {
-        const msg = result.message || result.error || "❌ 辨識失敗";
-        showToast(msg, "error");
-        return;
+      if (foundProd) {
+        const exist = selectedProds.find(x => x.name === foundProd.name);
+        if (exist) exist.qty += aiQty;
+        else selectedProds.push({ ...foundProd, qty: aiQty });
       }
+    });
 
-      if (!result.products || result.products.length === 0) {
-        showToast("❌ 未識別到任何產品，請重新拍攝", "error");
-        return;
-      }
+    saveSelectedProds();
+    renderTable();
+    els.cashOption.prop('checked', true).trigger('change');
+    showToast(`✅ AI辨識成功！加入 ${selectedProds.length} 個產品`, "success");
 
-      selectedProds = [];
-      const formatName = (str) => str.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '').trim().toLowerCase();
-      const localProducts = products.map(p => ({
-        ...p,
-        matchKey: formatName(p.name)
-      }));
+  } catch (err) {
+    console.error("OCR請求失敗：", err);
+    showToast("❌ 網路錯誤，請重試", "error");
+  } finally {
+    els.ocrOverlay.hide();
+    els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+  }
+});
 
-      result.products.forEach(aiItem => {
-        if (!aiItem.name) return;
-        const aiKey = formatName(aiItem.name);
-        const qty = aiItem.qty || 1;
-
-        const found = localProducts.find(p => 
-          p.matchKey.includes(aiKey) || aiKey.includes(p.matchKey)
-        );
-
-        if (found) {
-          const exist = selectedProds.find(x => x.name === found.name);
-          if (exist) {
-            exist.qty += qty;
-          } else {
-            selectedProds.push({ ...found, qty });
-          }
-        }
-      });
-
-      selectedProds = selectedProds.filter((p, i, self) => 
-        self.findIndex(x => x.name === p.name) === i
-      );
-
-      saveSelectedProds();
-      renderTable();
-      els.cashOption.prop('checked', true).trigger('change');
-      showToast(`✅ AI辨識成功！共加入 ${selectedProds.length} 個產品`, "success");
-
-    } catch (err) {
-      console.error("OCR請求失敗：", err);
-      showToast("❌ 網路錯誤，請重試", "error");
-    } finally {
-      els.ocrOverlay.hide();
-      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
-    }
-  });
-}
 
 // 加入產品
 function addProduct() {
