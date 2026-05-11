@@ -709,6 +709,7 @@ let lineName = '';
 let els = {};
 let TARGET_PV220 = 220000;
 let TARGET_PV300 = 300000;
+let base64Image = ""; // 修复：全局图片变量
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
 
 // ==================== DOM 加載完成 ====================
@@ -825,8 +826,6 @@ function loadProductList() {
 
 // ==================== 圖片上傳 + 拖曳 + AI辨識 ====================
 function initImageUpload() {
-  let base64Image = "";
-  
   // 拖曳上傳功能
   const uploadArea = els.uploadArea[0];
   uploadArea.addEventListener('dragenter', (e) => {
@@ -867,85 +866,84 @@ function initImageUpload() {
   }
 
   // 🔥 修复后：AI辨識的 fetch 請求
-els.recognizeBtn.click(async () => {
-  if (!base64Image) {
-    showToast("❌ 請先上傳產品圖片", "error");
-    return;
-  }
-
-  const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
-  const displayName = els.calculatorDisplay.val() || "使用者";
-
-  els.ocrOverlay.show();
-  els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
-  showToast("🔍 正在調用 AI辨識報表...", "warning");
-
-  try {
-    // 🔥【修复2】添加跨域模式 + 超时 + 标准配置
-    const res = await fetch(GAS_API_URL, {
-      method: "POST",
-      mode: 'cors', // 关键：开启跨域
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "ocrCalc",
-        img: base64Image,
-        userId: userId,
-        displayName: displayName
-      }),
-      signal: AbortSignal.timeout(40000) // 超时40秒（匹配GAS超时）
-    });
-
-    const result = await res.json();
-
-    if (result.error) {
-      showToast(`❌ ${result.error}`, "error");
-      return;
-    }
-    if (result.status === "exceeded") {
-      showToast("❌ 使用次數不足", "error");
-      return;
-    }
-    if (!result.products || result.products.length === 0) {
-      showToast("❌ 未識別到產品，請重新拍攝", "error");
+  els.recognizeBtn.click(async () => {
+    if (!base64Image) {
+      showToast("❌ 請先上傳產品圖片", "error");
       return;
     }
 
-    selectedProds = [];
-    result.products.forEach(aiItem => {
-      const aiName = (aiItem.name || "").toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
-      const aiQty = aiItem.qty || 1;
-      if (!aiName) return;
+    const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
+    const displayName = els.calculatorDisplay.val() || "使用者";
 
-      const foundProd = products.find(p => {
-        const pName = p.name.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
-        return pName.includes(aiName) || aiName.includes(pName);
+    els.ocrOverlay.show();
+    els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
+    showToast("🔍 正在調用 AI辨識報表...", "warning");
+
+    try {
+      const res = await fetch(GAS_API_URL, {
+        method: "POST",
+        mode: 'cors',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ocrCalc",
+          img: base64Image,
+          userId: userId,
+          displayName: displayName
+        }),
+        signal: AbortSignal.timeout(40000)
       });
 
-      if (foundProd) {
-        const exist = selectedProds.find(x => x.name === foundProd.name);
-        if (exist) exist.qty += aiQty;
-        else selectedProds.push({ ...foundProd, qty: aiQty });
+      const result = await res.json();
+
+      if (result.error) {
+        showToast(`❌ ${result.error}`, "error");
+        return;
       }
-    });
+      if (result.status === "exceeded") {
+        showToast("❌ 使用次數不足", "error");
+        return;
+      }
+      if (!result.products || result.products.length === 0) {
+        showToast("❌ 未識別到產品，請重新拍攝", "error");
+        return;
+      }
 
-    saveSelectedProds();
-    renderTable();
-    els.cashOption.prop('checked', true).trigger('change');
-    showToast(`✅ AI辨識成功！加入 ${selectedProds.length} 個產品`, "success");
+      selectedProds = [];
+      result.products.forEach(aiItem => {
+        const aiName = (aiItem.name || "").toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
+        const aiQty = aiItem.qty || 1;
+        if (!aiName) return;
 
-  } catch (err) {
-    console.error("OCR請求失敗：", err);
-    // 🔥【修复3】精准报错，不再只显示网络错误
-    if (err.name === 'TimeoutError') {
-      showToast("❌ 請求超時，請重新拍攝清晰照片", "error");
-    } else {
-      showToast("❌ 網路/跨域錯誤，請重試", "error");
+        const foundProd = products.find(p => {
+          const pName = p.name.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
+          return pName.includes(aiName) || aiName.includes(pName);
+        });
+
+        if (foundProd) {
+          const exist = selectedProds.find(x => x.name === foundProd.name);
+          if (exist) exist.qty += aiQty;
+          else selectedProds.push({ ...foundProd, qty: aiQty });
+        }
+      });
+
+      saveSelectedProds();
+      renderTable();
+      els.cashOption.prop('checked', true).trigger('change');
+      showToast(`✅ AI辨識成功！加入 ${selectedProds.length} 個產品`, "success");
+
+    } catch (err) {
+      console.error("OCR請求失敗：", err);
+      if (err.name === 'TimeoutError') {
+        showToast("❌ 請求超時，請重新拍攝清晰照片", "error");
+      } else {
+        showToast("❌ 網路/跨域錯誤，請重試", "error");
+      }
+    } finally {
+      els.ocrOverlay.hide();
+      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
     }
-  } finally {
-    els.ocrOverlay.hide();
-    els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
-  }
-})
+  });
+}
 
 // 加入產品
 function addProduct() {
