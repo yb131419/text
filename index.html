@@ -867,7 +867,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // 🔥 适配手写表单：仅识别三个月列的手写编号+颗数
+  // ✅ 修复版：仅识别三个月手写区域 + 编号 + 颗数 + 自动转换
   els.recognizeBtn.click(async () => {
     if (!base64Image) {
       showToast("❌ 請先上傳產品圖片", "error");
@@ -879,50 +879,48 @@ function initImageUpload() {
     showToast("🎯 鎖定：三個月手寫填寫區", "warning");
 
     try {
-      // 关键优化：适配手写字体+表格布局的OCR参数
+      // 优化OCR参数：完全适配手写表格，取消字符限制
       const { data: { text } } = await Tesseract.recognize(
         base64Image,
         'chi_tra+eng',
         { 
           logger: m => console.log(m),
-          tessedit_pageseg_mode: 11, // 手写体+分散文字识别模式
-          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz第一個月第二個月第三個月顆', // 只识别需要的字符，减少干扰
-          preserve_interword_spaces: 0,
-          user_defined_dpi: 300 // 提升手写清晰度识别
+          tessedit_pageseg_mode: 6, // 表格块状识别，最稳定
+          user_defined_dpi: 300
         }
       );
 
+      console.log("OCR识别文本：", text); // 调试用，可看识别结果
       const productMap = {};
-      // 核心正则：适配手写表单的三个月+编号+颗数（兼容手写潦草/空格）
-      const regex = /(第一個月|第二個月|第三個月)[\s\S]*?([0-9A-Za-z]+)[\s\S]*?(\d+)顆|(第一個月|第二個月|第三個月)[\s\S]*?(\d+)[\s\S]*?([0-9A-Za-z]+)/gi;
+
+      // ✅ 核心修复：极简正则，只匹配【三个月 + 编号 + 颗数】，兼容所有手写排版
+      const regex = /(第一個月|第二個月|第三個月).*?([0-9A-Za-z]+).*?(\d+)/gi;
       let match;
 
       while ((match = regex.exec(text)) !== null) {
-        // 兼容两种手写顺序：编号在前/颗数在前
-        const prodCode = match[2] || match[6]; // 品项编号（手写数字/字母）
-        const count = parseInt(match[3] || match[5]); // 颗数
+        const prodCode = match[2].trim();  // 产品编号（211/300/299A）
+        const count = parseInt(match[3]);  // 颗数
 
-        // 过滤无效颗数（只处理2/3/4/5颗，适配你的表单）
-        if (![2,3,4,5].includes(count) || !prodCode) continue;
+        // 只保留有效颗数 2/3/4/5
+        if (isNaN(count) || ![2,3,4,5].includes(count) || !prodCode) continue;
 
-        // 数量转换规则（严格按你的需求）：3顆=2 /4顆=3 /5顆=4 /2顆=2
+        // 数量转换规则：3颗=2 /4颗=3 /5颗=4 /2颗=2
         let qty = count;
         if (count === 3) qty = 2;
         else if (count === 4) qty = 3;
         else if (count === 5) qty = 4;
 
-        // 匹配产品库（兼容手写编号模糊，如211A写成211a/211）
+        // 匹配产品库
         const targetProd = products.find(p => 
-          p.name.replace(/\(|\)|限|盒|組/g, '').includes(prodCode.toUpperCase()) || 
-          p.name.includes(prodCode)
+          p.name.includes(prodCode.toUpperCase())
         );
         if (!targetProd || targetProd.name === "贈品 211(30)") continue;
 
-        // 合并同品项数量（三个月重复品项自动累加）
+        // 累加数量
         productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
       }
 
-      // 无有效识别结果
+      // 结果处理
       const matchedList = Object.entries(productMap);
       if (matchedList.length === 0) {
         showToast("❌ 未識別到三個月手寫編號/顆數", "error");
@@ -941,8 +939,8 @@ function initImageUpload() {
       showToast(`✅ 手寫識別完成！加入 ${selectedProds.length} 個品項`, "success");
 
     } catch (err) {
-      console.error("OCR手寫識別錯誤：", err);
-      showToast("❌ 手寫識別失敗，請確認圖片清晰", "error");
+      console.error("OCR錯誤：", err);
+      showToast("❌ 識別失敗，請確認圖片清晰", "error");
     } finally {
       els.ocrOverlay.hide();
       els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
