@@ -876,34 +876,29 @@ async function runLocalOCR() {
     const text = result.data.text;
     console.log("OCR辨識文字：", text);
 
-    // 🔴 改造：識別 第一/二/三個月 區域的 品項 + 顆數
-    selectedProds = []; // 清空原有數據
-    const lines = text.split(/\n/).map(line => line.trim()).filter(line => line);
+    // 🔴 修复：清空原有数据，优化识别逻辑
+    selectedProds = []; 
+    const lines = text.split(/\n/).map(line => line.trim().replace(/\s+/g, '')) // 去除所有空格
+                      .filter(line => line.length > 1); // 过滤空行/短行
     
-    // 規則：匹配月份 + 產品編號/名稱 + 顆數（數字）
-    const monthRegex = /第一個月|第二個月|第三個月/;
-    const qtyRegex = /(\d+)顆|(\d+)粒|(\d+)pc/i;
-    let currentMonth = false;
+    // 放宽匹配规则：不强制依赖月份，直接全局匹配产品+数量
+    const qtyRegex = /(\d+)[顆粒pc份個]/i; // 匹配数字+单位
 
     lines.forEach(line => {
-      // 檢測是否進入月份區域
-      if (monthRegex.test(line)) {
-        currentMonth = true;
-        return;
-      }
-      if (!currentMonth) return;
-
-      // 提取數量（顆數）
       let qty = 1;
+      // 提取数量（兜底：匹配不到数量默认1）
       const qtyMatch = line.match(qtyRegex);
       if (qtyMatch) {
-        qty = parseInt(qtyMatch[1] || qtyMatch[2] || qtyMatch[3]) || 1;
+        qty = parseInt(qtyMatch[1]) || 1;
       }
 
-      // 匹配產品名稱/編號
+      // 🔴 修复：模糊匹配产品（忽略空格/符号，强制匹配）
       products.forEach(p => {
-        if (line.includes(p.name) || line.includes(p.displayName)) {
-          // 避免重複添加
+        const productName = p.name.trim().replace(/\s+/g, '');
+        const productDispName = (p.displayName || '').trim().replace(/\s+/g, '');
+        
+        // 只要包含产品名称就匹配
+        if (line.includes(productName) || line.includes(productDispName)) {
           const exist = selectedProds.find(x => x.name === p.name);
           if (exist) {
             exist.qty += qty;
@@ -914,16 +909,25 @@ async function runLocalOCR() {
       });
     });
 
+    // 强制保存+渲染（修复未触发更新的问题）
     saveSelectedProds();
     renderTable();
-    showToast("✅ 月份品項辨識完成，已自動加入報表");
+    
+    // 状态提示
+    if(selectedProds.length > 0){
+      showToast(`✅ 辨識完成，自動加入 ${selectedProds.length} 個品項`);
+    }else{
+      showToast("⚠️ 未識別到產品，請確認圖片內容", "warning");
+    }
   } catch (err) {
     showToast("❌ 辨識失敗：" + err.message, "error");
+    console.error("OCR错误：", err);
   } finally {
     els.ocrOverlay.hide();
     els.recognizeBtn.prop("disabled", false).text("🔍 開始圖片文字辨識");
   }
 }
+
 
 // 加入產品
 function addProduct() {
