@@ -6,8 +6,6 @@
 <title>彥彬🌿試算系統</title>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<!-- 引入前端本地OCR：Tesseract.js + 繁體中文包 -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <style>
 :root{
   --bg:#0f0f0f;--panel-bg:#1a1a1a;--text:#e0e0e0;--accent:#00d1b2;
@@ -51,6 +49,7 @@ body{
 }
 .hidden { display: none !important; }
 
+/* 圖片上傳區樣式 */
 .upload-area {
   width: 100%;
   max-width: 600px;
@@ -68,6 +67,7 @@ body{
   background: #2a2a2a;
   transform: scale(1.02);
 }
+/* 新增：強制上傳標題置中 */
 .upload-area h3 {
   text-align: center !important;
   margin: 0 0 10px 0;
@@ -89,16 +89,17 @@ body{
   max-width: 100%;
   max-height: 200px;
   border-radius: 8px;
-  margin: 10px auto !important;
+  margin: 10px auto !important; /* 强制居中 */
   display: none;
   cursor: zoom-in;
-  display: block;
+  display: block; /* 块级元素保证居中 */
 }
 #recognizeBtn {
   margin-top: 10px;
   display: none;
 }
 
+/* 全屏原圖預覽遮罩 */
 #fullImageOverlay {
   position: fixed;
   top: 0;
@@ -122,6 +123,7 @@ body{
   box-shadow: 0 0 30px rgba(0,209,178,0.3);
 }
 
+/* ============== AI辨識高質感浮窗遮罩（新增）============== */
 #ocrOverlay {
   position: fixed;
   top: 0;
@@ -438,6 +440,7 @@ body{
 .summaryBox .done{color:#4caf50;font-weight:bold;}
 #totalPriceCellDup,#totalPvCellDup,#pvDiff2{display:inline-block;min-width:50px;text-align:center;}
 
+/* 修正按鈕組排版 對齊代碼二 */
 #inputArea{
   display:flex;
   flex-direction:column;
@@ -453,6 +456,7 @@ body{
 }
 #qtyInput{font-size:16px!important;font-weight:bold;}
 
+/* 核心修正：按鈕組樣式 完全對齊代碼二 */
 .button-group{
   display:flex;
   flex-wrap:wrap;
@@ -536,31 +540,26 @@ body{
 </head>
 <body>
 
-<div id="authContainer">
-  <div id="authLoading">
-    <div class="loader"></div>
-    <h3>正在驗證用戶權限</h3>
-    <p>請稍候，系統啟動中...</p>
-  </div>
-</div>
-
+<!-- 全屏原圖預覽 -->
 <div id="fullImageOverlay">
   <img id="fullPreviewImg" alt="原圖預覽">
 </div>
 
+<!-- ============== AI辨識高質感浮窗（新增）============== */ -->
 <div id="ocrOverlay">
   <div class="ocr-loader"></div>
-  <div class="ocr-text">🔍 圖片文字辨識中</div>
-  <div class="ocr-subtext">本地OCR讀取圖片...</div>
+  <div class="ocr-text">🔍 AI 產品辨識中</div>
+  <div class="ocr-subtext">請稍候，正在解析圖片內容...</div>
 </div>
 
+<!-- 圖片上傳區 -->
 <div class="upload-area" onclick="document.getElementById('imgUpload').click()">
   <h3>📷 上傳產品圖片自動辨識</h3>
   <p>點擊上傳 / 拖曳圖片進來</p>
   <input type="file" id="imgUpload" accept="image/*">
   <img id="previewUploadImg" alt="預覽圖">
 </div>
-<button id="recognizeBtn" class="btn btn-primary btn-md">🔍 開始圖片文字辨識</button>
+<button id="recognizeBtn" class="btn btn-primary btn-md">🔍 開始AI辨識產品</button>
 
 <div id="captureArea">
   <div id="watermark">『彥彬🌿試算系統』</div><br>
@@ -614,6 +613,7 @@ body{
 
 <img id="previewImage" alt="預覽匯出圖片" />
 
+<!-- 修正後按鈕組 對齊代碼二 -->
 <div class="button-group">
   <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
   <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
@@ -622,6 +622,7 @@ body{
   <button id="clearImageBtn" class="btn btn-grey btn-md">❌<br>清除圖片</button>
 </div>
 
+<!-- 修正後輸入區 -->
 <div id="inputArea">
   <select id="nameInput"></select>
   <select id="qtyInput"></select>
@@ -631,45 +632,86 @@ body{
 <div class="spacer"></div>
 
 <script>
+// ==================== 產品資料庫（可自行編輯）====================
+const products = [
+  { name: "2711AB(1)限4盒", pv: 3600, price: 4880 },
+  { name: "限入會2711AB(4)限1組", pv: 12600, price: 17920 },
+  { name: "211", pv: 2160, price: 2960 },
+  { name: "300", pv: 2160, price: 2980 },
+  { name: "299A", pv: 2280, price: 3240 },
+  { name: "火山甘露_限4盒", pv: 2250, price: 3220 },
+  { name: "200", pv: 2280, price: 3240 },
+  { name: "201", pv: 2160, price: 2880 },
+  { name: "202", pv: 2160, price: 2880 },
+  { name: "205", pv: 2160, price: 2880 },
+  { name: "209", pv: 2280, price: 3240 },
+  { name: "210", pv: 2280, price: 3240 },
+  { name: "211A", pv: 2280, price: 3240 },
+  { name: "220", pv: 2160, price: 2960 },
+  { name: "222", pv: 2280, price: 3240 },
+  { name: "233", pv: 2160, price: 2960 },
+  { name: "240", pv: 2160, price: 2960 },
+  { name: "255A", pv: 2280, price: 3240 },
+  { name: "260", pv: 2160, price: 2880 },
+  { name: "266", pv: 2160, price: 2880 },
+  { name: "268", pv: 2280, price: 3240 },
+  { name: "270", pv: 2280, price: 3240 },
+  { name: "280", pv: 2160, price: 2880 },
+  { name: "286", pv: 2160, price: 2880 },
+  { name: "288", pv: 2160, price: 2880 },
+  { name: "289", pv: 2280, price: 3240 },
+  { name: "290", pv: 2160, price: 2960 },
+  { name: "295", pv: 2160, price: 2980 },
+  { name: "299", pv: 2280, price: 3240 },
+  { name: "701", pv: 2160, price: 2980 },
+  { name: "702", pv: 2160, price: 2880 },
+  { name: "703", pv: 2160, price: 2880 },
+  { name: "705", pv: 2160, price: 2880 },
+  { name: "706", pv: 2160, price: 2880 },
+  { name: "707", pv: 2160, price: 2880 },
+  { name: "708", pv: 2280, price: 3240 },
+  { name: "747AB", pv: 2880, price: 4000 },
+  { name: "777Q", pv: 3600, price: 4880 },
+  { name: "777Q(4)限2組", pv: 12600, price: 17920 },
+  { name: "大女王", pv: 7680, price: 10240 },
+  { name: "極樂鳥", pv: 2880, price: 4000 },
+  { name: "101", pv: 2160, price: 2880 },
+  { name: "111", pv: 2400, price: 3400 },
+  { name: "168", pv: 2280, price: 3240 },
+  { name: "金色果(2）", pv: 2000, price: 3040 },
+  { name: "海神泥", pv: 2250, price: 3050 },
+  { name: "復甦精華露", pv: 2160, price: 2960 },
+  { name: "潔面乳", pv: 1350, price: 1880 },
+  { name: "玫瑰化妝水", pv: 1350, price: 1880 },
+  { name: "植萃粉底乳", pv: 800, price: 1120 },
+  { name: "彼拉提斯精油", pv: 2160, price: 2960 },
+  { name: "命運9號（2)", pv: 9720, price: 12960 },
+  { name: "冰晶球（大）", pv: 4050, price: 5550 },
+  { name: "冰晶球（小）", pv: 3900, price: 5350 },
+  { name: "親密潔淨露 (3)", pv: 3150, price: 4320 },
+  { name: "密集保濕精華液", pv: 2100, price: 2880 },
+  { name: "保濕澎潤日霜", pv: 1350, price: 1800 },
+  { name: "閃耀眼膜", pv: 2100, price: 2880 },
+  { name: "深層保濕再生精萃", pv: 1050, price: 1450 },
+  { name: "保濕全能日霜", pv: 2100, price: 2880 },
+  { name: "水光肌黃金精萃", pv: 2900, price: 3980 },
+  { name: "青春眼膠", pv: 1350, price: 1880 },
+  { name: "紓壓晚霜", pv: 2100, price: 2960 },
+  { name: "緊緻濃縮精華液", pv: 3000, price: 4080 },
+  { name: "逆齡晚霜", pv: 4050, price: 5550 },
+  { name: "淡斑修護霜", pv: 2000, price: 2700 },
+  { name: "逆齡眼霜", pv: 2100, price: 2880 },
+  { name: "贈品 211(30)", pv: 0, price: 0 }
+];
+
 // ==================== 全域變數 ====================
 let selectedProds = [];
 let lineName = '';
 let els = {};
 let TARGET_PV220 = 220000;
 let TARGET_PV300 = 300000;
-let base64Image = "";
+let base64Image = ""; // 修复：全局图片变量
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
-let products = [];
-
-// ==================== JSONP 核心跨域解決方案 ====================
-function jsonp(url, callback, timeout = 10000) {
-  const callbackName = 'jsonp_' + Date.now() + Math.random().toString(36).substr(2, 8);
-  let timer = null;
-
-  window[callbackName] = function(data) {
-    clearTimeout(timer);
-    callback(data);
-    delete window[callbackName];
-    document.body.removeChild(script);
-  };
-
-  const script = document.createElement('script');
-  script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
-  
-  timer = setTimeout(() => {
-    delete window[callbackName];
-    document.body.removeChild(script);
-    callback({ error: '网络请求超时' });
-  }, timeout);
-
-  script.onerror = function() {
-    clearTimeout(timer);
-    delete window[callbackName];
-    document.body.removeChild(script);
-    callback({ error: '网络请求失败' });
-  };
-  document.body.appendChild(script);
-}
 
 // ==================== DOM 加載完成 ====================
 window.addEventListener('DOMContentLoaded', () => {
@@ -678,16 +720,16 @@ window.addEventListener('DOMContentLoaded', () => {
   initPeriodBox();
   bindEvents();
   initImageUpload();
-  verifyUser();
+  loadProductList();
   setupLineName();
   loadSelectedProds();
   renderTable();
+  showToast("🌿 系統載入完成");
 });
 
 // 初始化元素
 function initElements() {
   els = {
-    authContainer: $("#authContainer"),
     nameInput: $("#nameInput"),
     qtyInput: $("#qtyInput"),
     addBtn: $("#addBtn"),
@@ -760,6 +802,7 @@ function bindEvents() {
     renderTable();
   });
 
+  // 點擊預覽圖放大顯示原圖
   els.previewUploadImg.click(function(){
     const src = $(this).attr("src");
     if(src){
@@ -768,24 +811,9 @@ function bindEvents() {
     }
   });
 
+  // 點擊遮罩關閉全屏預覽
   els.fullImageOverlay.click(function(){
     els.fullImageOverlay.fadeOut(200);
-  });
-
-  // 綁定【本地OCR辨識】按鈕
-  els.recognizeBtn.click(runLocalOCR);
-}
-
-// ==================== 載入產品資料 ====================
-function fetchAllProducts() {
-  jsonp(`${GAS_API_URL}?action=all`, function(data) {
-    if (data.error) {
-      showToast("❌ 載入產品失敗：" + data.error, "error");
-      return;
-    }
-    products = data;
-    loadProductList();
-    showToast("✅ 產品資料載入完成");
   });
 }
 
@@ -793,31 +821,13 @@ function fetchAllProducts() {
 function loadProductList() {
   els.nameInput.empty();
   products.forEach(p => {
-    els.nameInput.append(`<option value="${p.name}">${p.displayName || p.name}</option>`);
+    els.nameInput.append(`<option value="${p.name}">${p.name}</option>`);
   });
 }
 
-// ==================== 用戶驗證 ====================
-function verifyUser() {
-  const userId = encodeURIComponent(localStorage.getItem("lineUserId") || "user_" + Date.now());
-  const displayName = encodeURIComponent(els.calculatorDisplay.val() || "使用者");
-
-  jsonp(`${GAS_API_URL}?action=verifyUser&userId=${userId}&displayName=${displayName}`, function(data) {
-    if (data.status === "exceeded") {
-      showToast("❌ 次數已用盡", "error");
-    } else if (data.userId) {
-      localStorage.setItem("lineUserId", decodeURIComponent(data.userId));
-      showToast(data.message);
-    } else if (data.error) {
-      showToast("❌ " + data.error, "error");
-    }
-    els.authContainer.hide();
-    fetchAllProducts();
-  });
-}
-
-// ==================== 圖片上傳 ====================
+// ==================== 圖片上傳 + 拖曳 + AI辨識 ====================
 function initImageUpload() {
+  // 拖曳上傳功能
   const uploadArea = els.uploadArea[0];
   uploadArea.addEventListener('dragenter', (e) => {
     e.preventDefault();
@@ -839,11 +849,13 @@ function initImageUpload() {
     }
   });
 
+  // 點擊上傳功能
   els.imgUpload.change(function (e) {
     const file = e.target.files[0];
     if(file) handleImageFile(file);
   });
 
+  // 處理圖片文件（原圖讀取）
   function handleImageFile(file){
     const reader = new FileReader();
     reader.onload = function (ev) {
@@ -853,80 +865,69 @@ function initImageUpload() {
     };
     reader.readAsDataURL(file);
   }
-}
 
-// ==================== 核心：前端本地OCR（Tesseract.js 繁體辨識）====================
-async function runLocalOCR() {
-  if (!base64Image) {
-    showToast("❌ 請先上傳產品圖片", "error");
-    return;
-  }
+  // 🔥 修复版：AI辨識的 fetch 請求（彻底解决跨域）
+  els.recognizeBtn.click(async () => {
+    if (!base64Image) {
+      showToast("❌ 請先上傳產品圖片", "error");
+      return;
+    }
 
-  els.ocrOverlay.show();
-  els.recognizeBtn.prop("disabled", true).text("🔍 辨識中...");
+    const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
+    const displayName = els.calculatorDisplay.val() || "使用者";
 
-  try {
-    // 載入繁體中文語言包 + 執行OCR
-    const result = await Tesseract.recognize(
-      base64Image,
-      'chi_tra', // 繁體中文
-      { logger: m => console.log(m) }
-    );
+    els.ocrOverlay.show();
+    els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
+    showToast("🔍 正在調用 AI辨識報表...", "warning");
 
-    const text = result.data.text;
-    console.log("OCR辨識文字：", text);
+    try {
+      const res = await fetch(GAS_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({
+          action: "ocrCalc",
+          img: base64Image,
+          userId: userId,
+          displayName: displayName
+        })
+      });
 
-    // 🔴 修复：清空原有数据，优化识别逻辑
-    selectedProds = []; 
-    const lines = text.split(/\n/).map(line => line.trim().replace(/\s+/g, '')) // 去除所有空格
-                      .filter(line => line.length > 1); // 过滤空行/短行
-    
-    // 放宽匹配规则：不强制依赖月份，直接全局匹配产品+数量
-    const qtyRegex = /(\d+)[顆粒pc份個]/i; // 匹配数字+单位
+      const result = await res.json();
 
-    lines.forEach(line => {
-      let qty = 1;
-      // 提取数量（兜底：匹配不到数量默认1）
-      const qtyMatch = line.match(qtyRegex);
-      if (qtyMatch) {
-        qty = parseInt(qtyMatch[1]) || 1;
+      if (result.error) {
+        showToast(`❌ ${result.error}`, "error");
+        return;
+      }
+      if (result.status === "exceeded") {
+        showToast("❌ 使用次數不足", "error");
+        return;
+      }
+      if (!result.products || result.products.length === 0) {
+        showToast("❌ 未識別到產品，請重新拍攝", "error");
+        return;
       }
 
-      // 🔴 修复：模糊匹配产品（忽略空格/符号，强制匹配）
-      products.forEach(p => {
-        const productName = p.name.trim().replace(/\s+/g, '');
-        const productDispName = (p.displayName || '').trim().replace(/\s+/g, '');
-        
-        // 只要包含产品名称就匹配
-        if (line.includes(productName) || line.includes(productDispName)) {
-          const exist = selectedProds.find(x => x.name === p.name);
-          if (exist) {
-            exist.qty += qty;
-          } else {
-            selectedProds.push({ ...p, qty });
-          }
+      // ✅ 修复：补全识别后自动添加产品到表格（核心缺失逻辑）
+      selectedProds = [];
+      result.products.forEach(item => {
+        const prod = products.find(p => p.name === item.name);
+        if (prod) {
+          selectedProds.push({ ...prod, qty: item.qty });
         }
       });
-    });
+      saveSelectedProds();
+      renderTable();
+      showToast(`✅ 識別成功！共加入 ${result.products.length} 個品項`, "success");
 
-    // 强制保存+渲染（修复未触发更新的问题）
-    saveSelectedProds();
-    renderTable();
-    
-    // 状态提示
-    if(selectedProds.length > 0){
-      showToast(`✅ 辨識完成，自動加入 ${selectedProds.length} 個品項`);
-    }else{
-      showToast("⚠️ 未識別到產品，請確認圖片內容", "warning");
+    } catch (err) {
+      console.error("OCR請求失敗：", err);
+      showToast("❌ 網路錯誤/跨域異常，請重試", "error");
+    } finally {
+      els.ocrOverlay.hide();
+      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
     }
-  } catch (err) {
-    showToast("❌ 辨識失敗：" + err.message, "error");
-    console.error("OCR错误：", err);
-  } finally {
-    els.ocrOverlay.hide();
-    els.recognizeBtn.prop("disabled", false).text("🔍 開始圖片文字辨識");
-  }
-}
+  });
+} 
 
 
 // 加入產品
@@ -950,6 +951,8 @@ function addProduct() {
   renderTable();
   showToast("✅ 加入成功");
 }
+
+
 
 // 渲染表格
 function renderTable() {
@@ -975,7 +978,7 @@ function renderTable() {
         <td>${item.pv}</td>
         <td>${subtotalPrice}</td>
         <td>${subtotalPv}</td>
-        <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
+<td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
       </tr>`;
     els.reportBody.append(tr);
   });
