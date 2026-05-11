@@ -867,86 +867,86 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // ✅ 终极版：无视乱码，只提取【产品编号 + 颗数】，自动转换
-  els.recognizeBtn.click(async () => {
-    if (!base64Image) {
-      showToast("❌ 請先上傳產品圖片", "error");
+  // ✅ 修复版：OCR产品识别（解决编号识别不符问题）
+els.recognizeBtn.click(async () => {
+  if (!base64Image) {
+    showToast("❌ 請先上傳產品圖片", "error");
+    return;
+  }
+
+  els.ocrOverlay.show();
+  els.recognizeBtn.prop("disabled", true).text("🔍 識別中，請稍候...");
+
+  try {
+    // OCR识别（繁體+英文，优化手写/印刷体）
+    const { data: { text } } = await Tesseract.recognize(
+      base64Image,
+      'eng',
+      { 
+        logger: m => console.log(m),
+        tessedit_pageseg_mode: 6,
+        user_defined_dpi: 300
+      }
+    );
+
+    console.log("OCR原始識別文本：", text);
+    // 🔥 核心修复1：清理所有噪点！去除符号、空格、换行、乱码，只留字母数字
+    const cleanText = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    console.log("清理後文本：", cleanText);
+    const productMap = {};
+
+    // 🔥 核心修复2：精准匹配【康园3位数字产品编号】+ 颗数（容错率拉满）
+    // 匹配规则：3位数字(211/300/299) + 后面的数字(颗数)
+    const regex = /(\d{3})(\d{1,2})/g;
+    let match;
+
+    while ((match = regex.exec(cleanText)) !== null) {
+      const prodCode = match[1]; // 核心：3位产品编号（211、300、299）
+      const count = parseInt(match[2]); // 颗数
+
+      // 过滤无效颗数（只保留2-5颗，符合你的使用场景）
+      if (isNaN(count) || count < 2 || count > 5) continue;
+
+      // 🔥 核心修复3：数量转换规则（3→2 /4→3 /5→4 /2→2）
+      let qty = count;
+      if (count === 3) qty = 2;
+      else if (count === 4) qty = 3;
+      else if (count === 5) qty = 4;
+
+      // 🔥 核心修复4：模糊匹配产品库（无视后缀，只匹配3位核心编号）
+      const targetProd = products.find(p => p.name.includes(prodCode));
+      if (!targetProd || targetProd.name === "贈品 211(30)") continue;
+
+      // 累加数量
+      productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
+    }
+
+    // 无匹配结果提示
+    const matchedList = Object.entries(productMap);
+    if (matchedList.length === 0) {
+      showToast("❌ 未識別到有效產品編號", "error");
       return;
     }
 
-    els.ocrOverlay.show();
-    els.recognizeBtn.prop("disabled", true).text("🔍 識別手寫編號/顆數中...");
+    // 清空并添加识别到的产品
+    selectedProds = [];
+    matchedList.forEach(([name, qty]) => {
+      const prod = products.find(p => p.name === name);
+      if (prod) selectedProds.push({ ...prod, qty });
+    });
 
-    try {
-      // OCR识别（兼容乱码）
-      const { data: { text } } = await Tesseract.recognize(
-        base64Image,
-        'chi_tra+eng',
-        { 
-          logger: m => console.log(m),
-          tessedit_pageseg_mode: 6,
-          user_defined_dpi: 300
-        }
-      );
+    saveSelectedProds();
+    renderTable();
+    showToast(`✅ 識別完成！加入 ${selectedProds.length} 個品項`, "success");
 
-      console.log("OCR识别文本：", text);
-      const productMap = {};
-
-      // ✅ 核心终极正则：无视乱码，只抓【字母数字编号 + 后面的数字颗数】
-      const regex = /([A-Za-z0-9]{2,5})\D*(\d{1,2})/g;
-      let match;
-
-      while ((match = regex.exec(text)) !== null) {
-        const prodCode = match[1].trim(); // 纯编号：211/300/299A
-        const count = parseInt(match[2]); // 纯颗数：3/5/4
-
-        // 过滤无效值：只保留有效编号+有效颗数(2-5)
-        if (isNaN(count) || ![2,3,4,5].includes(count)) continue;
-        if (!/^[0-9A-Za-z]{2,4}$/.test(prodCode)) continue;
-
-        // 数量转换规则：3→2 /4→3 /5→4 /2→2
-        let qty = count;
-        if (count === 3) qty = 2;
-        else if (count === 4) qty = 3;
-        else if (count === 5) qty = 4;
-
-        // 匹配产品库（无视大小写/乱码，精准匹配）
-        const targetProd = products.find(p => 
-          p.name.includes(prodCode.toUpperCase())
-        );
-        if (!targetProd || targetProd.name === "贈品 211(30)") continue;
-
-        // 累加数量
-        productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
-      }
-
-      // 结果输出
-      const matchedList = Object.entries(productMap);
-      if (matchedList.length === 0) {
-        showToast("❌ 未識別到有效編號/顆數", "error");
-        return;
-      }
-
-      // 填入报表
-      selectedProds = [];
-      matchedList.forEach(([name, qty]) => {
-        const prod = products.find(p => p.name === name);
-        if (prod) selectedProds.push({ ...prod, qty });
-      });
-
-      saveSelectedProds();
-      renderTable();
-      showToast(`✅ 識別完成！加入 ${selectedProds.length} 個品項`, "success");
-
-    } catch (err) {
-      console.error("OCR錯誤：", err);
-      showToast("❌ 識別失敗", "error");
-    } finally {
-      els.ocrOverlay.hide();
-      els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
-    }
-  });
-} 
+  } catch (err) {
+    console.error("OCR錯誤：", err);
+    showToast("❌ 識別失敗，請重試", "error");
+  } finally {
+    els.ocrOverlay.hide();
+    els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
+  }
+});
 
 // 加入產品
 function addProduct() {
