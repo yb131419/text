@@ -867,7 +867,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // 🔥 鎖死識別範圍：僅偵測 第一/二/三個月 + ☑️打勾區域
+  // 🔥 終極版：僅偵測 第一/二/三個月 填寫區域，其餘全部忽略
   els.recognizeBtn.click(async () => {
     if (!base64Image) {
       showToast("❌ 請先上傳產品圖片", "error");
@@ -875,34 +875,33 @@ function initImageUpload() {
     }
 
     els.ocrOverlay.show();
-    els.recognizeBtn.prop("disabled", true).text("🔍 僅偵測月份打勾區域...");
-    showToast("🎯 鎖定：三個月☑️打卡區", "warning");
+    els.recognizeBtn.prop("disabled", true).text("🔍 僅偵測三個月填寫區...");
+    showToast("🎯 鎖定：第一/二/三個月欄位", "warning");
 
     try {
-      // OCR參數：表格打勾文字專用優化
+      // OCR優化：表格文字專用
       const { data: { text } } = await Tesseract.recognize(
         base64Image,
         'chi_tra+eng',
         { 
           logger: m => console.log(m),
-          tessedit_pageseg_mode: 6,
-          preserve_interword_spaces: 1
+          tessedit_pageseg_mode: 6
         }
       );
 
       const productMap = {};
-      // ✅ 核心鎖定：只匹配 月份 + ☑️打勾 + 品項 + 顆數
-      const regex = /(第一個月|第二個月|第三個月).*?(☑️|✓|✔|勾|打勾)[^\n]*?([0-9A-Za-z]+)[^\n]*?(\d+)顆/gi;
+      // 核心：只匹配三個月區域 + 品項 + 顆數，過濾所有無關內容
+      const regex = /(第一個月|第二個月|第三個月)[^\n]*?([0-9A-Za-z]+)[^\n]*?(\d+)顆/gi;
       let match;
 
       while ((match = regex.exec(text)) !== null) {
-        const prodCode = match[3].trim();
-        const count = parseInt(match[4]);
+        const prodCode = match[2].trim();
+        const count = parseInt(match[3]);
 
-        // 只允許3/4/5顆
+        // 只處理3/4/5顆
         if (![3,4,5].includes(count)) continue;
 
-        // 數量轉換
+        // 數量轉換：3顆=2 4顆=3 5顆=4
         const qty = count === 3 ? 2 : count === 4 ? 3 : 4;
 
         // 匹配產品庫
@@ -912,13 +911,14 @@ function initImageUpload() {
         productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
       }
 
-      // 結果處理
+      // 無結果提示
       const matchedList = Object.entries(productMap);
       if (matchedList.length === 0) {
-        showToast("❌ 未偵測到月份打勾區有效品項", "error");
+        showToast("❌ 未偵測到三個月欄位品項", "error");
         return;
       }
 
+      // 填入報表
       selectedProds = [];
       matchedList.forEach(([name, qty]) => {
         const prod = products.find(p => p.name === name);
@@ -927,7 +927,7 @@ function initImageUpload() {
 
       saveSelectedProds();
       renderTable();
-      showToast(`✅ 識別完成！僅加入勾選品項 ${selectedProds.length} 個`, "success");
+      showToast(`✅ 識別完成！加入 ${selectedProds.length} 個品項`, "success");
 
     } catch (err) {
       console.error("OCR錯誤：", err);
@@ -937,7 +937,7 @@ function initImageUpload() {
       els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
     }
   });
-}
+} 
 
 // 加入產品
 function addProduct() {
