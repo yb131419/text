@@ -62,6 +62,11 @@ body{
   background: #1a1a1a;
   margin: 5px 0;
 }
+.upload-area.drag-over {
+  border-color: var(--accent);
+  background: #2a2a2a;
+  transform: scale(1.02);
+}
 /* 新增：強制上傳標題置中 */
 .upload-area h3 {
   text-align: center !important;
@@ -86,10 +91,35 @@ body{
   border-radius: 8px;
   margin-top: 10px;
   display: none;
+  cursor: zoom-in;
 }
 #recognizeBtn {
   margin-top: 10px;
   display: none;
+}
+
+/* 全屏原圖預覽遮罩 */
+#fullImageOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0,0,0,0.95);
+  z-index: 999999;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: zoom-out;
+}
+#fullPreviewImg {
+  max-width: 95%;
+  max-height: 95vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 0 30px rgba(0,209,178,0.3);
 }
 
 /* ============== AI辨識高質感浮窗遮罩（新增）============== */
@@ -374,8 +404,8 @@ body{
 #reportTable td:nth-child(5),
 #reportTable td:nth-child(6){
   font-size:10px;
-  font-weight: 600; /* 修正：加粗，数字清晰 */
-  color:#374151; /* 深色，和品項文字完全一致 */
+  font-weight: 600;
+  color:#374151;
 }
 
 #reportTable thead{background:#555555;color:#fff;font-weight:600;text-align:center!important;}
@@ -508,6 +538,11 @@ body{
 </style>
 </head>
 <body>
+
+<!-- 全屏原圖預覽 -->
+<div id="fullImageOverlay">
+  <img id="fullPreviewImg" alt="原圖預覽">
+</div>
 
 <!-- ============== AI辨識高質感浮窗（新增）============== */ -->
 <div id="ocrOverlay">
@@ -717,7 +752,9 @@ function initElements() {
     previewUploadImg: $("#previewUploadImg"),
     recognizeBtn: $("#recognizeBtn"),
     uploadArea: $(".upload-area"),
-    ocrOverlay: $("#ocrOverlay")
+    ocrOverlay: $("#ocrOverlay"),
+    fullImageOverlay: $("#fullImageOverlay"),
+    fullPreviewImg: $("#fullPreviewImg")
   };
 }
 
@@ -762,6 +799,20 @@ function bindEvents() {
     saveSelectedProds();
     renderTable();
   });
+
+  // 點擊預覽圖放大顯示原圖
+  els.previewUploadImg.click(function(){
+    const src = $(this).attr("src");
+    if(src){
+      els.fullPreviewImg.attr("src", src);
+      els.fullImageOverlay.fadeIn(200);
+    }
+  });
+
+  // 點擊遮罩關閉全屏預覽
+  els.fullImageOverlay.click(function(){
+    els.fullImageOverlay.fadeOut(200);
+  });
 }
 
 // 載入產品清單
@@ -772,14 +823,40 @@ function loadProductList() {
   });
 }
 
-// ==================== 圖片上傳 + AI辨識 ====================
+// ==================== 圖片上傳 + 拖曳 + AI辨識 ====================
 function initImageUpload() {
   let base64Image = "";
   
-  // 圖片上傳預覽
+  // 拖曳上傳功能
+  const uploadArea = els.uploadArea[0];
+  uploadArea.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    els.uploadArea.addClass('drag-over');
+  });
+  uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    els.uploadArea.addClass('drag-over');
+  });
+  uploadArea.addEventListener('dragleave', () => {
+    els.uploadArea.removeClass('drag-over');
+  });
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    els.uploadArea.removeClass('drag-over');
+    const file = e.dataTransfer.files[0];
+    if(file && file.type.startsWith('image/')){
+      handleImageFile(file);
+    }
+  });
+
+  // 點擊上傳功能
   els.imgUpload.change(function (e) {
     const file = e.target.files[0];
-    if (!file) return;
+    if(file) handleImageFile(file);
+  });
+
+  // 處理圖片文件（原圖讀取）
+  function handleImageFile(file){
     const reader = new FileReader();
     reader.onload = function (ev) {
       base64Image = ev.target.result;
@@ -787,85 +864,82 @@ function initImageUpload() {
       els.recognizeBtn.show();
     };
     reader.readAsDataURL(file);
-  });
+  }
 
   // AI辨識
-els.recognizeBtn.click(async () => {
-  if (!base64Image) {
-    showToast("❌ 請先上傳產品圖片", "error");
-    return;
-  }
-
-  const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
-  const displayName = els.calculatorDisplay.val() || "使用者";
-
-  els.ocrOverlay.show();
-  els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
-  showToast("🔍 正在調用 AI辨識報表...", "warning");
-
-  try {
-    const res = await fetch(GAS_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" }, // 🔥 修复：添加请求头
-      body: JSON.stringify({
-        action: "ocrCalc",
-        img: base64Image,
-        userId: userId,
-        displayName: displayName
-      }),
-    });
-
-    const result = await res.json();
-
-    // 🔥 修复：统一错误处理
-    if (result.error) {
-      showToast(`❌ ${result.error}`, "error");
-      return;
-    }
-    if (result.status === "exceeded") {
-      showToast("❌ 使用次數不足", "error");
-      return;
-    }
-    if (!result.products || result.products.length === 0) {
-      showToast("❌ 未識別到產品，請重新拍攝", "error");
+  els.recognizeBtn.click(async () => {
+    if (!base64Image) {
+      showToast("❌ 請先上傳產品圖片", "error");
       return;
     }
 
-    selectedProds = [];
-    // 🔥 修复：超级模糊匹配，兼容AI识别名称差异
-    result.products.forEach(aiItem => {
-      const aiName = (aiItem.name || "").toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
-      const aiQty = aiItem.qty || 1;
-      if (!aiName) return;
+    const userId = localStorage.getItem("lineUserId") || "temp_user_" + Date.now();
+    const displayName = els.calculatorDisplay.val() || "使用者";
 
-      // 模糊匹配本地产品库
-      const foundProd = products.find(p => {
-        const pName = p.name.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
-        return pName.includes(aiName) || aiName.includes(pName);
+    els.ocrOverlay.show();
+    els.recognizeBtn.prop("disabled", true).text("🔍 AI辨識中...");
+    showToast("🔍 正在調用 AI辨識報表...", "warning");
+
+    try {
+      const res = await fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ocrCalc",
+          img: base64Image,
+          userId: userId,
+          displayName: displayName
+        }),
       });
 
-      if (foundProd) {
-        const exist = selectedProds.find(x => x.name === foundProd.name);
-        if (exist) exist.qty += aiQty;
-        else selectedProds.push({ ...foundProd, qty: aiQty });
+      const result = await res.json();
+
+      if (result.error) {
+        showToast(`❌ ${result.error}`, "error");
+        return;
       }
-    });
+      if (result.status === "exceeded") {
+        showToast("❌ 使用次數不足", "error");
+        return;
+      }
+      if (!result.products || result.products.length === 0) {
+        showToast("❌ 未識別到產品，請重新拍攝", "error");
+        return;
+      }
 
-    saveSelectedProds();
-    renderTable();
-    els.cashOption.prop('checked', true).trigger('change');
-    showToast(`✅ AI辨識成功！加入 ${selectedProds.length} 個產品`, "success");
+      selectedProds = [];
+      result.products.forEach(aiItem => {
+        const aiName = (aiItem.name || "").toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
+        const aiQty = aiItem.qty || 1;
+        if (!aiName) return;
 
-  } catch (err) {
-    console.error("OCR請求失敗：", err);
-    showToast("❌ 網路錯誤，請重試", "error");
-  } finally {
-    els.ocrOverlay.hide();
-    els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
-  }
-  })
+        const foundProd = products.find(p => {
+          const pName = p.name.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, "");
+          return pName.includes(aiName) || aiName.includes(pName);
+        });
+
+        if (foundProd) {
+          const exist = selectedProds.find(x => x.name === foundProd.name);
+          if (exist) exist.qty += aiQty;
+          else selectedProds.push({ ...foundProd, qty: aiQty });
+        }
+      });
+
+      saveSelectedProds();
+      renderTable();
+      els.cashOption.prop('checked', true).trigger('change');
+      showToast(`✅ AI辨識成功！加入 ${selectedProds.length} 個產品`, "success");
+
+    } catch (err) {
+      console.error("OCR請求失敗：", err);
+      showToast("❌ 網路錯誤，請重試", "error");
+    } finally {
+      els.ocrOverlay.hide();
+      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+    }
+  });
 }
-
 
 // 加入產品
 function addProduct() {
