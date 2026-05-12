@@ -861,7 +861,7 @@ function initImageUpload() {
         'chi_tra+eng',
         { 
           logger: () => {},
-          tessedit_pageseg_mode: 6
+          tessedit_pageseg_mode: 13
         }
       );
 
@@ -885,24 +885,26 @@ function initImageUpload() {
         return 1; // 默认数量1
       }
 
-      // ====================== 4. 提取产品编号（支持 255A / 2711AB 字母+数字） ======================
-      function extractProducts(section) {
-        const productsList = [];
-        if (!section) return productsList;
+      // ====================== 4. 專門提取【手寫純數字編號】 ======================
+function extractProducts(section) {
+  const productsList = [];
+  if (!section) return productsList;
 
-        // 正则：精准匹配 数字+字母 组合（255A、2711AB、777Q）
-        const codeRegex = /[0-9]+[A-Za-z]*/g;
-        const qtyRegex = /[345]/g; // 匹配3/4/5 数量
-        
-        const codes = section.match(codeRegex) || [];
-        const qtys = section.match(qtyRegex) || [];
+  // 🔥 核心修正：只匹配手寫連續數字（最適合手寫編號識別）
+  const codeRegex = /\d+/g;
+  // 匹配數量規則
+  const qtyRegex = /[345]/g;
+  
+  // 提取所有手寫數字編號
+  const codes = section.match(codeRegex) || [];
+  const qtys = section.match(qtyRegex) || [];
 
-        codes.forEach((code, index) => {
-          const qty = qtys[index] ? getConvertedQty(qtys[index]) : 1;
-          productsList.push({ code: code.trim(), qty });
-        });
-        return productsList;
-      }
+  codes.forEach((code, index) => {
+    const qty = qtys[index] ? getConvertedQty(qtys[index]) : 1;
+    productsList.push({ code: code.trim(), qty });
+  });
+  return productsList;
+}
 
       // ====================== 5. 提取三个月所有产品 ======================
       const allMonthProducts = [
@@ -917,23 +919,21 @@ function initImageUpload() {
       }
 
       // ====================== 6. 匹配产品库 + 合并去重 ======================
-      selectedProds = [];
-      const matchedMap = new Map();
+      // 🔥 核心修正：優化匹配手寫數字編號，精準對應產品
+allMonthProducts.forEach(item => {
+  const targetProd = products.find(prod => 
+    // 匹配產品名中的數字編號（手寫核心）
+    prod.name.includes(item.code) && prod.name !== "贈品 211(30)"
+  );
 
-      allMonthProducts.forEach(item => {
-        const targetProd = products.find(prod => 
-          prod.name.toUpperCase().includes(item.code) && prod.name !== "贈品 211(30)"
-        );
-
-        if (targetProd) {
-          if (matchedMap.has(targetProd.name)) {
-            // 累加数量
-            matchedMap.get(targetProd.name).qty += item.qty;
-          } else {
-            matchedMap.set(targetProd.name, { ...targetProd, qty: item.qty });
-          }
-        }
-      });
+  if (targetProd) {
+    if (matchedMap.has(targetProd.name)) {
+      matchedMap.get(targetProd.name).qty += item.qty;
+    } else {
+      matchedMap.set(targetProd.name, { ...targetProd, qty: item.qty });
+    }
+  }
+});
 
       // 转换为数组
       selectedProds = Array.from(matchedMap.values());
