@@ -480,8 +480,8 @@ body{
 <div class="button-group">
   <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
   <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
-  <!-- 新增AI圖片識別按鈕 -->
-  <button id="uploadImageBtn" class="btn btn-purple btn-lg">🖼️<br>上傳圖片</button>
+  <!-- AI圖片識別按鈕：上傳圖片 → 載入照片 -->
+  <button id="uploadImageBtn" class="btn btn-purple btn-lg">🖼️<br>載入照片</button>
   <button id="ocrRecognitionBtn" class="btn btn-primary btn-md">🤖<br>AI識別</button>
   
   <button id="shareToLineBtn" class="btn btn-primary btn-md">📱<br>安卓分享</button>
@@ -627,7 +627,7 @@ function handleImageSelect(e) {
   if (!file) return;
 
   if (!file.type.startsWith("image/")) {
-    showToast("❌ 請選擇圖片文件", "error");
+    showToast("❌ 請選擇照片文件", "error");
     return;
   }
 
@@ -637,7 +637,8 @@ function handleImageSelect(e) {
     els.ocrPreview.src = selectedImageBase64;
     els.ocrPreview.style.display = "block";
     els.ocrRecognitionBtn.style.display = "inline-block";
-    showToast("✅ 圖片上傳成功，點擊AI識別", "success");
+    // ✅ 修改：照片載入成功
+    showToast("✅ 照片載入成功，點擊AI識別", "success");
   };
   reader.readAsDataURL(file);
 }
@@ -649,7 +650,8 @@ function startOcrRecognition() {
     return;
   }
   if (!selectedImageBase64) {
-    showToast("❌ 請先上傳圖片", "warning");
+    // ✅ 修改：請先載入照片
+    showToast("❌ 請先載入照片", "warning");
     return;
   }
 
@@ -686,7 +688,7 @@ function startOcrRecognition() {
     }
   };
 
-  // JSONP請求GAS OCR接口
+  // JSONP請求GAS OCR接口（完全保留，跨域無問題）
   $.ajax({
     url: API_URL,
     dataType: "jsonp",
