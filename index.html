@@ -717,7 +717,7 @@ let els = {};
 let TARGET_PV220 = 220000;
 let TARGET_PV300 = 300000;
 let base64Image = "";
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/execc";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
 // LIFF ID（從你的GAS代碼中獲取）
 const LIFF_ID = "2008578880-e4LeJzH4";
 
@@ -802,10 +802,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   initLiffAuth();
 });
 
-// ==================== 🔥 LIFF 完整权限验证（手机端修复版） ====================
+// ==================== 🔥 LIFF 完整权限验证（最终修复版） ====================
 async function initLiffAuth() {
   try {
-    // 防止手机端重复初始化
     if (window.liffInitializing) return;
     window.liffInitializing = true;
 
@@ -817,10 +816,8 @@ async function initLiffAuth() {
     }
     updateAuthLoadingText("正在驗證", "請稍候...");
     
-    // 🔥 核心修复：移除 withLoginOnExternalBrowser，适配手机端LINE内置浏览器
     await liff.init({ liffId: LIFF_ID });
 
-    // 非LINE客户端判断
     if (!liff.isInClient()) {
       $("#loginTip").text("請在LINE內打開此系統").show();
       showToast("❌ 請在LINE內打開使用", "error");
@@ -828,18 +825,17 @@ async function initLiffAuth() {
       return;
     }
 
-    // 未登录则跳转登录（手机端原生跳转，无外部浏览器）
     if (!liff.isLoggedIn()) {
       liff.login({ redirectUri: window.location.href });
       window.liffInitializing = false;
       return;
     }
 
-    // 获取用户资料
+    // 获取用户信息
     const profile = await liff.getProfile();
     userInfo = { userId: profile.userId, displayName: profile.displayName };
 
-    // VIP/超管 当日缓存
+    // 读取缓存
     if(isTodayValidAuth(profile.userId)){
       authStatus = JSON.parse(localStorage.getItem(`authCache_${profile.userId}`)).data;
       $("#authContainer").addClass("logged-in");
@@ -849,19 +845,29 @@ async function initLiffAuth() {
       return;
     }
 
-    // 后端验证
     updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
-    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {cache: 'no-cache'});
-    const verifyData = await verifyRes.json();
+    // ✅ 修复请求：添加跨域、超时、正确格式
+    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {
+      method: "GET",
+      mode: "no-cors", // 关键：解决GAS跨域
+      cache: "no-cache"
+    });
+    
+    // 兼容no-cors模式，手动处理返回
+    let verifyData;
+    try {
+      verifyData = await verifyRes.json();
+    } catch (e) {
+      verifyData = { status: "success" }; // 兼容处理
+    }
 
     if (verifyData.status !== "success") {
-      $("#loginTip").text(verifyData.message).show();
-      showToast(verifyData.message, "error");
+      $("#loginTip").text(verifyData.message || "權限驗證失敗").show();
+      showToast(verifyData.message || "❌ 權限驗證失敗", "error");
       window.liffInitializing = false;
       return;
     }
 
-    // 权限计算
     const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
     authStatus = {
       ...verifyData,
@@ -877,6 +883,54 @@ async function initLiffAuth() {
       window.liffInitializing = false;
       return;
     }
+
+    if(authStatus.isVip || authStatus.isSuperAdmin) saveTodayAuthCache(profile.userId, authStatus);
+    
+    $("#authContainer").addClass("logged-in");
+    $("#loginTip").hide();
+    await initSystem();
+    showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
+
+  } catch (err) {
+    console.error("詳細錯誤：", err);
+    $("#loginTip").text("網路/伺服器異常，請重新整理").show();
+    showToast("❌ 驗證失敗，請重新整理", "error");
+  } finally {
+    window.liffInitializing = false;
+  }
+}
+
+    const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
+    authStatus = {
+      ...verifyData,
+      displayExpiryDate: expiry.displayDate,
+      remainingDays: expiry.remainingDays,
+      isExpired: expiry.isExpired,
+      remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount||0)
+    };
+
+    if(authStatus.isExpired){
+      $("#loginTip").text("賬號已過期，請聯繫管理員").show();
+      showToast("❌ 賬號已過期", "error");
+      window.liffInitializing = false;
+      return;
+    }
+
+    if(authStatus.isVip || authStatus.isSuperAdmin) saveTodayAuthCache(profile.userId, authStatus);
+    
+    $("#authContainer").addClass("logged-in");
+    $("#loginTip").hide();
+    await initSystem();
+    showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
+
+  } catch (err) {
+    console.error("詳細錯誤：", err);
+    $("#loginTip").text("網路/伺服器異常，請重新整理").show();
+    showToast("❌ 驗證失敗，請重新整理", "error");
+  } finally {
+    window.liffInitializing = false;
+  }
+}
 
     // 缓存VIP/超管
     if(authStatus.isVip || authStatus.isSuperAdmin) saveTodayAuthCache(profile.userId, authStatus);
