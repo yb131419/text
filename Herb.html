@@ -179,19 +179,18 @@
         .nutrition-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 380px;
+            min-width: 420px;
         }
 
         .nutrition-table thead { background: var(--primary); color: white; }
         .nutrition-table th {
-            padding: 3px 1px !important;
+            padding: 4px 2px;
             border-right: 1px solid rgba(255,255,255,0.2);
             font-weight: 500;
-            white-space: nowrap;
         }
 
         .nutrition-table td {
-            padding: 3px 1px !important;
+            padding: 4px 2px;
             text-align: center;
             vertical-align: middle;
         }
@@ -199,38 +198,14 @@
         /* 🔥 產品編號欄位（整格）縮小 */
         .nutrition-table th:first-child,
         .nutrition-table td:first-child {
-            width: 85px !important;
+            width:  85px !important;
             max-width: 85px !important;
-        }
-
-        /* 🔥 顆數欄位 縮小 */
-        .nutrition-table th:nth-child(2),
-        .nutrition-table td:nth-child(2) {
-            width: 36px !important;
-            max-width: 36px !important;
-        }
-
-        /* 🔥 早 / 中 / 晚 欄位 縮小 */
-        .nutrition-table th:nth-child(3),
-        .nutrition-table td:nth-child(3),
-        .nutrition-table th:nth-child(4),
-        .nutrition-table td:nth-child(4),
-        .nutrition-table th:nth-child(5),
-        .nutrition-table td:nth-child(5) {
-            width: 26px !important;
-            max-width: 26px !important;
-        }
-
-        /* 🔥 刪除欄位 縮小 */
-        .nutrition-table th:last-child,
-        .nutrition-table td:last-child {
-            width: 32px !important;
-            max-width: 32px !important;
+            padding: 2px 1px !important;
         }
 
         /* 🔥 產品編號「輸入框」放大一點 + 靠左 */
         .edit-input.prod-name {
-            width: 80px !important;
+            width: 82px !important;
             height: 20px !important;
             text-align: left !important;
             padding-left: 4px !important;
@@ -240,7 +215,7 @@
 
         /* 顆數 */
         .edit-input:not(.prod-name) {
-            width: 32px !important;
+            width: 25px !important;
             height: 20px !important;
             text-align: center;
             border: 1px solid var(--gray);
@@ -264,7 +239,7 @@
         .check-btn.active { background: #FFF0F3; }
 
         .del-single-btn {
-            width: 28px !important;
+            width: 25px !important;
             height: 20px !important;
             padding: 0;
             background: var(--accent);
@@ -304,7 +279,7 @@
             </div>
             <div class="info-item">
                 <label>地點：</label>
-                <input type="text" id="location" placeholder="請輸入地點" value="">
+                <input type="text" id="location" placeholder="請輸入地點" value="金門">
             </div>
             <div class="info-item">
                 <label>入會：</label>
@@ -454,7 +429,7 @@
         const defaultProducts = {1: ["211","300","299A","211A"],2: ["211","300","299A"],3: ["211","300","299A"]};
         const addedProducts = {1:[],2:[],3:[]};
 
-        function loadTodayDate(){const now=new Date();const year=now.getFullYear()-1911;const month=now.getMonth()+1;const day=now.getDate();const week=['日','一','二','三','四','五','六'][now.getDay()];document.getElementById('date').value=`${year}.${month}.${day}(${week})`;}
+        function loadTodayDate(){const now=new Date();const year=now.getFullYear()-1911;const month=now.getMonth()+1;const day=now.getDate();const week=['日','一','二','三','四','五','六'][now.getDay()];document.getElementById('date').value=`${year}.${month}.${day}(${week})金門`;}
         function toggleCollapse(month){const content=document.getElementById(`collapseContent${month}`);const btn=document.getElementById(`collapseBtn${month}`);content.classList.toggle('show');btn.textContent=content.classList.contains('show')?'收起 ▲':'展開 ▼';}
         function renderAllTags(){[1,2,3].forEach(month=>{const container=document.getElementById(`tags${month}`);productList.forEach(item=>{const tag=document.createElement('div');tag.className='product-tag';tag.textContent=item;tag.dataset.product=item;tag.ondblclick=()=>addProductWithRow(month,item,tag);container.appendChild(tag);});});}
         function updateTagStyle(month,product,isAdded){const tags=document.querySelectorAll(`#tags${month} .product-tag`);tags.forEach(tag=>{if(tag.dataset.product===product){if(isAdded)tag.classList.add('added');else tag.classList.remove('added');}});}
