@@ -1320,7 +1320,12 @@ const verifyUserFromBackend=(profile)=>{
   return new Promise((resolve)=>{
     const callbackName=`verifyCallback_${Date.now()}`;
     window[callbackName]=function(resp){
-      delete window[callbackName];
+      try { delete window[callbackName]; } catch(e){}
+      if(!resp){
+        showError("伺服器無回應，請稍後重試");
+        resolve(null);
+        return;
+      }
       if(resp.status==="exceeded"){
         showError(resp.message);
         resolve(null);
@@ -1334,15 +1339,30 @@ const verifyUserFromBackend=(profile)=>{
         resolve(null);
       }
     };
+
     $.ajax({
       url:API_URL,
       dataType:'jsonp',
       jsonp:'callback',
       jsonpCallback:callbackName,
-      timeout:JSONP_TIMEOUT,
-      data:{action:'verifyUser',userId:profile.userId,displayName:profile.displayName,callback:callbackName},
+      timeout:60000,
+      cache: false,
+      data:{
+        action:'verifyUser',
+        userId:profile.userId,
+        displayName:profile.displayName,
+        t: new Date().getTime()
+      },
       error: function(xhr, status, err){
-        showError(`驗證請求失敗<br/>錯誤：${status}<br/>請刷新頁面重試`);
+        try { delete window[callbackName]; } catch(e){}
+        console.error("驗證API錯誤", status, err);
+        if(status === "timeout"){
+          showError("請求超時，請檢查網路後重試");
+        } else if(status === "parsererror"){
+          showError("資料解析錯誤，請刷新重試");
+        } else {
+          showError("網路連線異常，請刷新頁面重試");
+        }
         resolve(null);
       }
     });
