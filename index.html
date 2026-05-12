@@ -764,27 +764,27 @@ function startOcrRecognition() {
 // ==============================================
 // ✅ 唯一定义：添加OCR识别结果（删除重复函数）
 // ==============================================
+// 自動添加識別到的品項
 function addOcrProducts(ocrProducts) {
-  if (!ocrProducts || !ocrProducts.length) return;
-  
+  let addCount = 0;
   ocrProducts.forEach(item => {
-    if (!item.name || !item.qty) return;
     const product = products.find(p => p.name === item.name);
     if (!product) return;
 
-    const qty = Math.max(parseInt(item.qty) || 1, 1);
     const exists = selectedProds.find(p => p.name === item.name);
+    const qty = parseInt(item.qty) || 1;
 
     if (exists) {
       exists.qty += qty;
     } else {
       selectedProds.push({ ...product, qty });
     }
+    addCount++;
   });
 
   saveSelectedProds();
   renderTable();
-  els.cashOption.checked && handleCashGift();
+  if (els.cashOption.checked) handleCashGift();
 }
 
 // ==============================================
@@ -1316,52 +1316,50 @@ function updateAuthLoadingText(title, desc){
   els.authLoadingDesc.innerHTML=desc;
 }
 
-const verifyUserFromBackend=(profile)=>{
-  return new Promise((resolve)=>{
-    const callbackName=`verifyCallback_${Date.now()}`;
-    window[callbackName]=function(resp){
+const verifyUserFromBackend = (profile) => {
+  return new Promise((resolve) => {
+    const callbackName = `verifyCallback_${Date.now()}`;
+    
+    window[callbackName] = function(resp) {
       try { delete window[callbackName]; } catch(e){}
-      if(!resp){
-        showError("伺服器無回應，請稍後重試");
+      
+      if (!resp) {
+        showError("伺服器無回應");
         resolve(null);
         return;
       }
-      if(resp.status==="exceeded"){
-        showError(resp.message);
-        resolve(null);
-        return;
-      }
-      if(resp.status==="success"){
-        authStatus={isSuperAdmin:resp.isSuperAdmin,remainTimes:resp.remainTimes};
+      
+      if (resp.status === "success") {
+        authStatus = {
+          isSuperAdmin: resp.isSuperAdmin,
+          remainTimes: resp.remainTimes || 0
+        };
         resolve(authStatus);
-      }else{
-        showError(resp.message||"驗證失敗");
+      } else {
+        showError(resp.message || "驗證失敗");
         resolve(null);
       }
     };
 
     $.ajax({
-      url:API_URL,
-      dataType:'jsonp',
-      jsonp:'callback',
-      jsonpCallback:callbackName,
-      timeout:60000,
+      url: API_URL,
+      dataType: "jsonp",
+      jsonp: "callback",
+      jsonpCallback: callbackName,
+      timeout: 20000,
       cache: false,
-      data:{
-        action:'verifyUser',
-        userId:profile.userId,
-        displayName:profile.displayName,
+      data: {
+        action: "verifyUser",
+        userId: profile.userId,
+        displayName: profile.displayName,
         t: new Date().getTime()
       },
-      error: function(xhr, status, err){
+      error: function(xhr, status){
         try { delete window[callbackName]; } catch(e){}
-        console.error("驗證API錯誤", status, err);
-        if(status === "timeout"){
-          showError("請求超時，請檢查網路後重試");
-        } else if(status === "parsererror"){
-          showError("資料解析錯誤，請刷新重試");
+        if (status === "timeout") {
+          showError("驗證超時，請重試");
         } else {
-          showError("網路連線異常，請刷新頁面重試");
+          showError("網路錯誤，無法登入");
         }
         resolve(null);
       }
@@ -1372,57 +1370,53 @@ const verifyUserFromBackend=(profile)=>{
 async function initLiffAndAuth(){
   try{
     updateAuthLoadingText("正在驗證用戶權限","請稍候...");
-    loadProducts();
     
+    // 先加载产品，不影响登录
+    loadProducts();
+
+    // 安全判断 LIFF
     if (typeof liff === 'undefined') {
-      throw new Error("LIFF SDK 加載失敗，請檢查網路");
+      showError("LIFF SDK 加載失敗，請切換網路重試");
+      return;
     }
     
     await liff.init({
-      liffId:LIFF_ID,
-      withLoginOnExternalBrowser:true
+      liffId: LIFF_ID,
+      withLoginOnExternalBrowser: true
     });
 
     if(!liff.isLoggedIn()){
       updateAuthLoadingText("需要LINE登錄","即將跳轉登錄頁面...");
-      setTimeout(()=>{
-        liff.login({redirectUri:window.location.href});
-      }, 1500);
+      setTimeout(()=> liff.login({redirectUri:window.location.href}), 1500);
       return;
     }
 
-    const profile=await liff.getProfile();
-    userInfo={userId:profile.userId,displayName:profile.displayName};
+    // 获取用户资料
+    const profile = await liff.getProfile();
+    userInfo = { userId: profile.userId, displayName: profile.displayName };
     
-    const authData=await verifyUserFromBackend(profile);
-    if(!authData)return;
+    // 后端验证（关键修复）
+    const authData = await verifyUserFromBackend(profile);
+    if(!authData) {
+      showError("權限驗證失敗，請聯繫管理員");
+      return;
+    }
     
-    els.authContainer.style.display='none';
-    els.captureArea.style.display='block';
-    els.inputArea.style.display='flex';
-    els.buttonGroup.style.display='flex';
+    // 登录成功 → 显示界面
+    els.authContainer.style.display = 'none';
+    els.captureArea.style.display = 'block';
+    els.inputArea.style.display = 'flex';
+    els.buttonGroup.style.display = 'flex';
 
     setupLineName();
     loadSelectedProds();
     checkUserRemainingTimes();
     updateAuthStatusBar();
     showToast(`歡迎，<span class="toast-highlight-name">${userInfo.displayName}</span>！`);
-  }catch(error){
+    
+  } catch(error) {
     console.error("初始化錯誤：", error);
-    updateAuthLoadingText("初始化失敗",`錯誤：${error.message}<br/>請點擊下方按鈕刷新重試`);
-  }
-}
-
-async function initApp(){
-  try {
-    initElements();
-    initQtySelect();
-    initPeriodBox();
-    initCloseStatus();
-    bindEvents();
-    await initLiffAndAuth();
-  } catch (err) {
-    showError(`應用啟動失敗：${err.message}<br/>請刷新頁面重試`);
+    showError(`登入失敗：${error.message}<br>請刷新頁面重試`);
   }
 }
 
