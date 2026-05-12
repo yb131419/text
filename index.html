@@ -541,7 +541,7 @@ body{
 /* 授权状态栏样式（代码二完整逻辑） */
 #authStatusBar{
   position:sticky;top:8px;z-index:999;background:var(--grad-secondary);padding:10px 16px;border-radius:12px;margin-bottom:15px;
-  font-size:15px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  font-size:15px;text-align:center;border:1px solid rgba(255,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
   display:none;width:100%;max-width:600px;transition:all 0.3s ease;
 }
 #authStatusBar .close-status {
@@ -576,20 +576,6 @@ body{
   box-shadow: 0 4px 8px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.9),inset 0 -1px 0 rgba(0,0,0,0.15);
   border-color: #ffffff !important;
   color: #111;
-}
-/* 修复登录后显示逻辑（覆盖代码一错误的CSS） */
-#captureArea, .upload-area, #recognizeBtn, .button-group, #inputArea, .spacer {
-  display: none !important;
-}
-#authContainer.logged-in ~ #captureArea {
-  display: block !important;
-}
-#authContainer.logged-in ~ .upload-area,
-#authContainer.logged-in ~ #recognizeBtn,
-#authContainer.logged-in ~ .button-group,
-#authContainer.logged-in ~ #inputArea,
-#authContainer.logged-in ~ .spacer {
-  display: flex !important;
 }
 </style>
 </head>
@@ -930,46 +916,6 @@ async function initLiffAuth() {
   }
 }
 
-    // 計算過期時間
-    const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
-    authStatus = {
-      ...verifyData,
-      displayExpiryDate: expiry.displayDate,
-      remainingDays: expiry.remainingDays,
-      isExpired: expiry.isExpired,
-      remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount||0)
-    };
-
-    // 帳號過期
-    if(authStatus.isExpired){
-      $("#loginTip").text("帳號已過期，請聯繫管理員").show();
-      showToast("❌ 帳號已過期", "error");
-      return;
-    }
-
-    // 緩存權限
-    if(authStatus.isVip || authStatus.isSuperAdmin) {
-      saveTodayAuthCache(profile.userId, authStatus);
-    }
-    
-    // 登錄成功
-    $("#authContainer").addClass("logged-in");
-    $("#loginTip").hide();
-    await initSystem();
-    showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
-
-  } catch (err) {
-    // 頂層錯誤捕獲 🔴 必備！修復語法錯誤
-    console.error("LIFF 驗證崩潰：", err);
-    $("#loginTip").text("網路/伺服器異常，請重新整理").show();
-    showToast("❌ 驗證失敗，請重新整理", "error");
-  } finally {
-    // 強制釋放鎖 🔴 必備！解決卡死
-    window.liffInitializing = false;
-  }
-}
-
-
 // 登录成功后初始化（权限校验）
 async function initSystem() {
   await fetchProductsFromSheet();
@@ -986,13 +932,12 @@ async function fetchProductsFromSheet() {
 
   const fetchWithRetry = async () => {
     try {
-// 新代码（添加超时，解决卡死）
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 15000);
-const response = await fetch(`${GAS_API_URL}?action=all`, {
-  signal: controller.signal
-});
-clearTimeout(timeoutId);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const response = await fetch(`${GAS_API_URL}?action=all`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       if (!response.ok) throw new Error(`HTTP 錯誤：${response.status}`);
       const data = await response.json();
       
@@ -1029,8 +974,6 @@ clearTimeout(timeoutId);
     els.recognizeBtn.prop("disabled", true);
   }
 }
-
-
 
 // 初始化元素
 function initElements() {
@@ -1308,7 +1251,6 @@ function renderTable() {
   els.pvMessage3.html(totalPv >= TARGET_PV300 ? '<span class="done">達標</span>' : "");
 }
 
-
 // 現金滿額贈
 function handleCashGift() {
   selectedProds = selectedProds.filter(p => !p.name.includes("贈品"));
@@ -1417,8 +1359,6 @@ function showToast(msg, type = "success") {
   setTimeout(() => toast.addClass("show"), 10);
   setTimeout(() => toast.remove(), 3000);
 }
-
 </script>
-
 </body>
 </html>
