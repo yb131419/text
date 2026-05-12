@@ -757,35 +757,35 @@ async function startOcrRecognition() {
 }
 
 
-// 🔥 修复版：自动拿正确总颗数 + 240必添加 + 数量不会变1 + 火山甘露自动锁4
+// 🔥 修复版：模糊匹配產品名 + 自動添加所有識別品項（解決漏顯示）
 function addOcrProducts(ocrProducts) {
   let addCount = 0;
-
-  console.log("✅ OCR 识别返回的全部数据：", ocrProducts);
+  console.log("✅ OCR 識別全部數據：", ocrProducts);
 
   ocrProducts.forEach(item => {
-    const productName = item.name || "";
-    const correctQty = parseInt(item.qty) || 3; // 🔥 修复：用 qty 而不是 totalQty
+    const ocrName = (item.name || "").trim();
+    const correctQty = parseInt(item.qty) || 2;
 
-    if (!productName) return;
+    if (!ocrName || correctQty <= 0) return;
 
-    // 查找产品库
-    const product = products.find(p => p.name === productName);
+    // ======================
+    // 🔥 關鍵：模糊匹配產品名（不用一字不差）
+    // ======================
+    const product = products.find(p =>
+      p.name.includes(ocrName) || ocrName.includes(p.name)
+    );
+
     if (!product) {
-      console.log("⚠️ 产品库找不到：", productName);
+      console.log("⚠️ 未匹配產品：", ocrName);
       return;
     }
 
-    // ======================
-    // 🔥 强制限制：火山甘露 = 4
-    // ======================
+    // 火山甘露強制4盒，其餘按識別數量
     let finalQty = correctQty;
-    if (productName.includes("火山甘露")) {
-      finalQty = 4;
-    }
+    if (ocrName.includes("火山甘露_限4盒")) finalQty = 4;
 
     // 去重
-    const exists = selectedProds.find(p => p.name === productName);
+    const exists = selectedProds.find(p => p.name === product.name);
     if (exists) {
       exists.qty = finalQty;
     } else {
@@ -797,6 +797,7 @@ function addOcrProducts(ocrProducts) {
   saveSelectedProds();
   renderTable();
   if (els.cashOption.checked) handleCashGift();
+  showToast(`✅ 識別完成！成功添加 ${addCount} 個品項`, "success");
 }
 
 function checkHerbalNewMember(selectedValue){
