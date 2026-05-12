@@ -84,25 +84,41 @@
             border-color: var(--secondary);
         }
 
+        /* 月份模块容器 */
+        .month-section {
+            padding: 16px 24px;
+            border-bottom: 2px solid var(--gray);
+        }
+
+        .month-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            padding-left: 8px;
+            border-left: 4px solid var(--accent);
+        }
+
         /* 产品快捷选择区 */
         .product-panel {
-            padding: 16px 24px;
+            padding: 12px;
             background: var(--light);
-            border-bottom: 1px solid var(--gray);
+            border-radius: var(--radius);
+            margin-bottom: 12px;
         }
 
         .panel-title {
             font-weight: 600;
             color: var(--primary);
-            margin-bottom: 10px;
-            font-size: 14px;
+            margin-bottom: 8px;
+            font-size: 13px;
         }
 
         .product-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
-            max-height: 160px;
+            max-height: 120px;
             overflow-y: auto;
             padding-right: 8px;
         }
@@ -125,38 +141,24 @@
 
         /* 操作按钮区 */
         .action-bar {
-            padding: 12px 24px;
+            padding: 8px 0;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
-            border-bottom: 1px solid var(--gray);
         }
 
         .btn {
-            padding: 8px 14px;
+            padding: 6px 12px;
             border: none;
             border-radius: 4px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             transition: 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 4px;
         }
 
         .btn-primary {
             background: var(--primary);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: var(--secondary);
-            color: white;
-        }
-
-        .btn-accent {
-            background: var(--accent);
             color: white;
         }
 
@@ -167,19 +169,17 @@
 
         .btn:hover {
             opacity: 0.9;
-            transform: translateY(-1px);
         }
 
         /* 直式高质感表格 */
         .table-wrapper {
-            padding: 16px 24px 24px;
             overflow-x: auto;
         }
 
         .nutrition-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 700px;
+            min-width: 600px;
         }
 
         .nutrition-table thead {
@@ -188,7 +188,7 @@
         }
 
         .nutrition-table th {
-            padding: 12px 8px;
+            padding: 10px 8px;
             font-size: 13px;
             font-weight: 600;
             text-align: center;
@@ -209,26 +209,18 @@
         }
 
         .nutrition-table td {
-            padding: 10px 6px;
+            padding: 8px 6px;
             text-align: center;
             font-size: 13px;
             vertical-align: middle;
         }
 
         .edit-input {
-            width: 80px;
+            width: 100px;
             text-align: center;
             border: 1px solid var(--gray);
             border-radius: 4px;
             padding: 4px;
-            outline: none;
-        }
-
-        .month-select {
-            width: 90px;
-            padding: 4px;
-            border: 1px solid var(--gray);
-            border-radius: 4px;
             outline: none;
         }
 
@@ -246,6 +238,7 @@
             color: var(--accent);
         }
 
+        /* 默認勾選樣式 */
         .check-btn.active {
             background: #FFF0F3;
         }
@@ -254,7 +247,6 @@
         .notes {
             padding: 20px 24px;
             background: var(--light);
-            border-top: 1px solid var(--gray);
             font-size: 13px;
             line-height: 1.6;
         }
@@ -286,7 +278,7 @@
         <div class="info-card">
             <div class="info-item">
                 <label>日期：</label>
-                <input type="text" id="date" value="115.5.9(六)金門">
+                <input type="text" id="date" readonly>
             </div>
             <div class="info-item">
                 <label>姓名：</label>
@@ -306,55 +298,100 @@
             </div>
         </div>
 
-        <!-- 产品快捷选择区 -->
-        <div class="product-panel">
-            <div class="panel-title">🔘 快捷選擇產品（點擊添加到選中行）</div>
-            <div class="product-tags" id="productTags"></div>
+        <!-- 第一個月 -->
+        <div class="month-section">
+            <div class="month-title">第一個月</div>
+            <div class="product-panel">
+                <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
+                <div class="product-tags" id="tags1"></div>
+            </div>
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="addRow(1)">➕ 新增行</button>
+                <button class="btn btn-light" onclick="delRow(1)">➖ 刪除選中行</button>
+                <button class="btn btn-light" onclick="clearTable(1)">🧹 清空</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="nutrition-table">
+                    <thead>
+                        <tr>
+                            <th>選擇</th>
+                            <th>產品編號</th>
+                            <th>顆數</th>
+                            <th>早</th>
+                            <th>中</th>
+                            <th>晚</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body1">
+                        <tr>
+                            <td><input type="checkbox" class="row-check"></td>
+                            <td><input type="text" class="edit-input prod-name" placeholder="雙擊產品添加"></td>
+                            <td><input type="number" class="edit-input" value="3"></td>
+                            <td><button class="check-btn active">√</button></td>
+                            <td><button class="check-btn">√</button></td>
+                            <td><button class="check-btn active">√</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- 操作栏 -->
-        <div class="action-bar">
-            <button class="btn btn-primary" onclick="addRow()">➕ 新增行</button>
-            <button class="btn btn-light" onclick="delRow()">➖ 刪除選中行</button>
-            <button class="btn btn-secondary" onclick="copyToAllMonth()">📋 一鍵同步所有月份</button>
-            <button class="btn btn-light" onclick="clearTable()">🧹 清空表格</button>
+        <!-- 第二個月 -->
+        <div class="month-section">
+            <div class="month-title">第二個月</div>
+            <div class="product-panel">
+                <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
+                <div class="product-tags" id="tags2"></div>
+            </div>
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="addRow(2)">➕ 新增行</button>
+                <button class="btn btn-light" onclick="delRow(2)">➖ 刪除選中行</button>
+                <button class="btn btn-light" onclick="clearTable(2)">🧹 清空</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="nutrition-table">
+                    <thead>
+                        <tr>
+                            <th>選擇</th>
+                            <th>產品編號</th>
+                            <th>顆數</th>
+                            <th>早</th>
+                            <th>中</th>
+                            <th>晚</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body2"></tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- 直式表格 -->
-        <div class="table-wrapper">
-            <table class="nutrition-table" id="mainTable">
-                <thead>
-                    <tr>
-                        <th>選擇</th>
-                        <th>分類</th>
-                        <th>產品編號</th>
-                        <th>服用月份</th>
-                        <th>顆數</th>
-                        <th>早</th>
-                        <th>中</th>
-                        <th>晚</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <tr>
-                        <td><input type="checkbox" class="row-check"></td>
-                        <td><input type="text" class="edit-input" placeholder="分類"></td>
-                        <td><input type="text" class="edit-input prod-name" placeholder="點擊產品添加"></td>
-                        <td>
-                            <select class="month-select">
-                                <option value="1">第一個月</option>
-                                <option value="2">第二個月</option>
-                                <option value="3">第三個月</option>
-                                <option value="4">保養</option>
-                            </select>
-                        </td>
-                        <td><input type="number" class="edit-input" value="3"></td>
-                        <td><button class="check-btn" onclick="toggleCheck(this)">√</button></td>
-                        <td><button class="check-btn" onclick="toggleCheck(this)">√</button></td>
-                        <td><button class="check-btn" onclick="toggleCheck(this)">√</button></td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- 第三個月 -->
+        <div class="month-section">
+            <div class="month-title">第三個月</div>
+            <div class="product-panel">
+                <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
+                <div class="product-tags" id="tags3"></div>
+            </div>
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="addRow(3)">➕ 新增行</button>
+                <button class="btn btn-light" onclick="delRow(3)">➖ 刪除選中行</button>
+                <button class="btn btn-light" onclick="clearTable(3)">🧹 清空</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="nutrition-table">
+                    <thead>
+                        <tr>
+                            <th>選擇</th>
+                            <th>產品編號</th>
+                            <th>顆數</th>
+                            <th>早</th>
+                            <th>中</th>
+                            <th>晚</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body3"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- 备注 -->
@@ -378,96 +415,92 @@
             "大女王","極樂鳥","101","111","168","金色果(2）","海神泥","復甦精華露"
         ];
 
-        // 渲染產品標籤
-        function renderProductTags() {
-            const container = document.getElementById('productTags');
-            productList.forEach(item => {
-                const tag = document.createElement('div');
-                tag.className = 'product-tag';
-                tag.textContent = item;
-                tag.onclick = () => addProductToRow(item);
-                container.appendChild(tag);
+        // ===================== 自動加載今日日期（民國紀年） =====================
+        function loadTodayDate() {
+            const now = new Date();
+            const year = now.getFullYear() - 1911; // 民國年
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const week = ['日','一','二','三','四','五','六'][now.getDay()];
+            const dateStr = `${year}.${month}.${day}(${week})`;
+            document.getElementById('date').value = dateStr;
+        }
+
+        // ===================== 渲染三個月份的產品標籤 =====================
+        function renderAllTags() {
+            [1,2,3].forEach(month => {
+                const container = document.getElementById(`tags${month}`);
+                productList.forEach(item => {
+                    const tag = document.createElement('div');
+                    tag.className = 'product-tag';
+                    tag.textContent = item;
+                    // 雙擊直接添加產品
+                    tag.ondblclick = () => addProduct(month, item);
+                    container.appendChild(tag);
+                });
             });
         }
 
-        // 點擊產品添加到選中行
-        function addProductToRow(product) {
-            const checks = document.querySelectorAll('.row-check:checked');
-            if(checks.length === 0) {
-                alert('請先勾選要添加產品的行！');
-                return;
+        // ===================== 雙擊添加產品 =====================
+        function addProduct(month, product) {
+            const tbody = document.getElementById(`body${month}`);
+            const checks = tbody.querySelectorAll('.row-check:checked');
+            
+            // 有勾選行 → 添加到勾選行
+            if(checks.length > 0) {
+                checks.forEach(cb => {
+                    const row = cb.closest('tr');
+                    row.querySelector('.prod-name').value = product;
+                });
+            } else {
+                // 無勾選 → 添加到第一行
+                const firstRow = tbody.querySelector('tr');
+                if(firstRow) firstRow.querySelector('.prod-name').value = product;
             }
-            checks.forEach(checkbox => {
-                const row = checkbox.closest('tr');
-                const prodInput = row.querySelector('.prod-name');
-                prodInput.value = product;
-            });
         }
 
         // ===================== 表格操作 =====================
-        // 新增行
-        function addRow() {
-            const tbody = document.getElementById('tableBody');
+        // 新增行（默認：早、晚勾選，中午不勾）
+        function addRow(month) {
+            const tbody = document.getElementById(`body${month}`);
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><input type="checkbox" class="row-check"></td>
-                <td><input type="text" class="edit-input" placeholder="分類"></td>
-                <td><input type="text" class="edit-input prod-name" placeholder="點擊產品添加"></td>
-                <td>
-                    <select class="month-select">
-                        <option value="1">第一個月</option>
-                        <option value="2">第二個月</option>
-                        <option value="3">第三個月</option>
-                        <option value="4">保養</option>
-                    </select>
-                </td>
+                <td><input type="text" class="edit-input prod-name" placeholder="雙擊產品添加"></td>
                 <td><input type="number" class="edit-input" value="3"></td>
-                <td><button class="check-btn" onclick="toggleCheck(this)">√</button></td>
-                <td><button class="check-btn" onclick="toggleCheck(this)">√</button></td>
-                <td><button class="check-btn" onclick="toggleCheck(this)">√</button></td>
+                <td><button class="check-btn active">√</button></td>
+                <td><button class="check-btn">√</button></td>
+                <td><button class="check-btn active">√</button></td>
             `;
             tbody.appendChild(tr);
         }
 
         // 刪除選中行
-        function delRow() {
-            document.querySelectorAll('.row-check:checked').forEach(cb => {
+        function delRow(month) {
+            document.querySelectorAll(`#body${month} .row-check:checked`).forEach(cb => {
                 cb.closest('tr').remove();
             });
         }
 
-        // 切換勾選狀態
-        function toggleCheck(btn) {
-            btn.classList.toggle('active');
-        }
-
-        // 一鍵同步：將第一個月數據複製到所有月份（直式專用）
-        function copyToAllMonth() {
-            const rows = document.querySelectorAll('#tableBody tr');
-            rows.forEach(row => {
-                const select = row.querySelector('.month-select');
-                const count = row.querySelector('input[type="number"]');
-                const btns = row.querySelectorAll('.check-btn');
-                
-                // 強制設置為所有月份通用數據
-                select.value = 1;
-                count.value = 3;
-                btns.forEach(btn => btn.classList.add('active'));
-            });
-            alert('已同步所有月份為默認服用狀態！');
-        }
-
         // 清空表格
-        function clearTable() {
-            if(confirm('確定清空所有數據？')) {
-                document.getElementById('tableBody').innerHTML = '';
-                addRow();
+        function clearTable(month) {
+            if(confirm('確定清空？')) {
+                document.getElementById(`body${month}`).innerHTML = '';
+                addRow(month);
             }
         }
 
+        // ===================== 雙擊切換勾選狀態 =====================
+        document.addEventListener('dblclick', (e) => {
+            if(e.target.classList.contains('check-btn')) {
+                e.target.classList.toggle('active');
+            }
+        });
+
         // ===================== 初始化 =====================
         window.onload = function() {
-            renderProductTags();
+            loadTodayDate();
+            renderAllTags();
         };
     </script>
 </body>
