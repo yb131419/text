@@ -621,7 +621,7 @@ function bindEvents() {
 }
 
 // ==============================================
-// ✅ 修复：图片压缩+Base64标准化（无格式错误）
+// ✅ 超高画质 + 纯标准 Base64（兼容 GitHub + GAS）
 // ==============================================
 function handleImageSelect(e) {
   const file = e.target.files[0];
@@ -637,7 +637,9 @@ function handleImageSelect(e) {
     const img = new Image();
     img.onload = function () {
       const canvas = document.createElement("canvas");
-      const MAX_WIDTH = 640;
+      
+      // 🚀 超高画质：不压缩宽度，保持原图清晰度（可根据需求调整 MAX_WIDTH）
+      const MAX_WIDTH = 1200; // 比原来 640 提升近 2 倍画质
       let width = img.width;
       let height = img.height;
 
@@ -649,18 +651,23 @@ function handleImageSelect(e) {
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
+      
+      // 白底兜底，保证识别率
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // 高清绘制
       ctx.drawImage(img, 0, 0, width, height);
 
-      // 纯Base64（移除前缀，兼容GAS）
-      const base64Data = canvas.toDataURL("image/jpeg", 0.7);
-      selectedImageBase64 = base64Data.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
+      // 🚀 核心：输出 高质量 JPEG + 标准纯 Base64（无前缀，100% 兼容 GAS）
+      const highQualityBase64 = canvas.toDataURL("image/jpeg", 0.95); // 0.95 超高画质
+      selectedImageBase64 = highQualityBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
 
-      els.ocrPreview.src = base64Data;
+      // 预览图也用高清
+      els.ocrPreview.src = highQualityBase64;
       els.ocrPreview.style.display = "block";
       els.ocrRecognitionBtn.style.display = "inline-block";
-      showToast("✅ 圖片載入完成，點擊AI識別", "success");
+      showToast("✅ 高畫質圖片載入完成", "success");
     };
     img.src = e.target.result;
   };
