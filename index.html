@@ -620,7 +620,9 @@ function bindEvents() {
   els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
 }
 
-// 選擇圖片並轉Base64
+// ==============================================
+// ✅ 修复：选择图片 + 前端自动压缩（解决图片过大问题，OCR可识别）
+// ==============================================
 function handleImageSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -630,19 +632,45 @@ function handleImageSelect(e) {
     return;
   }
 
+  // 图片压缩核心逻辑（宽度800px，质量60%，极小体积+清晰识别）
   const reader = new FileReader();
-  reader.onload = function (event) {
-    selectedImageBase64 = event.target.result;
-    els.ocrPreview.src = selectedImageBase64;
-    els.ocrPreview.style.display = "block";
-    els.ocrRecognitionBtn.style.display = "inline-block";
-    // ✅ 修改：照片載入成功
-    showToast("✅ 照片載入成功，點擊AI識別", "success");
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+
+      // 最大宽度限制为800px（自动等比缩放，OCR完全够用）
+      const maxWidth = 800;
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // 压缩为JPEG，移除Base64前缀（大幅减少长度）
+      const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6).split(',')[1];
+      selectedImageBase64 = compressedBase64;
+
+      // 预览用压缩后的图片
+      els.ocrPreview.src = `data:image/jpeg;base64,${compressedBase64}`;
+      els.ocrPreview.style.display = "block";
+      els.ocrRecognitionBtn.style.display = "inline-block";
+      showToast("✅ 照片壓縮完成，點擊AI識別", "success");
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-// 開始AI識別（修复版：解决JSONP超长+跨域+错误处理）
+// ==============================================
+// ✅ 修复：AI识别（放宽长度限制，压缩后绝对不会超限）
+// ==============================================
 function startOcrRecognition() {
   if (!checkUserRemainingTimes()) {
     showToast("❌ 剩餘次數不足", "error");
@@ -653,9 +681,9 @@ function startOcrRecognition() {
     return;
   }
 
-  // ✅ 修复：Base64长度校验（防止JSONP URL超长）
-  if (selectedImageBase64.length > 1500000) {
-    showToast("❌ 圖片太大，請截圖/壓縮後重試", "error");
+  // 压缩后长度极小，放宽限制（200万字符，100%不会触发）
+  if (selectedImageBase64.length > 2000000) {
+    showToast("❌ 圖片異常，請重新選擇", "error");
     return;
   }
 
@@ -681,7 +709,6 @@ function startOcrRecognition() {
       return;
     }
 
-    // 識別成功，自動添加品項
     if (resp.status === "success" && resp.data && resp.data.length > 0) {
       authStatus.remainTimes = resp.remainTimes;
       updateAuthStatusBar();
@@ -692,33 +719,45 @@ function startOcrRecognition() {
     }
   };
 
-  // ✅ 修复：标准JSONP请求，兼容GAS+GitHub，无跨域问题
+  // 标准JSONP，100%兼容GAS+GitHub跨域
   $.ajax({
     url: API_URL,
     dataType: "jsonp",
     jsonp: "callback",
     jsonpCallback: callbackName,
-    timeout: 60000, // 延长超时时间（图片识别更稳定）
+    timeout: 60000,
     cache: false,
     data: {
       action: "ocrImage",
       userId: userInfo.userId,
       displayName: userInfo.displayName,
-      imageBase64: selectedImageBase64, // 已移除前缀，长度更短
+      imageBase64: selectedImageBase64,
       callback: callbackName
     },
-    // ✅ 修复：精准错误提示
     error: function (xhr, status, err) {
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
-      if (status === "timeout") {
-        showToast("❌ 識別超時，請縮小圖片後重試", "error");
-      } else {
-        showToast("❌ 圖片格式/大小異常，請截圖重試", "error");
-      }
+      showToast("❌ 識別失敗，請重試", "error");
     }
   });
 }
+
+// ==============================================
+// ✅ 修复：清除图片（保持兼容）
+// ==============================================
+function clearImage(){
+  els.previewImage.style.display = "none";
+  els.previewImage.src = "";
+  els.ocrPreview.style.display = "none";
+  els.ocrPreview.src = "";
+  selectedImageBase64 = "";
+  els.shareToLineBtn.style.display = "none";
+  els.nativeShareBtn.style.display = "none";
+  els.clearImageBtn.style.display = "none";
+  els.ocrRecognitionBtn.style.display = "none";
+  els.imageFileInput.value = "";
+}
+
 
 // 自動添加識別到的品項
 function addOcrProducts(ocrProducts) {
@@ -1212,20 +1251,7 @@ async function nativeShare(){
     text:`康園試算報表\n購買者：${els.buyerInput.value}\n試算者：${lineName}`
   });
 }
-// 清除圖片（修复版）
-function clearImage(){
-  els.previewImage.style.display = "none";
-  els.previewImage.src = "";
-  els.ocrPreview.style.display = "none";
-  els.ocrPreview.src = "";
-  selectedImageBase64 = ""; // 清空Base64
-  els.shareToLineBtn.style.display = "none";
-  els.nativeShareBtn.style.display = "none";
-  els.clearImageBtn.style.display = "none";
-  els.ocrRecognitionBtn.style.display = "none";
-  // 重置文件选择框（防止重复选择同一张图无效）
-  els.imageFileInput.value = "";
-}
+
 function showToast(message,type='success'){
   els.toast.innerHTML=message.replace(/\n/g,'<br>');
   els.toast.className='toast';
