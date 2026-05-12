@@ -482,7 +482,7 @@ body{
   <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
   <!-- 新增AI圖片識別按鈕 -->
   <button id="uploadImageBtn" class="btn btn-purple btn-lg">🖼️<br>上傳圖片</button>
-  <button id="ocrRecognitionBtn" class="btn btn-primary btn-md">🤖<br>AI識別</button>
+  <button id="ocrRecognitionBtn" class="btn btn-primary btn-md">🤖AI識別</button>
   
   <button id="shareToLineBtn" class="btn btn-primary btn-md">📱<br>安卓分享</button>
   <button id="nativeShareBtn" class="btn btn-primary btn-md">📱<br>分享圖片</button>
@@ -622,13 +622,20 @@ function bindEvents() {
   els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
 }
 
-// 选择图片 → 直接上传imgbb获取URL（修复所有报错）
+// 选择图片 → 直接上传imgbb获取URL（修复有效图片校验）
 function handleImageSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
 
+  // 严格校验图片格式
   if (!file.type.startsWith("image/")) {
-    showToast("❌ 請選擇圖片文件", "error");
+    showToast("❌ 僅支持JPG/PNG圖片", "error");
+    return;
+  }
+
+  // 限制图片大小（2MB以内，避免后端识别失败）
+  if (file.size > 2 * 1024 * 1024) {
+    showToast("❌ 圖片超過2MB，請壓縮後上傳", "error");
     return;
   }
 
@@ -645,31 +652,33 @@ function handleImageSelect(e) {
   fetch("https://api.imgbb.com/1/upload", {
     method: "POST",
     body: form
-  }).then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        // 保存图片URL（核心：只传URL，不传超大Base64）
-        selectedImageBase64 = data.data.url;
-        // 预览
-        els.ocrPreview.src = data.data.url;
-        els.ocrPreview.style.display = "block";
-        els.ocrRecognitionBtn.style.display = "inline-block";
-        els.ocrRecognitionBtn.disabled = false;
-        els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
-        showToast("✅ 圖片上傳成功，點擊AI識別", "success");
-      } else {
-        throw new Error("上传失败");
-      }
-    }).catch(err => {
-      showToast("❌ 圖片上傳失敗", "error");
+  }).then(res => {
+    if (!res.ok) throw new Error("上传接口异常");
+    return res.json();
+  }).then(data => {
+    if (data.success && data.data?.url) {
+      // ✅ 关键：保存imgbb原始图片URL（后端可直接识别）
+      selectedImageBase64 = data.data.url;
+      // 预览
+      els.ocrPreview.src = data.data.url;
+      els.ocrPreview.style.display = "block";
+      els.ocrRecognitionBtn.style.display = "inline-block";
       els.ocrRecognitionBtn.disabled = false;
-      els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
-      console.error(err);
-    });
+      els.ocrRecognitionBtn.textContent = "🤖AI識別";
+      showToast("✅ 圖片上傳成功，點擊AI識別", "success");
+    } else {
+      throw new Error("图片上传失败");
+    }
+  }).catch(err => {
+    console.error("上传错误：", err);
+    showToast("❌ 圖片上傳失敗，請重試", "error");
+    els.ocrRecognitionBtn.disabled = false;
+    els.ocrRecognitionBtn.textContent = "🤖AI識別";
+  });
 }
 
 
-// 开始AI识别（JSONP+图片URL 终极无报错版）
+// 开始AI识别（JSONP+有效图片URL 修复版）
 async function startOcrRecognition() {
   if (!userInfo || !userInfo.userId) {
     showToast("❌ 用戶驗證失敗，請刷新重試", "error");
@@ -679,8 +688,8 @@ async function startOcrRecognition() {
     showToast("❌ 剩餘次數不足", "error");
     return;
   }
-  if (!selectedImageBase64) {
-    showToast("❌ 請先上傳圖片", "warning");
+  if (!selectedImageBase64 || !selectedImageBase64.startsWith("http")) {
+    showToast("❌ 請上傳有效的圖片", "error");
     return;
   }
 
@@ -694,7 +703,7 @@ async function startOcrRecognition() {
   window[callbackName] = function(resp) {
     delete window[callbackName];
     els.ocrRecognitionBtn.disabled = false;
-    els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
+    els.ocrRecognitionBtn.textContent = "🤖AI識別";
 
     if (resp.status === "error") {
       showToast(`❌ 識別失敗：${resp.message}`, "error");
@@ -717,7 +726,7 @@ async function startOcrRecognition() {
     }
   };
 
-  // JSONP请求（和你项目完全一致，无跨域/无报错）
+  // JSONP请求（无跨域、传有效图片URL）
   $.ajax({
     url: API_URL,
     dataType: "jsonp",
@@ -728,7 +737,6 @@ async function startOcrRecognition() {
       action: "ocrImage",
       userId: userInfo.userId,
       displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
-      // 关键：传URL，不再传Base64
       imageUrl: selectedImageBase64,
       callback: callbackName
     },
