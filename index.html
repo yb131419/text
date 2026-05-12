@@ -1,613 +1,1327 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>草本產品試算系統</title>
-    <!-- 依賴庫（CDN，GitHub兼容） -->
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Microsoft JhengHei", sans-serif;
-        }
-        body {
-            background: #f5f7fa;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        /* 權限驗證 */
-        #authContainer {
-            text-align: center;
-            padding: 50px 20px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        #authStatusBar {
-            display: none;
-            background: #e6f7e6;
-            color: #0a700a;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            position: relative;
-        }
-        .close-status {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            font-weight: bold;
-        }
-        /* 捕獲區域（報表） */
-        #captureArea {
-            display: none;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .title {
-            text-align: center;
-            font-size: 22px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #1a365d;
-        }
-        .info-row {
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        .period-group {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-            flex-wrap: wrap;
-        }
-        .period-box {
-            padding: 8px 16px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            cursor: pointer;
-            background: #fff;
-        }
-        .period-box.active {
-            background: #1a365d;
-            color: white;
-            border-color: #1a365d;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
-        }
-        th {
-            background: #f0f4f8;
-            font-weight: bold;
-        }
-        .deleteBtn {
-            padding: 4px 8px;
-            background: #ff4444;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .summaryBox {
-            font-size: 18px;
-            line-height: 1.8;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-        .extra {
-            margin-left: 15px;
-            color: #666;
-        }
-        .done {
-            color: #0a700a;
-            font-weight: bold;
-        }
-        /* OCR區域 */
-        #ocrArea {
-            display: none;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        #ocrUploadWrapper {
-            border: 2px dashed #1a365d;
-            padding: 30px;
-            text-align: center;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-bottom: 15px;
-        }
-        #ocrPreview {
-            max-width: 100%;
-            max-height: 300px;
-            display: none;
-            margin: 15px auto;
-            border-radius: 8px;
-        }
-        /* 按鈕組 */
-        .button-group {
-            display: none;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-        .btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-        .btn-lg {
-            padding: 15px 25px;
-            font-size: 18px;
-        }
-        .btn-primary { background: #1a365d; color: white; }
-        .btn-warning { background: #ff9800; color: white; }
-        .btn-grey { background: #6c757d; color: white; }
-        .btn-purple { background: #9c27b0; color: white; }
-        .btn-ai { background: #26a69a; color: white; }
-        .btn-danger { background: #f44336; color: white; }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        /* 輸入區域 */
-        #inputArea {
-            display: none;
-            margin-bottom: 20px;
-            gap: 10px;
-            display: flex;
-            flex-wrap: wrap;
-        }
-        #inputArea input {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            flex: 1;
-            min-width: 200px;
-        }
-        /* 預覽圖 */
-        #previewImage {
-            max-width: 100%;
-            display: none;
-            margin: 20px auto;
-            border-radius: 12px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.2);
-        }
-        /* 提示框 */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 25px;
-            border-radius: 8px;
-            color: white;
-            font-weight: bold;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 999;
-        }
-        .toast.show { opacity: 1; }
-        .toast.default { background: #1a365d; }
-        .toast.error { background: #f44336; }
-        .toast.warning { background: #ff9800; }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<title>彥彬🌿試算系統</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root{
+  --bg:#0f0f0f;--panel-bg:#1a1a1a;--text:#e0e0e0;--accent:#00d1b2;
+  --highlight:#40c4ff;--error:#ff5252;--btn-grey:#3a3a3a;--warning:#ff9800;
+  --super:#d4af37;--gold:#ffd700;--grad-primary:linear-gradient(135deg,#1a2a6c,#b21f1f,#fdbb2d);
+  --grad-secondary:linear-gradient(145deg,#2d2d2d,#1f1f1f);--shadow:0 8px 32px rgba(0,0,0,0.4);
+  --loader:#00d1b2;--super-username:linear-gradient(135deg,#d4af37,#ffff00);--yellow:#ffd700;
+  --btn-shadow:0 4px 15px rgba(0,0,0,0.2);--btn-hover-shadow:0 6px 20px rgba(0,0,0,0.3);
+  --btn-active-shadow:0 2px 8px rgba(0,0,0,0.2);--btn-transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  --btn-radius:8px;--btn-padding:8px 14px;
+  --period-active:linear-gradient(145deg,#ffffff,#f0f0f0);
+  --period-hover:linear-gradient(145deg,#ffffff,#e8e8e8);
+  --period-border:#ffffff;--period-shadow:0 0 15px rgba(255,255,255,0.5);
+  --period-text:#000;
+}
+/* 🔴 全局强制锁定字体大小，禁止所有设备系统缩放/自定义字体 */
+html, body {
+  -webkit-text-size-adjust: none !important;
+  text-size-adjust: none !important;
+  font-size: 16px !important;
+  touch-action: manipulation;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-size-adjust: none !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body{
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI','Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
+  padding: 8px;
+  line-height: 1.4;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.hidden { display: none !important; }
+#authContainer{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;justify-content:center;align-items:center;z-index:9999;background:rgba(0,0,0,0.8);}
+#authLoading{
+  width:100%;max-width:360px;background:var(--grad-secondary);border-radius:16px;padding:30px 20px;text-align:center;
+  box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.05);transition:all 0.5s ease;
+}
+#authStatusBar{
+  position:sticky;top:8px;z-index:999;background:var(--grad-secondary);padding:10px 16px;border-radius:12px;margin-bottom:15px;
+  font-size:15px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  display:none;width:100%;max-width:600px;transition:all 0.3s ease;
+}
+#authStatusBar .close-status {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 28px;
+  height: 75px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #ffffff, #f5f5f5);
+  color: #000;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-orientation: upright;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.8),inset 0 -1px 0 rgba(0,0,0,0.1);
+  padding: 0;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  border: 1px solid rgba(255,255,255,0.9) !important;
+  white-space: pre-wrap;
+}
+#authStatusBar .close-status:hover {
+  background: linear-gradient(145deg, #f8f8f8, #eaeaea);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.9),inset 0 -1px 0 rgba(0,0,0,0.15);
+  border-color: #ffffff !important;
+  color: #111;
+}
+.loader{
+  width:45px;height:45px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--loader);border-radius:50%;
+  animation:spin 1s linear infinite,pulse 2s ease-in-out infinite alternate;margin:0 auto 15px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{from{box-shadow:0 0 15px rgba(0,209,178,0.3);}to{box-shadow:0 0 25px rgba(0,209,178,0.6);}}
+#authLoading h3{margin:0 0 8px 0;font-size:1.3rem;color:var(--highlight);font-weight:600;}
+#authLoading p{margin:0;font-size:1rem;color:#bbb;line-height:1.5;}
+.super-admin{color:var(--super);font-weight:bold;font-size:15px;}
+.gold-user{color:var(--gold);font-weight:bold;text-shadow:0 0 10px rgba(255,215,0,0.6);font-size:15px;}
+.expired{color:var(--error);font-weight:bold;font-size:15px;}
+.super-admin-username{
+  background-clip:text;-webkit-background-clip:text;color:transparent;font-weight:bold;
+  text-shadow:0 0 8px rgba(255,255,255,0.3);font-size:15px;
+}
+.super-admin-username{background-image:var(--super-username);}
+#captureArea{
+  background:linear-gradient(145deg,#1c1c1c,#141414);
+  box-shadow:inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
+  color:var(--text);
+  padding:15px 20px;
+  border-radius:12px;
+  margin-bottom:10px;
+  overflow-x:auto;
+  display:none;
+  width:100%;
+  max-width:600px;
+  position: relative;
+  box-sizing:border-box;
+}
+#watermark {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size:14px;
+  color: #ffffff;
+  font-weight: 500;
+  opacity: 0.9;
+  z-index: 10;
+  pointer-events: none;
+}
+#captureArea h2{
+  text-align:center;font-size:1.6rem;font-weight:bold;color:#fff;margin:0 0 12px 0;padding:8px 0;
+  line-height:1.3;width:100%;
+}
+.period-options{display:flex;justify-content:center;gap:8px;margin:8px 0 12px;flex-wrap:wrap;align-items:center;}
+.period-box{
+  border:1px solid #e0e0e0;border-radius:6px;padding:6px 12px;color:#e0e0e0;font-size:14px;cursor:pointer;
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;background:transparent;
+  font-weight:500;
+}
+.period-box:hover{
+  border-color:var(--period-border);background:var(--period-hover);color:var(--period-text);
+  transform:translateY(-2px);box-shadow:var(--period-shadow);
+  background-image:linear-gradient(145deg,#ffffff,#f8f8f8);
+}
+.period-box.active{
+  border-color:var(--period-border);background:var(--period-active);color:var(--period-text);
+  font-weight:bold;box-shadow:var(--period-shadow);
+  background-image:linear-gradient(145deg,#ffffff,#e8e8e8);
+  transform:translateY(-1px);
+}
+.period-box.active::after{
+  content:'';position:absolute;bottom:2px;right:2px;width:10px;height:10px;
+  background:var(--period-text);border-radius:50%;opacity:0.8;
+}
+.userInputs{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.userInputs .row{display:flex;gap:8px;width:100%;}
+.userInputs label{flex:1;display:flex;flex-direction:column;font-size:14px;color:#bbb;}
+.userInputs label span{text-align:center;margin-bottom:4px;font-size:15px;}
+.userInputs input{
+  padding:8px;font-size:16px;background:#333;color:var(--text);border:none;
+  border-radius:6px;width:100%;text-align:center;
+}
+.calculator-container{display:flex;gap:5px;}
+.btn{
+  border: none;
+  border-radius: var(--btn-radius);
+  padding: var(--btn-padding);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.2), 0 5px 12px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.85) !important;
+}
+.btn::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:-100%;
+  width:100%;
+  height:100%;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  transition:all 0.6s ease;
+}
+.btn:hover::before{left:100%;}
+.btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 rgba(0,0,0,0.25), 0 8px 16px rgba(0,0,0,0.2);
+  filter: brightness(1.08);
+  border-color: #ffffff !important;
+}
+.btn:active{
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.1);
+}
+.btn:disabled{
+  opacity:0.6;
+  cursor:not-allowed;
+  transform:none;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  filter: grayscale(30%);
+}
+.btn-primary{background: linear-gradient(145deg, #00bfa5, #00897b);}
+.btn-purple{background: linear-gradient(145deg, #ab47bc, #8e24aa);}
+.btn-warning{background: linear-gradient(145deg, #ffa726, #f57c00);}
+.btn-grey{background: linear-gradient(145deg, #757575, #424242);}
+.btn-danger{background: linear-gradient(145deg, #ef5350, #e53935);}
+.btn-sm{padding:5px 8px;font-size:12px;border-radius:4px;}
+.btn-md{padding:8px 12px;font-size:14px;border-radius:6px;min-width:80px;}
+.btn-lg{padding:10px 6px!important;font-size:15px!important;border-radius:8px!important;width:48%;height:auto;line-height:1.2;}
+#resetCalculatorBtn{
+  width:32px;height:32px;border-radius:5px;background:var(--btn-grey);color:#fff;
+  border:1px solid rgba(255,255,255,0.85);cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;transition:var(--btn-transition);
+}
+#resetCalculatorBtn:hover{background:#555;transform:scale(1.05);border-color:#fff;}
+#resetCalculatorBtn:active{transform:scale(0.95);}
+#addBtn{width:100%!important;padding:10px 14px!important;font-size:16px!important;font-weight:600!important;border-radius:8px!important;height:auto!important;}
+#reportTable{
+  width:100%;
+  min-width:280px;
+  max-width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  border-radius:8px;
+  overflow:hidden;
+  background:#f9fafb;
+  color:#374151;
+  margin:0 auto;
+  table-layout:fixed;
+  text-align: center !important;
+}
+#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:37%;}
+#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:10%;}
+#reportTable th:nth-child(3),#reportTable td:nth-child(3){width:10%;}
+#reportTable th:nth-child(4),#reportTable td:nth-child(4){width:10%;}
+#reportTable th:nth-child(5),#reportTable td:nth-child(5){width:13%;}
+#reportTable th:nth-child(6),#reportTable td:nth-child(6){width:13%;}
+#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:7%;}
+#reportTable th,#reportTable td{
+  border:1px solid #d1d5db;
+  padding:6px 4px;
+  text-align:center;
+  transition:all 0.2s ease;
+  overflow:hidden;
+  line-height:1.3;
+}
+#reportTable td:nth-child(1){
+  white-space: normal;
+  text-align:center !important;
+  padding-left:6px;
+  word-break: break-word;
+}
+.qtySelect {
+  width: 100% !important;
+  padding: 2px !important;
+  margin: 0 !important;
+  border: 1px solid #999 !important;
+  border-radius: 3px !important;
+  text-align: center !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+#reportTable td:nth-child(3),
+#reportTable td:nth-child(4),
+#reportTable td:nth-child(5),
+#reportTable td:nth-child(6){
+  font-size:10px;
+  font-weight:500;
+  text-align:center!important;
+}
+#reportTable thead{background:#555555;color:#fff;font-weight:600;text-align:center!important;}
+#reportTable tbody tr { background: #e9e9e9; }
+#reportTable tbody tr:hover{background:#1e88e5;color:#fff;font-weight:bold;}
+.deleteBtn{
+  writing-mode:vertical-rl;
+  text-orientation:upright;
+  background:var(--error);
+  border:1px solid rgba(255,255,255,0.85);
+  color:#fff;
+  border-radius:3px;
+  padding:0;
+  cursor:pointer;
+  font-size:10px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height: 26px;
+  width: 20px;
+  line-height:1;
+  transition:var(--btn-transition);
+}
+.deleteBtn:hover{transform:scale(1.05);border-color:#fff;}
+.deleteBtn:active{transform:scale(0.95);}
+.deleteBtn:disabled{opacity:0.7;cursor:not-allowed;}
+.summaryBox{text-align:center;margin-top:10px;font-size:1.1rem;font-weight:bold;color:var(--highlight);line-height:1.5;}
+.summaryBox .extra{display:block;font-size:1rem;color:var(--accent);margin-top:4px;}
+.summaryBox .done{color:#4caf50;font-weight:bold;}
+#totalPriceCellDup,#totalPvCellDup,#pvDiff2{display:inline-block;min-width:50px;text-align:center;}
+#inputArea{display:flex;flex-direction:column;gap:8px;margin:10px 0 20px 0;display:none;width:100%;max-width:600px;}
+@media (min-width:576px){#inputArea{flex-direction:row;align-items:center;}}
+#nameInput,#qtyInput{
+  background:#2c2c2c;color:var(--text);flex:1;text-align:center;padding:10px 8px;
+  font-size:16px;border-radius:6px;border:none;
+}
+#qtyInput{font-size:16px!important;font-weight:bold;}
+#ocrPreview{display:none;width:100%!important;max-width:600px;margin:10px auto!important;border:2px solid #888;border-radius:8px;object-fit:contain;}
+#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn,#uploadImageBtn,#ocrRecognitionBtn{flex:1;min-width:80px;margin:0;}
+#previewImage{display:none;width:100%!important;max-width:600px;margin:10px auto!important;border:2px solid #888;border-radius:8px;image-rendering:-webkit-optimize-contrast;object-fit:contain;}
+#shareToLineBtn,#nativeShareBtn,#clearImageBtn{display:none;}
+#imageFileInput{display:none;}
+#buyerInput,#calculatorDisplay{
+  background:#f9fafb;border:1.5px solid #d1d5db;color:#374151;border-radius:6px;
+  padding:8px 10px;font-size:16px;transition:border-color 0.3s ease,box-shadow 0.3s ease;
+  width:100%;font-weight:500;
+}
+#buyerInput:focus{
+  border-color:#2563eb;box-shadow:0 0 8px 2px rgba(37,99,235,0.3);
+  outline:none;background:#fff;
+}
+#calculatorDisplay{background:#e9ecef;cursor:default;}
+#buyerInput::placeholder{color:#9ca3af;font-weight:400;text-align:center;}
+.toast{
+  position:fixed;bottom:25px;left:50%;transform:translateX(-50%);background:var(--grad-secondary);
+  color:#fff;padding:10px 16px;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.4);
+  opacity:0;transition:opacity 0.5s ease,transform 0.5s ease;z-index:1000;text-align:center;
+  min-width:180px;font-size:15px;border:1px solid rgba(255,255,255,0.1);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-10px);}
+.toast.error{background:linear-gradient(145deg,#4a0000,#2a0000);border-color:rgba(255,82,82,0.3);}
+.toast.warning{background:linear-gradient(145deg,#4a3200,#2a1e00);border-color:rgba(255,152,0,0.3);}
+.payment-options{display:flex;justify-content:center;gap:12px;margin-top:6px;color:#fff;font-size:1.1rem;flex-wrap:wrap;}
+.payment-options label{display:flex;align-items:center;gap:8px;color:#fff;font-weight:500;}
+.payment-options input[type="checkbox"]{width:20px;height:20px;cursor:pointer;}
+.spacer{height:60px;}
+#error-message{
+  display:none;background:linear-gradient(145deg,#4a0000,#2a0000);border:1px solid rgba(255,82,82,0.3);
+  color:#fef2f2;padding:15px;border-radius:12px;margin:15px auto;max-width:360px;text-align:center;
+  box-shadow:var(--shadow);
+}
+#error-message #error-content{margin-bottom:12px;font-size:15px;}
+#error-message button{
+  background:linear-gradient(145deg,#ff5252,#d32f2f);color:#fff;border:none;border:1px solid rgba(255,255,255,0.8);
+  padding:6px 12px;border-radius:6px;cursor:pointer;margin-top:8px;font-weight:500;transition:var(--btn-transition);font-size:14px;
+}
+#error-message button:hover{
+  background:linear-gradient(145deg,#ff6b6b,#e53939);transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(255,82,82,0.3);
+}
+.button-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:center;
+  margin:8px 0;
+  display:none;
+  width:100%;
+  max-width:600px;
+}
+.button-group .btn-lg {
+  flex: 1 1 calc(33.333% - 4px);
+  max-width: calc(33.333% - 4px);
+}
+.button-group .btn-md {
+  flex: 1 1 calc(50% - 4px);
+  max-width: calc(50% - 4px);
+}
+.toast-highlight-name {
+  background: linear-gradient(135deg, #ffd700, #f9c700, #e6b800);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: bold;
+  text-shadow:0 1px 3px rgba(0,0,0,0.3);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size:15px;
+}
+@media print{
+  body{background:#fff;color:#000;}
+  #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn,#uploadImageBtn,#ocrRecognitionBtn,#ocrPreview{display:none!important;}
+  #captureArea{box-shadow:none;background:#fff;color:#000;display:block!important;padding:15px!important;}
+  #reportTable th{background:#ccc!important;color:#000!important;}
+  .deleteBtn{display:none!important;}
+  .summaryBox{color:#000!important;}
+  #reportTable td,#reportTable th{text-align:center!important;}
+  #watermark {display: none!important;}
+}
+</style>
 </head>
 <body>
-
-<!-- 權限驗證區 -->
 <div id="authContainer">
-    <h2>🔒 系統驗證中</h2>
-    <p>請稍候，正在驗證您的使用權限...</p>
+  <div id="error-message">
+    <div id="error-content"></div>
+    <button onclick="location.reload()">🔄 刷新頁面重試</button>
+  </div>
+  <div id="authLoading">
+    <div class="loader"></div>
+    <h3>正在驗證用戶權限</h3>
+    <p>請稍候...</p>
+  </div>
 </div>
-<div id="authStatusBar">
-    <span>✅ 權限驗證成功</span>
-    <span class="close-status">✕</span>
+<div id="authStatusBar" style="display: none;">
+  <button class="close-status" title="隱藏狀態欄">隱藏</button>
 </div>
 
-<!-- 報表捕獲區 -->
 <div id="captureArea">
-    <div class="title">🌿 草本產品購物明細</div>
-    <div class="info-row">
-        試算者：<input type="text" id="calculatorDisplay" readonly style="padding:5px; width:200px;">
-        <button id="resetCalculatorBtn" class="btn btn-sm btn-grey">重置試算者</button>
+  <div id="watermark">『彥彬🌿試算系統』</div>
+  <h2>
+    <br>
+    🌿 康園試算報表
+    <div class="payment-options">
+      <label><input type="checkbox" id="cashOption" /> 💵 現金</label>
+      <label><input type="checkbox" id="cardOption" /> 💳 刷卡</label>
     </div>
-    <div class="period-group">
-        <div class="period-box">一個月</div>
-        <div class="period-box">三個月</div>
-        <div class="period-box">六個月</div>
+    <div class="period-options">
+      <div class="period-box">一個月</div>
+      <div class="period-box">三個月</div>
+      <div class="period-box">六個月</div>
     </div>
-    <table>
-        <thead>
-            <tr>
-                <th>品項名稱</th>
-                <th>數量</th>
-                <th>單價</th>
-                <th>單PV</th>
-                <th>小計金額</th>
-                <th>小計PV</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody id="reportBody"></tbody>
-    </table>
-    <div class="summaryBox">
-        總金額：<span id="totalPriceCellDup">0</span> 元<br>
-        總PV：<span id="totalPvCellDup">0</span> PV<br>
-        <span class="extra">差額PV：<span id="pvDiff2">0</span> PV</span>
-        <span class="extra done">✅ 已達合格獎金標準</span>
+  </h2>
+  <div class="userInputs">  
+    <div class="row">
+      <label>
+        <span>購買者：</span>
+        <input type="text" placeholder="輸入購買者" id="buyerInput" />
+      </label>
+      <label>
+        <span>試算者：</span>
+        <div class="calculator-container">
+          <input type="text" id="calculatorDisplay" readonly />
+          <button id="resetCalculatorBtn" title="重置試算者名稱">↺</button>
+        </div>
+      </label>
     </div>
+  </div>
+  <table id="reportTable" aria-label="試算報表">
+    <thead>
+      <tr>
+        <th>品項名稱</th>
+        <th>數量</th>
+        <th>單價</th>
+        <th>PV</th>
+        <th>小計金額</th>
+        <th>小計PV</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="reportBody"></tbody>
+  </table>
+  <div class="summaryBox" aria-live="polite">
+    總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
+    <span class="extra">距 22 萬 PV：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
+    <span class="extra">距 30 萬 PV：<span id="pvDiff3">300000</span> <span id="pvMessage3"></span></span>
+  </div>
 </div>
 
-<!-- AI OCR識別區 -->
-<div id="ocrArea">
-    <h3>🤖 AI圖片識別（自動提取產品）</h3>
-    <div id="ocrUploadWrapper">點擊上傳購買明細圖片</div>
-    <input type="file" id="ocrUploadInput" accept="image/*" style="display:none;">
-    <img id="ocrPreview" alt="預覽圖">
-    <button id="ocrBtn" class="btn btn-ai" disabled>🤖 AI識別圖片</button>
-</div>
+<!-- AI識別圖片預覽 -->
+<img id="ocrPreview" alt="AI識別圖片預覽">
+<img id="previewImage" alt="報表匯出預覽">
 
-<!-- 功能按鈕 -->
 <div class="button-group">
-    <button id="addBtn" class="btn btn-primary btn-lg">➕ 加入品項</button>
-    <button id="exportBtn" class="btn btn-warning btn-lg">💾 匯出圖片</button>
-    <button id="resetReportBtn" class="btn btn-grey btn-lg">🔄 重置報表</button>
-    <button id="shareToLineBtn" class="btn btn-purple" style="display:none;">📤 分享至LINE</button>
-    <button id="nativeShareBtn" class="btn btn-ai" style="display:none;">🔗 原生分享</button>
-    <button id="clearImageBtn" class="btn btn-danger" style="display:none;">🗑️ 清除圖片</button>
+  <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
+  <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
+  <!-- 新增AI圖片識別按鈕 -->
+  <button id="uploadImageBtn" class="btn btn-purple btn-lg">🖼️<br>上傳圖片</button>
+  <button id="ocrRecognitionBtn" class="btn btn-primary btn-md">🤖<br>AI識別</button>
+  
+  <button id="shareToLineBtn" class="btn btn-primary btn-md">📱<br>安卓分享</button>
+  <button id="nativeShareBtn" class="btn btn-primary btn-md">📱<br>分享圖片</button>
+  <button id="clearImageBtn" class="btn btn-grey btn-md">❌<br>清除圖片</button>
 </div>
 
-<!-- 品項輸入區 -->
 <div id="inputArea">
-    <input type="text" id="nameInput" placeholder="輸入品項名稱">
-    <input type="number" id="qtyInput" placeholder="數量" min="1" value="1">
+  <select id="nameInput"></select>
+  <select id="qtyInput"></select>
+  <button id="addBtn" class="btn btn-primary btn-lg">➕<br>新增品項</button>
 </div>
 
-<!-- 提示框 -->
-<div class="toast" id="toast"></div>
+<!-- 隱藏文件上傳 -->
+<input type="file" id="imageFileInput" accept="image/*" capture="camera">
+
+<div class="spacer"></div>
 
 <script>
-// ====================== 核心配置（修改為你的GAS Web App URL）======================
-const CONFIG = {
-    // 🔥 替換為你的GAS Web App 發布地址（必須帶上 /exec 結尾）
-    GAS_URL: "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec",
-    // LINE LIFF ID (選填)
-    LIFF_ID: "2008578880-e4LeJzH4",
-    // PV目標配置
-    TARGET_PV: { '一個月': 112000, '三個月': 220000, '六個月': 440000 },
-    // 全局變量
-    PRODUCTS: {},
-    USER_INFO: { userId: "", displayName: "", remainTimes: 0, isSuperAdmin: false }
+const API_URL="https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
+const IMGBB_API_KEY="5be146133d1fa6ded66878aade98880f";
+const LIFF_ID="2008578880-e4LeJzH4";
+const JSONP_TIMEOUT=30000;
+const TARGET_PV220=220000;
+const TARGET_PV300=300000;
+const DEDUCT_INTERVAL=180000;
+
+let products=[],selectedProds=[],lineName='',userInfo=null,authStatus=null,isDeleting=false;
+let lastDeductTime=parseInt(localStorage.getItem('lastDeductTime'))||0;
+let selectedImageBase64 = ""; // AI識別圖片Base64
+let els = {};
+
+function createToast() {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.id = 'toast';
+  document.body.appendChild(toast);
+  return toast;
+}
+const toast = createToast();
+
+function initElements() {
+  els = {
+    nameInput: document.getElementById("nameInput"),
+    qtyInput: document.getElementById("qtyInput"),
+    addBtn: document.getElementById("addBtn"),
+    reportBody: document.getElementById("reportBody"),
+    totalPriceCellDup: document.getElementById("totalPriceCellDup"),
+    totalPvCellDup: document.getElementById("totalPvCellDup"),
+    pvDiff2: document.getElementById("pvDiff2"),
+    pvDiff3: document.getElementById("pvDiff3"),
+    pvMessage2: document.getElementById("pvMessage2"),
+    pvMessage3: document.getElementById("pvMessage3"),
+    exportBtn: document.getElementById("exportBtn"),
+    previewImage: document.getElementById("previewImage"),
+    shareToLineBtn: document.getElementById("shareToLineBtn"),
+    nativeShareBtn: document.getElementById("nativeShareBtn"),
+    clearImageBtn: document.getElementById("clearImageBtn"),
+    resetReportBtn: document.getElementById("resetReportBtn"),
+    buyerInput: document.getElementById("buyerInput"),
+    calculatorDisplay: document.getElementById("calculatorDisplay"),
+    resetCalculatorBtn: document.getElementById("resetCalculatorBtn"),
+    toast: toast,
+    authLoading: document.getElementById("authLoading"),
+    authStatusBar: document.getElementById("authStatusBar"),
+    authContainer: document.getElementById("authContainer"),
+    captureArea: document.getElementById("captureArea"),
+    inputArea: document.getElementById("inputArea"),
+    buttonGroup: document.querySelector(".button-group"),
+    errorMessage: document.getElementById("error-message"),
+    errorContent: document.getElementById("error-content"),
+    authLoadingTitle: document.querySelector("#authLoading h3"),
+    authLoadingDesc: document.querySelector("#authLoading p"),
+    reportTable: document.getElementById("reportTable"),
+    cashOption: document.getElementById("cashOption"),
+    cardOption: document.getElementById("cardOption"),
+    watermark: document.getElementById("watermark"),
+    // 新增AI識別元素
+    imageFileInput: document.getElementById("imageFileInput"),
+    uploadImageBtn: document.getElementById("uploadImageBtn"),
+    ocrRecognitionBtn: document.getElementById("ocrRecognitionBtn"),
+    ocrPreview: document.getElementById("ocrPreview")
+  };
+}
+
+function initQtySelect() {
+  els.qtyInput.innerHTML = "";
+  for(let i=1;i<=99;i++){
+    const option=document.createElement("option");
+    option.value=i;
+    option.textContent=i;
+    els.qtyInput.appendChild(option);
+  }
+}
+
+function initPeriodBox() {
+  document.querySelectorAll('.period-box').forEach(box=>{
+    box.addEventListener('click',function(){
+      document.querySelectorAll('.period-box').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+}
+
+function initCloseStatus() {
+  document.querySelector('.close-status').addEventListener('click',function(){
+    els.authStatusBar.style.opacity='0';
+    setTimeout(()=>{
+      els.authStatusBar.style.display='none';
+      els.authStatusBar.style.opacity='1';
+    },300);
+  });
+}
+
+function bindEvents() {
+  els.nameInput.addEventListener('change',function(){
+    checkHerbalNewMember(this.value);
+    adjustQtySelectOptions(this.value);
+  });
+  els.addBtn.addEventListener("click",addProduct);
+  els.resetCalculatorBtn.addEventListener("click",resetLineName);
+  els.resetReportBtn.addEventListener("click",resetReport);
+  els.exportBtn.addEventListener("click",exportToImage);
+  els.shareToLineBtn.addEventListener("click",shareToLine);
+  els.nativeShareBtn.addEventListener("click",nativeShare);
+  els.clearImageBtn.addEventListener("click",clearImage);
+  els.cashOption.addEventListener("change",handleCashGift);
+  els.reportBody.addEventListener("click",async function(e){
+    const btn=e.target.closest('.deleteBtn');
+    if(!btn||isDeleting||btn.disabled)return;
+    await handleDelete(btn);
+  });
+
+  // 綁定AI圖片識別事件
+  els.uploadImageBtn.addEventListener("click", () => els.imageFileInput.click());
+  els.imageFileInput.addEventListener("change", handleImageSelect);
+  els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
+}
+
+// 選擇圖片並轉Base64
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    showToast("❌ 請選擇圖片文件", "error");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (event) {
+    selectedImageBase64 = event.target.result;
+    els.ocrPreview.src = selectedImageBase64;
+    els.ocrPreview.style.display = "block";
+    els.ocrRecognitionBtn.style.display = "inline-block";
+    showToast("✅ 圖片上傳成功，點擊AI識別", "success");
+  };
+  reader.readAsDataURL(file);
+}
+
+// 開始AI識別（JSONP調用GAS，解決跨域）
+function startOcrRecognition() {
+  if (!checkUserRemainingTimes()) {
+    showToast("❌ 剩餘次數不足", "error");
+    return;
+  }
+  if (!selectedImageBase64) {
+    showToast("❌ 請先上傳圖片", "warning");
+    return;
+  }
+
+  els.ocrRecognitionBtn.disabled = true;
+  els.ocrRecognitionBtn.textContent = "識別中...";
+  showToast("🔍 AI正在識別品項，請稍候...", "success");
+
+  const callbackName = `ocrCallback_${Date.now()}`;
+  window[callbackName] = function (resp) {
+    delete window[callbackName];
+    els.ocrRecognitionBtn.disabled = false;
+    els.ocrRecognitionBtn.textContent = "🤖AI識別";
+
+    if (resp.status === "error") {
+      showToast(`❌ 識別失敗：${resp.message}`, "error");
+      return;
+    }
+    if (resp.status === "exceeded") {
+      showToast("❌ 使用次數已用盡", "error");
+      authStatus.remainTimes = 0;
+      updateAuthStatusBar();
+      checkUserRemainingTimes();
+      return;
+    }
+
+    // 識別成功，自動添加品項
+    if (resp.status === "success" && resp.data && resp.data.length > 0) {
+      authStatus.remainTimes = resp.remainTimes;
+      updateAuthStatusBar();
+      addOcrProducts(resp.data);
+      showToast(`✅ 識別成功！自動添加 ${resp.data.length} 個品項`, "success");
+    } else {
+      showToast("⚠️ 未識別到任何品項", "warning");
+    }
+  };
+
+  // JSONP請求GAS OCR接口
+  $.ajax({
+    url: API_URL,
+    dataType: "jsonp",
+    jsonp: "callback",
+    jsonpCallback: callbackName,
+    timeout: JSONP_TIMEOUT,
+    data: {
+      action: "ocrImage",
+      userId: userInfo.userId,
+      displayName: userInfo.displayName,
+      imageBase64: selectedImageBase64,
+      callback: callbackName
+    },
+    error: function () {
+      els.ocrRecognitionBtn.disabled = false;
+      els.ocrRecognitionBtn.textContent = "🤖AI識別";
+      showToast("❌ 網路錯誤，識別失敗", "error");
+    }
+  });
+}
+
+// 自動添加識別到的品項
+function addOcrProducts(ocrProducts) {
+  let addCount = 0;
+  ocrProducts.forEach(item => {
+    const product = products.find(p => p.name === item.name);
+    if (!product) return;
+
+    const exists = selectedProds.find(p => p.name === item.name);
+    const qty = parseInt(item.qty) || 1;
+
+    if (exists) {
+      exists.qty += qty;
+    } else {
+      selectedProds.push({ ...product, qty });
+    }
+    addCount++;
+  });
+
+  saveSelectedProds();
+  renderTable();
+  if (els.cashOption.checked) handleCashGift();
+}
+
+function checkHerbalNewMember(selectedValue){
+  const val=selectedValue.trim();
+  if(val.includes('新入會(9號）')){
+    setTimeout(()=>{
+      addSpecificProduct(val,1);
+      addSpecificProduct('入*會「 9號兩組」',1);
+      showToast('📋 已自動新增9號組合');
+    },300);
+  }
+  else if(val.includes('新入會(草本）男')){
+    setTimeout(()=>{
+      addSpecificProduct(val,1);
+      addSpecificProduct('入*會「 211 」',2);
+      addSpecificProduct('入*會「 101 」',2);
+      showToast('📋 已自動新增男生款組合');
+    },300);
+  }
+  else if(val.includes('新入會(草本）女')){
+    setTimeout(()=>{
+      addSpecificProduct(val,1);
+      addSpecificProduct('入*會「 211 」',2);
+      addSpecificProduct('入*會「 707 」',2);
+      showToast('📋 已自動新增女生款組合');
+    },300);
+  }
+  else if(val.includes('2711AB')){
+    setTimeout(()=>{
+      showToast('📋 此商品限定新人入會購買','warning');
+    },100);
+  }
+}
+
+function handleCashGift(){
+  if(!els.cashOption.checked){
+    selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
+    saveSelectedProds();
+    renderTable();
+    return;
+  }
+  const totalPrice = parseInt(els.totalPriceCellDup.textContent) || 0;
+  const giftQty = Math.floor(totalPrice / 20000);
+  if(giftQty <= 0) return;
+  selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
+  addSpecificProduct('贈品 211(30)', giftQty);
+  showToast(`🎁 現金滿${giftQty*2}萬，贈送 211(30) x${giftQty}`);
+}
+
+function addSpecificProduct(productName, qty) {
+  const product = products.find(p => p.name === productName);
+  if (!product) {
+    showToast(`⚠️ 找不到品項：${productName}`,'error');
+    return;
+  }
+  const exists = selectedProds.find(p => p.name === productName);
+  let maxQty=99;
+  if (productName.includes('新入會')||productName.includes('入會')) maxQty=1;
+  else if (productName.includes('2711AB')&&productName.includes('(4)')) maxQty=1;
+  else if (productName.includes('777Q')&&productName.includes('(4)')) maxQty=2;
+  else if (productName.includes('火山甘露')) maxQty=4;
+  else if (productName.includes('2711AB')&&productName.includes('(1)')) maxQty=4;
+  if(exists){
+    if(exists.qty+qty>maxQty){
+      showToast(`⚠️ 限購${maxQty}個`,'warning');
+      return;
+    }
+    exists.qty+=qty;
+  }else{
+    selectedProds.push({...product,qty});
+  }
+  saveSelectedProds();
+  renderTable();
+}
+
+function loadSelectedProds(){
+  const saved=localStorage.getItem('selectedProducts');
+  if(saved)selectedProds=JSON.parse(saved);
+  renderTable();
+}
+function saveSelectedProds(){
+  localStorage.setItem('selectedProducts',JSON.stringify(selectedProds));
+}
+
+function setupLineName(isReset=false){
+  if(isReset){
+    const input=prompt('請輸入試算者名稱：');
+    lineName=input?.trim()||'未設定';
+    localStorage.setItem('lineName',lineName);
+  }
+  else{
+    lineName=localStorage.getItem('lineName')||userInfo?.displayName||'';
+    if(!lineName){
+      const input=prompt('請輸入試算者名稱：');
+      lineName=input?.trim()||'未設定';
+      localStorage.setItem('lineName',lineName);
+    }
+  }
+  els.calculatorDisplay.value=lineName;
+}
+function resetLineName(){
+  if(confirm('確定修改試算者名稱？')){
+    localStorage.removeItem('lineName');
+    setupLineName(true);
+    showToast('名稱已更新');
+  }
+}
+
+async function syncRecordResetToBackend(){
+  if(!userInfo||authStatus.isSuperAdmin)return true;
+  els.resetReportBtn.disabled=true;
+  return new Promise((resolve)=>{
+    const callbackName=`recordResetCallback_${Date.now()}`;
+    window[callbackName]=function(resp){
+      delete window[callbackName];
+      if(resp.status==="success"){
+        authStatus.remainTimes = resp.remainTimes;
+        updateAuthStatusBar();
+        resolve(true);
+      }else{
+        showToast(`扣次失敗：${resp.message}`,'error');
+        resolve(false);
+      }
+    };
+    $.ajax({
+      url:API_URL,
+      dataType:'jsonp',
+      jsonp:'callback',
+      jsonpCallback:callbackName,
+      timeout:JSONP_TIMEOUT,
+      data:{action:'recordReset',userId:userInfo.userId,displayName:userInfo.displayName,callback:callbackName},
+      error: function(){
+        showToast('網路錯誤，扣次失敗','error');
+        resolve(false);
+      }
+    });
+  });
+}
+
+async function syncDeleteToBackend(){
+  if(!userInfo||authStatus.isSuperAdmin)return true;
+  return new Promise((resolve)=>{
+    const callbackName=`recordDeleteCallback_${Date.now()}`;
+    window[callbackName]=function(resp){
+      delete window[callbackName];
+      if(resp.status==="success"){
+        authStatus.remainTimes = resp.remainTimes;
+        updateAuthStatusBar();
+        resolve(true);
+      }else{
+        showToast(resp.message,'warning');
+        resolve(false);
+      }
+    };
+    $.ajax({
+      url:API_URL,
+      dataType:'jsonp',
+      jsonp:'callback',
+      jsonpCallback:callbackName,
+      timeout:JSONP_TIMEOUT,
+      cache:false,
+      data:{action:'recordDelete',userId:userInfo.userId,displayName:userInfo.displayName,callback:callbackName},
+      error: function(){
+        showToast('網路錯誤，扣次失敗','error');
+        resolve(false);
+      }
+    });
+  });
+}
+
+async function resetReport(){
+  if(!authStatus||!checkUserRemainingTimes())return;
+  if(!confirm('確定清空所有品項？'))return;
+  let isDeducted=false;
+  if(!authStatus.isSuperAdmin){
+    isDeducted=await syncRecordResetToBackend();
+  }
+  selectedProds=[];
+  saveSelectedProds();
+  renderTable();
+  isDeducted?showToast(`✅ 重置成功，剩餘次數：${authStatus.remainTimes}`,'warning'):showToast('報表已重置');
+  els.resetReportBtn.disabled=false;
+}
+
+async function loadProducts(){
+  try{
+    updateAuthLoadingText("驗證資料中","請稍候...");
+    // JSONP加載產品列表
+    const callbackName = `loadProductsCallback_${Date.now()}`;
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      products = data;
+      els.nameInput.innerHTML = "";
+      data.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.name;
+        opt.textContent = item.name;
+        els.nameInput.appendChild(opt);
+      });
+      setTimeout(() => {
+        checkHerbalNewMember(els.nameInput.value);
+        adjustQtySelectOptions(els.nameInput.value);
+      }, 300);
+    };
+
+    $.ajax({
+      url: API_URL,
+      dataType: "jsonp",
+      jsonp: "callback",
+      jsonpCallback: callbackName,
+      timeout: JSONP_TIMEOUT,
+      data: { action: "all", t: new Date().getTime(), callback: callbackName },
+      error: function() {
+        showToast("驗證資料失敗，請刷新重試", "error");
+        updateAuthLoadingText("驗證資料失敗", "請刷新重試");
+      }
+    });
+  }catch(error){
+    showToast(`驗證資料失敗: ${error.message}`,'error');
+    updateAuthLoadingText("驗證資料失敗","請刷新重試");
+  }
+}
+
+function renderTable(){
+  els.reportBody.innerHTML="";
+  let totalPrice=0,totalPv=0;
+  selectedProds.forEach((item,idx)=>{
+    let maxQty=99;
+    const val=item.name.trim();
+    if(val.includes('新入會')||val.includes('入會'))maxQty=1;
+    else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
+    else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+    else if(val.includes('火山甘露'))maxQty=4;
+    else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
+    if(item.qty>maxQty){
+      item.qty=maxQty;
+      saveSelectedProds();
+    }
+    const subtotalPrice=item.price*item.qty;
+    const subtotalPv=item.pv*item.qty;
+    totalPrice+=subtotalPrice;
+    totalPv+=subtotalPv;
+    const tr=document.createElement("tr");
+    const qtyOptions=Array.from({length:maxQty},(_,i)=>
+      `<option value="${i+1}" ${i+1===item.qty?"selected":""}>${i+1}</option>`
+    ).join("");
+    tr.innerHTML=`<td>${item.name}</td>
+      <td><select class="qtySelect" data-index="${idx}">${qtyOptions}</select></td>
+      <td>${item.price}</td>
+      <td>${item.pv}</td>
+      <td>${subtotalPrice}</td>
+      <td>${subtotalPv}</td>
+      <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>`;
+    els.reportBody.appendChild(tr);
+  });
+  els.totalPriceCellDup.textContent=totalPrice;
+  els.totalPvCellDup.textContent=totalPv;
+  els.pvDiff2.textContent=Math.max(TARGET_PV220-totalPv,0);
+  els.pvDiff3.textContent=Math.max(TARGET_PV300-totalPv,0);
+  els.pvMessage2.innerHTML=totalPv>=TARGET_PV220?'<span class="done">🎉 已達標</span>':'';
+  els.pvMessage3.innerHTML=totalPv>=TARGET_PV300?'<span class="done">🎉 已達標</span>':'';
+  document.querySelectorAll(".qtySelect").forEach(select=>{
+    select.onchange=e=>{
+      const idx=parseInt(e.target.dataset.index);
+      selectedProds[idx].qty=parseInt(e.target.value);
+      saveSelectedProds();
+      renderTable();
+      if(els.cashOption.checked) handleCashGift();
+    }
+  });
+}
+
+async function handleDelete(btn){
+  if(isDeleting||!checkUserRemainingTimes()){
+    showToast('權限不足，無法刪除','error');
+    return;
+  }
+  const idx=parseInt(btn.dataset.index);
+  const now=Date.now();
+  const isWithinInterval=now-lastDeductTime<DEDUCT_INTERVAL;
+  
+  if(!authStatus.isSuperAdmin&&!isWithinInterval){
+    if(!confirm('刪除將扣除1次使用次數，確認？'))return;
+  }
+  isDeleting=true;
+  btn.disabled=true;
+  btn.textContent="處理中";
+  
+  selectedProds.splice(idx,1);
+  saveSelectedProds();
+  renderTable();
+  if(els.cashOption.checked) handleCashGift();
+  
+  if(!authStatus.isSuperAdmin&&!isWithinInterval){
+    await syncDeleteToBackend();
+    lastDeductTime=now;
+    localStorage.setItem('lastDeductTime',lastDeductTime);
+  }
+  showToast(isWithinInterval?'✅ 3分鐘內不重複扣次':'✅ 刪除成功');
+  isDeleting=false;
+  btn.disabled=false;
+  btn.textContent="刪除";
+}
+
+function addProduct(){
+  els.addBtn.disabled=true;
+  if(!checkUserRemainingTimes()){
+    showToast('剩餘次數不足','error');
+    els.addBtn.disabled=false;
+    return;
+  }
+  const selectedName=els.nameInput.value;
+  let qty=parseInt(els.qtyInput.value);
+  if(!selectedName||qty<=0){
+    showToast("請選擇品項與數量",'warning');
+    els.addBtn.disabled=false;
+    return;
+  }
+  let maxQty=99;
+  const val=selectedName.trim();
+  if(val.includes('新入會')||val.includes('入會'))maxQty=1;
+  else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
+  else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+  else if(val.includes('火山甘露'))maxQty=4;
+  else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
+  if(qty>maxQty){
+    showToast(`⚠️ 限購${maxQty}個`,'warning');
+    qty=maxQty;
+  }
+  const product=products.find(p=>p.name===selectedName);
+  if(!product){
+    showToast("找不到品項",'error');
+    els.addBtn.disabled=false;
+    return;
+  }
+  const exists=selectedProds.find(p=>p.name===selectedName);
+  if(exists){
+    if(exists.qty+qty>maxQty){
+      showToast(`⚠️ 已達限購數量`,'warning');
+      els.addBtn.disabled=false;
+      return;
+    }
+    exists.qty+=qty;
+  }else{
+    selectedProds.push({...product,qty});
+  }
+  saveSelectedProds();
+  renderTable();
+  if(els.cashOption.checked) handleCashGift();
+  showToast('品項已新增');
+  els.addBtn.disabled=false;
+}
+
+function adjustQtySelectOptions(productName) {
+  if (!productName) return;
+  let maxQty=99;
+  const val=productName.trim();
+  if (val.includes('新入會')||val.includes('入會'))maxQty=1;
+  else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
+  else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+  else if(val.includes('火山甘露'))maxQty=4;
+  else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
+  els.qtyInput.innerHTML = '';
+  for (let i=1;i<=maxQty;i++){
+    const o=document.createElement('option');
+    o.value=i;
+    o.textContent=i;
+    els.qtyInput.appendChild(o);
+  }
+}
+
+function checkUserRemainingTimes(){
+  if(!authStatus) return false;
+  const canUse = authStatus.isSuperAdmin || authStatus.remainTimes > 0;
+  els.exportBtn.disabled = !canUse;
+  els.addBtn.disabled = !canUse;
+  els.resetReportBtn.disabled = !canUse;
+  els.uploadImageBtn.disabled = !canUse;
+  els.ocrRecognitionBtn.disabled = !canUse;
+  return canUse;
+}
+
+function updateAuthStatusBar(){
+  if(!authStatus||!userInfo)return;
+  let statusHtml='';
+  if(authStatus.isSuperAdmin){
+    statusHtml=`<span class="super-admin">👑 超級管理員</span><br>用戶名：<span class="super-admin-username">${userInfo.displayName}</span><br/>無限次使用`;
+  }else{
+    const textClass = authStatus.remainTimes <=0 ? 'expired' : 'gold-user';
+    statusHtml=`<span class="gold-user">✨ 黃金用戶</span><br>用戶名：${userInfo.displayName}<br/>
+    剩餘次數：<span class="${textClass}">${authStatus.remainTimes}</span>
+    <div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+      <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
+      <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
+    </div>`;
+  }
+  els.authStatusBar.innerHTML=`<button class="close-status">點我隱藏</button>${statusHtml}`;
+  els.authStatusBar.style.display='block';
+  els.authStatusBar.querySelector('.close-status').addEventListener('click',function(){
+    els.authStatusBar.style.opacity='0';
+    setTimeout(()=>{
+      els.authStatusBar.style.display='none';
+      els.authStatusBar.style.opacity='1';
+    },300);
+  });
+}
+
+async function exportToImage(){
+  if(!checkUserRemainingTimes())return;
+  if(selectedProds.length===0){
+    showToast("請先新增品項",'warning');
+    return;
+  }
+  els.exportBtn.disabled=true;
+  const opCells=document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
+  opCells.forEach(el=>el.style.display="none");
+  
+  try{
+    const canvas=await html2canvas(els.captureArea,{
+      scale: 5,
+      useCORS:true,
+      backgroundColor:null,
+      logging: false,
+      padding: { left: 30, right: 50, top:10, bottom:10 }
+    });
+    
+    els.previewImage.src=canvas.toDataURL("image/png");
+    els.previewImage.style.display="block";
+    els.shareToLineBtn.style.display="inline-block";
+    els.nativeShareBtn.style.display=navigator.share?"inline-block":"none";
+    els.clearImageBtn.style.display="inline-block";
+    showToast("✅ 報表匯出成功");
+  }catch(error){
+    showToast(`匯出失敗：${error.message}`,'error');
+  }
+  finally{
+    opCells.forEach(el=>el.style.display="");
+    els.exportBtn.disabled=false;
+  }
+}
+
+async function shareToLine(){
+  if(!els.previewImage.src){
+    showToast("請先匯出圖片",'warning');
+    return;
+  }
+  els.shareToLineBtn.disabled=true;
+  try{
+    const base64=els.previewImage.src.split(",")[1];
+    const form=new FormData();
+    form.append("image",base64);
+    form.append("key",IMGBB_API_KEY);
+    const res=await fetch("https://api.imgbb.com/1/upload",{method:"POST",body:form});
+    const data=await res.json();
+    if(data.success){
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(`康園試算報表\n購買者：${els.buyerInput.value||'未填'}\n試算者：${lineName}\n${data.data.url}`)}`);
+      showToast("✅ 上傳成功");
+    }
+  }catch(e){
+    showToast("上傳失敗",'error');
+  }
+  els.shareToLineBtn.disabled=false;
+}
+async function nativeShare(){
+  if(!navigator.share||!els.previewImage.src)return;
+  const blob=await fetch(els.previewImage.src).then(r=>r.blob());
+  navigator.share({
+    files:[new File([blob],"報表.png")],
+    text:`康園試算報表\n購買者：${els.buyerInput.value}\n試算者：${lineName}`
+  });
+}
+function clearImage(){
+  els.previewImage.style.display="none";
+  els.previewImage.src="";
+  els.ocrPreview.style.display = "none";
+  els.ocrPreview.src = "";
+  selectedImageBase64 = "";
+  els.shareToLineBtn.style.display="none";
+  els.nativeShareBtn.style.display="none";
+  els.clearImageBtn.style.display="none";
+  els.ocrRecognitionBtn.style.display = "none";
+}
+function showToast(message,type='success'){
+  els.toast.innerHTML=message.replace(/\n/g,'<br>');
+  els.toast.className='toast';
+  els.toast.classList.add(type, 'show');
+  setTimeout(()=>els.toast.classList.remove('show'),3000);
+}
+
+const showError=(msg)=>{
+  els.authLoading.style.display='none';
+  els.captureArea.style.display='none';
+  els.inputArea.style.display='none';
+  els.buttonGroup.style.display='none';
+  els.errorContent.innerHTML=msg;
+  els.errorMessage.style.display='block';
+};
+function updateAuthLoadingText(title, desc){
+  els.authLoadingTitle.textContent=title;
+  els.authLoadingDesc.innerHTML=desc;
+}
+
+const verifyUserFromBackend=(profile)=>{
+  return new Promise((resolve)=>{
+    const callbackName=`verifyCallback_${Date.now()}`;
+    window[callbackName]=function(resp){
+      delete window[callbackName];
+      if(resp.status==="exceeded"){
+        showError(resp.message);
+        resolve(null);
+        return;
+      }
+      if(resp.status==="success"){
+        authStatus={isSuperAdmin:resp.isSuperAdmin,remainTimes:resp.remainTimes};
+        resolve(authStatus);
+      }else{
+        showError(resp.message||"驗證失敗");
+        resolve(null);
+      }
+    };
+    $.ajax({
+      url:API_URL,
+      dataType:'jsonp',
+      jsonp:'callback',
+      jsonpCallback:callbackName,
+      timeout:JSONP_TIMEOUT,
+      data:{action:'verifyUser',userId:profile.userId,displayName:profile.displayName,callback:callbackName},
+      error: function(xhr, status, err){
+        showError(`驗證請求失敗<br/>錯誤：${status}<br/>請刷新頁面重試`);
+        resolve(null);
+      }
+    });
+  });
 };
 
-// 全局變量
-let currentPeriod = '一個月';
-let calculatorName = '';
-let liffInitialized = false;
-
-// ====================== JSONP 跨域請求核心（徹底解決GAS跨域）======================
-function jsonpRequest(params, callback) {
-    const callbackName = 'jsonp_' + Date.now() + Math.random().toString(36).substr(2, 8);
-    window[callbackName] = function(data) {
-        delete window[callbackName];
-        document.body.removeChild(script);
-        callback(data);
-    };
-    let url = CONFIG.GAS_URL + '?callback=' + callbackName;
-    for (let key in params) {
-        url += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+async function initLiffAndAuth(){
+  try{
+    updateAuthLoadingText("正在驗證用戶權限","請稍候...");
+    loadProducts();
+    
+    if (typeof liff === 'undefined') {
+      throw new Error("LIFF SDK 加載失敗，請檢查網路");
     }
-    const script = document.createElement('script');
-    script.src = url;
-    document.body.appendChild(script);
+    
+    await liff.init({
+      liffId:LIFF_ID,
+      withLoginOnExternalBrowser:true
+    });
+
+    if(!liff.isLoggedIn()){
+      updateAuthLoadingText("需要LINE登錄","即將跳轉登錄頁面...");
+      setTimeout(()=>{
+        liff.login({redirectUri:window.location.href});
+      }, 1500);
+      return;
+    }
+
+    const profile=await liff.getProfile();
+    userInfo={userId:profile.userId,displayName:profile.displayName};
+    
+    const authData=await verifyUserFromBackend(profile);
+    if(!authData)return;
+    
+    els.authContainer.style.display='none';
+    els.captureArea.style.display='block';
+    els.inputArea.style.display='flex';
+    els.buttonGroup.style.display='flex';
+
+    setupLineName();
+    loadSelectedProds();
+    checkUserRemainingTimes();
+    updateAuthStatusBar();
+    showToast(`歡迎，<span class="toast-highlight-name">${userInfo.displayName}</span>！`);
+  }catch(error){
+    console.error("初始化錯誤：", error);
+    updateAuthLoadingText("初始化失敗",`錯誤：${error.message}<br/>請點擊下方按鈕刷新重試`);
+  }
 }
 
-// ====================== 頁面初始化 ======================
-$(function() {
-    initLiff();
+async function initApp(){
+  try {
+    initElements();
+    initQtySelect();
+    initPeriodBox();
+    initCloseStatus();
     bindEvents();
-    initPeriodOptions();
-    loadCalculatorName();
-});
-
-// 初始化LINE LIFF
-async function initLiff() {
-    try {
-        await liff.init({ liffId: CONFIG.LIFF_ID });
-        liffInitialized = true;
-        if (liff.isLoggedIn()) {
-            const profile = await liff.getProfile();
-            verifyUser(profile.userId, profile.displayName);
-        } else {
-            liff.login();
-        }
-    } catch (e) {
-        // 非LINE環境，使用臨時用戶
-        verifyUser("TEMP_" + Date.now(), "網頁使用者");
-    }
+    await initLiffAndAuth();
+  } catch (err) {
+    showError(`應用啟動失敗：${err.message}<br/>請刷新頁面重試`);
+  }
 }
 
-// 用戶權限驗證
-function verifyUser(userId, displayName) {
-    jsonpRequest({
-        action: "verifyUser",
-        userId: userId,
-        displayName: displayName
-    }, function(res) {
-        if (res.status === "success" || res.status === "exceeded") {
-            CONFIG.USER_INFO = {
-                userId: res.userId,
-                displayName: res.displayName,
-                remainTimes: res.remainTimes,
-                isSuperAdmin: res.isSuperAdmin
-            };
-            loadAllProducts();
-            initAuth();
-        } else {
-            showToast("驗證失敗：" + res.message, "error");
-        }
-    });
-}
-
-// 加載所有產品
-function loadAllProducts() {
-    jsonpRequest({ action: "all" }, function(products) {
-        products.forEach(item => {
-            CONFIG.PRODUCTS[item.name] = { price: item.price, pv: item.pv };
-        });
-    });
-}
-
-// 初始化權限驗證動畫
-function initAuth() {
-    setTimeout(() => {
-        $('#authContainer').fadeOut();
-        $('#authStatusBar').fadeIn().html(`
-            <span>✅ 驗證成功 | 剩餘次數：${CONFIG.USER_INFO.remainTimes}</span>
-            <span class="close-status">✕</span>
-        `);
-        $('#captureArea, #inputArea, .button-group, #ocrArea').show();
-    }, 1000);
-}
-
-// ====================== 事件綁定 ======================
-function bindEvents() {
-    // 關閉狀態欄
-    $('.close-status').click(() => $('#authStatusBar').fadeOut());
-
-    // 加入品項
-    $('#addBtn').click(addProduct);
-
-    // 重置報表（扣次）
-    $('#resetReportBtn').click(resetReport);
-
-    // 重置試算者
-    $('#resetCalculatorBtn').click(resetCalculatorName);
-
-    // 匯出圖片
-    $('#exportBtn').click(exportImage);
-
-    // OCR上傳
-    $('#ocrUploadWrapper').click(() => $('#ocrUploadInput').click());
-    $('#ocrUploadInput').change(onOcrFileSelect);
-    $('#ocrBtn').click(ocrRecognition);
-
-    // 圖片操作
-    $('#clearImageBtn').click(() => {
-        $('#previewImage').hide().attr('src', '');
-        $('#shareToLineBtn, #nativeShareBtn, #clearImageBtn').hide();
-        showToast("圖片已清除");
-    });
-}
-
-// 初始化周期選項
-function initPeriodOptions() {
-    $('.period-box').first().addClass('active');
-    $('.period-box').click(function() {
-        $('.period-box').removeClass('active');
-        $(this).addClass('active');
-        currentPeriod = $(this).text().trim();
-        calculateTotal();
-    });
-}
-
-// 加載試算者名稱
-function loadCalculatorName() {
-    const saved = localStorage.getItem('calculatorName');
-    if (saved) {
-        calculatorName = saved;
-        $('#calculatorDisplay').val(saved);
-    } else {
-        $('#calculatorDisplay').val('請設定試算者');
-    }
-}
-
-// 重置試算者
-function resetCalculatorName() {
-    calculatorName = '';
-    localStorage.removeItem('calculatorName');
-    $('#calculatorDisplay').val('');
-    showToast('試算者名稱已重置');
-}
-
-// ====================== 報表核心功能 ======================
-// 加入產品
-function addProduct() {
-    const name = $('#nameInput').val().trim();
-    const qty = parseInt($('#qtyInput').val()) || 1;
-    if (!name) {
-        showToast('請輸入品項名稱', 'error');
-        return;
-    }
-    const product = CONFIG.PRODUCTS[name] || { price: 0, pv: 0 };
-    const row = $(`
-        <tr>
-            <td>${name}</td>
-            <td><select class="qtySelect">${Array.from({length:50},(_,i)=>`<option ${i+1===qty?'selected':''}>${i+1}</option>`).join('')}</select></td>
-            <td>${product.price}</td>
-            <td>${product.pv}</td>
-            <td class="subTotal">${product.price * qty}</td>
-            <td class="subPv">${product.pv * qty}</td>
-            <td><button class="deleteBtn">刪</button></td>
-        </tr>
-    `);
-    $('#reportBody').append(row);
-    bindRowEvents(row);
-    calculateTotal();
-    $('#nameInput').val(''); $('#qtyInput').val(1);
-    showToast(`已加入：${name}`);
-}
-
-// 綁定行事件
-function bindRowEvents(row) {
-    row.find('.qtySelect').change(calculateTotal);
-    row.find('.deleteBtn').click(function() {
-        jsonpRequest({
-            action: "recordDelete",
-            userId: CONFIG.USER_INFO.userId,
-            displayName: CONFIG.USER_INFO.displayName
-        }, function(res) {
-            if (res.status === "success") {
-                row.remove();
-                calculateTotal();
-                CONFIG.USER_INFO.remainTimes = res.remainTimes;
-                $('#authStatusBar span').first().text(`✅ 驗證成功 | 剩餘次數：${res.remainTimes}`);
-                showToast(res.message);
-            } else {
-                showToast(res.message, "error");
-            }
-        });
-    });
-}
-
-// 計算總計
-function calculateTotal() {
-    let totalPrice = 0, totalPv = 0;
-    $('#reportBody tr').each(function() {
-        const qty = parseInt($(this).find('.qtySelect').val()) || 1;
-        const price = parseInt($(this).find('td:eq(2)').text()) || 0;
-        const pv = parseInt($(this).find('td:eq(3)').text()) || 0;
-        const subTotal = price * qty, subPv = pv * qty;
-        $(this).find('.subTotal').text(subTotal);
-        $(this).find('.subPv').text(subPv);
-        totalPrice += subTotal; totalPv += subPv;
-    });
-    const target = CONFIG.TARGET_PV[currentPeriod];
-    const diff = Math.max(0, target - totalPv);
-    $('#totalPriceCellDup').text(totalPrice);
-    $('#totalPvCellDup').text(totalPv);
-    $('#pvDiff2').text(diff);
-}
-
-// 重置報表（扣次）
-function resetReport() {
-    jsonpRequest({
-        action: "recordReset",
-        userId: CONFIG.USER_INFO.userId,
-        displayName: CONFIG.USER_INFO.displayName
-    }, function(res) {
-        if (res.status === "success") {
-            $('#reportBody').empty();
-            calculateTotal();
-            $('#nameInput').val(''); $('#qtyInput').val(1);
-            CONFIG.USER_INFO.remainTimes = res.remainTimes;
-            $('#authStatusBar span').first().text(`✅ 驗證成功 | 剩餘次數：${res.remainTimes}`);
-            showToast(res.message);
-        } else {
-            showToast(res.message, "error");
-        }
-    });
-}
-
-// ====================== 匯出圖片 ======================
-function exportImage() {
-    const element = document.getElementById('captureArea');
-    $('#exportBtn').prop('disabled', true).text('處理中...');
-    html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
-        const imgData = canvas.toDataURL('image/png');
-        $('#previewImage').attr('src', imgData).show();
-        $('#shareToLineBtn, #nativeShareBtn, #clearImageBtn').show();
-        $('#exportBtn').prop('disabled', false).text('💾 匯出圖片');
-        showToast('匯出成功！');
-    }).catch(err => {
-        showToast('匯出失敗', 'error');
-        $('#exportBtn').prop('disabled', false).text('💾 匯出圖片');
-    });
-}
-
-// ====================== AI OCR 識別 ======================
-function onOcrFileSelect(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-        $('#ocrPreview').attr('src', e.target.result).show();
-        $('#ocrBtn').prop('disabled', false);
-    };
-    reader.readAsDataURL(file);
-}
-
-function ocrRecognition() {
-    const base64 = $('#ocrPreview').attr('src').split(',')[1];
-    $('#ocrBtn').prop('disabled', true).text('識別中...');
-    jsonpRequest({
-        action: "ocrImage",
-        userId: CONFIG.USER_INFO.userId,
-        displayName: CONFIG.USER_INFO.displayName,
-        imageBase64: base64
-    }, function(res) {
-        if (res.status === "success") {
-            $('#reportBody').empty();
-            res.data.forEach(item => {
-                if (item.name && item.qty) {
-                    $('#nameInput').val(item.name);
-                    $('#qtyInput').val(item.qty);
-                    addProduct();
-                }
-            });
-            CONFIG.USER_INFO.remainTimes = res.remainTimes;
-            $('#authStatusBar span').first().text(`✅ 驗證成功 | 剩餘次數：${res.remainTimes}`);
-            showToast('OCR識別完成，已自動加入產品');
-        } else {
-            showToast('識別失敗：' + res.message, "error");
-        }
-        $('#ocrBtn').prop('disabled', false).text('🤖 AI識別圖片');
-    });
-}
-
-// ====================== 提示框 ======================
-function showToast(msg, type = 'default') {
-    const toast = $('#toast');
-    toast.text(msg).removeClass('error warning default').addClass(type).addClass('show');
-    setTimeout(() => toast.removeClass('show'), 2500);
-}
+window.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
 </html>
