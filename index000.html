@@ -72,7 +72,7 @@
             color: var(--primary);
         }
 
-        .info-item input {
+        .info-item input, .info-item select {
             border: 1px solid var(--gray);
             border-radius: 4px;
             padding: 6px 8px;
@@ -80,7 +80,7 @@
             transition: 0.2s;
         }
 
-        .info-item input:focus {
+        .info-item input:focus, .info-item select:focus {
             border-color: var(--secondary);
         }
 
@@ -99,18 +99,45 @@
             border-left: 4px solid var(--accent);
         }
 
-        /* 产品快捷选择区 */
-        .product-panel {
-            padding: 12px;
+        /* 折叠面板 */
+        .collapse-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
             background: var(--light);
             border-radius: var(--radius);
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+
+        .collapse-content {
+            display: none;
+            padding: 8px 12px;
+            background: var(--light);
+            border-radius: var(--radius);
+        }
+
+        .collapse-content.show {
+            display: block;
+        }
+
+        .collapse-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* 产品快捷选择区 */
+        .product-panel {
             margin-bottom: 12px;
         }
 
         .panel-title {
             font-weight: 600;
             color: var(--primary);
-            margin-bottom: 8px;
             font-size: 13px;
         }
 
@@ -167,6 +194,11 @@
             border: 1px solid var(--gray);
         }
 
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+        }
+
         .btn:hover {
             opacity: 0.9;
         }
@@ -179,7 +211,7 @@
         .nutrition-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px;
+            min-width: 650px;
         }
 
         .nutrition-table thead {
@@ -238,9 +270,27 @@
             color: var(--accent);
         }
 
-        /* 默認勾選樣式 */
+        /* 勾選樣式 */
         .check-btn.active {
             background: #FFF0F3;
+        }
+
+        /* 單行刪除按鈕 */
+        .del-single-btn {
+            padding: 4px 8px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* 分享按鈕區 */
+        .share-section {
+            padding: 16px 24px;
+            text-align: center;
+            border-top: 1px solid var(--gray);
         }
 
         /* 备注区 */
@@ -288,6 +338,16 @@
                 <label>介紹人：</label>
                 <input type="text" id="introducer" placeholder="請輸入介紹人">
             </div>
+            <!-- 新增：入會下拉欄位 -->
+            <div class="info-item">
+                <label>入會：</label>
+                <select id="memberType">
+                    <option value="">請選擇</option>
+                    <option value="新入會草本（男）">新入會草本（男）</option>
+                    <option value="新入會草本（女）">新入會草本（女）</option>
+                    <option value="新入會命運九號">新入會命運九號</option>
+                </select>
+            </div>
             <div class="info-item">
                 <label>基本保養：</label>
                 <input type="text" id="basicNutrition" value="211、300、299A各3顆">
@@ -301,37 +361,33 @@
         <!-- 第一個月 -->
         <div class="month-section">
             <div class="month-title">第一個月</div>
+            <!-- 折疊產品面板 -->
             <div class="product-panel">
-                <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
-                <div class="product-tags" id="tags1"></div>
+                <div class="collapse-header" onclick="toggleCollapse(1)">
+                    <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
+                    <button class="collapse-btn" id="collapseBtn1">展開 ▼</button>
+                </div>
+                <div class="collapse-content" id="collapseContent1">
+                    <div class="product-tags" id="tags1"></div>
+                </div>
             </div>
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="addRow(1)">➕ 新增行</button>
-                <button class="btn btn-light" onclick="delRow(1)">➖ 刪除選中行</button>
                 <button class="btn btn-light" onclick="clearTable(1)">🧹 清空</button>
             </div>
             <div class="table-wrapper">
                 <table class="nutrition-table">
                     <thead>
                         <tr>
-                            <th>選擇</th>
                             <th>產品編號</th>
                             <th>顆數</th>
                             <th>早</th>
                             <th>中</th>
                             <th>晚</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
-                    <tbody id="body1">
-                        <tr>
-                            <td><input type="checkbox" class="row-check"></td>
-                            <td><input type="text" class="edit-input prod-name" placeholder="雙擊產品添加"></td>
-                            <td><input type="number" class="edit-input" value="3"></td>
-                            <td><button class="check-btn active">√</button></td>
-                            <td><button class="check-btn">√</button></td>
-                            <td><button class="check-btn active">√</button></td>
-                        </tr>
-                    </tbody>
+                    <tbody id="body1"></tbody>
                 </table>
             </div>
         </div>
@@ -340,24 +396,28 @@
         <div class="month-section">
             <div class="month-title">第二個月</div>
             <div class="product-panel">
-                <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
-                <div class="product-tags" id="tags2"></div>
+                <div class="collapse-header" onclick="toggleCollapse(2)">
+                    <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
+                    <button class="collapse-btn" id="collapseBtn2">展開 ▼</button>
+                </div>
+                <div class="collapse-content" id="collapseContent2">
+                    <div class="product-tags" id="tags2"></div>
+                </div>
             </div>
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="addRow(2)">➕ 新增行</button>
-                <button class="btn btn-light" onclick="delRow(2)">➖ 刪除選中行</button>
                 <button class="btn btn-light" onclick="clearTable(2)">🧹 清空</button>
             </div>
             <div class="table-wrapper">
                 <table class="nutrition-table">
                     <thead>
                         <tr>
-                            <th>選擇</th>
                             <th>產品編號</th>
                             <th>顆數</th>
                             <th>早</th>
                             <th>中</th>
                             <th>晚</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="body2"></tbody>
@@ -369,24 +429,28 @@
         <div class="month-section">
             <div class="month-title">第三個月</div>
             <div class="product-panel">
-                <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
-                <div class="product-tags" id="tags3"></div>
+                <div class="collapse-header" onclick="toggleCollapse(3)">
+                    <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
+                    <button class="collapse-btn" id="collapseBtn3">展開 ▼</button>
+                </div>
+                <div class="collapse-content" id="collapseContent3">
+                    <div class="product-tags" id="tags3"></div>
+                </div>
             </div>
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="addRow(3)">➕ 新增行</button>
-                <button class="btn btn-light" onclick="delRow(3)">➖ 刪除選中行</button>
                 <button class="btn btn-light" onclick="clearTable(3)">🧹 清空</button>
             </div>
             <div class="table-wrapper">
                 <table class="nutrition-table">
                     <thead>
                         <tr>
-                            <th>選擇</th>
                             <th>產品編號</th>
                             <th>顆數</th>
                             <th>早</th>
                             <th>中</th>
                             <th>晚</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="body3"></tbody>
@@ -403,6 +467,11 @@
             <div class="note-item">一氧化氮：早、晚各____顆　循清蔘：早、晚各____顆</div>
             <div class="note-item">○205 兩顆加211A一顆～拆殼後，粉倒入口中含著。</div>
         </div>
+
+        <!-- 原生分享按鈕 -->
+        <div class="share-section">
+            <button class="btn btn-accent" onclick="nativeShare()">📤 原生分享報表資訊</button>
+        </div>
     </div>
 
     <script>
@@ -415,18 +484,32 @@
             "大女王","極樂鳥","101","111","168","金色果(2）","海神泥","復甦精華露"
         ];
 
-        // ===================== 自動加載今日日期（民國紀年） =====================
+        // 默認產品配置
+        const defaultProducts = {
+            1: ["211", "300", "299A", "211A"],
+            2: ["211", "300", "299A"],
+            3: ["211", "300", "299A"]
+        };
+
+        // ===================== 自動加載今日日期 =====================
         function loadTodayDate() {
             const now = new Date();
-            const year = now.getFullYear() - 1911; // 民國年
+            const year = now.getFullYear() - 1911;
             const month = now.getMonth() + 1;
             const day = now.getDate();
             const week = ['日','一','二','三','四','五','六'][now.getDay()];
-            const dateStr = `${year}.${month}.${day}(${week})`;
-            document.getElementById('date').value = dateStr;
+            document.getElementById('date').value = `${year}.${month}.${day}(${week})金門`;
         }
 
-        // ===================== 渲染三個月份的產品標籤 =====================
+        // ===================== 折疊面板切換 =====================
+        function toggleCollapse(month) {
+            const content = document.getElementById(`collapseContent${month}`);
+            const btn = document.getElementById(`collapseBtn${month}`);
+            content.classList.toggle('show');
+            btn.textContent = content.classList.contains('show') ? '收起 ▲' : '展開 ▼';
+        }
+
+        // ===================== 渲染產品標籤 =====================
         function renderAllTags() {
             [1,2,3].forEach(month => {
                 const container = document.getElementById(`tags${month}`);
@@ -434,73 +517,94 @@
                     const tag = document.createElement('div');
                     tag.className = 'product-tag';
                     tag.textContent = item;
-                    // 雙擊直接添加產品
-                    tag.ondblclick = () => addProduct(month, item);
+                    tag.ondblclick = () => addProductWithRow(month, item);
                     container.appendChild(tag);
                 });
             });
         }
 
-        // ===================== 雙擊添加產品 =====================
-        function addProduct(month, product) {
-            const tbody = document.getElementById(`body${month}`);
-            const checks = tbody.querySelectorAll('.row-check:checked');
-            
-            // 有勾選行 → 添加到勾選行
-            if(checks.length > 0) {
-                checks.forEach(cb => {
-                    const row = cb.closest('tr');
-                    row.querySelector('.prod-name').value = product;
-                });
-            } else {
-                // 無勾選 → 添加到第一行
-                const firstRow = tbody.querySelector('tr');
-                if(firstRow) firstRow.querySelector('.prod-name').value = product;
-            }
-        }
-
-        // ===================== 表格操作 =====================
-        // 新增行（默認：早、晚勾選，中午不勾）
-        function addRow(month) {
+        // ===================== 雙擊產品：自動新增行+填入產品 =====================
+        function addProductWithRow(month, product) {
             const tbody = document.getElementById(`body${month}`);
             const tr = document.createElement('tr');
+            // 早、晚默認勾選，中午空白
             tr.innerHTML = `
-                <td><input type="checkbox" class="row-check"></td>
-                <td><input type="text" class="edit-input prod-name" placeholder="雙擊產品添加"></td>
+                <td><input type="text" class="edit-input prod-name" value="${product}"></td>
                 <td><input type="number" class="edit-input" value="3"></td>
-                <td><button class="check-btn active">√</button></td>
-                <td><button class="check-btn">√</button></td>
-                <td><button class="check-btn active">√</button></td>
+                <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
+                <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
+                <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
+                <td><button class="del-single-btn" onclick="delSingleRow(this)">刪除</button></td>
             `;
             tbody.appendChild(tr);
         }
 
-        // 刪除選中行
-        function delRow(month) {
-            document.querySelectorAll(`#body${month} .row-check:checked`).forEach(cb => {
-                cb.closest('tr').remove();
-            });
+        // ===================== 表格操作 =====================
+        // 新增空白行
+        function addRow(month) {
+            const tbody = document.getElementById(`body${month}`);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" class="edit-input prod-name" placeholder="雙擊產品添加"></td>
+                <td><input type="number" class="edit-input" value="3"></td>
+                <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
+                <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
+                <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
+                <td><button class="del-single-btn" onclick="delSingleRow(this)">刪除</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        // 單行刪除
+        function delSingleRow(btn) {
+            btn.closest('tr').remove();
         }
 
         // 清空表格
         function clearTable(month) {
             if(confirm('確定清空？')) {
                 document.getElementById(`body${month}`).innerHTML = '';
-                addRow(month);
             }
         }
 
-        // ===================== 雙擊切換勾選狀態 =====================
-        document.addEventListener('dblclick', (e) => {
-            if(e.target.classList.contains('check-btn')) {
-                e.target.classList.toggle('active');
+        // 加載默認產品
+        function loadDefaultProducts() {
+            for (let month in defaultProducts) {
+                const products = defaultProducts[month];
+                products.forEach(p => addProductWithRow(month, p));
             }
-        });
+        }
+
+        // ===================== 雙擊切換勾選 =====================
+        function toggleCheck(btn) {
+            btn.classList.toggle('active');
+            btn.textContent = btn.classList.contains('active') ? '√' : '';
+        }
+
+        // ===================== 瀏覽器原生分享 =====================
+        function nativeShare() {
+            const name = document.getElementById('name').value || '未填寫';
+            const introducer = document.getElementById('introducer').value || '未填寫';
+            const member = document.getElementById('memberType').value || '未選擇';
+            const date = document.getElementById('date').value;
+
+            const shareData = {
+                title: '草本產品購買明細表',
+                text: `日期：${date}\n姓名：${name}\n介紹人：${introducer}\n入會類型：${member}\n產品：211/300/299A/211A`
+            };
+
+            if (navigator.share) {
+                navigator.share(shareData).catch(err => console.log('分享取消', err));
+            } else {
+                alert('您的瀏覽器不支援原生分享，請手動截圖分享');
+            }
+        }
 
         // ===================== 初始化 =====================
         window.onload = function() {
             loadTodayDate();
             renderAllTags();
+            loadDefaultProducts();
         };
     </script>
 </body>
