@@ -622,7 +622,7 @@ function bindEvents() {
   els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
 }
 
-// 選擇圖片並轉Base64 + 壓縮圖片（修復GAS識別失敗核心問題）
+// 选择图片 → 直接上传imgbb获取URL（修复所有报错）
 function handleImageSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -632,58 +632,45 @@ function handleImageSelect(e) {
     return;
   }
 
-  // 圖片壓縮配置（解決GAS大圖超時問題）
-  const maxWidth = 1000;
-  const maxHeight = 1000;
-  const quality = 0.8;
+  // 按钮状态
+  els.ocrRecognitionBtn.disabled = true;
+  els.ocrRecognitionBtn.textContent = "上傳中...";
+  showToast("🔼 圖片上傳中...", "success");
 
-  const reader = new FileReader();
-  // 錯誤捕獲
-  reader.onerror = () => {
-    showToast("❌ 圖片讀取失敗，請重試", "error");
-  };
-  
-  reader.onload = function (event) {
-    const img = new Image();
-    img.onload = function() {
-      // 計算壓縮比例
-      let width = img.width;
-      let height = img.height;
-      if (width > maxWidth) {
-        height = (maxWidth / width) * height;
-        width = maxWidth;
+  // 上传到imgbb
+  const form = new FormData();
+  form.append("image", file);
+  form.append("key", IMGBB_API_KEY);
+
+  fetch("https://api.imgbb.com/1/upload", {
+    method: "POST",
+    body: form
+  }).then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        // 保存图片URL（核心：只传URL，不传超大Base64）
+        selectedImageBase64 = data.data.url;
+        // 预览
+        els.ocrPreview.src = data.data.url;
+        els.ocrPreview.style.display = "block";
+        els.ocrRecognitionBtn.style.display = "inline-block";
+        els.ocrRecognitionBtn.disabled = false;
+        els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
+        showToast("✅ 圖片上傳成功，點擊AI識別", "success");
+      } else {
+        throw new Error("上传失败");
       }
-      if (height > maxHeight) {
-        width = (maxHeight / height) * width;
-        height = maxHeight;
-      }
-
-      // Canvas壓縮圖片
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, width, height);
-
-      // 關鍵修復：提取【純Base64】（去掉data:image/xxx;base64, 前綴）
-      const compressedDataURL = canvas.toDataURL(file.type || "image/jpeg", quality);
-      selectedImageBase64 = compressedDataURL.split(",")[1]; 
-      
-      // 預覽圖用完整DataURL
-      els.ocrPreview.src = compressedDataURL;
-      els.ocrPreview.style.display = "block";
-      els.ocrRecognitionBtn.style.display = "inline-block";
-      showToast("✅ 圖片壓縮完成，點擊AI識別", "success");
-    };
-    img.src = event.target.result;
-  };
-  reader.readAsDataURL(file);
+    }).catch(err => {
+      showToast("❌ 圖片上傳失敗", "error");
+      els.ocrRecognitionBtn.disabled = false;
+      els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
+      console.error(err);
+    });
 }
 
 
-// 开始AI识别（动态表单版 - 彻底解决跨域+URL长度超限）
+// 开始AI识别（JSONP+图片URL 终极无报错版）
 async function startOcrRecognition() {
-  // 防呆校验
   if (!userInfo || !userInfo.userId) {
     showToast("❌ 用戶驗證失敗，請刷新重試", "error");
     return;
@@ -697,90 +684,63 @@ async function startOcrRecognition() {
     return;
   }
 
-  // 按鈕狀態
+  // 按钮状态
   els.ocrRecognitionBtn.disabled = true;
   els.ocrRecognitionBtn.textContent = "識別中...";
   showToast("🔍 AI正在識別品項，請稍候...", "success");
 
-  // ======================================
-  // 核心：动态创建表单提交（无跨域+无长度限制）
-  // ======================================
-  const form = document.createElement('form');
-  form.action = API_URL;
-  form.method = 'POST';
-  form.target = 'hidden-ocr-iframe'; // 绑定隐藏iframe
-  form.style.display = 'none';
+  // 唯一回调函数
+  const callbackName = `ocrCallback_${Date.now()}`;
+  window[callbackName] = function(resp) {
+    delete window[callbackName];
+    els.ocrRecognitionBtn.disabled = false;
+    els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
 
-  // 添加参数
-  const params = {
-    action: 'ocrImage',
-    userId: userInfo.userId,
-    displayName: userInfo.displayName || '未知用戶',
-    imageBase64: selectedImageBase64
-  };
-
-  // 循环创建表单项
-  for (const key in params) {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = key;
-    input.value = params[key];
-    form.appendChild(input);
-  }
-
-  // 创建隐藏iframe接收返回值
-  let iframe = document.getElementById('hidden-ocr-iframe');
-  if (!iframe) {
-    iframe = document.createElement('iframe');
-    iframe.id = 'hidden-ocr-iframe';
-    iframe.name = 'hidden-ocr-iframe';
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-  }
-
-  // 监听iframe返回结果
-  iframe.onload = function() {
-    try {
-      // 获取GAS返回的JSON数据
-      const resp = JSON.parse(iframe.contentDocument.body.textContent);
-      
-      // 處理返回結果
-      if (resp.status === "error") {
-        showToast(`❌ 識別失敗：${resp.message}`, "error");
-        return;
-      }
-      if (resp.status === "exceeded") {
-        showToast("❌ 使用次數已用盡", "error");
-        authStatus.remainTimes = 0;
-        updateAuthStatusBar();
-        checkUserRemainingTimes();
-        return;
-      }
-
-      if (resp.status === "success" && resp.data?.length > 0) {
-        authStatus.remainTimes = resp.remainTimes;
-        updateAuthStatusBar();
-        addOcrProducts(resp.data);
-        showToast(`✅ 識別成功！自動添加 ${resp.data.length} 個品項`, "success");
-      } else {
-        showToast("⚠️ 未識別到任何品項", "warning");
-      }
-    } catch (e) {
-      showToast(`❌ 解析失敗，請重試`, "error");
-      console.error("解析错误：", e);
-    } finally {
-      // 还原按钮
-      els.ocrRecognitionBtn.disabled = false;
-      els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
-      // 清理
-      document.body.removeChild(form);
+    if (resp.status === "error") {
+      showToast(`❌ 識別失敗：${resp.message}`, "error");
+      return;
+    }
+    if (resp.status === "exceeded") {
+      showToast("❌ 使用次數已用盡", "error");
+      authStatus.remainTimes = 0;
+      updateAuthStatusBar();
+      checkUserRemainingTimes();
+      return;
+    }
+    if (resp.status === "success" && resp.data?.length > 0) {
+      authStatus.remainTimes = resp.remainTimes;
+      updateAuthStatusBar();
+      addOcrProducts(resp.data);
+      showToast(`✅ 識別成功！自動添加 ${resp.data.length} 個品項`, "success");
+    } else {
+      showToast("⚠️ 未識別到任何品項", "warning");
     }
   };
 
-  // 提交表单
-  document.body.appendChild(form);
-  form.submit();
+  // JSONP请求（和你项目完全一致，无跨域/无报错）
+  $.ajax({
+    url: API_URL,
+    dataType: "jsonp",
+    jsonp: "callback",
+    jsonpCallback: callbackName,
+    timeout: 60000,
+    data: {
+      action: "ocrImage",
+      userId: userInfo.userId,
+      displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
+      // 关键：传URL，不再传Base64
+      imageUrl: selectedImageBase64,
+      callback: callbackName
+    },
+    error: function() {
+      delete window[callbackName];
+      els.ocrRecognitionBtn.disabled = false;
+      els.ocrRecognitionBtn.textContent = "🤖AI識別";
+      showToast(`❌ 網路錯誤，請重試`, "error");
+    }
+  });
 }
+
 
 // 自動添加識別到的品項
 function addOcrProducts(ocrProducts) {
