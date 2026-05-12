@@ -844,7 +844,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // ✅ 修復版：支援數字+字母識別（解決255A/289識別問題）
+    // ✅ 终极优化版：支持编号+数量识别 + 自动累加 + 精准匹配
   els.recognizeBtn.click(async () => {
     if (!base64Image) {
       showToast("❌ 請先上傳產品圖片", "error");
@@ -855,65 +855,55 @@ function initImageUpload() {
     els.recognizeBtn.prop("disabled", true).text("🔍 識別產品中...");
 
     try {
-      // 🔥 關鍵修改1：開放數字+字母識別（支援255A這類編號）
+      // 1. OCR 识别：支持数字+字母，适配所有产品编号
       const { data: { text } } = await Tesseract.recognize(
         base64Image,
         'eng', 
         { 
           logger: () => {},
-          tessedit_pageseg_mode: 13, // 手寫數字專用模式
-          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' // 加入字母
+          tessedit_pageseg_mode: 6,
+          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ×*'
         }
       );
 
-      console.log("識別到的完整文字：", text); 
-      let ocrText = text.trim().toUpperCase(); // 統一轉大寫，避免大小寫問題
-      
-      // 🔥 關鍵修改2：增強匹配邏輯 - 提取數字+字母組合（支援255A、211A等）
-      const codeRegex = /\d+[A-Z]?|\d+/g; // 匹配 數字+可選字母 或 單純數字
-      const codes = ocrText.match(codeRegex) || [];
-      
-      // 去重 + 清理無效值
-      const uniqueCodes = [...new Set(codes)].filter(code => code.length > 0);
+      console.log("識別原文：", text);
+      let ocrText = text.trim().toUpperCase().replace(/\s+/g, ''); // 清理空格+大写
 
-      if (uniqueCodes.length === 0) {
-        showToast("❌ 未識別到任何產品編號", "error");
-        return;
-      }
+      // 2. 🔥 核心正则：匹配【产品编号 + 数量】
+      // 支持：255A / 255A×2 / 255A*2 / 289 / 289×3 等所有格式
+      const regex = /(\d+[A-Z]*)(?:[×*](\d+))?/g;
+      let match;
+      const productMap = new Map();
 
-      // 🔥 關鍵修改3：增強產品匹配邏輯
-      const matchedMap = new Map();
-      uniqueCodes.forEach(code => {
-        // 匹配規則：
-        // 1. 完全匹配（如 255A 匹配 255A）
-        // 2. 數字部分匹配（如 255 匹配 255A）
-        // 3. 純數字匹配（如 289 匹配 289）
-        const targetProd = products.find(prod => {
-          // 提取產品名稱中的數字部分（用於模糊匹配）
-          const prodNum = prod.name.replace(/[^0-9]/g, '');
-          const codeNum = code.replace(/[^0-9]/g, '');
-          
-          return (
-            prod.name === code ||                  // 完全匹配
-            prod.name.includes(code) ||            // 包含匹配
-            (prodNum === codeNum && code.length === 3) // 3位數字模糊匹配（解決255匹配255A）
-          );
-        });
+      // 3. 遍历识别结果，自动累加数量
+      while ((match = regex.exec(ocrText)) !== null) {
+        const code = match[1];   // 产品编号（255A/289）
+        const qty = parseInt(match[2]) || 1; // 数量，默认1
+
+        // 精准匹配产品库
+        const targetProd = products.find(p => 
+          p.name === code || p.name.includes(code)
+        );
 
         if (targetProd) {
-          matchedMap.set(targetProd.name, { ...targetProd, qty: 1 });
+          // 🔥 关键修复：存在则累加数量，不存在则新增
+          if (productMap.has(targetProd.name)) {
+            productMap.get(targetProd.name).qty += qty;
+          } else {
+            productMap.set(targetProd.name, { ...targetProd, qty });
+          }
         }
-      });
+      }
 
-      // 轉換為數組
-      selectedProds = Array.from(matchedMap.values());
+      // 4. 转换数组并赋值
+      selectedProds = Array.from(productMap.values());
 
       if (selectedProds.length === 0) {
         showToast("❌ 未匹配到對應產品", "error");
         return;
       }
 
-      // 保存並導入報表
+      // 5. 保存渲染
       saveSelectedProds();
       renderTable();
       showToast(`✅ 識別完成！匯入 ${selectedProds.length} 個品項`, "success");
