@@ -766,6 +766,32 @@ function updateAuthLoadingText(title, desc) {
   $("#authLoading p").html(desc);
 }
 
+// 🔥 全局扣次函数（JSONP，无跨域）
+function deductUsage(usageType) {
+  if (!userInfo || !authStatus) return;
+  if (authStatus.isSuperAdmin || authStatus.isVip) return;
+  
+  const callbackName = `deduct_${Date.now()}`;
+  window[callbackName] = (resp) => {
+    delete window[callbackName];
+    if (resp?.status === "exceeded") {
+      showToast("❌ 使用次數已用盡，請聯繫管理員", "error");
+    }
+  };
+
+  $.ajax({
+    url: GAS_API_URL,
+    dataType: "jsonp",
+    jsonp: "callback",
+    jsonpCallback: callbackName,
+    data: {
+      action: usageType,
+      userId: userInfo.userId,
+      displayName: userInfo.displayName
+    }
+  });
+}
+
 // ==================== DOM 加載完成 ====================
 window.addEventListener('DOMContentLoaded', async () => {
   initElements();
@@ -773,14 +799,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   initPeriodBox();
   bindEvents();
   initImageUpload();
-  // 啟動 LIFF 自動驗證（取代密碼登錄）
   initLiffAuth();
 });
 
-// ==================== 🔥 LIFF 完整權限驗證（修復版 - 兼容GAS/GitHub） ====================
+// ==================== LIFF 驗證（修復版） ====================
 async function initLiffAuth() {
   try {
-    // 檢查SDK是否加載
     if (!window.liff) {
       $("#loginTip").text("LIFF SDK加載失敗，請檢查網路").show();
       showToast("❌ 網路異常，SDK加載失敗", "error");
@@ -788,34 +812,28 @@ async function initLiffAuth() {
     }
 
     updateAuthLoadingText("正在驗證", "請稍候...");
-// 🔥 修復1：LIFF參數（刪除不支持的email scope）
-await liff.init({ 
-  liffId: LIFF_ID,
-  withLoginOnExternalBrowser: true,
-  scope: 'profile openid' // 刪除email，LINE LIFF不支持
-});
+    await liff.init({ 
+      liffId: LIFF_ID,
+      withLoginOnExternalBrowser: true,
+      scope: 'profile openid'
+    });
 
-    // 強制LINE內部打開
     if (!liff.isInClient()) {
       $("#loginTip").text("請在LINE內打開此系統").show();
       showToast("❌ 請在LINE內打開使用", "error");
       return;
     }
 
-    // 未登錄則跳轉
     if (!liff.isLoggedIn()) {
       liff.login({ redirectUri: window.location.href });
       return;
     }
 
-    // 獲取用戶資料
     const profile = await liff.getProfile();
     userInfo = { userId: profile.userId, displayName: profile.displayName };
 
-    // 讀取本地緩存
     if (isTodayValidAuth(profile.userId)) {
       authStatus = JSON.parse(localStorage.getItem(`authCache_${profile.userId}`)).data;
-      // ✅ 修復2：登錄成功直接顯示界面（取代無效CSS選擇器）
       $("#authContainer").hide();
       showCoreElements();
       await initSystem();
@@ -823,7 +841,6 @@ await liff.init({
       return;
     }
 
-    // ✅ 修復3：GAS請求改用JSONP（fetch跨域失敗，代碼二正常的關鍵）
     updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
     const verifyData = await verifyUserWithJSONP(profile);
     
@@ -833,7 +850,6 @@ await liff.init({
       return;
     }
 
-    // 計算過期時間
     const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
     authStatus = {
       ...verifyData,
@@ -843,19 +859,16 @@ await liff.init({
       remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount || 0)
     };
 
-    // 過期判斷
     if (authStatus.isExpired) {
       $("#loginTip").text("帳號已過期，請聯繫管理員").show();
       showToast("❌ 帳號已過期", "error");
       return;
     }
 
-    // 緩存權限
     if (authStatus.isVip || authStatus.isSuperAdmin) {
       saveTodayAuthCache(profile.userId, authStatus);
     }
 
-    // ✅ 修復4：登錄成功隱藏驗證框，顯示核心功能
     $("#authContainer").hide();
     showCoreElements();
     $("#loginTip").hide();
@@ -863,7 +876,6 @@ await liff.init({
     showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
 
   } catch (err) {
-    // ✅ 修復5：Token過期自動重登
     if (err.message.includes("token expired") || err.message.includes("Access Token")) {
       showToast("登入狀態過期，自動重新登入", "warning");
       setTimeout(() => {
@@ -871,14 +883,13 @@ await liff.init({
       }, 1500);
       return;
     }
-
     console.error("LIFF驗證崩潰：", err);
     $("#loginTip").text("網路/伺服器異常，請重新整理").show();
     showToast("❌ 驗證失敗，請重新整理", "error");
   }
 }
 
-// ==================== 新增：GAS JSONP 請求函數（解決跨域） ====================
+// ==================== JSONP 請求 ====================
 function verifyUserWithJSONP(profile) {
   return new Promise((resolve) => {
     const callbackName = `verify_${Date.now()}`;
@@ -887,7 +898,6 @@ function verifyUserWithJSONP(profile) {
       resolve(resp);
     };
 
-    // JSONP 請求 GAS（兼容100%）
     $.ajax({
       url: GAS_API_URL,
       dataType: "jsonp",
@@ -907,7 +917,6 @@ function verifyUserWithJSONP(profile) {
   });
 }
 
-// ==================== 新增：登錄成功顯示核心功能 ====================
 function showCoreElements() {
   $("#captureArea").show();
   $(".upload-area").show();
@@ -917,16 +926,14 @@ function showCoreElements() {
   $(".spacer").show();
 }
 
-// 登录成功后初始化（权限校验）
 async function initSystem() {
   await fetchProductsFromSheet();
   setupLineName();
   loadSelectedProds();
   renderTable();
-  updateAuthStatusBar(); // 显示状态栏
+  updateAuthStatusBar();
 }
 
-// 🔥 核心：GAS JSONP 加載產品（兼容100%）
 async function fetchProductsFromSheet() {
   return new Promise((resolve, reject) => {
     const callbackName = `loadProducts_${Date.now()}`;
@@ -962,7 +969,6 @@ async function fetchProductsFromSheet() {
   });
 }
 
-// 初始化元素
 function initElements() {
   els = {
     nameInput: $("#nameInput"),
@@ -995,7 +1001,6 @@ function initElements() {
   };
 }
 
-// 初始化數量選單
 function initQtySelect() {
   els.qtyInput.empty();
   for (let i = 1; i <= 99; i++) {
@@ -1003,7 +1008,6 @@ function initQtySelect() {
   }
 }
 
-// 初始化週期按鈕
 function initPeriodBox() {
   $('.period-box').click(function(){
     $('.period-box').removeClass('active');
@@ -1011,7 +1015,6 @@ function initPeriodBox() {
   });
 }
 
-// 綁定事件
 function bindEvents() {
   els.addBtn.click(addProduct);
   els.resetCalculatorBtn.click(resetLineName);
@@ -1025,6 +1028,7 @@ function bindEvents() {
   els.reportBody.on("click", ".deleteBtn", function () {
     const idx = $(this).data("index");
     selectedProds.splice(idx, 1);
+    deductUsage("recordDelete");
     saveSelectedProds();
     renderTable();
     showToast("✅ 已刪除");
@@ -1050,7 +1054,6 @@ function bindEvents() {
   });
 }
 
-// 載入產品清單到下拉選單
 function loadProductList() {
   els.nameInput.empty();
   products.forEach(p => {
@@ -1058,7 +1061,7 @@ function loadProductList() {
   });
 }
 
-// ==================== 圖片上傳 + OpenAI 100%精準識別 ====================
+// ==================== 圖片上傳 + OCR（完整JSONP，無語法錯誤） ====================
 function initImageUpload() {
   const uploadArea = els.uploadArea[0];
   uploadArea.addEventListener('dragenter', (e) => {
@@ -1086,7 +1089,6 @@ function initImageUpload() {
     if(file) handleImageFile(file);
   });
 
-  // 原圖上傳
   function handleImageFile(file){
     const reader = new FileReader();
     reader.onload = function (ev) {
@@ -1097,81 +1099,83 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // 🔥 修復2：OCR請求改用JSONP（完全兼容GitHub+GAS）
-els.recognizeBtn.click(async () => {
-  if (!base64Image) {
-    showToast("❌ 請先上傳產品圖片", "error");
-    return;
-  }
-
-  // 加載狀態
-  els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
-  els.recognizeBtn.prop("disabled", true).text("🔍 AI識別中...");
-
-  // JSONP 請求OCR
-  const callbackName = `ocr_${Date.now()}`;
-  window[callbackName] = (result) => {
-    delete window[callbackName];
-    try {
-      if (!result || !result.data || result.data.length === 0) {
-        showToast("❌ 未識別到任何產品", "error");
-        return;
-      }
-
-      console.log("✅ AI識別結果：", result.data);
-      let addCount = 0;
-      result.data.forEach(item => {
-        const code = item.code?.trim().toUpperCase();
-        const qty = parseInt(item.qty) || 1;
-        if (!code) return;
-
-        const targetProd = products.find(p => 
-          p.name.toUpperCase().includes(code) || p.name === code
-        );
-        if (!targetProd) return;
-
-        const exist = selectedProds.find(x => x.name === targetProd.name);
-        if (exist) { exist.qty += qty; } 
-        else { selectedProds.push({ ...targetProd, qty }); }
-        addCount++;
-      });
-
-      // 🔥 扣次：OCR識別
-      deductUsage("recordOcr");
-      
-      saveSelectedProds();
-      renderTable();
-      addCount > 0 ? showToast(`✅ 識別成功！自動添加 ${addCount} 個品項`, "success") : showToast("⚠️ 識別到編號，但未匹配到產品", "warning");
-    } catch (err) {
-      console.error("❌ 識別處理失敗：", err);
-      showToast("❌ 圖片識別失敗，請重試", "error");
-    } finally {
-      els.ocrOverlay.fadeOut(200);
-      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+  els.recognizeBtn.click(async () => {
+    if (!base64Image) {
+      showToast("❌ 請先上傳產品圖片", "error");
+      return;
     }
-  };
 
-  // JSONP 發起請求
-  $.ajax({
-    url: GAS_API_URL,
-    dataType: "jsonp",
-    jsonp: "callback",
-    jsonpCallback: callbackName,
-    timeout: 20000,
-    data: {
-      action: "ocr",
-      base64: base64Image
-    },
-    error: () => {
+    els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
+    els.recognizeBtn.prop("disabled", true).text("🔍 AI識別中...");
+
+    const callbackName = `ocr_${Date.now()}`;
+    window[callbackName] = (result) => {
       delete window[callbackName];
-      els.ocrOverlay.fadeOut(200);
-      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
-      showToast("❌ 網路異常，識別失敗", "error");
-    }
-  });
-});
+      try {
+        if (!result || !result.data || result.data.length === 0) {
+          showToast("❌ 未識別到任何產品", "error");
+          return;
+        }
 
-// 加入產品 + 扣次
+        let addCount = 0;
+        result.data.forEach(item => {
+          const code = item.code?.trim().toUpperCase();
+          const qty = parseInt(item.qty) || 1;
+          if (!code) return;
+
+          const targetProd = products.find(p => 
+            p.name.toUpperCase().includes(code) || p.name === code
+          );
+          if (!targetProd) return;
+
+          const exist = selectedProds.find(x => x.name === targetProd.name);
+          if (exist) {
+            exist.qty += qty;
+          } else {
+            selectedProds.push({ ...targetProd, qty });
+          }
+          addCount++;
+        });
+
+        deductUsage("recordOcr");
+        saveSelectedProds();
+        renderTable();
+        
+        if (addCount > 0) {
+          showToast(`✅ 識別成功！自動添加 ${addCount} 個品項`, "success");
+        } else {
+          showToast("⚠️ 識別到編號，但未匹配到產品", "warning");
+        }
+      } catch (err) {
+        console.error("❌ 識別失敗：", err);
+        showToast("❌ 圖片識別失敗，請重試", "error");
+      } finally {
+        els.ocrOverlay.fadeOut(200);
+        els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+      }
+    };
+
+    $.ajax({
+      url: GAS_API_URL,
+      dataType: "jsonp",
+      jsonp: "callback",
+      jsonpCallback: callbackName,
+      timeout: 20000,
+      data: {
+        action: "ocr",
+        base64: base64Image
+      },
+      error: () => {
+        delete window[callbackName];
+        els.ocrOverlay.fadeOut(200);
+        els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+        showToast("❌ 網路異常，識別失敗", "error");
+      }
+    });
+  });
+}
+
+// 加入產品
 function addProduct() {
   const name = els.nameInput.val();
   const qty = parseInt(els.qtyInput.val());
@@ -1183,35 +1187,111 @@ function addProduct() {
   if (!prod) return;
 
   const exist = selectedProds.find(x => x.name === name);
-  exist ? exist.qty += qty : selectedProds.push({ ...prod, qty });
-  
-  deductUsage("recordAdd"); // 扣次
+  if (exist) {
+    exist.qty += qty;
+  } else {
+    selectedProds.push({ ...prod, qty });
+  }
+  deductUsage("recordAdd");
   saveSelectedProds();
   renderTable();
   showToast("✅ 加入成功");
 }
 
-// 刪除產品 + 扣次
-els.reportBody.on("click", ".deleteBtn", function () {
-  const idx = $(this).data("index");
-  selectedProds.splice(idx, 1);
-  deductUsage("recordDelete"); // 扣次
+// 渲染表格
+function renderTable() {
+  els.reportBody.empty();
+  let totalPrice = 0, totalPv = 0;
+
+  selectedProds.forEach((item, idx) => {
+    const subtotalPrice = item.price * item.qty;
+    const subtotalPv = item.pv * item.qty;
+    totalPrice += subtotalPrice;
+    totalPv += subtotalPv;
+
+    let opts = "";
+    for (let i = 1; i <= 99; i++) {
+      opts += `<option value="${i}" ${i == item.qty ? "selected" : ""}>${i}</option>`;
+    }
+
+    const tr = `
+      <tr>
+        <td>${item.name}</td>
+        <td><select class="qtySelect" data-index="${idx}">${opts}</select></td>
+        <td>${item.price}</td>
+        <td>${item.pv}</td>
+        <td>${subtotalPrice}</td>
+        <td>${subtotalPv}</td>
+        <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
+      </tr>`;
+    els.reportBody.append(tr);
+  });
+
+  els.totalPriceCellDup.text(totalPrice);
+  els.totalPvCellDup.text(totalPv);
+  els.pvDiff2.text(Math.max(TARGET_PV220 - totalPv, 0));
+  els.pvDiff3.text(Math.max(TARGET_PV300 - totalPv, 0));
+  els.pvMessage2.html(totalPv >= TARGET_PV220 ? '<span class="done">達標</span>' : "");
+  els.pvMessage3.html(totalPv >= TARGET_PV300 ? '<span class="done">達標</span>' : "");
+}
+
+// 現金滿額贈
+function handleCashGift() {
+  selectedProds = selectedProds.filter(p => !p.name.includes("贈品"));
+  
+  if (!els.cashOption.is(":checked")) {
+    saveSelectedProds();
+    renderTable();
+    return;
+  }
+
+  const total = parseInt(els.totalPriceCellDup.text()) || 0;
+  const giftQty = Math.floor(total / 20000);
+  
+  if (giftQty > 0) {
+    selectedProds.push({ name: "贈品 211(30)", price: 0, pv: 0, qty: giftQty });
+    showToast(`🎁 現金滿額，自動贈送 x${giftQty}`, "success");
+  }
+  
   saveSelectedProds();
   renderTable();
-  showToast("✅ 已刪除");
-});
+}
 
-// 重置報表 + 扣次
+// 試算者名稱
+function setupLineName() {
+  lineName = localStorage.getItem("lineName") || "彥彬🌿";
+  els.calculatorDisplay.val(lineName);
+}
+function resetLineName() {
+  const name = prompt("輸入試算者名稱：", lineName);
+  if (name) {
+    lineName = name;
+    localStorage.setItem("lineName", name);
+    els.calculatorDisplay.val(name);
+    showToast("✅ 名稱已更新");
+  }
+}
+
+// 本機存檔
+function saveSelectedProds() {
+  localStorage.setItem("selectedProds", JSON.stringify(selectedProds));
+}
+function loadSelectedProds() {
+  const data = localStorage.getItem("selectedProds");
+  if (data) selectedProds = JSON.parse(data);
+}
+
+// 重置報表
 function resetReport() {
   if (!confirm("確定清空全部？")) return;
   selectedProds = [];
-  deductUsage("recordReset"); // 扣次
+  deductUsage("recordReset");
   saveSelectedProds();
   renderTable();
   showToast("✅ 已重置");
 }
 
-// 匯出圖片 + 扣次
+// 匯出圖片
 async function exportToImage() {
   if (selectedProds.length === 0) {
     showToast("請先加入產品", "warning");
@@ -1221,15 +1301,18 @@ async function exportToImage() {
   $(".deleteBtn").hide();
 
   const canvas = await html2canvas(document.querySelector("#captureArea"), {
-    scale: 4, useCORS: true, backgroundColor: "#fff"
+    scale: 4,
+    useCORS: true,
+    backgroundColor: "#fff"
   });
 
   els.previewImage.attr("src", canvas.toDataURL("image/png")).show();
-  els.shareToLineBtn.show(); els.nativeShareBtn.show(); els.clearImageBtn.show();
+  els.shareToLineBtn.show();
+  els.nativeShareBtn.show();
+  els.clearImageBtn.show();
   $(".deleteBtn").show();
   els.exportBtn.prop("disabled", false);
-  
-  deductUsage("recordExport"); // 扣次
+  deductUsage("recordExport");
   showToast("✅ 匯出成功");
 }
 
@@ -1254,7 +1337,7 @@ function clearImage() {
   els.clearImageBtn.hide();
 }
 
-// 提示訊息（支持换行）
+// 提示訊息
 function showToast(msg, type = "success") {
   msg = msg.replace(/\n/g, '<br>');
   const toast = $(`<div class="toast ${type}">${msg}</div>`);
@@ -1262,33 +1345,7 @@ function showToast(msg, type = "success") {
   setTimeout(() => toast.addClass("show"), 10);
   setTimeout(() => toast.remove(), 3000);
 }
-
-// 🔥 修復3：全局扣次函數（JSONP，解決跨域）
-function deductUsage(usageType) {
-  // 超管/VIP不扣次
-  if (authStatus.isSuperAdmin || authStatus.isVip) return;
-  
-  const callbackName = `deduct_${Date.now()}`;
-  window[callbackName] = (resp) => {
-    delete window[callbackName];
-    if (resp.status === "exceeded") {
-      showToast("❌ 使用次數已用盡，請聯繫管理員", "error");
-    }
-  };
-
-  $.ajax({
-    url: GAS_API_URL,
-    dataType: "jsonp",
-    jsonp: "callback",
-    jsonpCallback: callbackName,
-    data: {
-      action: usageType,
-      userId: userInfo.userId,
-      displayName: userInfo.displayName
-    }
-  });
-}
-
 </script>
+
 </body>
 </html>
