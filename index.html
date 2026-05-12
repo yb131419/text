@@ -605,12 +605,12 @@ body{
   </div>
 </div>
 
-/* -- 授权状态栏（带关闭按钮） */
+<!-- -- 授权状态栏（带关闭按钮） -->
 <div id="authStatusBar" style="display: none;">
   <button class="close-status" title="隱藏狀態欄">關閉</button>
 </div>
 
-/* 全屏原圖預覽  */
+<!--  全屏原圖預覽  -->
 <div id="fullImageOverlay">
   <img id="fullPreviewImg" alt="原圖預覽">
 </div>
@@ -622,7 +622,7 @@ body{
   <div class="ocr-subtext">請稍候，正在解析圖片內容...</div>
 </div>
 
-/* 圖片上傳區 -->
+<!-- 圖片上傳區 -->
 <div class="upload-area" onclick="document.getElementById('imgUpload').click()">
   <h3>📷 上傳產品圖片自動辨識</h3>
   <p>點擊上傳 / 拖曳圖片進來</p>
@@ -802,7 +802,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   initLiffAuth();
 });
 
-// ==================== 🔥 LIFF 完整权限验证（最终无报错版） ====================
+// ==================== 🔥 LIFF 完整权限验证（修复卡死版） ====================
 async function initLiffAuth() {
   // 防止重复初始化
   if (window.liffInitializing) {
@@ -853,68 +853,69 @@ async function initLiffAuth() {
     }
 
     // 開始驗證權限
-updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
-// 修复：添加超时 + 网络错误捕获
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 15000);
-try {
-  const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {
-    method: "GET",
-    signal: controller.signal,
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json"
+    updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
+    // 修复：添加超时 + 网络错误捕获
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    
+    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {
+      method: "GET",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      }
+    });
+    clearTimeout(timeoutId);
+
+    // 修改后（打印错误，方便排查）
+    let verifyData = { status: "error", message: "网络异常，无法获取权限" };
+    try {
+      verifyData = await verifyRes.json();
+    } catch (e) {
+      console.error("解析权限响应失败：", e);
     }
-  });
-  clearTimeout(timeoutId);
 
-  // 修改后（打印错误，方便排查）
-  let verifyData = { status: "error", message: "网络异常，无法获取权限" };
-  try {
-    verifyData = await verifyRes.json();
-  } catch (e) {
-    console.error("解析权限响应失败：", e);
-  }
+    // 權限驗證失敗
+    if (verifyData.status !== "success") {
+      $("#loginTip").text(verifyData.message || "權限驗證失敗").show();
+      showToast(verifyData.message || "❌ 權限驗證失敗", "error");
+      window.liffInitializing = false;
+      return;
+    }
 
-  // 權限驗證失敗
-  if (verifyData.status !== "success") {
-    $("#loginTip").text(verifyData.message || "權限驗證失敗").show();
-    showToast(verifyData.message || "❌ 權限驗證失敗", "error");
+    const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
+    authStatus = {
+      ...verifyData,
+      displayExpiryDate: expiry.displayDate,
+      remainingDays: expiry.remainingDays,
+      isExpired: expiry.isExpired,
+      remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount||0)
+    };
+
+    if(authStatus.isExpired){
+      $("#loginTip").text("賬號已過期，請聯繫管理員").show();
+      showToast("❌ 賬號已過期", "error");
+      window.liffInitializing = false;
+      return;
+    }
+
+    if(authStatus.isVip || authStatus.isSuperAdmin) saveTodayAuthCache(profile.userId, authStatus);
+    
+    $("#authContainer").addClass("logged-in");
+    $("#loginTip").hide();
+    await initSystem();
+    showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
+
+  } catch (err) {
+    console.error("詳細錯誤：", err);
+    $("#loginTip").text("網路/伺服器異常，請重新整理").show();
+    showToast("❌ 驗證失敗，請重新整理", "error");
+  } finally {
+    // 🔥 强制释放锁，解决卡死
     window.liffInitializing = false;
-    return;
   }
-
-  const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
-  authStatus = {
-    ...verifyData,
-    displayExpiryDate: expiry.displayDate,
-    remainingDays: expiry.remainingDays,
-    isExpired: expiry.isExpired,
-    remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount||0)
-  };
-
-  if(authStatus.isExpired){
-    $("#loginTip").text("賬號已過期，請聯繫管理員").show();
-    showToast("❌ 賬號已過期", "error");
-    window.liffInitializing = false;
-    return;
-  }
-
-  if(authStatus.isVip || authStatus.isSuperAdmin) saveTodayAuthCache(profile.userId, authStatus);
-  
-  $("#authContainer").addClass("logged-in");
-  $("#loginTip").hide();
-  await initSystem();
-  showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
-
-} catch (err) {
-  clearTimeout(timeoutId);
-  console.error("詳細錯誤：", err);
-  $("#loginTip").text("網路/伺服器異常，請重新整理").show();
-  showToast("❌ 驗證失敗，請重新整理", "error");
 }
-
-} 
 
 
 // 登录成功后初始化（权限校验）
