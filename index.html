@@ -671,7 +671,7 @@ function handleImageSelect(e) {
   });
 }
 
-// 开始AI识别（兼容所有图床直链）
+// 开始AI识别（兼容所有图床 + 修复JSON解析错误）
 async function startOcrRecognition() {
   if (!userInfo || !userInfo.userId) {
     showToast("❌ 用戶驗證失敗，請刷新重試", "error");
@@ -694,29 +694,42 @@ async function startOcrRecognition() {
 
   // 唯一回调函数
   const callbackName = `ocrCallback_${Date.now()}`;
-  window[callbackName] = function(resp) {
+  window[callbackName] = function(rawResp) {
     delete window[callbackName];
     els.ocrRecognitionBtn.disabled = false;
     els.ocrRecognitionBtn.textContent = "🤖AI識別";
 
-    if (resp.status === "error") {
-      showToast(`❌ 識別失敗：${resp.message}`, "error");
-      return;
-    }
-    if (resp.status === "exceeded") {
-      showToast("❌ 使用次數已用盡", "error");
-      authStatus.remainTimes = 0;
-      updateAuthStatusBar();
-      checkUserRemainingTimes();
-      return;
-    }
-    if (resp.status === "success" && resp.data?.length > 0) {
-      authStatus.remainTimes = resp.remainTimes;
-      updateAuthStatusBar();
-      addOcrProducts(resp.data);
-      showToast(`✅ 識別成功！自動添加 ${resp.data.length} 個品項`, "success");
-    } else {
-      showToast("⚠️ 未識別到任何品項", "warning");
+    try {
+      // 🔥 核心修复：自动移除后端返回的 ```json 和 ``` 代码块标记
+      let cleanResp = rawResp;
+      if (typeof cleanResp === 'string') {
+        cleanResp = cleanResp.replace(/^```json\n/, '').replace(/\n```$/, '');
+        cleanResp = JSON.parse(cleanResp); // 解析清理后的纯JSON
+      }
+      const resp = cleanResp;
+
+      if (resp.status === "error") {
+        showToast(`❌ 識別失敗：${resp.message}`, "error");
+        return;
+      }
+      if (resp.status === "exceeded") {
+        showToast("❌ 使用次數已用盡", "error");
+        authStatus.remainTimes = 0;
+        updateAuthStatusBar();
+        checkUserRemainingTimes();
+        return;
+      }
+      if (resp.status === "success" && resp.data?.length > 0) {
+        authStatus.remainTimes = resp.remainTimes;
+        updateAuthStatusBar();
+        addOcrProducts(resp.data);
+        showToast(`✅ 識別成功！自動添加 ${resp.data.length} 個品項`, "success");
+      } else {
+        showToast("⚠️ 未識別到任何品項", "warning");
+      }
+    } catch (e) {
+      console.error("JSON解析失败：", e);
+      showToast("❌ 後端返回數據格式異常", "error");
     }
   };
 
@@ -731,7 +744,7 @@ async function startOcrRecognition() {
       action: "ocrImage",
       userId: userInfo.userId,
       displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
-      imageUrl: selectedImageBase64, // 传递任意图床直链
+      imageUrl: selectedImageBase64,
       callback: callbackName
     },
     error: function() {
