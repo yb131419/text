@@ -706,47 +706,45 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==================== 🔥 LIFF 自動驗證登錄（最終修復版）====================
+// ==================== 🔥 LIFF 自動驗證登錄（修復版）====================
 async function initLiffAuth() {
   try {
-    // 🔥 修复1：先判断LIFF SDK是否加载成功
+    // 修复1：判断LIFF SDK是否加载
     if (!window.liff) {
       $("#loginTip").text("LIFF SDK加載失敗，請檢查網路").show();
       showToast("❌ 網路異常，SDK加載失敗", "error");
       return;
     }
 
-    // 1. 初始化 LIFF（加容错）
-    await liff.init({ liffId: LIFF_ID }).catch(err => {
-      throw new Error("LIFF初始化失敗：" + err.message);
-    });
+    // 修复2：标准try/catch初始化LIFF（删除错误的链式catch）
+    await liff.init({ liffId: LIFF_ID });
 
-    // 🔥 修复2：非LINE客户端友好提示
+    // 非LINE客户端提示
     if (!liff.isInClient()) {
       $("#loginTip").text("請在LINE內打開此系統").show();
       showToast("❌ 請在LINE內打開使用", "error");
       return;
     }
 
-    // 2. 未登錄則跳轉 LINE 登錄
+    // 未登錄則跳轉
     if (!liff.isLoggedIn()) {
       liff.login();
       return;
     }
 
-    // 3. 獲取 LINE 使用者資訊
+    // 獲取使用者資訊
     const profile = await liff.getProfile();
     const userId = profile.userId;
     const displayName = profile.displayName;
     console.log("LINE用戶：", userId, displayName);
 
-    // 4. 呼叫 GAS 驗證用戶次數/權限
+    // 修复3：删除 mode: 'cors'，解决LIFF环境跨域异常
     const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${userId}&displayName=${encodeURIComponent(displayName)}`, {
-      mode: 'cors', // 跨域兼容
       cache: 'no-cache'
     });
     const verifyData = await verifyRes.json();
 
-    // 5. 驗證結果處理
+    // 驗證結果
     if (verifyData.status === "success") {
       $("#authContainer").addClass("logged-in");
       $("#loginTip").hide();
@@ -758,7 +756,6 @@ async function initLiffAuth() {
     }
 
   } catch (err) {
-    // 🔥 修复3：全量异常捕获，精准提示
     console.error("驗證錯誤：", err);
     $("#loginTip").text("驗證異常，請重新整理頁面").show();
     showToast("❌ 驗證失敗，請重新整理", "error");
