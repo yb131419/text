@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>草本產品購買明細表</title>
-    <!-- 引入截图库 -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
@@ -12,7 +11,7 @@
             padding: 0;
             box-sizing: border-box;
             font-family: "Microsoft JhengHei", "PingFang TC", "Heiti TC", sans-serif !important;
-            font-size: 12px !important; /* 🔥 强制全局统一字体大小 */
+            font-size: 12px !important;
         }
 
         :root {
@@ -41,7 +40,6 @@
             overflow: hidden;
         }
 
-        /* 头部标题 */
         .header {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
@@ -54,7 +52,6 @@
             font-weight: 600;
         }
 
-        /* 基本资料 - 姓名+介绍人强制同一行 */
         .info-card {
             padding: 10px 8px;
             border-bottom: 1px solid var(--gray);
@@ -72,7 +69,6 @@
             min-width: 140px;
         }
 
-        /* 🔥 姓名+介绍人强制同一行 */
         .info-item:nth-child(2),
         .info-item:nth-child(3) {
             flex: 0 0 48% !important;
@@ -94,24 +90,15 @@
             flex: 1;
         }
 
-        /* 🔥 手机端极致紧凑排版 */
         @media (max-width: 768px) {
             body { padding: 2px; }
-            .info-card {
-                padding: 8px 5px;
-                gap: 4px;
-            }
-            .info-item {
-                flex: 0 0 48%;
-                min-width: auto;
-            }
+            .info-card { padding: 8px 5px; gap: 4px; }
+            .info-item { flex: 0 0 48%; min-width: auto; }
             .month-section { padding: 8px 5px; }
             .month-title { font-size: 14px !important; }
             .btn { padding: 3px 6px; }
-            .table-wrapper { overflow-x: auto; }
         }
 
-        /* 月份模块 */
         .month-section {
             padding: 10px 8px;
             border-bottom: 2px solid var(--gray);
@@ -126,7 +113,6 @@
             border-left: 3px solid var(--accent);
         }
 
-        /* 折叠面板 */
         .collapse-header {
             display: flex;
             justify-content: space-between;
@@ -148,7 +134,6 @@
         .collapse-content.show { display: block; }
         .collapse-btn { background: none; border: none; color: var(--primary); cursor: pointer; }
 
-        /* 产品标签 */
         .product-tags {
             display: flex;
             flex-wrap: wrap;
@@ -172,7 +157,6 @@
             cursor: not-allowed;
         }
 
-        /* 操作按钮 */
         .action-bar {
             padding: 6px 0;
             display: flex;
@@ -192,37 +176,80 @@
         .btn-light { background: white; border: 1px solid var(--gray); }
         .btn-accent { background: var(--accent); color: white; }
 
-        /* 🔥 表格极致缩小 - 适配手机尺寸 */
         .nutrition-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 420px;
+            min-width: 380px;
         }
 
         .nutrition-table thead { background: var(--primary); color: white; }
         .nutrition-table th {
-            padding: 4px 2px;
+            padding: 3px 1px !important;
             border-right: 1px solid rgba(255,255,255,0.2);
             font-weight: 500;
+            white-space: nowrap;
         }
 
         .nutrition-table td {
-            padding: 4px 2px;
+            padding: 3px 1px !important;
             text-align: center;
             vertical-align: middle;
         }
 
-        /* 🔥 输入框/按钮强制缩小 */
-        .edit-input {
-            width: 50px !important; /* 顆數欄縮小 */
+        /* 🔥 產品編號欄位（整格）縮小 */
+        .nutrition-table th:first-child,
+        .nutrition-table td:first-child {
+            width: 85px !important;
+            max-width: 85px !important;
+        }
+
+        /* 🔥 顆數欄位 縮小 */
+        .nutrition-table th:nth-child(2),
+        .nutrition-table td:nth-child(2) {
+            width: 36px !important;
+            max-width: 36px !important;
+        }
+
+        /* 🔥 早 / 中 / 晚 欄位 縮小 */
+        .nutrition-table th:nth-child(3),
+        .nutrition-table td:nth-child(3),
+        .nutrition-table th:nth-child(4),
+        .nutrition-table td:nth-child(4),
+        .nutrition-table th:nth-child(5),
+        .nutrition-table td:nth-child(5) {
+            width: 26px !important;
+            max-width: 26px !important;
+        }
+
+        /* 🔥 刪除欄位 縮小 */
+        .nutrition-table th:last-child,
+        .nutrition-table td:last-child {
+            width: 32px !important;
+            max-width: 32px !important;
+        }
+
+        /* 🔥 產品編號「輸入框」放大一點 + 靠左 */
+        .edit-input.prod-name {
+            width: 80px !important;
+            height: 20px !important;
+            text-align: left !important;
+            padding-left: 4px !important;
+            border: 1px solid var(--gray);
+            border-radius: 3px;
+        }
+
+        /* 顆數 */
+        .edit-input:not(.prod-name) {
+            width: 32px !important;
+            height: 20px !important;
             text-align: center;
             border: 1px solid var(--gray);
             border-radius: 3px;
-            padding: 2px;
+            padding: 0;
         }
 
         .check-btn {
-            width: 20px !important; /* 早中晚按鈕縮小 */
+            width: 20px !important;
             height: 20px !important;
             border-radius: 3px;
             border: 1px solid var(--secondary);
@@ -236,40 +263,37 @@
 
         .check-btn.active { background: #FFF0F3; }
 
-        /* 🔥 刪除按鈕縮小 */
         .del-single-btn {
-            padding: 2px 5px;
+            width: 28px !important;
+            height: 20px !important;
+            padding: 0;
             background: var(--accent);
             color: white;
             border: none;
             border-radius: 3px;
             cursor: pointer;
+            font-size: 11px !important;
         }
 
-        /* 分享/备注 */
         .share-section { padding: 10px; text-align: center; border-top: 1px solid var(--gray); }
         .notes { padding: 10px; background: var(--light); line-height: 1.4; }
         .note-item { margin-bottom: 4px; }
 
-        /* 滚动条美化 */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 2px; }
     </style>
 </head>
 <body>
     <div class="container" id="captureContainer">
-        <!-- 头部 -->
         <div class="header">
             <h1>草本產品購買明細表</h1>
         </div>
 
-        <!-- 基本资料 -->
         <div class="info-card">
             <div class="info-item">
                 <label>日期：</label>
                 <input type="text" id="date" readonly>
             </div>
-            <!-- 🔥 姓名 + 介紹人 同一行 -->
             <div class="info-item">
                 <label>姓名：</label>
                 <input type="text" id="name" placeholder="請輸入姓名">
@@ -278,12 +302,10 @@
                 <label>介紹人：</label>
                 <input type="text" id="introducer" placeholder="請輸入介紹人">
             </div>
-            <!-- 地點 -->
             <div class="info-item">
                 <label>地點：</label>
                 <input type="text" id="location" placeholder="請輸入地點" value="">
             </div>
-            <!-- 入會 -->
             <div class="info-item">
                 <label>入會：</label>
                 <select id="memberType">
@@ -298,7 +320,6 @@
                 <label>基本保養：</label>
                 <input type="text" id="basicNutrition" value="211、300、299A各3顆">
             </div>
-            <!-- 火山甘露 -->
             <div class="info-item">
                 <label>火山甘露：</label>
                 <select id="volcanoTea">
@@ -327,7 +348,7 @@
                 </div>
             </div>
             <div class="action-bar">
-                <button class="btn btn-primary" onclick="addRow(1)">➕ 新增</button>
+                <button class="btn btn-primary" onclick="copyToNextMonth(1)">📋 複製到下個月</button>
                 <button class="btn btn-light" onclick="clearTable(1)">🧹 清空</button>
             </div>
             <table class="nutrition-table">
@@ -358,7 +379,7 @@
                 </div>
             </div>
             <div class="action-bar">
-                <button class="btn btn-primary" onclick="addRow(2)">➕ 新增</button>
+                <button class="btn btn-primary" onclick="copyToNextMonth(2)">📋 複製到下個月</button>
                 <button class="btn btn-light" onclick="clearTable(2)">🧹 清空</button>
             </div>
             <table class="nutrition-table">
@@ -389,7 +410,7 @@
                 </div>
             </div>
             <div class="action-bar">
-                <button class="btn btn-primary" onclick="addRow(3)">➕ 新增</button>
+                <button class="btn btn-primary" onclick="alert('❌ 已是最後一個月，無法複製！')">📋 已到最後一月</button>
                 <button class="btn btn-light" onclick="clearTable(3)">🧹 清空</button>
             </div>
             <table class="nutrition-table">
@@ -407,7 +428,6 @@
             </table>
         </div>
 
-        <!-- 备注 -->
         <div class="notes">
             <div class="note-item">☐220～飯後服用。</div>
             <div class="note-item">◇晚上睡覺前6小時，不能吃澱粉類食物。</div>
@@ -417,14 +437,12 @@
             <div class="note-item">○205 兩顆加211A一顆～拆殼後，粉倒入口中含著。</div>
         </div>
 
-        <!-- 截图分享按钮 -->
         <div class="share-section">
             <button class="btn btn-accent" onclick="shareReportImage()">📤 分享報表圖片</button>
         </div>
     </div>
 
     <script>
-        // ===================== 產品列表 =====================
         const productList = [
             "新入會(9號）","新入會(草本）男","新入會(草本）女","2711AB(1)限4盒","限入會2711AB(4)限1組",
             "211","300","299A","火山甘露_限4盒","200","201","202","205","209","210","211A","220","222",
@@ -433,164 +451,22 @@
             "大女王","極樂鳥","101","111","168","金色果(2）","海神泥","復甦精華露"
         ];
 
-        // 默認產品配置
-        const defaultProducts = {
-            1: ["211", "300", "299A", "211A"],
-            2: ["211", "300", "299A"],
-            3: ["211", "300", "299A"]
-        };
+        const defaultProducts = {1: ["211","300","299A","211A"],2: ["211","300","299A"],3: ["211","300","299A"]};
+        const addedProducts = {1:[],2:[],3:[]};
 
-        // 存儲每個月份已添加的產品（防呆用）
-        const addedProducts = {1: [], 2: [], 3: []};
-
-        // ===================== 自動加載今日日期 =====================
-        function loadTodayDate() {
-            const now = new Date();
-            const year = now.getFullYear() - 1911;
-            const month = now.getMonth() + 1;
-            const day = now.getDate();
-            const week = ['日','一','二','三','四','五','六'][now.getDay()];
-            document.getElementById('date').value = `${year}.${month}.${day}(${week})`;
-        }
-
-        // ===================== 折疊面板切換 =====================
-        function toggleCollapse(month) {
-            const content = document.getElementById(`collapseContent${month}`);
-            const btn = document.getElementById(`collapseBtn${month}`);
-            content.classList.toggle('show');
-            btn.textContent = content.classList.contains('show') ? '收起 ▲' : '展開 ▼';
-        }
-
-        // ===================== 渲染產品標籤 =====================
-        function renderAllTags() {
-            [1,2,3].forEach(month => {
-                const container = document.getElementById(`tags${month}`);
-                productList.forEach(item => {
-                    const tag = document.createElement('div');
-                    tag.className = 'product-tag';
-                    tag.textContent = item;
-                    tag.dataset.product = item;
-                    tag.ondblclick = () => addProductWithRow(month, item, tag);
-                    container.appendChild(tag);
-                });
-            });
-        }
-
-        // 更新產品標籤樣式（已添加/未添加）
-        function updateTagStyle(month, product, isAdded) {
-            const tags = document.querySelectorAll(`#tags${month} .product-tag`);
-            tags.forEach(tag => {
-                if(tag.dataset.product === product) {
-                    if(isAdded) tag.classList.add('added');
-                    else tag.classList.remove('added');
-                }
-            });
-        }
-
-        // ===================== 雙擊產品：防呆+自動新增行 =====================
-        function addProductWithRow(month, product, tag) {
-            if(addedProducts[month].includes(product)) {
-                alert(`❌ 【${product}】已添加至本月，無法重複添加！`);
-                return;
-            }
-            const tbody = document.getElementById(`body${month}`);
-            const tr = document.createElement('tr');
-            
-            addedProducts[month].push(product);
-            updateTagStyle(month, product, true);
-
-            tr.innerHTML = `
-                <td><input type="text" class="edit-input prod-name" value="${product}" readonly></td>
-                <td><input type="number" class="edit-input" value="3"></td>
-                <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-                <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
-                <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-                <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>
-            `;
-            tbody.appendChild(tr);
-        }
-
-        // ===================== 表格操作 =====================
-        function addRow(month) {
-            const tbody = document.getElementById(`body${month}`);
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><input type="text" class="edit-input prod-name" placeholder="雙擊添加"></td>
-                <td><input type="number" class="edit-input" value="3"></td>
-                <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-                <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
-                <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-                <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>
-            `;
-            tbody.appendChild(tr);
-        }
-
-        function delSingleRow(month, btn) {
-            const row = btn.closest('tr');
-            const product = row.querySelector('.prod-name').value;
-            
-            const index = addedProducts[month].indexOf(product);
-            if(index > -1) {
-                addedProducts[month].splice(index, 1);
-                updateTagStyle(month, product, false);
-            }
-            row.remove();
-        }
-
-        function clearTable(month) {
-            if(confirm('確定清空？')) {
-                document.getElementById(`body${month}`).innerHTML = '';
-                addedProducts[month] = [];
-                document.querySelectorAll(`#tags${month} .product-tag`).forEach(tag => tag.classList.remove('added'));
-            }
-        }
-
-        // 加載默認產品
-        function loadDefaultProducts() {
-            for (let month in defaultProducts) {
-                const products = defaultProducts[month];
-                products.forEach(p => {
-                    const tag = document.querySelector(`#tags${month} .product-tag[data-product="${p}"]`);
-                    addProductWithRow(month, p, tag);
-                });
-            }
-        }
-
-        // ===================== 雙擊切換勾選 =====================
-        function toggleCheck(btn) {
-            btn.classList.toggle('active');
-            btn.textContent = btn.classList.contains('active') ? '√' : '';
-        }
-
-        // ===================== 截圖分享 =====================
-        async function shareReportImage() {
-            try {
-                const canvas = await html2canvas(document.getElementById('captureContainer'), {
-                    useCORS: true, scale: 2, backgroundColor: '#ffffff'
-                });
-                canvas.toBlob(async (blob) => {
-                    const file = new File([blob], "草本產品報表.png", { type: "image/png" });
-                    if (navigator.share) {
-                        await navigator.share({ title: '草本產品購買明細表', files: [file] });
-                    } else {
-                        const link = document.createElement('a');
-                        link.download = '草本產品報表.png';
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                        alert('瀏覽器不支援分享，已自動下載！');
-                    }
-                }, 'image/png');
-            } catch (err) {
-                alert('分享失敗，請手動截圖！');
-            }
-        }
-
-        // ===================== 初始化 =====================
-        window.onload = function() {
-            loadTodayDate();
-            renderAllTags();
-            loadDefaultProducts();
-        };
+        function loadTodayDate(){const now=new Date();const year=now.getFullYear()-1911;const month=now.getMonth()+1;const day=now.getDate();const week=['日','一','二','三','四','五','六'][now.getDay()];document.getElementById('date').value=`${year}.${month}.${day}(${week})`;}
+        function toggleCollapse(month){const content=document.getElementById(`collapseContent${month}`);const btn=document.getElementById(`collapseBtn${month}`);content.classList.toggle('show');btn.textContent=content.classList.contains('show')?'收起 ▲':'展開 ▼';}
+        function renderAllTags(){[1,2,3].forEach(month=>{const container=document.getElementById(`tags${month}`);productList.forEach(item=>{const tag=document.createElement('div');tag.className='product-tag';tag.textContent=item;tag.dataset.product=item;tag.ondblclick=()=>addProductWithRow(month,item,tag);container.appendChild(tag);});});}
+        function updateTagStyle(month,product,isAdded){const tags=document.querySelectorAll(`#tags${month} .product-tag`);tags.forEach(tag=>{if(tag.dataset.product===product){if(isAdded)tag.classList.add('added');else tag.classList.remove('added');}});}
+        function addProductWithRow(month,product,tag){if(addedProducts[month].includes(product)){alert(`❌ 【${product}】已添加至本月，無法重複添加！`);return;}const tbody=document.getElementById(`body${month}`);const tr=document.createElement('tr');addedProducts[month].push(product);updateTagStyle(month,product,true);tr.innerHTML=`<td><input type="text" class="edit-input prod-name" value="${product}" readonly></td><td><input type="number" class="edit-input" value="3"></td><td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td><td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td><td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td><td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>`;tbody.appendChild(tr);}
+        function addRow(month){const tbody=document.getElementById(`body${month}`);const tr=document.createElement('tr');tr.innerHTML=`<td><input type="text" class="edit-input prod-name" placeholder="雙擊添加"></td><td><input type="number" class="edit-input" value="3"></td><td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td><td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td><td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td><td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>`;tbody.appendChild(tr);}
+        function delSingleRow(month,btn){const row=btn.closest('tr');const product=row.querySelector('.prod-name').value;const index=addedProducts[month].indexOf(product);if(index>-1){addedProducts[month].splice(index,1);updateTagStyle(month,product,false);}row.remove();}
+        function clearTable(month){if(confirm('確定清空？')){document.getElementById(`body${month}`).innerHTML='';addedProducts[month]=[];document.querySelectorAll(`#tags${month} .product-tag`).forEach(tag=>tag.classList.remove('added'));}}
+        function copyToNextMonth(currentMonth){const nextMonth=currentMonth+1;if(nextMonth>3){alert("❌ 已是最後一個月，無法複製！");return;}const rows=document.querySelectorAll(`#body${currentMonth} tr`);if(rows.length===0){alert("❌ 當月沒有資料可複製！");return;}clearTable(nextMonth);rows.forEach(row=>{const product=row.querySelector('.prod-name').value;const count=row.querySelector('.edit-input:not(.prod-name)').value;const morning=row.querySelector('td:nth-child(3) .check-btn').classList.contains('active');const noon=row.querySelector('td:nth-child(4) .check-btn').classList.contains('active');const night=row.querySelector('td:nth-child(5) .check-btn').classList.contains('active');const tr=document.createElement('tr');tr.innerHTML=`<td><input type="text" class="edit-input prod-name" value="${product}" readonly></td><td><input type="number" class="edit-input" value="${count}"></td><td><button class="check-btn ${morning?'active':''}" ondblclick="toggleCheck(this)">${morning?'√':''}</button></td><td><button class="check-btn ${noon?'active':''}" ondblclick="toggleCheck(this)">${noon?'√':''}</button></td><td><button class="check-btn ${night?'active':''}" ondblclick="toggleCheck(this)">${night?'√':''}</button></td><td><button class="del-single-btn" onclick="delSingleRow(${nextMonth}, this)">刪</button></td>`;document.getElementById(`body${nextMonth}`).appendChild(tr);addedProducts[nextMonth].push(product);updateTagStyle(nextMonth,product,true);});alert(`✅ 成功複製【第${currentMonth}個月】→【第${nextMonth}個月】`);}
+        function loadDefaultProducts(){for(let month in defaultProducts){const products=defaultProducts[month];products.forEach(p=>{const tag=document.querySelector(`#tags${month} .product-tag[data-product="${p}"]`);addProductWithRow(month,p,tag);});}}
+        function toggleCheck(btn){btn.classList.toggle('active');btn.textContent=btn.classList.contains('active')?'√':'';}
+        async function shareReportImage(){try{const canvas=await html2canvas(document.getElementById('captureContainer'),{useCORS:true,scale:2,backgroundColor:'#ffffff'});canvas.toBlob(async(blob)=>{const file=new File([blob],"草本產品報表.png",{type:"image/png"});if(navigator.share){await navigator.share({title:'草本產品購買明細表',files:[file]});}else{const link=document.createElement('a');link.download='草本產品報表.png';link.href=canvas.toDataURL('image/png');link.click();alert('瀏覽器不支援分享，已自動下載！');}},'image/png');}catch(err){alert('分享失敗，請手動截圖！');}}
+        window.onload=function(){loadTodayDate();renderAllTags();loadDefaultProducts();};
     </script>
 </body>
 </html>
