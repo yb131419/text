@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>草本產品購買明細表</title>
+    <!-- 引入截图库 -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -25,7 +27,7 @@
 
         body {
             background-color: #F3F5F4;
-            padding: 20px;
+            padding: 10px;
             color: var(--dark);
         }
 
@@ -42,22 +44,22 @@
         .header {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            padding: 16px 24px;
+            padding: 12px 16px;
             text-align: center;
         }
 
         .header h1 {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 600;
         }
 
-        /* 基本资料 */
+        /* 基本资料 - 电脑端默认 */
         .info-card {
-            padding: 20px 24px;
+            padding: 16px;
             border-bottom: 1px solid var(--gray);
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 12px;
             align-items: center;
         }
 
@@ -70,6 +72,7 @@
         .info-item label {
             font-weight: 600;
             color: var(--primary);
+            font-size: 14px;
         }
 
         .info-item input, .info-item select {
@@ -78,15 +81,43 @@
             padding: 6px 8px;
             outline: none;
             transition: 0.2s;
+            font-size: 14px;
         }
 
-        .info-item input:focus, .info-item select:focus {
-            border-color: var(--secondary);
+        /* 🔥 手机端一行两列 + 紧凑排版 */
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            .info-card {
+                padding: 12px 8px;
+                gap: 8px;
+            }
+            .info-item {
+                flex: 0 0 48%; /* 一行两列核心 */
+                justify-content: flex-start;
+            }
+            .info-item label {
+                font-size: 12px;
+                width: 40px;
+            }
+            .info-item input, .info-item select {
+                font-size: 12px;
+                padding: 4px 6px;
+                flex: 1;
+            }
+            .month-section { padding: 12px 8px; }
+            .month-title { font-size: 14px; }
+            .btn { font-size: 11px; padding: 4px 8px; }
+            .nutrition-table th, .nutrition-table td {
+                font-size: 11px;
+                padding: 6px 4px;
+            }
+            .edit-input { width: 70px; }
+            .check-btn { width: 24px; height: 24px; }
         }
 
         /* 月份模块容器 */
         .month-section {
-            padding: 16px 24px;
+            padding: 16px;
             border-bottom: 2px solid var(--gray);
         }
 
@@ -219,7 +250,7 @@
         .nutrition-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 650px;
+            min-width: 550px;
         }
 
         .nutrition-table thead {
@@ -296,17 +327,17 @@
 
         /* 分享按鈕區 */
         .share-section {
-            padding: 16px 24px;
+            padding: 16px;
             text-align: center;
             border-top: 1px solid var(--gray);
         }
 
         /* 备注区 */
         .notes {
-            padding: 20px 24px;
+            padding: 16px;
             background: var(--light);
-            font-size: 13px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.5;
         }
 
         .note-item {
@@ -326,7 +357,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="captureContainer">
         <!-- 头部 -->
         <div class="header">
             <h1>草本產品購買明細表</h1>
@@ -346,12 +377,12 @@
                 <label>介紹人：</label>
                 <input type="text" id="introducer" placeholder="請輸入介紹人">
             </div>
-            <!-- 新增：地點欄位 -->
+            <!-- 地點欄位 -->
             <div class="info-item">
                 <label>地點：</label>
-                <input type="text" id="location" placeholder="請輸入地點" value="">
+                <input type="text" id="location" placeholder="請輸入地點" value="金門">
             </div>
-            <!-- 修改：入會下拉欄位 -->
+            <!-- 入會下拉欄位 -->
             <div class="info-item">
                 <label>入會：</label>
                 <select id="memberType">
@@ -366,18 +397,25 @@
                 <label>基本保養：</label>
                 <input type="text" id="basicNutrition" value="211、300、299A各3顆">
             </div>
-            <!-- 修改：火山甘露 數字選擇包數 -->
+            <!-- 火山甘露 下拉選擇包數 -->
             <div class="info-item">
                 <label>火山甘露：</label>
-                <input type="number" id="volcanoTea" min="0" value="3" style="width:60px">
-                <span>包/天</span>
+                <select id="volcanoTea" style="width:70px">
+                    <option value="0">0包</option>
+                    <option value="1">1包</option>
+                    <option value="2">2包</option>
+                    <option value="3" selected>3包</option>
+                    <option value="4">4包</option>
+                    <option value="5">5包</option>
+                    <option value="6">6包</option>
+                </select>
+                <span>/天</span>
             </div>
         </div>
 
         <!-- 第一個月 -->
         <div class="month-section">
             <div class="month-title">第一個月</div>
-            <!-- 折疊產品面板 -->
             <div class="product-panel">
                 <div class="collapse-header" onclick="toggleCollapse(1)">
                     <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
@@ -484,9 +522,9 @@
             <div class="note-item">○205 兩顆加211A一顆～拆殼後，粉倒入口中含著。</div>
         </div>
 
-        <!-- 原生分享按鈕 -->
+        <!-- 截图分享按钮 -->
         <div class="share-section">
-            <button class="btn btn-accent" onclick="nativeShare()">📤 原生分享報表資訊</button>
+            <button class="btn btn-accent" onclick="shareReportImage()">📤 分享報表圖片</button>
         </div>
     </div>
 
@@ -517,7 +555,7 @@
             const month = now.getMonth() + 1;
             const day = now.getDate();
             const week = ['日','一','二','三','四','五','六'][now.getDay()];
-            document.getElementById('date').value = `${year}.${month}.${day}(${week})`;
+            document.getElementById('date').value = `${year}.${month}.${day}(${week})金門`;
         }
 
         // ===================== 折疊面板切換 =====================
@@ -559,7 +597,6 @@
 
         // ===================== 雙擊產品：防呆+自動新增行 =====================
         function addProductWithRow(month, product, tag) {
-            // 防呆：判斷產品是否已添加
             if(addedProducts[month].includes(product)) {
                 alert(`❌ 【${product}】已添加至本月，無法重複添加！`);
                 return;
@@ -568,12 +605,9 @@
             const tbody = document.getElementById(`body${month}`);
             const tr = document.createElement('tr');
             
-            // 添加產品到數組
             addedProducts[month].push(product);
-            // 更新標籤樣式為已添加
             updateTagStyle(month, product, true);
 
-            // 早、晚默認勾選，中午空白
             tr.innerHTML = `
                 <td><input type="text" class="edit-input prod-name" value="${product}" readonly></td>
                 <td><input type="number" class="edit-input" value="3"></td>
@@ -606,7 +640,6 @@
             const row = btn.closest('tr');
             const product = row.querySelector('.prod-name').value;
             
-            // 從已添加列表移除
             const index = addedProducts[month].indexOf(product);
             if(index > -1) {
                 addedProducts[month].splice(index, 1);
@@ -621,7 +654,6 @@
             if(confirm('確定清空？')) {
                 document.getElementById(`body${month}`).innerHTML = '';
                 addedProducts[month] = [];
-                // 重置所有標籤樣式
                 const tags = document.querySelectorAll(`#tags${month} .product-tag`);
                 tags.forEach(tag => tag.classList.remove('added'));
             }
@@ -632,7 +664,6 @@
             for (let month in defaultProducts) {
                 const products = defaultProducts[month];
                 products.forEach(p => {
-                    // 找到對應標籤
                     const tag = document.querySelector(`#tags${month} .product-tag[data-product="${p}"]`);
                     addProductWithRow(month, p, tag);
                 });
@@ -645,24 +676,39 @@
             btn.textContent = btn.classList.contains('active') ? '√' : '';
         }
 
-        // ===================== 瀏覽器原生分享 =====================
-        function nativeShare() {
-            const name = document.getElementById('name').value || '未填寫';
-            const introducer = document.getElementById('introducer').value || '未填寫';
-            const location = document.getElementById('location').value || '未填寫';
-            const member = document.getElementById('memberType').value || '未選擇';
-            const volcano = document.getElementById('volcanoTea').value || '0';
-            const date = document.getElementById('date').value;
-
-            const shareData = {
-                title: '草本產品購買明細表',
-                text: `日期：${date}\n地點：${location}\n姓名：${name}\n介紹人：${introducer}\n入會：${member}\n火山甘露：${volcano}包/天`
-            };
-
-            if (navigator.share) {
-                navigator.share(shareData).catch(err => console.log('分享取消', err));
-            } else {
-                alert('您的瀏覽器不支援原生分享，請手動截圖分享');
+        // ===================== 🔥 截图分享报表图片 =====================
+        async function shareReportImage() {
+            try {
+                const container = document.getElementById('captureContainer');
+                // 生成截图
+                const canvas = await html2canvas(container, {
+                    useCORS: true,
+                    scale: 2,
+                    backgroundColor: '#ffffff'
+                });
+                
+                // 转图片Blob
+                canvas.toBlob(async (blob) => {
+                    const file = new File([blob], "草本產品報表.png", { type: "image/png" });
+                    
+                    // 原生分享图片
+                    if (navigator.share) {
+                        await navigator.share({
+                            title: '草本產品購買明細表',
+                            files: [file]
+                        });
+                    } else {
+                        // 不支持分享则下载图片
+                        const link = document.createElement('a');
+                        link.download = '草本產品報表.png';
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                        alert('瀏覽器不支援分享，已自動下載圖片！');
+                    }
+                }, 'image/png');
+            } catch (err) {
+                alert('分享失敗，請手動截圖！');
+                console.log(err);
             }
         }
 
