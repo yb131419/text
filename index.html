@@ -7,6 +7,7 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
 :root{
   --bg:#0f0f0f;--panel-bg:#1a1a1a;--text:#e0e0e0;--accent:#00d1b2;
@@ -578,15 +579,13 @@ body{
 </head>
 <body>
 
-<!-- 登录验证遮罩 -->
+<!-- 登录验证遮罩（自动LIFF验证，无密码输入） -->
 <div id="authContainer">
   <div id="authLoading">
     <div class="loader"></div>
     <h3>彥彬🌿試算系統</h3>
-    <p>請輸入專屬授權密鑰</p>
-    <input type="text" id="loginKeyInput" class="login-input" placeholder="輸入密鑰登入" />
-    <button id="loginBtn" class="btn btn-primary btn-md" style="margin-top:15px;">登入系統</button>
-    <p id="loginTip" style="color:#ff5252;margin-top:10px;display:none;">密鑰錯誤，請重新輸入</p>
+    <p>正在驗證 LINE 授權中...</p>
+    <p id="loginTip" style="color:#ff5252;margin-top:10px;display:none;">驗證失敗，次數用盡或請重新整理</p>
   </div>
 </div>
 
@@ -683,8 +682,8 @@ body{
 
 <script>
 // ==================== 產品資料庫（可自行編輯）====================
+// ==================== 全局常量 ====================
 const products = [];
-
 let selectedProds = [];
 let lineName = '';
 let els = {};
@@ -692,38 +691,74 @@ let TARGET_PV220 = 220000;
 let TARGET_PV300 = 300000;
 let base64Image = "";
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
-const ADMIN_KEY = "2008578880-e4LeJzH4";
+// LIFF ID（從你的GAS代碼中獲取）
+const LIFF_ID = "2008578880-zlK2U8dQ";
 
 // ==================== DOM 加載完成 ====================
 window.addEventListener('DOMContentLoaded', async () => {
   initElements();
-  initLoginCheck(); // 登錄校驗
   initQtySelect();
   initPeriodBox();
   bindEvents();
   initImageUpload();
-  bindLoginEvent(); // 綁定登錄
+  // 啟動 LIFF 自動驗證（取代密碼登錄）
+  initLiffAuth();
 });
 
-// 登錄成功後初始化系統
+// ==================== 🔥 LIFF 自動驗證登錄（核心）====================
+async function initLiffAuth() {
+  try {
+    // 1. 初始化 LIFF
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) {
+      liff.login(); // 未登錄則跳轉 LINE 登錄
+      return;
+    }
+
+    // 2. 獲取 LINE 使用者資訊
+    const profile = await liff.getProfile();
+    const userId = profile.userId;
+    const displayName = profile.displayName;
+    console.log("LINE用戶：", userId, displayName);
+
+    // 3. 呼叫 GAS 驗證用戶次數/權限
+    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${userId}&displayName=${encodeURIComponent(displayName)}`);
+    const verifyData = await verifyRes.json();
+
+    // 4. 驗證結果處理
+    if (verifyData.status === "success") {
+      // 驗證成功 → 顯示系統 + 初始化
+      $("#authContainer").addClass("logged-in");
+      $("#loginTip").hide();
+      await initSystem(); // 加載產品、初始化系統
+      showToast(verifyData.message, "success");
+    } else {
+      // 次數用盡 / 驗證失敗
+      $("#loginTip").text(verifyData.message).show();
+      showToast(verifyData.message, "error");
+    }
+
+  } catch (err) {
+    console.error("LIFF驗證失敗：", err);
+    $("#loginTip").text("驗證異常，請重新整理頁面").show();
+    showToast("❌ 驗證失敗，請重新整理", "error");
+  }
+}
+
+// 登錄成功後初始化系統（不動，保留原有邏輯）
 async function initSystem() {
-  // 關閉CORS報錯，優先使用本地產品
-  await fetchProductsFromSheet().catch(()=>{
-    showToast("✅ 使用本地產品資料", "success");
-  });
+  // 執行 GAS 產品獲取（3次重試+不兜底）
+  await fetchProductsFromSheet();
   setupLineName();
   loadSelectedProds();
   renderTable();
-  showToast("🌿 登入成功");
 }
 
-// 🔥 核心：GAS 重試機制（3次重試）+ 失敗不兜底 + 無本地產品
+// 🔥 核心：GAS 重試機制（3次重試）+ 失敗不兜底 + 無本地產品（完全不動）
 async function fetchProductsFromSheet() {
-  // 重試配置
   const MAX_RETRY = 3;
   let retryCount = 0;
 
-  // 重試請求函數
   const fetchWithRetry = async () => {
     try {
       const response = await fetch(`${GAS_API_URL}?action=all`);
@@ -734,7 +769,6 @@ async function fetchProductsFromSheet() {
         throw new Error("GAS 返回產品數據為空");
       }
 
-      // 成功：覆蓋產品數據
       products.length = 0;
       products.push(...data);
       console.log(`✅ 第 ${retryCount+1} 次嘗試，GAS 產品加載成功`);
@@ -744,18 +778,15 @@ async function fetchProductsFromSheet() {
       retryCount++;
       console.warn(`⚠️ 第 ${retryCount} 次 GAS 請求失敗：`, err);
       
-      // 未達最大重試次數 → 延遲重試
       if (retryCount < MAX_RETRY) {
         await new Promise(resolve => setTimeout(resolve, 1500));
         return fetchWithRetry();
       }
       
-      // 重試全部失敗 → 直接拋錯，不使用本地兜底
       throw new Error(`❌ GAS 重試 ${MAX_RETRY} 次全部失敗`);
     }
   };
 
-  // 執行重試請求
   try {
     await fetchWithRetry();
     loadProductList();
@@ -763,11 +794,12 @@ async function fetchProductsFromSheet() {
   } catch (err) {
     console.error("❌ 最終失敗：", err);
     showToast("❌ 系統加載失敗，請刷新重試", "error");
-    // 鎖定功能（可選，建議開啟）
     els.addBtn.prop("disabled", true);
     els.recognizeBtn.prop("disabled", true);
   }
 }
+
+
 
 // 初始化元素
 function initElements() {
