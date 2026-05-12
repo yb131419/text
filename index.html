@@ -717,7 +717,7 @@ let els = {};
 let TARGET_PV220 = 220000;
 let TARGET_PV300 = 300000;
 let base64Image = "";
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/execc";
 // LIFF ID（從你的GAS代碼中獲取）
 const LIFF_ID = "2008578880-e4LeJzH4";
 
@@ -802,25 +802,40 @@ window.addEventListener('DOMContentLoaded', async () => {
   initLiffAuth();
 });
 
-// ==================== 🔥 LIFF 自動驗證登錄（最終修復版）====================
-// ==================== 🔥 LIFF 完整权限验证（代码二逻辑） ====================
+// ==================== 🔥 LIFF 完整权限验证（手机端修复版） ====================
 async function initLiffAuth() {
   try {
+    // 防止手机端重复初始化
+    if (window.liffInitializing) return;
+    window.liffInitializing = true;
+
     if (!window.liff) {
       $("#loginTip").text("LIFF SDK加載失敗，請檢查網路").show();
       showToast("❌ 網路異常，SDK加載失敗", "error");
+      window.liffInitializing = false;
       return;
     }
     updateAuthLoadingText("正在驗證", "請稍候...");
-    await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser:true });
+    
+    // 🔥 核心修复：移除 withLoginOnExternalBrowser，适配手机端LINE内置浏览器
+    await liff.init({ liffId: LIFF_ID });
 
+    // 非LINE客户端判断
     if (!liff.isInClient()) {
       $("#loginTip").text("請在LINE內打開此系統").show();
       showToast("❌ 請在LINE內打開使用", "error");
+      window.liffInitializing = false;
       return;
     }
-    if (!liff.isLoggedIn()) { liff.login(); return; }
 
+    // 未登录则跳转登录（手机端原生跳转，无外部浏览器）
+    if (!liff.isLoggedIn()) {
+      liff.login({ redirectUri: window.location.href });
+      window.liffInitializing = false;
+      return;
+    }
+
+    // 获取用户资料
     const profile = await liff.getProfile();
     userInfo = { userId: profile.userId, displayName: profile.displayName };
 
@@ -830,6 +845,7 @@ async function initLiffAuth() {
       $("#authContainer").addClass("logged-in");
       await initSystem();
       showToast(`✅ 歡迎💎尊爵用戶<br><span class="toast-highlight-name">${userInfo.displayName}</span>`, "success");
+      window.liffInitializing = false;
       return;
     }
 
@@ -841,6 +857,7 @@ async function initLiffAuth() {
     if (verifyData.status !== "success") {
       $("#loginTip").text(verifyData.message).show();
       showToast(verifyData.message, "error");
+      window.liffInitializing = false;
       return;
     }
 
@@ -857,6 +874,7 @@ async function initLiffAuth() {
     if(authStatus.isExpired){
       $("#loginTip").text("賬號已過期，請聯繫管理員").show();
       showToast("❌ 賬號已過期", "error");
+      window.liffInitializing = false;
       return;
     }
 
@@ -870,8 +888,17 @@ async function initLiffAuth() {
 
   } catch (err) {
     console.error("驗證錯誤：", err);
-    $("#loginTip").text("驗證異常，請重新整理頁面").show();
-    showToast("❌ 驗證失敗，請重新整理", "error");
+    // 🔥 手机端优化：区分错误，避免误报
+    if(err.message.includes("Login")){
+      $("#loginTip").text("登錄失效，請重新打開").show();
+      showToast("❌ 登錄失效，請重新打開", "error");
+    }else{
+      $("#loginTip").text("驗證失敗，請重新整理頁面").show();
+      showToast("❌ 驗證失敗，請重新整理", "error");
+    }
+  } finally {
+    // 释放初始化锁
+    window.liffInitializing = false;
   }
 }
 
