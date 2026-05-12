@@ -681,12 +681,11 @@ function handleImageSelect(e) {
 }
 
 
-// 開始AI識別（JSONP調用GAS，徹底修復網路錯誤）
-function startOcrRecognition() {
-  // 防呆：用戶信息未初始化
+// 開始AI識別（Fetch POST 徹底修復網路錯誤/URL過長/跨域問題）
+async function startOcrRecognition() {
+  // 防呆校验
   if (!userInfo || !userInfo.userId) {
     showToast("❌ 用戶驗證失敗，請刷新重試", "error");
-    els.ocrRecognitionBtn.disabled = false;
     return;
   }
   if (!checkUserRemainingTimes()) {
@@ -698,16 +697,30 @@ function startOcrRecognition() {
     return;
   }
 
+  // 按鈕狀態
   els.ocrRecognitionBtn.disabled = true;
   els.ocrRecognitionBtn.textContent = "識別中...";
   showToast("🔍 AI正在識別品項，請稍候...", "success");
 
-  const callbackName = `ocrCallback_${Date.now()}`;
-  window[callbackName] = function (resp) {
-    delete window[callbackName];
-    els.ocrRecognitionBtn.disabled = false;
-    els.ocrRecognitionBtn.textContent = "🤖AI識別";
+  try {
+    // 發送POST請求（無URL長度限制，根治網路錯誤）
+    const response = await fetch(API_URL, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        action: "ocrImage",
+        userId: userInfo.userId,
+        displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
+        imageBase64: selectedImageBase64,
+      }),
+    });
 
+    const resp = await response.json();
+
+    // 處理返回結果
     if (resp.status === "error") {
       showToast(`❌ 識別失敗：${resp.message}`, "error");
       return;
@@ -720,8 +733,7 @@ function startOcrRecognition() {
       return;
     }
 
-    // 識別成功，自動添加品項
-    if (resp.status === "success" && resp.data && resp.data.length > 0) {
+    if (resp.status === "success" && resp.data?.length > 0) {
       authStatus.remainTimes = resp.remainTimes;
       updateAuthStatusBar();
       addOcrProducts(resp.data);
@@ -729,31 +741,16 @@ function startOcrRecognition() {
     } else {
       showToast("⚠️ 未識別到任何品項", "warning");
     }
-  };
 
-  // ✅ 核心修復：Base64 編碼 + 參數安全傳遞（解決GAS網路錯誤）
-  $.ajax({
-    url: API_URL,
-    dataType: "jsonp",
-    jsonp: "callback",
-    jsonpCallback: callbackName,
-    timeout: 40000, // 延長超時時間
-    data: {
-      action: "ocrImage",
-      userId: userInfo.userId,
-      displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
-      // 關鍵：編碼Base64，解決特殊字符/參數過長問題
-      imageBase64: encodeURIComponent(selectedImageBase64),
-      callback: callbackName
-    },
-    // 優化錯誤提示
-    error: function (xhr, status, err) {
-      els.ocrRecognitionBtn.disabled = false;
-      els.ocrRecognitionBtn.textContent = "🤖AI識別";
-      showToast(`❌ 網路錯誤：${status}，請重試`, "error");
-      console.error("OCR錯誤詳情:", xhr, status, err);
-    }
-  });
+  } catch (err) {
+    // 唯一的網路錯誤提示
+    showToast(`❌ 網路錯誤，請重試`, "error");
+    console.error("識別錯誤：", err);
+  } finally {
+    // 還原按鈕
+    els.ocrRecognitionBtn.disabled = false;
+    els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
+  }
 }
 
 // 自動添加識別到的品項
