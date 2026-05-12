@@ -638,7 +638,6 @@ body{
 <script>
 // ==================== 產品資料庫（可自行編輯）====================
 const products = [
-  { name: "2711AB(1)限4盒", pv: 3600, price: 4880 },
   { name: "限入會2711AB(4)限1組", pv: 12600, price: 17920 },
   { name: "211", pv: 2160, price: 2960 },
   { name: "300", pv: 2160, price: 2980 },
@@ -953,7 +952,7 @@ function initImageUpload() {
       console.error("識別錯誤：", err);
       showToast("❌ 識別失敗，請重試", "error");
     } finally {
-      els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
+      els.ocrOverlay.fadeOut(200);
       els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
     }
   });
