@@ -481,6 +481,13 @@ body{
 
 <div id="captureArea">
   <div id="watermark">『彥彬🌿試算系統』</div>
+
+  <!-- 🔥 移动后的 上传图片 + AI识别 按钮（标题上方） -->
+  <div style="display:flex; gap:8px; margin:0 auto 10px; width:100%; max-width:600px;">
+    <button id="uploadImageBtn" class="btn btn-purple" style="flex:1;">🖼️ 上傳圖片</button>
+    <button id="ocrRecognitionBtn" class="btn btn-primary" style="flex:1;">🤖 AI識別</button>
+  </div>
+
   <h2>
     <br>
     🌿 康園試算報表
@@ -494,6 +501,7 @@ body{
       <div class="period-box">六個月</div>
     </div>
   </h2>
+
   <div class="userInputs">  
     <div class="row">
       <label>
@@ -537,9 +545,6 @@ body{
 <div class="button-group">
   <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
   <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
-  <!-- 新增AI圖片識別按鈕 -->
-  <button id="uploadImageBtn" class="btn btn-purple btn-lg">🖼️<br>上傳圖片</button>
-  <button id="ocrRecognitionBtn" class="btn btn-primary btn-md">🤖AI識別</button>
   
   <button id="shareToLineBtn" class="btn btn-primary btn-md">📱<br>安卓分享</button>
   <button id="nativeShareBtn" class="btn btn-primary btn-md">📱<br>分享圖片</button>
