@@ -380,7 +380,7 @@
             <!-- 地點欄位 -->
             <div class="info-item">
                 <label>地點：</label>
-                <input type="text" id="location" placeholder="請輸入地點" value="金門">
+                <input type="text" id="location" placeholder="請輸入地點" value="">
             </div>
             <!-- 入會下拉欄位 -->
             <div class="info-item">
@@ -555,7 +555,7 @@
             const month = now.getMonth() + 1;
             const day = now.getDate();
             const week = ['日','一','二','三','四','五','六'][now.getDay()];
-            document.getElementById('date').value = `${year}.${month}.${day}(${week})金門`;
+            document.getElementById('date').value = `${year}.${month}.${day}(${week})`;
         }
 
         // ===================== 折疊面板切換 =====================
