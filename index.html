@@ -844,7 +844,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-    // ✅ 终极修复版：专治模糊/小图识别 + 乱码过滤 + 自动累加数量
+    // ✅ 终极绝杀版：小图放大识别 + 乱码灭绝 + 宽松匹配 + 自动累加数量
 els.recognizeBtn.click(async () => {
   if (!base64Image) {
     showToast("❌ 請先上傳產品圖片", "error");
@@ -855,51 +855,53 @@ els.recognizeBtn.click(async () => {
   els.recognizeBtn.prop("disabled", true).text("🔍 識別產品中...");
 
   try {
-    // 🔥 核心优化：适配模糊/小图，只识别【数字+大写字母+数量符号】
+    // 🔥 核心修复1：小图强制放大2倍 → 彻底解决 Image too small 报错
+    const enlargedImage = await enlargeImage(base64Image, 2);
+
+    // 🔥 核心修复2：专为小图/模糊图优化的OCR参数
     const { data: { text } } = await Tesseract.recognize(
-      base64Image,
+      enlargedImage, // 使用放大后的清晰图片
       'eng',
       {
         logger: () => {},
-        // PSM=11：专门识别零散字符/小图，解决你图片太小无法识别的问题
-        tessedit_pageseg_mode: 11,
-        // 白名单：只保留你需要的字符，彻底过滤乱码
-        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ×* '
+        tessedit_pageseg_mode: 11,  // 零散字符识别模式
+        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', // 极简白名单
       }
     );
 
     console.log("識別原文：", text);
-    // 强力清洗：转大写 + 过滤无用符号 + 只保留有效字符
-    let ocrText = text.toUpperCase().replace(/[^0-9A-Z×* ]/g, '').trim();
+    // 🔥 核心修复3：暴力清洗乱码 → 只保留 数字+大写字母
+    let ocrText = text.toUpperCase().replace(/[^0-9A-Z]/g, '').trim();
+    console.log("清洗后编号：", ocrText);
 
-    // 🔥 专属正则：只匹配你的产品格式（255A/289/211/701）+ 数量
-    // 支持：255A  255A×2  289*3  211 2
-    const regex = /(\d{2,3}[A-Z]?)\s*[×*]?\s*(\d+)?/g;
+    // 🔥 核心修复4：万能正则 → 匹配所有产品编号（211/255A/289/701/300等）
+    const regex = /(\d{2,4}[A-Z]?)/g;
     let match;
     const productMap = new Map();
 
-    // 遍历识别结果，过滤乱码，只匹配有效产品
+    // 遍历所有识别到的有效编号
     while ((match = regex.exec(ocrText)) !== null) {
-      const code = match[1].trim();    // 产品编号（255A/289）
-      const qty = parseInt(match[2]) || 1; // 数量，默认1
+      const code = match[1].trim();
+      const qty = 1; // 基础数量，重复自动累加
 
-      // 只匹配你的产品库，精准过滤乱码
-      const targetProd = products.find(p => p.name === code);
+      // 🔥 核心修复5：宽松匹配产品（包含即可，不要求完全相等）→ 解决漏匹配
+      const targetProd = products.find(p => p.name.includes(code));
       if (!targetProd) continue;
 
-      // ✅ 关键修复：重复产品自动累加数量
-      if (productMap.has(code)) {
-        productMap.get(code).qty += qty;
+      const prodKey = targetProd.name;
+      // 🔥 核心修复6：自动累加数量（重复编号自动叠加）
+      if (productMap.has(prodKey)) {
+        productMap.get(prodKey).qty += qty;
       } else {
-        productMap.set(code, { ...targetProd, qty });
+        productMap.set(prodKey, { ...targetProd, qty });
       }
     }
 
-    // 赋值给列表
+    // 赋值并渲染
     selectedProds = Array.from(productMap.values());
 
     if (selectedProds.length === 0) {
-      showToast("❌ 未識別到有效產品編號", "error");
+      showToast("❌ 未識別到有效產品", "error");
       return;
     }
 
@@ -915,7 +917,25 @@ els.recognizeBtn.click(async () => {
     els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
   }
 });
-  }
+
+// 🔥 新增：图片放大函数（专治小图识别失败）
+function enlargeImage(base64, scale = 2) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      // 高清放大
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.src = base64;
+  });
+}
 
 // 加入產品
 function addProduct() {
