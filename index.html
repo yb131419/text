@@ -681,7 +681,7 @@ function handleImageSelect(e) {
 }
 
 
-// 开始AI识别（彻底修复GAS网络错误版）
+// 开始AI识别（JSONP版 彻底修复CORS跨域）
 async function startOcrRecognition() {
   // 防呆校验
   if (!userInfo || !userInfo.userId) {
@@ -702,26 +702,14 @@ async function startOcrRecognition() {
   els.ocrRecognitionBtn.textContent = "識別中...";
   showToast("🔍 AI正在識別品項，請稍候...", "success");
 
-  try {
-    // 🔥 修复：用 GAS 兼容的 POST 请求（去掉多余跨域配置）
-    const formData = new URLSearchParams();
-    formData.append("action", "ocrImage");
-    formData.append("userId", userInfo.userId);
-    formData.append("displayName", userInfo.displayName || "未知用戶");
-    formData.append("imageBase64", selectedImageBase64);
-
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: formData
-    });
-
-    // 打印详细日志（方便排查）
-    console.log("响应状态码:", response.status);
-    const resp = await response.json();
-    console.log("识别返回结果:", resp);
+  // 生成唯一回調函數名
+  const callbackName = `ocrCallback_${Date.now()}`;
+  
+  // 全局回調函數
+  window[callbackName] = function(resp) {
+    delete window[callbackName];
+    els.ocrRecognitionBtn.disabled = false;
+    els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
 
     // 處理返回結果
     if (resp.status === "error") {
@@ -744,16 +732,30 @@ async function startOcrRecognition() {
     } else {
       showToast("⚠️ 未識別到任何品項", "warning");
     }
+  };
 
-  } catch (err) {
-    // 打印详细错误日志
-    console.error("AI识别完整错误：", err);
-    showToast(`❌ 網路/服務器錯誤，請重試`, "error");
-  } finally {
-    // 還原按鈕
-    els.ocrRecognitionBtn.disabled = false;
-    els.ocrRecognitionBtn.textContent = "🤖AI識別";
-  }
+  // 發送JSONP請求（和你項目其他接口完全一致，無CORS）
+  $.ajax({
+    url: API_URL,
+    dataType: "jsonp",
+    jsonp: "callback",
+    jsonpCallback: callbackName,
+    timeout: 60000, // 圖片識別延長超時
+    data: {
+      action: "ocrImage",
+      userId: userInfo.userId,
+      displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
+      imageBase64: selectedImageBase64,
+      callback: callbackName
+    },
+    error: function(xhr, status, err) {
+      delete window[callbackName];
+      els.ocrRecognitionBtn.disabled = false;
+      els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
+      console.error("識別錯誤：", err);
+      showToast(`❌ 請求失敗，請重試`, "error");
+    }
+  });
 }
 
 // 自動添加識別到的品項
