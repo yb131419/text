@@ -506,7 +506,7 @@ const LIFF_ID="2008578880-e4LeJzH4";
 const JSONP_TIMEOUT=30000;
 const TARGET_PV220=220000;
 const TARGET_PV300=300000;
-const DEDUCT_INTERVAL=180000;
+const DEDUCT_INTERVAL=180000; 
 
 let products=[],selectedProds=[],lineName='',userInfo=null,authStatus=null,isDeleting=false;
 let lastDeductTime=parseInt(localStorage.getItem('lastDeductTime'))||0;
@@ -642,15 +642,20 @@ function handleImageSelect(e) {
   reader.readAsDataURL(file);
 }
 
-// 開始AI識別（JSONP調用GAS，解決跨域）
+// 開始AI識別（修复版：解决JSONP超长+跨域+错误处理）
 function startOcrRecognition() {
   if (!checkUserRemainingTimes()) {
     showToast("❌ 剩餘次數不足", "error");
     return;
   }
   if (!selectedImageBase64) {
-    // ✅ 修改：請先載入照片
     showToast("❌ 請先載入照片", "warning");
+    return;
+  }
+
+  // ✅ 修复：Base64长度校验（防止JSONP URL超长）
+  if (selectedImageBase64.length > 1500000) {
+    showToast("❌ 圖片太大，請截圖/壓縮後重試", "error");
     return;
   }
 
@@ -687,24 +692,30 @@ function startOcrRecognition() {
     }
   };
 
-  // JSONP請求GAS OCR接口（完全保留，跨域無問題）
+  // ✅ 修复：标准JSONP请求，兼容GAS+GitHub，无跨域问题
   $.ajax({
     url: API_URL,
     dataType: "jsonp",
     jsonp: "callback",
     jsonpCallback: callbackName,
-    timeout: JSONP_TIMEOUT,
+    timeout: 60000, // 延长超时时间（图片识别更稳定）
+    cache: false,
     data: {
       action: "ocrImage",
       userId: userInfo.userId,
       displayName: userInfo.displayName,
-      imageBase64: selectedImageBase64,
+      imageBase64: selectedImageBase64, // 已移除前缀，长度更短
       callback: callbackName
     },
-    error: function () {
+    // ✅ 修复：精准错误提示
+    error: function (xhr, status, err) {
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
-      showToast("❌ 網路錯誤，識別失敗", "error");
+      if (status === "timeout") {
+        showToast("❌ 識別超時，請縮小圖片後重試", "error");
+      } else {
+        showToast("❌ 圖片格式/大小異常，請截圖重試", "error");
+      }
     }
   });
 }
@@ -1201,16 +1212,19 @@ async function nativeShare(){
     text:`康園試算報表\n購買者：${els.buyerInput.value}\n試算者：${lineName}`
   });
 }
+// 清除圖片（修复版）
 function clearImage(){
-  els.previewImage.style.display="none";
-  els.previewImage.src="";
+  els.previewImage.style.display = "none";
+  els.previewImage.src = "";
   els.ocrPreview.style.display = "none";
   els.ocrPreview.src = "";
-  selectedImageBase64 = "";
-  els.shareToLineBtn.style.display="none";
-  els.nativeShareBtn.style.display="none";
-  els.clearImageBtn.style.display="none";
+  selectedImageBase64 = ""; // 清空Base64
+  els.shareToLineBtn.style.display = "none";
+  els.nativeShareBtn.style.display = "none";
+  els.clearImageBtn.style.display = "none";
   els.ocrRecognitionBtn.style.display = "none";
+  // 重置文件选择框（防止重复选择同一张图无效）
+  els.imageFileInput.value = "";
 }
 function showToast(message,type='success'){
   els.toast.innerHTML=message.replace(/\n/g,'<br>');
