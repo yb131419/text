@@ -705,13 +705,22 @@ window.addEventListener('DOMContentLoaded', async () => {
   initLiffAuth();
 });
 
-// ==================== 🔥 LIFF 自動驗證登錄（核心 - 已修復）====================
+// ==================== 🔥 LIFF 自動驗證登錄（最終修復版）====================
 async function initLiffAuth() {
   try {
-    // 1. 初始化 LIFF
-    await liff.init({ liffId: LIFF_ID });
-    
-    // 🔥 修复1：判断是否在LINE客户端内，非LINE环境直接提示
+    // 🔥 修复1：先判断LIFF SDK是否加载成功
+    if (!window.liff) {
+      $("#loginTip").text("LIFF SDK加載失敗，請檢查網路").show();
+      showToast("❌ 網路異常，SDK加載失敗", "error");
+      return;
+    }
+
+    // 1. 初始化 LIFF（加容错）
+    await liff.init({ liffId: LIFF_ID }).catch(err => {
+      throw new Error("LIFF初始化失敗：" + err.message);
+    });
+
+    // 🔥 修复2：非LINE客户端友好提示
     if (!liff.isInClient()) {
       $("#loginTip").text("請在LINE內打開此系統").show();
       showToast("❌ 請在LINE內打開使用", "error");
@@ -731,25 +740,26 @@ async function initLiffAuth() {
     console.log("LINE用戶：", userId, displayName);
 
     // 4. 呼叫 GAS 驗證用戶次數/權限
-    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${userId}&displayName=${encodeURIComponent(displayName)}`);
+    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${userId}&displayName=${encodeURIComponent(displayName)}`, {
+      mode: 'cors', // 跨域兼容
+      cache: 'no-cache'
+    });
     const verifyData = await verifyRes.json();
 
     // 5. 驗證結果處理
     if (verifyData.status === "success") {
-      // 驗證成功 → 顯示系統 + 初始化
       $("#authContainer").addClass("logged-in");
       $("#loginTip").hide();
-      await initSystem(); // 加載產品、初始化系統
+      await initSystem();
       showToast(verifyData.message, "success");
     } else {
-      // 次數用盡 / 驗證失敗
       $("#loginTip").text(verifyData.message).show();
       showToast(verifyData.message, "error");
     }
 
   } catch (err) {
-    // 🔥 修复2：优化异常提示，区分错误类型
-    console.error("LIFF驗證失敗：", err);
+    // 🔥 修复3：全量异常捕获，精准提示
+    console.error("驗證錯誤：", err);
     $("#loginTip").text("驗證異常，請重新整理頁面").show();
     showToast("❌ 驗證失敗，請重新整理", "error");
   }
