@@ -595,7 +595,7 @@ body{
 </head>
 <body>
 
-<!-- 登录验证遮罩（自动LIFF验证，无密码输入） -->
+/* ============== AI辨識高質感浮窗（新增）============== */
 <div id="authContainer">
   <div id="authLoading">
     <div class="loader"></div>
@@ -605,24 +605,24 @@ body{
   </div>
 </div>
 
-<!-- 授权状态栏（带关闭按钮） -->
+/* -- 授权状态栏（带关闭按钮） */
 <div id="authStatusBar" style="display: none;">
   <button class="close-status" title="隱藏狀態欄">關閉</button>
 </div>
 
-<!-- 全屏原圖預覽 -->
+/* 全屏原圖預覽  */
 <div id="fullImageOverlay">
   <img id="fullPreviewImg" alt="原圖預覽">
 </div>
 
-<!-- ============== AI辨識高質感浮窗（新增）============== */ -->
+/* ============== AI辨識高質感浮窗（新增）============== */ */
 <div id="ocrOverlay">
   <div class="ocr-loader"></div>
   <div class="ocr-text">🔍 AI 產品辨識中</div>
   <div class="ocr-subtext">請稍候，正在解析圖片內容...</div>
 </div>
 
-<!-- 圖片上傳區 -->
+/* 圖片上傳區 */
 <div class="upload-area" onclick="document.getElementById('imgUpload').click()">
   <h3>📷 上傳產品圖片自動辨識</h3>
   <p>點擊上傳 / 拖曳圖片進來</p>
@@ -683,7 +683,7 @@ body{
 
 <img id="previewImage" alt="預覽匯出圖片" />
 
-<!-- 修正後按鈕組 對齊代碼二 -->
+/* 修正後按鈕組 對齊代碼二 */
 <div class="button-group">
   <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
   <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
@@ -852,60 +852,69 @@ async function initLiffAuth() {
       return;
     }
 
-    // 开始验证权限
-    updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
-    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {
-      method: "GET",
-      cache: "no-cache"
-    });
-
-// 修改后（打印错误，方便排查）
-let verifyData = { status: "error", message: "网络异常，无法获取权限" };
+    // 開始驗證權限
+updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
+// 修复：添加超时 + 网络错误捕获
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 15000);
 try {
-  verifyData = await verifyRes.json();
-} catch (e) {
-  console.error("解析权限响应失败：", e);
-}
-
-    // 权限验证失败
-    if (verifyData.status !== "success") {
-      $("#loginTip").text(verifyData.message || "權限驗證失敗").show();
-      showToast(verifyData.message || "❌ 權限驗證失敗", "error");
-      window.liffInitializing = false;
-      return;
+  const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {
+    method: "GET",
+    signal: controller.signal,
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
     }
+  });
+  clearTimeout(timeoutId);
 
-    const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
-    authStatus = {
-      ...verifyData,
-      displayExpiryDate: expiry.displayDate,
-      remainingDays: expiry.remainingDays,
-      isExpired: expiry.isExpired,
-      remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount||0)
-    };
-
-    if(authStatus.isExpired){
-      $("#loginTip").text("賬號已過期，請聯繫管理員").show();
-      showToast("❌ 賬號已過期", "error");
-      window.liffInitializing = false;
-      return;
-    }
-
-    if(authStatus.isVip || authStatus.isSuperAdmin) saveTodayAuthCache(profile.userId, authStatus);
-    
-    $("#authContainer").addClass("logged-in");
-    $("#loginTip").hide();
-    await initSystem();
-    showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
-
-  } catch (err) {
-    console.error("詳細錯誤：", err);
-    $("#loginTip").text("網路/伺服器異常，請重新整理").show();
-    showToast("❌ 驗證失敗，請重新整理", "error");
-  } finally {
-    window.liffInitializing = false;
+  // 修改后（打印错误，方便排查）
+  let verifyData = { status: "error", message: "网络异常，无法获取权限" };
+  try {
+    verifyData = await verifyRes.json();
+  } catch (e) {
+    console.error("解析权限响应失败：", e);
   }
+
+  // 權限驗證失敗
+  if (verifyData.status !== "success") {
+    $("#loginTip").text(verifyData.message || "權限驗證失敗").show();
+    showToast(verifyData.message || "❌ 權限驗證失敗", "error");
+    window.liffInitializing = false;
+    return;
+  }
+
+  const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
+  authStatus = {
+    ...verifyData,
+    displayExpiryDate: expiry.displayDate,
+    remainingDays: expiry.remainingDays,
+    isExpired: expiry.isExpired,
+    remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount||0)
+  };
+
+  if(authStatus.isExpired){
+    $("#loginTip").text("賬號已過期，請聯繫管理員").show();
+    showToast("❌ 賬號已過期", "error");
+    window.liffInitializing = false;
+    return;
+  }
+
+  if(authStatus.isVip || authStatus.isSuperAdmin) saveTodayAuthCache(profile.userId, authStatus);
+  
+  $("#authContainer").addClass("logged-in");
+  $("#loginTip").hide();
+  await initSystem();
+  showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
+
+} catch (err) {
+  clearTimeout(timeoutId);
+  console.error("詳細錯誤：", err);
+  $("#loginTip").text("網路/伺服器異常，請重新整理").show();
+  showToast("❌ 驗證失敗，請重新整理", "error");
 }
+
+} 
 
 
 // 登录成功后初始化（权限校验）
@@ -924,7 +933,13 @@ async function fetchProductsFromSheet() {
 
   const fetchWithRetry = async () => {
     try {
-      const response = await fetch(`${GAS_API_URL}?action=all`);
+// 新代码（添加超时，解决卡死）
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 15000);
+const response = await fetch(`${GAS_API_URL}?action=all`, {
+  signal: controller.signal
+});
+clearTimeout(timeoutId);
       if (!response.ok) throw new Error(`HTTP 錯誤：${response.status}`);
       const data = await response.json();
       
@@ -1111,9 +1126,14 @@ els.recognizeBtn.click(async () => {
   els.recognizeBtn.prop("disabled", true).text("🔍 AI識別中...");
 
   try {
-    // 調用你自己的GAS OCR接口（無跨域、無API Key洩露）
-    const response = await fetch(`${GAS_API_URL}?action=ocr&base64=${encodeURIComponent(base64Image)}`);
-    const result = await response.json();
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 20000);
+try {
+  const response = await fetch(`${GAS_API_URL}?action=ocr&base64=${encodeURIComponent(base64Image)}`, {
+    signal: controller.signal
+  });
+  clearTimeout(timeoutId);
+  const result = await response.json();
 
     if (!result.data || result.data.length === 0) {
       showToast("❌ 未識別到任何產品", "error");
