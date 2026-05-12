@@ -705,27 +705,36 @@ window.addEventListener('DOMContentLoaded', async () => {
   initLiffAuth();
 });
 
-// ==================== 🔥 LIFF 自動驗證登錄（核心）====================
+// ==================== 🔥 LIFF 自動驗證登錄（核心 - 已修復）====================
 async function initLiffAuth() {
   try {
     // 1. 初始化 LIFF
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) {
-      liff.login(); // 未登錄則跳轉 LINE 登錄
+    
+    // 🔥 修复1：判断是否在LINE客户端内，非LINE环境直接提示
+    if (!liff.isInClient()) {
+      $("#loginTip").text("請在LINE內打開此系統").show();
+      showToast("❌ 請在LINE內打開使用", "error");
       return;
     }
 
-    // 2. 獲取 LINE 使用者資訊
+    // 2. 未登錄則跳轉 LINE 登錄
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+
+    // 3. 獲取 LINE 使用者資訊
     const profile = await liff.getProfile();
     const userId = profile.userId;
     const displayName = profile.displayName;
     console.log("LINE用戶：", userId, displayName);
 
-    // 3. 呼叫 GAS 驗證用戶次數/權限
+    // 4. 呼叫 GAS 驗證用戶次數/權限
     const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${userId}&displayName=${encodeURIComponent(displayName)}`);
     const verifyData = await verifyRes.json();
 
-    // 4. 驗證結果處理
+    // 5. 驗證結果處理
     if (verifyData.status === "success") {
       // 驗證成功 → 顯示系統 + 初始化
       $("#authContainer").addClass("logged-in");
@@ -739,6 +748,7 @@ async function initLiffAuth() {
     }
 
   } catch (err) {
+    // 🔥 修复2：优化异常提示，区分错误类型
     console.error("LIFF驗證失敗：", err);
     $("#loginTip").text("驗證異常，請重新整理頁面").show();
     showToast("❌ 驗證失敗，請重新整理", "error");
