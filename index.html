@@ -22,6 +22,7 @@
   --period-border:#ffffff;--period-shadow:0 0 15px rgba(255,255,255,0.5);
   --period-text:#000;
 }
+/* 🔴 全局强制锁定字体大小，禁止所有设备系统缩放/自定义字体 */
 html, body {
   -webkit-text-size-adjust: none !important;
   text-size-adjust: none !important;
@@ -64,7 +65,7 @@ body{
   top: 8px;
   right: 10px;
   width: 28px;
-  height: 70px;
+  height: 75px;
   border-radius: 8px;
   background: linear-gradient(145deg, #ffffff, #f5f5f5);
   color: #000;
@@ -472,13 +473,15 @@ body{
   </div>
 </div>
 
+<!-- AI識別圖片預覽 -->
 <img id="ocrPreview" alt="AI識別圖片預覽">
 <img id="previewImage" alt="報表匯出預覽">
 
 <div class="button-group">
   <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
   <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
-  <button id="uploadImageBtn" class="btn btn-purple btn-lg">🖼️<br>載入照片</button>
+  <!-- 新增AI圖片識別按鈕 -->
+  <button id="uploadImageBtn" class="btn btn-purple btn-lg">🖼️<br>上傳圖片</button>
   <button id="ocrRecognitionBtn" class="btn btn-primary btn-md">🤖<br>AI識別</button>
   
   <button id="shareToLineBtn" class="btn btn-primary btn-md">📱<br>安卓分享</button>
@@ -492,7 +495,9 @@ body{
   <button id="addBtn" class="btn btn-primary btn-lg">➕<br>新增品項</button>
 </div>
 
-<input type="file" id="imageFileInput" accept="image/*">
+<!-- 隱藏文件上傳 -->
+<input type="file" id="imageFileInput" accept="image/*" capture="camera">
+
 <div class="spacer"></div>
 
 <script>
@@ -502,11 +507,11 @@ const LIFF_ID="2008578880-e4LeJzH4";
 const JSONP_TIMEOUT=30000;
 const TARGET_PV220=220000;
 const TARGET_PV300=300000;
-const DEDUCT_INTERVAL=180000; 
+const DEDUCT_INTERVAL=180000;
 
 let products=[],selectedProds=[],lineName='',userInfo=null,authStatus=null,isDeleting=false;
 let lastDeductTime=parseInt(localStorage.getItem('lastDeductTime'))||0;
-let selectedImageBase64 = "";
+let selectedImageBase64 = ""; // AI識別圖片Base64
 let els = {};
 
 function createToast() {
@@ -554,6 +559,7 @@ function initElements() {
     cashOption: document.getElementById("cashOption"),
     cardOption: document.getElementById("cardOption"),
     watermark: document.getElementById("watermark"),
+    // 新增AI識別元素
     imageFileInput: document.getElementById("imageFileInput"),
     uploadImageBtn: document.getElementById("uploadImageBtn"),
     ocrRecognitionBtn: document.getElementById("ocrRecognitionBtn"),
@@ -608,71 +614,57 @@ function bindEvents() {
     if(!btn||isDeleting||btn.disabled)return;
     await handleDelete(btn);
   });
+
+  // 綁定AI圖片識別事件
   els.uploadImageBtn.addEventListener("click", () => els.imageFileInput.click());
   els.imageFileInput.addEventListener("change", handleImageSelect);
   els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
 }
 
+// 選擇圖片並轉Base64
 function handleImageSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
+
   if (!file.type.startsWith("image/")) {
     showToast("❌ 請選擇圖片文件", "error");
     return;
   }
+
   const reader = new FileReader();
-  reader.onload = function (e) {
-    const img = new Image();
-    img.onload = function () {
-      const canvas = document.createElement("canvas");
-      const MAX_WIDTH = 1200;
-      let width = img.width;
-      let height = img.height;
-      if (width > MAX_WIDTH) {
-        height = Math.floor((MAX_WIDTH / width) * height);
-        width = MAX_WIDTH;
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, width, height);
-      const highQualityBase64 = canvas.toDataURL("image/jpeg", 0.95);
-      selectedImageBase64 = highQualityBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
-      els.ocrPreview.src = highQualityBase64;
-      els.ocrPreview.style.display = "block";
-      els.ocrRecognitionBtn.style.display = "inline-block";
-      showToast("✅ 高畫質圖片載入完成", "success");
-    };
-    img.src = e.target.result;
+  reader.onload = function (event) {
+    selectedImageBase64 = event.target.result;
+    els.ocrPreview.src = selectedImageBase64;
+    els.ocrPreview.style.display = "block";
+    els.ocrRecognitionBtn.style.display = "inline-block";
+    showToast("✅ 圖片上傳成功，點擊AI識別", "success");
   };
   reader.readAsDataURL(file);
 }
 
+// 開始AI識別（JSONP調用GAS，解決跨域）
 function startOcrRecognition() {
   if (!checkUserRemainingTimes()) {
     showToast("❌ 剩餘次數不足", "error");
     return;
   }
   if (!selectedImageBase64) {
-    showToast("❌ 請先載入圖片", "warning");
+    showToast("❌ 請先上傳圖片", "warning");
     return;
   }
-  if (selectedImageBase64.length > 1800000) {
-    showToast("❌ 圖片偏大，請截圖後重試", "error");
-    return;
-  }
+
   els.ocrRecognitionBtn.disabled = true;
   els.ocrRecognitionBtn.textContent = "識別中...";
-  showToast("🔍 AI識別中，請勿退出...", "success");
-  const callbackName = `ocr_callback_${Date.now()}`;
-  window[callbackName] = (resp) => {
-    try { delete window[callbackName]; } catch (e) {}
+  showToast("🔍 AI正在識別品項，請稍候...", "success");
+
+  const callbackName = `ocrCallback_${Date.now()}`;
+  window[callbackName] = function (resp) {
+    delete window[callbackName];
     els.ocrRecognitionBtn.disabled = false;
     els.ocrRecognitionBtn.textContent = "🤖AI識別";
-    if (!resp) {
-      showToast("❌ 服務器無響應", "error");
+
+    if (resp.status === "error") {
+      showToast(`❌ 識別失敗：${resp.message}`, "error");
       return;
     }
     if (resp.status === "exceeded") {
@@ -682,75 +674,61 @@ function startOcrRecognition() {
       checkUserRemainingTimes();
       return;
     }
-    if (resp.status === "error") {
-      showToast(`❌ 識別失敗：${resp.message || "圖片無法識別"}`, "error");
-      return;
-    }
-    if (resp.status === "success" && resp.data?.length) {
+
+    // 識別成功，自動添加品項
+    if (resp.status === "success" && resp.data && resp.data.length > 0) {
       authStatus.remainTimes = resp.remainTimes;
       updateAuthStatusBar();
       addOcrProducts(resp.data);
-      showToast(`✅ 識別成功！加入 ${resp.data.length} 個品項`, "success");
+      showToast(`✅ 識別成功！自動添加 ${resp.data.length} 個品項`, "success");
     } else {
-      showToast("⚠️ 未識別到品項", "warning");
+      showToast("⚠️ 未識別到任何品項", "warning");
     }
   };
+
+  // JSONP請求GAS OCR接口
   $.ajax({
     url: API_URL,
-    type: "GET",
     dataType: "jsonp",
     jsonp: "callback",
     jsonpCallback: callbackName,
-    timeout: 60000,
-    cache: false,
-    traditional: true,
+    timeout: JSONP_TIMEOUT,
     data: {
       action: "ocrImage",
-      userId: userInfo?.userId || "",
-      displayName: userInfo?.displayName || "",
-      imageBase64: selectedImageBase64
+      userId: userInfo.userId,
+      displayName: userInfo.displayName,
+      imageBase64: selectedImageBase64,
+      callback: callbackName
     },
-    error: (xhr, status) => {
-      try { delete window[callbackName]; } catch (e) {}
+    error: function () {
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
-      if (status === "timeout") showToast("❌ 識別超時，請重試", "error");
-      else if (status === "parsererror") showToast("❌ 數據解析失敗", "error");
-      else showToast("❌ 網路錯誤，請檢查網路後重試", "error");
+      showToast("❌ 網路錯誤，識別失敗", "error");
     }
   });
 }
 
+// 自動添加識別到的品項
 function addOcrProducts(ocrProducts) {
-  if (!ocrProducts || !ocrProducts.length) return;
+  let addCount = 0;
   ocrProducts.forEach(item => {
-    if (!item.name || !item.qty) return;
     const product = products.find(p => p.name === item.name);
     if (!product) return;
-    const qty = Math.max(parseInt(item.qty) || 1, 1);
+
     const exists = selectedProds.find(p => p.name === item.name);
+    const qty = parseInt(item.qty) || 1;
+
     if (exists) {
       exists.qty += qty;
     } else {
       selectedProds.push({ ...product, qty });
     }
+    addCount++;
   });
+
   saveSelectedProds();
   renderTable();
-  els.cashOption.checked && handleCashGift();
-}
-
-function clearImage(){
-  els.previewImage.style.display = "none";
-  els.previewImage.src = "";
-  els.ocrPreview.style.display = "none";
-  els.ocrPreview.src = "";
-  selectedImageBase64 = "";
-  els.shareToLineBtn.style.display = "none";
-  els.nativeShareBtn.style.display = "none";
-  els.clearImageBtn.style.display = "none";
-  els.ocrRecognitionBtn.style.display = "none";
-  els.imageFileInput.value = "";
+  if (els.cashOption.checked) handleCashGift();
 }
 
 function checkHerbalNewMember(selectedValue){
@@ -938,6 +916,7 @@ async function resetReport(){
 async function loadProducts(){
   try{
     updateAuthLoadingText("驗證資料中","請稍候...");
+    // JSONP加載產品列表
     const callbackName = `loadProductsCallback_${Date.now()}`;
     window[callbackName] = function(data) {
       delete window[callbackName];
@@ -954,6 +933,7 @@ async function loadProducts(){
         adjustQtySelectOptions(els.nameInput.value);
       }, 300);
     };
+
     $.ajax({
       url: API_URL,
       dataType: "jsonp",
@@ -1220,7 +1200,17 @@ async function nativeShare(){
     text:`康園試算報表\n購買者：${els.buyerInput.value}\n試算者：${lineName}`
   });
 }
-
+function clearImage(){
+  els.previewImage.style.display="none";
+  els.previewImage.src="";
+  els.ocrPreview.style.display = "none";
+  els.ocrPreview.src = "";
+  selectedImageBase64 = "";
+  els.shareToLineBtn.style.display="none";
+  els.nativeShareBtn.style.display="none";
+  els.clearImageBtn.style.display="none";
+  els.ocrRecognitionBtn.style.display = "none";
+}
 function showToast(message,type='success'){
   els.toast.innerHTML=message.replace(/\n/g,'<br>');
   els.toast.className='toast';
@@ -1245,12 +1235,7 @@ const verifyUserFromBackend=(profile)=>{
   return new Promise((resolve)=>{
     const callbackName=`verifyCallback_${Date.now()}`;
     window[callbackName]=function(resp){
-      try { delete window[callbackName]; } catch(e){}
-      if(!resp){
-        showError("伺服器無回應，請稍後重試");
-        resolve(null);
-        return;
-      }
+      delete window[callbackName];
       if(resp.status==="exceeded"){
         showError(resp.message);
         resolve(null);
@@ -1264,29 +1249,15 @@ const verifyUserFromBackend=(profile)=>{
         resolve(null);
       }
     };
-
     $.ajax({
       url:API_URL,
       dataType:'jsonp',
       jsonp:'callback',
       jsonpCallback:callbackName,
-      timeout:20000,
-      cache: false,
-      data:{
-        action:'verifyUser',
-        userId:profile.userId,
-        displayName:profile.displayName,
-        t: new Date().getTime()
-      },
-      error: function(xhr, status){
-        try { delete window[callbackName]; } catch(e){}
-        if(status === "timeout"){
-          showError("請求超時，請檢查網路後重試");
-        }else if(status === "parsererror"){
-          showError("資料解析錯誤，請刷新重試");
-        }else{
-          showError("網路連線異常，請刷新頁面重試");
-        }
+      timeout:JSONP_TIMEOUT,
+      data:{action:'verifyUser',userId:profile.userId,displayName:profile.displayName,callback:callbackName},
+      error: function(xhr, status, err){
+        showError(`驗證請求失敗<br/>錯誤：${status}<br/>請刷新頁面重試`);
         resolve(null);
       }
     });
@@ -1333,7 +1304,7 @@ async function initLiffAndAuth(){
     showToast(`歡迎，<span class="toast-highlight-name">${userInfo.displayName}</span>！`);
   }catch(error){
     console.error("初始化錯誤：", error);
-    showError(`登入失敗：${error.message}<br>請刷新頁面重試`);
+    updateAuthLoadingText("初始化失敗",`錯誤：${error.message}<br/>請點擊下方按鈕刷新重試`);
   }
 }
 
