@@ -526,17 +526,6 @@ body{
 #captureArea, .upload-area, #recognizeBtn, .button-group, #inputArea, .spacer {
   display: none !important;
 }
-#authContainer.logged-in ~ #captureArea,
-#authContainer.logged-in ~ .upload-area,
-#authContainer.logged-in ~ #recognizeBtn,
-#authContainer.logged-in ~ .button-group,
-#authContainer.logged-in ~ #inputArea,
-#authContainer.logged-in ~ .spacer {
-  display: flex !important;
-}
-#authContainer.logged-in ~ #captureArea {
-  display: block !important;
-}
 
 /* 授权状态栏样式（代码二完整逻辑） */
 #authStatusBar{
@@ -788,12 +777,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   initLiffAuth();
 });
 
-// ==================== 🔥 LIFF 完整權限驗證（最終修復版） ====================
+// ==================== 🔥 LIFF 完整權限驗證（修復版 - 兼容GAS/GitHub） ====================
 async function initLiffAuth() {
-  // 防止重複初始化
-  if (window.liffInitializing) return;
-  window.liffInitializing = true;
-
   try {
     // 檢查SDK是否加載
     if (!window.liff) {
@@ -803,10 +788,12 @@ async function initLiffAuth() {
     }
 
     updateAuthLoadingText("正在驗證", "請稍候...");
-    // 初始化LIFF
-    await liff.init({ liffId: LIFF_ID });
-    // 新增这一行 → 强制关闭LIFF缓存，解决网络异常
-liff._setFeatureFlags({ disableStrictOriginCheck: true });
+    // ✅ 修復1：補全LIFF核心參數（代碼二正常的關鍵）
+    await liff.init({ 
+      liffId: LIFF_ID,
+      withLoginOnExternalBrowser: true,
+      scope: 'profile openid email'
+    });
 
     // 強制LINE內部打開
     if (!liff.isInClient()) {
@@ -828,54 +815,21 @@ liff._setFeatureFlags({ disableStrictOriginCheck: true });
     // 讀取本地緩存
     if (isTodayValidAuth(profile.userId)) {
       authStatus = JSON.parse(localStorage.getItem(`authCache_${profile.userId}`)).data;
-      $("#authContainer").addClass("logged-in");
+      // ✅ 修復2：登錄成功直接顯示界面（取代無效CSS選擇器）
+      $("#authContainer").hide();
+      showCoreElements();
       await initSystem();
       showToast(`✅ 歡迎💎尊爵用戶<br><span class="toast-highlight-name">${userInfo.displayName}</span>`, "success");
       return;
     }
 
-    // 權限驗證：GAS接口（修復參數編碼+超時+錯誤捕獲）
+    // ✅ 修復3：GAS請求改用JSONP（fetch跨域失敗，代碼二正常的關鍵）
     updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
+    const verifyData = await verifyUserWithJSONP(profile);
     
-    // ✅ 修復1：使用URLSearchParams安全拼接參數（杜絕編碼錯誤）
-    const params = new URLSearchParams({
-      action: "verifyUser",
-      userId: profile.userId,
-      displayName: profile.displayName
-    });
-    const requestUrl = `${GAS_API_URL}?${params.toString()}`;
-
-    // ✅ 修復2：標準超時控制器
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    let verifyData;
-    try {
-      // ✅ 修復3：標準fetch請求（兼容GAS/GitHub）
-      const verifyRes = await fetch(requestUrl, {
-        method: "GET",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        mode: "cors" // 強制跨域兼容
-      });
-      clearTimeout(timeoutId);
-      
-      // 請求失敗直接拋出
-      if (!verifyRes.ok) throw new Error(`HTTP ${verifyRes.status}`);
-      verifyData = await verifyRes.json();
-
-    } catch (e) {
-      console.error("GAS請求失敗：", e);
-      verifyData = { status: "error", message: "網路異常，無法獲取權限" };
-    }
-
-    // 權限校驗
-    if (verifyData.status !== "success") {
-      $("#loginTip").text(verifyData.message).show();
-      showToast(verifyData.message, "error");
+    if (!verifyData || verifyData.status !== "success") {
+      $("#loginTip").text(verifyData?.message || "權限驗證失敗").show();
+      showToast(verifyData?.message || "驗證失敗", "error");
       return;
     }
 
@@ -901,21 +855,66 @@ liff._setFeatureFlags({ disableStrictOriginCheck: true });
       saveTodayAuthCache(profile.userId, authStatus);
     }
 
-    // 登錄成功
-    $("#authContainer").addClass("logged-in");
+    // ✅ 修復4：登錄成功隱藏驗證框，顯示核心功能
+    $("#authContainer").hide();
+    showCoreElements();
     $("#loginTip").hide();
     await initSystem();
     showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
 
   } catch (err) {
-    // 全局錯誤捕獲
+    // ✅ 修復5：Token過期自動重登
+    if (err.message.includes("token expired") || err.message.includes("Access Token")) {
+      showToast("登入狀態過期，自動重新登入", "warning");
+      setTimeout(() => {
+        liff.logout().then(() => liff.login({ redirectUri: window.location.href }));
+      }, 1500);
+      return;
+    }
+
     console.error("LIFF驗證崩潰：", err);
     $("#loginTip").text("網路/伺服器異常，請重新整理").show();
     showToast("❌ 驗證失敗，請重新整理", "error");
-  } finally {
-    // 釋放鎖
-    window.liffInitializing = false;
   }
+}
+
+// ==================== 新增：GAS JSONP 請求函數（解決跨域） ====================
+function verifyUserWithJSONP(profile) {
+  return new Promise((resolve) => {
+    const callbackName = `verify_${Date.now()}`;
+    window[callbackName] = (resp) => {
+      delete window[callbackName];
+      resolve(resp);
+    };
+
+    // JSONP 請求 GAS（兼容100%）
+    $.ajax({
+      url: GAS_API_URL,
+      dataType: "jsonp",
+      jsonp: "callback",
+      jsonpCallback: callbackName,
+      timeout: 15000,
+      data: {
+        action: "verifyUser",
+        userId: profile.userId,
+        displayName: profile.displayName
+      },
+      error: () => {
+        delete window[callbackName];
+        resolve({ status: "error", message: "網路異常，無法獲取權限" });
+      }
+    });
+  });
+}
+
+// ==================== 新增：登錄成功顯示核心功能 ====================
+function showCoreElements() {
+  $("#captureArea").show();
+  $(".upload-area").show();
+  $("#recognizeBtn").show();
+  $(".button-group").css("display", "flex");
+  $("#inputArea").css("display", "flex");
+  $(".spacer").show();
 }
 
 // 登录成功后初始化（权限校验）
@@ -927,54 +926,40 @@ async function initSystem() {
   updateAuthStatusBar(); // 显示状态栏
 }
 
-// 🔥 核心：GAS 重試機制（3次重試）+ 失敗不兜底 + 無本地產品（完全不動）
+// 🔥 核心：GAS JSONP 加載產品（兼容100%）
 async function fetchProductsFromSheet() {
-  const MAX_RETRY = 3;
-  let retryCount = 0;
-
-  const fetchWithRetry = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      const response = await fetch(`${GAS_API_URL}?action=all`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      if (!response.ok) throw new Error(`HTTP 錯誤：${response.status}`);
-      const data = await response.json();
+  return new Promise((resolve, reject) => {
+    const callbackName = `loadProducts_${Date.now()}`;
+    window[callbackName] = (data) => {
+      delete window[callbackName];
       
       if (!Array.isArray(data) || data.length === 0) {
-        throw new Error("GAS 返回產品數據為空");
+        showToast("❌ 產品數據為空", "error");
+        reject();
+        return;
       }
 
       products.length = 0;
       products.push(...data);
-      console.log(`✅ 第 ${retryCount+1} 次嘗試，GAS 產品加載成功`);
-      return true;
+      loadProductList();
+      showToast("✅ 產品數據加載成功", "success");
+      resolve();
+    };
 
-    } catch (err) {
-      retryCount++;
-      console.warn(`⚠️ 第 ${retryCount} 次 GAS 請求失敗：`, err);
-      
-      if (retryCount < MAX_RETRY) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        return fetchWithRetry();
+    $.ajax({
+      url: GAS_API_URL,
+      dataType: "jsonp",
+      jsonp: "callback",
+      jsonpCallback: callbackName,
+      timeout: 15000,
+      data: { action: "all" },
+      error: () => {
+        delete window[callbackName];
+        showToast("❌ 產品加載失敗，請刷新重試", "error");
+        reject();
       }
-      
-      throw new Error(`❌ GAS 重試 ${MAX_RETRY} 次全部失敗`);
-    }
-  };
-
-  try {
-    await fetchWithRetry();
-    loadProductList();
-    showToast("✅ 產品數據加載成功", "success");
-  } catch (err) {
-    console.error("❌ 最終失敗：", err);
-    showToast("❌ 系統加載失敗，請刷新重試", "error");
-    els.addBtn.prop("disabled", true);
-    els.recognizeBtn.prop("disabled", true);
-  }
+    });
+  });
 }
 
 // 初始化元素
