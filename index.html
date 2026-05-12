@@ -129,13 +129,16 @@ body{
   position: fixed;
   top: 0;
   left: 0;
+  margin: 0;
   width: 100vw;
   height: 100vh;
   background: rgba(0, 0, 0, 0.9);
   z-index: 99999;
   display: none;
-  justify-content: center;
-  align-items: center;
+  /* 强制全屏居中，兼容所有设备 */
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
   flex-direction: column;
   gap: 20px;
   backdrop-filter: blur(6px);
@@ -843,7 +846,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // ✅ 修正版：專門識別手寫/印刷產品編號，過濾月份文字，完整載入報表
+  // ✅ 终极版：按月识别 + 字母编号精准识别 + 数量自动转换 + 合并导入报表
   els.recognizeBtn.click(async () => {
     if (!base64Image) {
       showToast("❌ 請先上傳產品圖片", "error");
@@ -851,10 +854,10 @@ function initImageUpload() {
     }
 
     els.ocrOverlay.fadeIn(200);
-    els.recognizeBtn.prop("disabled", true).text("🔍 識別編碼中...");
+    els.recognizeBtn.prop("disabled", true).text("🔍 按月識別產品中...");
 
     try {
-      // OCR識別配置：優先識別數字+字母（產品編號）
+      // OCR优化：支持字母+数字编号，高精准识别
       const { data: { text } } = await Tesseract.recognize(
         base64Image,
         'chi_tra+eng',
@@ -864,57 +867,88 @@ function initImageUpload() {
         }
       );
 
-      // ====================== 核心優化：過濾無用文字，只保留產品編號 ======================
+      // ====================== 1. 基础清理 + 过滤干扰文字 ======================
       let ocrText = text.toUpperCase().trim();
-      // 過濾月份/無關干擾文字
-      const filterWords = ['一個月', '三個月', '六個月', '月', '個', '試算', '報表', '康園','第','一','二','三'];
+      const filterWords = ['試算', '報表', '康園', '顆', '個', '第'];
       filterWords.forEach(word => ocrText = ocrText.replaceAll(word, ''));
-      
-      // 提取：數字+字母組合（產品編號核心特徵）
-      const codeRegex = /[0-9A-Z]+/g;
-      let keywords = ocrText.match(codeRegex) || [];
-      keywords = [...new Set(keywords)].filter(k => k.length >= 2); // 去重+過濾短字符
 
-      if (keywords.length === 0) {
-        showToast("❌ 未識別到產品編號", "error");
+      // ====================== 2. 按月份分割文本（优先级：1月→2月→3月） ======================
+      const monthSections = {
+        first: ocrText.match(/第一個月([\s\S]*?)(第二個月|第三個月|$)/)?.[1] || '',
+        second: ocrText.match(/第二個月([\s\S]*?)(第三個月|$)/)?.[1] || '',
+        third: ocrText.match(/第三個月([\s\S]*)/)?.[1] || ''
+      };
+
+      // ====================== 3. 核心规则：数量转换 3顆=2 / 4顆=3 / 5顆=4 ======================
+      function getConvertedQty(str) {
+        if (str.includes('3')) return 2;
+        if (str.includes('4')) return 3;
+        if (str.includes('5')) return 4;
+        return 1; // 默认数量1
+      }
+
+      // ====================== 4. 提取产品编号（支持 255A / 2711AB 字母+数字） ======================
+      function extractProducts(section) {
+        const productsList = [];
+        if (!section) return productsList;
+
+        // 正则：精准匹配 数字+字母 组合（255A、2711AB、777Q）
+        const codeRegex = /[0-9]+[A-Za-z]*/g;
+        const qtyRegex = /[345]/g; // 匹配3/4/5 数量
+        
+        const codes = section.match(codeRegex) || [];
+        const qtys = section.match(qtyRegex) || [];
+
+        codes.forEach((code, index) => {
+          const qty = qtys[index] ? getConvertedQty(qtys[index]) : 1;
+          productsList.push({ code: code.trim(), qty });
+        });
+        return productsList;
+      }
+
+      // ====================== 5. 提取三个月所有产品 ======================
+      const allMonthProducts = [
+        ...extractProducts(monthSections.first),
+        ...extractProducts(monthSections.second),
+        ...extractProducts(monthSections.third)
+      ];
+
+      if (allMonthProducts.length === 0) {
+        showToast("❌ 未識別到任何產品編號", "error");
         return;
       }
 
-      // ====================== 精準匹配產品庫 ======================
+      // ====================== 6. 匹配产品库 + 合并去重 ======================
       selectedProds = [];
-      const matchedNames = new Set();
+      const matchedMap = new Map();
 
-      // 雙重匹配：先全編號匹配，再模糊匹配
-      keywords.forEach(key => {
-        // 1. 優先：產品名稱包含編號（手寫/印刷編號核心匹配）
-        let target = products.find(item => 
-          item.name.toUpperCase().includes(key) && 
-          item.name !== "贈品 211(30)" && 
-          !matchedNames.has(item.name)
+      allMonthProducts.forEach(item => {
+        const targetProd = products.find(prod => 
+          prod.name.toUpperCase().includes(item.code) && prod.name !== "贈品 211(30)"
         );
-        // 2. 兜底：編號包含產品名稱
-        if (!target) {
-          target = products.find(item => 
-            key.includes(item.name.toUpperCase()) && 
-            item.name !== "贈品 211(30)" && 
-            !matchedNames.has(item.name)
-          );
-        }
-        if (target) {
-          matchedNames.add(target.name);
-          selectedProds.push({ ...target, qty: 1 });
+
+        if (targetProd) {
+          if (matchedMap.has(targetProd.name)) {
+            // 累加数量
+            matchedMap.get(targetProd.name).qty += item.qty;
+          } else {
+            matchedMap.set(targetProd.name, { ...targetProd, qty: item.qty });
+          }
         }
       });
+
+      // 转换为数组
+      selectedProds = Array.from(matchedMap.values());
 
       if (selectedProds.length === 0) {
         showToast("❌ 未匹配到對應產品", "error");
         return;
       }
 
-      // 保存並刷新報表
+      // ====================== 7. 保存并导入报表 ======================
       saveSelectedProds();
       renderTable();
-      showToast(`✅ 識別成功！加入 ${selectedProds.length} 個品項`, "success");
+      showToast(`✅ 識別完成！匯入 ${selectedProds.length} 個品項`, "success");
 
     } catch (err) {
       console.error("識別錯誤：", err);
