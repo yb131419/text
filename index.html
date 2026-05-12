@@ -1,731 +1,1376 @@
-// ====================== 核心配置（次数制版 + AI OCR 配置）======================
-const CONFIG = {
-  SHEET_ID: "1N8bRp5gpQB6d0x3XnsJDoD5Mw0O0oMJXtqvxF0J3yKo",
-  PRODUCT_SHEET_NAME: "產品明細",
-  VERIFY_LOG_SHEET_NAME: "驗證日誌",       // 验证日志
-  USAGE_LOG_SHEET_NAME: "使用次數日誌",   // 扣次/储值日志
-  USER_TIMES_SHEET_NAME: "用戶次數",      // 【新增】用户剩余次数表
-  ACCESS_TOKEN: "CM9ZWkYg9Blqdqxua/WXBq5HX+nTk5vMx1DSNlgk4PDZKqh/nD3+Inc5SxuJOCOU1xxCZ9F+wLY7Emf/QHUdEWeqMrTMboKOPd8daEMNcVxfesRHhdosxVWR2PVyNrNcWW5S0gM7GYEnLwA/gMAbEQdB04t89/1O/w1cDnyilFU=",
-  OPENAI_MODEL: "gpt-4.1-mini", // OCR识别模型
-  OPENAI_MAX_TOKENS: 2000,
-  TARGET_PV112: 112000,    // 试算目标值（保留）
-  TARGET_PV220: 220000,
-  REQUEST_TIMEOUT: 10000,
-  // 初始次数配置
-  INITIAL_USER_TIMES: 3,   // 新用户初始3次
-  // 验证日志列配置（移除VIP，改为剩余次数）
-  VERIFY_LOG_COLUMNS: {
-    USER_ID:1, NICKNAME:2, LAST_VERIFY_TIME:3,
-    REMAIN_TIMES:4, VERIFY_SOURCE:5, REMARK:6
-  },
-  VERIFY_LOG_TOTAL_COL: 6,
-  // 使用日志列配置（保留）
-  USAGE_LOG_COLUMNS: {USER_ID:1,NICKNAME:2,USAGE_TYPE:3,USAGE_TIME:4,REMARK:5},
-  USAGE_LOG_TOTAL_COL: 5,
-  // 用户次数表配置（核心：用户ID + 暱稱 + 剩余次数）
-  USER_TIMES_COLUMNS: {USER_ID:1, NICKNAME:2, REMAIN_TIMES:3},
-  USER_TIMES_TOTAL_COL: 3,
-  // 通用配置
-  TAIWAN_TIMEZONE: "Asia/Taipei",
-  SUPER_ADMIN_USER_IDS: [""], // 超管无限次
-  MAX_PRODUCT_NAME_LENGTH: 15,
-  MAX_NICKNAME_LENGTH: 20,
-  MAX_LOG_REMARK_LENGTH: 50,
-  DEDUCT_INTERVAL: 180000,  // 3分钟内连续删除不重复扣次
-  PERMANENT_EXPIRY_DATE: "9999/12/31"
-};
-
-// 从GAS后台脚本属性读取OpenAI Key（安全无暴露）
-function getOpenAIKey() {
-  const props = PropertiesService.getScriptProperties();
-  const key = props.getProperty("OPENAI_API_KEY");
-  if (!key) throw new Error("请在GAS后台脚本属性中配置 OPENAI_API_KEY");
-  return key;
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<title>彥彬🌿試算系統</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root{
+  --bg:#0f0f0f;--panel-bg:#1a1a1a;--text:#e0e0e0;--accent:#00d1b2;
+  --highlight:#40c4ff;--error:#ff5252;--btn-grey:#3a3a3a;--warning:#ff9800;
+  --super:#d4af37;--gold:#ffd700;--grad-primary:linear-gradient(135deg,#1a2a6c,#b21f1f,#fdbb2d);
+  --grad-secondary:linear-gradient(145deg,#2d2d2d,#1f1f1f);--shadow:0 8px 32px rgba(0,0,0,0.4);
+  --loader:#00d1b2;--super-username:linear-gradient(135deg,#d4af37,#ffff00);--yellow:#ffd700;
+  --btn-shadow:0 4px 15px rgba(0,0,0,0.2);--btn-hover-shadow:0 6px 20px rgba(0,0,0,0.3);
+  --btn-active-shadow:0 2px 8px rgba(0,0,0,0.2);--btn-transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  --btn-radius:8px;--btn-padding:8px 14px;
+  --period-active:linear-gradient(145deg,#ffffff,#f0f0f0);
+  --period-hover:linear-gradient(145deg,#ffffff,#e8e8e8);
+  --period-border:#ffffff;--period-shadow:0 0 15px rgba(255,255,255,0.5);
+  --period-text:#000;
 }
-
-// ====================== 表格缓存工具 ======================
-const SHEET_CACHE = {};
-function getCachedSheet(sheetName, autoCreate = false) {
-  const cacheKey = `${CONFIG.SHEET_ID}_${sheetName}`;
-  if (SHEET_CACHE[cacheKey]) return SHEET_CACHE[cacheKey];
-  const spreadsheet = SpreadsheetApp.openById(CONFIG.SHEET_ID);
-  let sheet = spreadsheet.getSheetByName(sheetName);
-  if (!sheet && autoCreate) sheet = spreadsheet.insertSheet(sheetName);
-  if (sheet) SHEET_CACHE[cacheKey] = sheet;
-  return sheet;
+/* 🔴 全局强制锁定字体大小，禁止所有设备系统缩放/自定义字体 */
+html, body {
+  -webkit-text-size-adjust: none !important;
+  text-size-adjust: none !important;
+  font-size: 16px !important;
+  touch-action: manipulation;
 }
-
-// ====================== 通用工具函数 ======================
-function formatToStandardDate(dateVal) {
-  if (!dateVal) return "";
-  let targetDate = null;
-  if (dateVal instanceof Date && !isNaN(dateVal.getTime())) targetDate = dateVal;
-  else {
-    const dateStr = dateVal.toString().trim();
-    if (/^\d{4}\/\d{2}\/\d{2}$/.test(dateStr)) return dateStr;
-    try {targetDate = new Date(dateStr); if (isNaN(targetDate.getTime())) targetDate = null;}
-    catch (e) {targetDate = null;}
-  }
-  return targetDate ? Utilities.formatDate(targetDate, CONFIG.TAIWAN_TIMEZONE, "yyyy/MM/dd") : dateVal.toString().trim();
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-size-adjust: none !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-
-function cleanUserId(id) {
-  if (!id) return "";
-  return id.toString()
-    .replace(/[\u0000-\u001F\u007F-\u009F\u2000-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g, "")
-    .replace(/[\s\t\n\r\f\v\u00A0]/g, "")
-    .toLowerCase().trim();
+body{
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI','Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
+  padding: 8px;
+  line-height: 1.4;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
-
-// ====================== AI OCR 终极完整版（全产品收录+按月优先级+累加颗数+盒数换算）======================
-function extractProductFromImage(imageUrl) {
-  try {
-    const OPENAI_KEY = getOpenAIKey();
-    
-    // 核心：收录所有产品品项，强制AI识别，明确要求仅提取三个月颗数
-    const prompt = "请识别这张「草本產品購買明細表」，严格遵守所有规则：1. 识别范围：仅提取第一个月、第二个月、第三个月的产品颗数，其他时段（如保养栏）忽略；2. 识别优先级：第一个月、第二个月、第三个月的颗数全部累加，无优先级取舍；3. 必须识别以下所有产品，一个都不能漏：新入會(9號）、新入會(草本）男、新入會(草本）女、2711AB(1)限4盒、限入會2711AB(4)限1組、211、300、299A、火山甘露_限4盒、200、201、202、205、209、210、211A、220、222、233、240、255A、260、266、268、270、280、286、288、289、290、295、299、701、702、703、705、706、707、708、747AB、777Q、777Q(4)限2組、大女王、極樂鳥、101、111、168；4. 提取对应颗数数字，无颗数默认3颗；5. 重复产品编号，将三个月颗数累加求和；6. 忽略姓名、时间、服用说明等无关内容；7. 仅返回纯JSON格式：{\"products\":[{\"name\":\"产品名称\",\"qty\":累加总颗数}]}，无任何文字、符号、注释！";
-
-    const payload = {
-      model: CONFIG.OPENAI_MODEL,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            {
-              type: "image_url",
-              image_url: { url: imageUrl, detail: "high" }
-            }
-          ]
-        }
-      ],
-      max_tokens: CONFIG.OPENAI_MAX_TOKENS
-    };
-
-    const response = UrlFetchApp.fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + OPENAI_KEY
-      },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true,
-      timeout: 30000
-    });
-
-    const responseData = JSON.parse(response.getContentText());
-    if (response.getResponseCode() !== 200) {
-      throw new Error("OpenAI API错误：" + (responseData.error?.message || "未知错误"));
-    }
-
-    // 清理AI返回的格式杂质
-    let content = responseData.choices[0]?.message?.content || "{\"products\":[]}";
-    content = content.replace(/```(json)?/gi, "").replace(/[\n\t]/g, "").trim();
-    
-    // JSON解析容错
-    let result;
-    try {
-      result = JSON.parse(content);
-    } catch (jsonErr) {
-      console.error("JSON解析失败：", content);
-      throw new Error("识别格式异常，请重试");
-    }
-
-    // 核心：仅累加三个月的颗数，识别成功的每一笔都保留
-    const productMap = new Map();
-    (result.products || []).forEach(item => {
-      const name = item.name?.trim() || "";
-      // 仅对有效产品名、有效颗数处理，无颗数默认3颗（符合规则）
-      if (name) {
-        const qty = Math.max(parseInt(item.qty) || 3, 3); // 确保颗数≥3，避免0/负数
-        productMap.set(name, (productMap.get(name) || 0) + qty);
-      }
-    });
-
-    // 核心修复：盒数换算严格遵循「3颗=2盒、4颗=3盒、5颗=4盒」（盒数=颗数-1）
-    const finalProducts = Array.from(productMap).map(([name, totalQty]) => ({
-      name: name,
-      totalQty: totalQty,  // 三个月累加后的总颗数（仅保留三个月数据）
-      boxQty: totalQty - 1 // 严格匹配换算规则：颗数N → 盒数N-1
-    }));
-
-    return { 
-      status: "success", 
-      data: finalProducts, // 每一笔识别成功的产品都包含在内
-      raw: content 
-    };
-    
-  } catch (e) {
-    console.error("OCR识别失败：", e);
-    return { 
-      status: "error", 
-      message: "图片识别失败，请检查清晰度",
-      error: e.message 
-    };
-  }
+.hidden { display: none !important; }
+#authContainer{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;justify-content:center;align-items:center;z-index:9999;background:rgba(0,0,0,0.8);}
+#authLoading{
+  width:100%;max-width:360px;background:var(--grad-secondary);border-radius:16px;padding:30px 20px;text-align:center;
+  box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.05);transition:all 0.5s ease;
 }
-
-
-// ====================== 核心：用户次数管理 ======================
-function getUserTimesSheet() {
-  const sheet = getCachedSheet(CONFIG.USER_TIMES_SHEET_NAME, true);
-  initUserTimesFixedColumns(sheet);
-  return sheet;
+#authStatusBar{
+  position:sticky;top:8px;z-index:999;background:var(--grad-secondary);padding:10px 16px;border-radius:12px;margin-bottom:15px;
+  font-size:15px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  display:none;width:100%;max-width:600px;transition:all 0.3s ease;
 }
-
-function initUserTimesFixedColumns(sheet) {
-  const fixedHeader = ["用戶ID（不可修改）", "用戶暱稱", "剩餘使用次數（自動更新）"];
-  const headerRow = 1;
-  const currentMaxCols = sheet.getMaxColumns();
-  if (currentMaxCols > CONFIG.USER_TIMES_TOTAL_COL) sheet.deleteColumns(CONFIG.USER_TIMES_TOTAL_COL + 1, currentMaxCols - CONFIG.USER_TIMES_TOTAL_COL);
-  const needAddCols = CONFIG.USER_TIMES_TOTAL_COL - sheet.getMaxColumns();
-  if (needAddCols > 0) sheet.insertColumnsAfter(sheet.getMaxColumns(), needAddCols);
-
-  let currentHeader = sheet.getRange(headerRow, 1, 1, CONFIG.USER_TIMES_TOTAL_COL).getValues()[0];
-  let headerMatch = currentHeader.join(",") === fixedHeader.join(",");
-
-  if (!headerMatch) {
-    sheet.getRange(headerRow, 1, 1, CONFIG.USER_TIMES_TOTAL_COL).setValues([fixedHeader])
-      .setFontWeight("bold").setBackgroundColor("#f0f4f8").setFontColor("#1a365d")
-      .setHorizontalAlignment("center").setVerticalAlignment("middle").setFrozen(true);
-    sheet.setColumnWidth(1, 280);
-    sheet.setColumnWidth(2, 180);
-    sheet.setColumnWidth(3, 180);
-    const protection = sheet.getRange(headerRow,1,1,CONFIG.USER_TIMES_TOTAL_COL).protect();
-    protection.setDescription("固定欄位，禁止修改");
-    const adminEmail = Session.getActiveUser().getEmail();
-    if (adminEmail) protection.addEditor(adminEmail);
-    protection.removeEditors(protection.getEditors());
-  }
-  sheet.getRange(1,1,sheet.getLastRow(),CONFIG.USER_TIMES_TOTAL_COL)
-    .setHorizontalAlignment("center").setVerticalAlignment("middle");
+#authStatusBar .close-status {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 28px;
+  height: 70px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #ffffff, #f5f5f5);
+  color: #000;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-orientation: upright;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.8),inset 0 -1px 0 rgba(0,0,0,0.1);
+  padding: 0;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  border: 1px solid rgba(255,255,255,0.9) !important;
+  white-space: pre-wrap;
 }
-
-function getUserRemainingTimes(userId, displayName = "未設定") {
-  try {
-    const cleanUid = cleanUserId(userId);
-    if (!cleanUid || cleanUid.startsWith("temp_user_id")) return 0;
-    const superAdmins = CONFIG.SUPER_ADMIN_USER_IDS.map(id => cleanUserId(id));
-    if (superAdmins.includes(cleanUid)) return 99999;
-
-    const sheet = getUserTimesSheet();
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 2) {
-      sheet.appendRow([cleanUid, displayName, CONFIG.INITIAL_USER_TIMES]);
-      return CONFIG.INITIAL_USER_TIMES;
-    }
-
-    const data = sheet.getRange(2,1,lastRow-1,CONFIG.USER_TIMES_TOTAL_COL).getValues();
-    for(let i=0; i<data.length; i++){
-      const rowUid = cleanUserId(data[i][0]);
-      if(rowUid === cleanUid){
-        const times = parseInt(data[i][2]) || 0;
-        return times < 0 ? 0 : times;
-      }
-    }
-    sheet.appendRow([cleanUid, displayName, CONFIG.INITIAL_USER_TIMES]);
-    return CONFIG.INITIAL_USER_TIMES;
-  } catch (e) {
-    console.error("getUserRemainingTimes error:", e);
-    return 0;
-  }
+#authStatusBar .close-status:hover {
+  background: linear-gradient(145deg, #f8f8f8, #eaeaea);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.9),inset 0 -1px 0 rgba(0,0,0,0.15);
+  border-color: #ffffff !important;
+  color: #111;
 }
-
-function updateUserRemainingTimes(userId, newTimes) {
-  try {
-    const cleanUid = cleanUserId(userId);
-    if (!cleanUid) return false;
-    const sheet = getUserTimesSheet();
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 2) return false;
-
-    const data = sheet.getRange(2,1,lastRow-1,CONFIG.USER_TIMES_TOTAL_COL).getValues();
-    for(let i=0; i<data.length; i++){
-      const rowUid = cleanUserId(data[i][0]);
-      if(rowUid === cleanUid){
-        sheet.getRange(i+2, CONFIG.USER_TIMES_COLUMNS.REMAIN_TIMES).setValue(newTimes);
-        return true;
-      }
-    }
-    return false;
-  } catch (e) {
-    console.error("updateUserRemainingTimes error:", e);
-    return false;
-  }
+.loader{
+  width:45px;height:45px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--loader);border-radius:50%;
+  animation:spin 1s linear infinite,pulse 2s ease-in-out infinite alternate;margin:0 auto 15px;
 }
-
-// ====================== 储值功能 ======================
-function addUserTimes(userId, addCount) {
-  const cleanUid = cleanUserId(userId);
-  const currentTimes = getUserRemainingTimes(cleanUid);
-  const newTimes = currentTimes + addCount;
-  updateUserRemainingTimes(cleanUid, newTimes);
-  console.log(`儲值成功：用戶${cleanUid}，加${addCount}次，剩餘${newTimes}次`);
-  SpreadsheetApp.getUi().alert(`儲值成功！\n用戶ID：${cleanUid}\n加次：${addCount}\n剩餘：${newTimes}`);
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{from{box-shadow:0 0 15px rgba(0,209,178,0.3);}to{box-shadow:0 0 25px rgba(0,209,178,0.6);}}
+#authLoading h3{margin:0 0 8px 0;font-size:1.3rem;color:var(--highlight);font-weight:600;}
+#authLoading p{margin:0;font-size:1rem;color:#bbb;line-height:1.5;}
+.super-admin{color:var(--super);font-weight:bold;font-size:15px;}
+.gold-user{color:var(--gold);font-weight:bold;text-shadow:0 0 10px rgba(255,215,0,0.6);font-size:15px;}
+.expired{color:var(--error);font-weight:bold;font-size:15px;}
+.super-admin-username{
+  background-clip:text;-webkit-background-clip:text;color:transparent;font-weight:bold;
+  text-shadow:0 0 8px rgba(255,255,255,0.3);font-size:15px;
 }
-
-// ====================== 使用日志/验证日志 ======================
-function getLastUsageTime(userId, usageType) {
-  try {
-    const cleanUid = cleanUserId(userId);
-    if (!cleanUid) return 0;
-    const usageSheet = getCachedSheet(CONFIG.USAGE_LOG_SHEET_NAME, true);
-    const lastRow = usageSheet.getLastRow();
-    if (lastRow < 2) return 0;
-    const data = usageSheet.getRange(2, 1, lastRow - 1, CONFIG.USAGE_LOG_TOTAL_COL).getValues();
-    let lastTimeStamp = 0;
-    for (let i = data.length - 1; i >= 0; i--) {
-      const row = data[i];
-      const logUid = cleanUserId(row[CONFIG.USAGE_LOG_COLUMNS.USER_ID - 1] || "");
-      const logType = (row[CONFIG.USAGE_LOG_COLUMNS.USAGE_TYPE - 1] || "").trim();
-      if (logUid === cleanUid && logType === usageType) {
-        const logTimeStr = (row[CONFIG.USAGE_LOG_COLUMNS.USAGE_TIME - 1] || "").trim();
-        if (logTimeStr) {
-          try {
-            const logDate = new Date(logTimeStr);
-            if (!isNaN(logDate.getTime())) {
-              lastTimeStamp = logDate.getTime();
-              break;
-            }
-          } catch (e) {}
-        }
-      }
-    }
-    return lastTimeStamp;
-  } catch (err) {
-    console.error("getLastUsageTime error:", err);
-    return 0;
-  }
+.super-admin-username{background-image:var(--super-username);}
+#captureArea{
+  background:linear-gradient(145deg,#1c1c1c,#141414);
+  box-shadow:inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
+  color:var(--text);
+  padding:15px 20px;
+  border-radius:12px;
+  margin-bottom:10px;
+  overflow-x:auto;
+  display:none;
+  width:100%;
+  max-width:600px;
+  position: relative;
+  box-sizing:border-box;
 }
-
-function getUsageLogSheet() {
-  return getCachedSheet(CONFIG.USAGE_LOG_SHEET_NAME, true);
+#watermark {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size:14px;
+  color: #ffffff;
+  font-weight: 500;
+  opacity: 0.9;
+  z-index: 10;
+  pointer-events: none;
 }
-
-function initUsageLogFixedColumns(sheet) {
-  const fixedHeader = ["用戶ID（不可修改）","用戶暱稱","使用類型","使用時間","備注"];
-  const headerRow = 1;
-  const currentMaxCols = sheet.getMaxColumns();
-  if (currentMaxCols > CONFIG.USAGE_LOG_TOTAL_COL) sheet.deleteColumns(CONFIG.USAGE_LOG_TOTAL_COL + 1, currentMaxCols - CONFIG.USAGE_LOG_TOTAL_COL);
-  const needAddCols = CONFIG.USAGE_LOG_TOTAL_COL - sheet.getMaxColumns();
-  if (needAddCols > 0) sheet.insertColumnsAfter(sheet.getMaxColumns(), needAddCols);
-
-  let currentHeader = sheet.getRange(headerRow, 1, 1, CONFIG.USAGE_LOG_TOTAL_COL).getValues()[0];
-  if (currentHeader.join(",") !== fixedHeader.join(",")) {
-    sheet.getRange(headerRow,1,1,CONFIG.USAGE_LOG_TOTAL_COL).setValues([fixedHeader])
-      .setFontWeight("bold").setBackgroundColor("#f0f4f8").setFontColor("#1a365d")
-      .setHorizontalAlignment("center").setVerticalAlignment("middle").setFrozen(true);
-    sheet.setColumnWidths(1,5,[280,180,150,250,300]);
-    const protection = sheet.getRange(headerRow,1,1,CONFIG.USAGE_LOG_TOTAL_COL).protect();
-    protection.setDescription("日志表头禁止修改");
-  }
-  sheet.getRange(1,1,sheet.getLastRow(),CONFIG.USAGE_LOG_TOTAL_COL)
-    .setHorizontalAlignment("center").setVerticalAlignment("middle");
+#captureArea h2{
+  text-align:center;font-size:1.6rem;font-weight:bold;color:#fff;margin:0 0 12px 0;padding:8px 0;
+  line-height:1.3;width:100%;
 }
-
-function writeUsageLog(sheet, userId, displayName, usageType, remark) {
-  try {
-    initUsageLogFixedColumns(sheet);
-    const finalUid = cleanUserId(userId) || "未知用戶";
-    const finalName = displayName.length>CONFIG.MAX_NICKNAME_LENGTH ? displayName.substring(0,CONFIG.MAX_NICKNAME_LENGTH)+"..." : displayName;
-    const finalType = usageType || "未知操作";
-    const finalRemark = remark.length>CONFIG.MAX_LOG_REMARK_LENGTH ? remark.substring(0,CONFIG.MAX_LOG_REMARK_LENGTH)+"..." : remark;
-    const time = Utilities.formatDate(new Date(), CONFIG.TAIWAN_TIMEZONE, "yyyy-MM-dd HH:mm:ss");
-    sheet.appendRow([finalUid, finalName, finalType, time, finalRemark]);
-  } catch (e) {console.error("寫入日志失敗：",e);}
+.period-options{display:flex;justify-content:center;gap:8px;margin:8px 0 12px;flex-wrap:wrap;align-items:center;}
+.period-box{
+  border:1px solid #e0e0e0;border-radius:6px;padding:6px 12px;color:#e0e0e0;font-size:14px;cursor:pointer;
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;background:transparent;
+  font-weight:500;
 }
-
-function getVerifyLogSheet() {
-  return getCachedSheet(CONFIG.VERIFY_LOG_SHEET_NAME, true);
+.period-box:hover{
+  border-color:var(--period-border);background:var(--period-hover);color:var(--period-text);
+  transform:translateY(-2px);box-shadow:var(--period-shadow);
+  background-image:linear-gradient(145deg,#ffffff,#f8f8f8);
 }
-
-function initVerifyLogFixedColumns(sheet) {
-  const fixedHeader = ["用戶ID","用戶暱稱","最後驗證時間","剩餘次數","驗證來源","備注"];
-  const headerRow = 1;
-  const currentMaxCols = sheet.getMaxColumns();
-  if (currentMaxCols > CONFIG.VERIFY_LOG_TOTAL_COL) sheet.deleteColumns(CONFIG.VERIFY_LOG_TOTAL_COL + 1, currentMaxCols - CONFIG.VERIFY_LOG_TOTAL_COL);
-  const needAddCols = CONFIG.VERIFY_LOG_TOTAL_COL - sheet.getMaxColumns();
-  if (needAddCols > 0) sheet.insertColumnsAfter(sheet.getMaxColumns(), needAddCols);
-
-  let currentHeader = sheet.getRange(headerRow,1,1,CONFIG.VERIFY_LOG_TOTAL_COL).getValues()[0];
-  if (currentHeader.join(",") !== fixedHeader.join(",")) {
-    sheet.getRange(headerRow,1,1,CONFIG.VERIFY_LOG_TOTAL_COL).setValues([fixedHeader])
-      .setFontWeight("bold").setBackgroundColor("#f0f4f8").setFontColor("#1a365d")
-      .setHorizontalAlignment("center").setVerticalAlignment("middle").setFrozen(true);
-    sheet.setColumnWidths(1,6,[280,180,250,150,200,500]);
-    const protection = sheet.getRange(headerRow,1,1,CONFIG.VERIFY_LOG_TOTAL_COL).protect();
-    protection.setDescription("验证日志表头禁止修改");
-  }
-  sheet.getRange(1,1,sheet.getLastRow(),CONFIG.VERIFY_LOG_TOTAL_COL)
-    .setHorizontalAlignment("center").setVerticalAlignment("middle");
+.period-box.active{
+  border-color:var(--period-border);background:var(--period-active);color:var(--period-text);
+  font-weight:bold;box-shadow:var(--period-shadow);
+  background-image:linear-gradient(145deg,#ffffff,#e8e8e8);
+  transform:translateY(-1px);
 }
-
-function writeFixedColumnVerifyLog(sheet, userId, displayName, remainTimes) {
-  try {
-    initVerifyLogFixedColumns(sheet);
-    const finalUid = userId.trim() || "未知用戶";
-    const finalName = displayName.length>CONFIG.MAX_NICKNAME_LENGTH ? displayName.substring(0,CONFIG.MAX_NICKNAME_LENGTH)+"..." : displayName;
-    const verifyTime = Utilities.formatDate(new Date(), CONFIG.TAIWAN_TIMEZONE, "yyyy-MM-dd HH:mm:ss");
-    const source = remainTimes === 99999 ? "超級管理員" : "黃金用戶";
-    const remark = remainTimes === 99999 ? "無限次使用" : `剩餘使用次數：${remainTimes}`;
-
-    const lastRow = sheet.getLastRow();
-    let userRow = -1;
-    if(lastRow >=2){
-      const uids = sheet.getRange(2,1,lastRow-1,1).getValues().map(r=>cleanUserId(r[0]));
-      userRow = uids.indexOf(cleanUserId(finalUid)) + 2;
-    }
-
-    const logData = [finalUid, finalName, verifyTime, remainTimes, source, remark];
-    if(userRow >1){
-      sheet.getRange(userRow,3,1,4).setValues([logData.slice(2)]);
-    }else{
-      sheet.appendRow(logData);
-    }
-  } catch (e) {console.error("寫入驗證日志失敗：",e);}
+.period-box.active::after{
+  content:'';position:absolute;bottom:2px;right:2px;width:10px;height:10px;
+  background:var(--period-text);border-radius:50%;opacity:0.8;
 }
-
-// ====================== WEB接口（doGet）- JSONP 跨域 =======================
-function doGet(e) {
-  try {
-    const action = e?.parameter?.action;
-    const callback = e?.parameter?.callback;
-    const userId = (e?.parameter?.userId || "").trim();
-    const displayName = (e?.parameter?.displayName || "未知用戶").trim();
-    const cleanUid = cleanUserId(userId);
-    const remainTimes = getUserRemainingTimes(cleanUid, displayName);
-    const isSuperAdmin = remainTimes === 99999;
-
-    // 1. 获取产品列表
-    if (action === "all") {
-      const sheet = getCachedSheet(CONFIG.PRODUCT_SHEET_NAME);
-      if (!sheet) return jsonResponse([], callback);
-      const data = sheet.getDataRange().getValues();
-      if (data.length <= 1) return jsonResponse([], callback);
-      const products = data.slice(1).map(row => {
-        const rawName = row[0]?.toString().trim() || "";
-        const name = rawName.length>CONFIG.MAX_PRODUCT_NAME_LENGTH ? rawName.substring(0,CONFIG.MAX_PRODUCT_NAME_LENGTH)+"..." : rawName;
-        const pv = parseFloat(row[2])||0;
-        const price = parseFloat(row[3])||0;
-        return {name, displayName:rawName, pv, price};
-      }).filter(i=>i.name);
-      return jsonResponse(products, callback);
-    }
-
-    // 2. 用户验证
-    if (action === "verifyUser") {
-      const tempUid = userId || "TEMP_"+new Date().getTime();
-      const finalName = displayName.length>CONFIG.MAX_NICKNAME_LENGTH ? displayName.substring(0,CONFIG.MAX_NICKNAME_LENGTH)+"..." : displayName;
-      const verifySheet = getVerifyLogSheet();
-      writeFixedColumnVerifyLog(verifySheet, tempUid, finalName, remainTimes);
-
-      const isTimesExceeded = !isSuperAdmin && remainTimes <= 0;
-      const res = {
-        status: isTimesExceeded ? "exceeded" : "success",
-        message: isTimesExceeded
-          ? `❌ 使用次數已用盡，請點擊下方按鈕儲值<br>
-<div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-  <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
-  <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
-</div>`
-          : (isSuperAdmin ? "✅ 超級管理員驗證成功（無限次）" : `✅ 驗證成功，剩餘使用次數：${remainTimes}`),
-        userId: tempUid,
-        displayName: finalName,
-        isSuperAdmin: isSuperAdmin,
-        remainTimes: remainTimes
-      };
-      return jsonResponse(res, callback);
-    }
-
-    // 3. 重置扣次
-    if (action === "recordReset") {
-      if (!cleanUid || cleanUid.startsWith("temp_user_id")) {
-        return jsonResponse({status:"fail",message:"無效用戶ID"}, callback);
-      }
-      if (isSuperAdmin) {
-        return jsonResponse({status:"success",message:"✅ 超管無需扣次", remainTimes}, callback);
-      }
-      if (remainTimes <= 0) {
-        return jsonResponse({status:"exceeded",message:`❌ 使用次數已用盡，請點擊下方按鈕儲值<br>
-<div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-  <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
-  <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
-</div>`}, callback);
-      }
-
-      const newTimes = remainTimes - 1;
-      updateUserRemainingTimes(cleanUid, newTimes);
-      const usageSheet = getUsageLogSheet();
-      writeUsageLog(usageSheet, cleanUid, displayName, "重置報表", "重置操作扣除1次");
-      writeFixedColumnVerifyLog(getVerifyLogSheet(), cleanUid, displayName, newTimes);
-
-      return jsonResponse({
-        status:"success",
-        message:`✅ 重置成功，扣除1次，剩餘：${newTimes}`,
-        remainTimes: newTimes
-      }, callback);
-    }
-
-    // 4. 删除品项扣次
-    if (action === "recordDelete") {
-      if (!cleanUid || cleanUid.startsWith("temp_user_id")) {
-        return jsonResponse({status:"fail",message:"無效用戶ID"}, callback);
-      }
-      if (isSuperAdmin) {
-        return jsonResponse({status:"success",message:"✅ 超管無需扣次", remainTimes}, callback);
-      }
-      if (remainTimes <= 0) {
-        return jsonResponse({status:"exceeded",message:`❌ 使用次數已用盡，請點擊下方按鈕儲值<br>
-<div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-  <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
-  <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
-</div>`}, callback);
-      }
-
-      const now = new Date().getTime();
-      const lastDeleteTime = getLastUsageTime(cleanUid, "刪除品項");
-      const isWithinInterval = now - lastDeleteTime < CONFIG.DEDUCT_INTERVAL;
-      let newTimes = remainTimes;
-
-      if (!isWithinInterval) {
-        newTimes = remainTimes - 1;
-        updateUserRemainingTimes(cleanUid, newTimes);
-        writeUsageLog(getUsageLogSheet(), cleanUid, displayName, "刪除品項", "刪除操作扣除1次");
-      }
-      writeFixedColumnVerifyLog(getVerifyLogSheet(), cleanUid, displayName, newTimes);
-
-      return jsonResponse({
-        status:"success",
-        message: isWithinInterval
-          ? "✅ 3分鐘內連續刪除，不重複扣次"
-          : `✅ 刪除成功，扣除1次，剩餘：${newTimes}`,
-        remainTimes: newTimes
-      }, callback);
-    }
-
-    // 5. AI OCR识别图片（修复完成）
-    if (action === "ocrImage") {
-      if (!cleanUid || cleanUid.startsWith("temp_user_id")) {
-        return jsonResponse({status:"fail",message:"無效用戶ID"}, callback);
-      }
-      const imageUrl = e.parameter.imageUrl?.trim();
-      if (!imageUrl || !imageUrl.startsWith("https")) {
-        return jsonResponse({status:"error",message:"請上傳有效的圖片"}, callback);
-      }
-
-      let newTimes = remainTimes;
-      if (!isSuperAdmin) {
-        newTimes = remainTimes - 1;
-        updateUserRemainingTimes(cleanUid, newTimes);
-        writeUsageLog(getUsageLogSheet(), cleanUid, displayName, "AI OCR識別", "圖片識別扣除1次");
-        writeFixedColumnVerifyLog(getVerifyLogSheet(), cleanUid, displayName, newTimes);
-      }
-
-      const ocrResult = extractProductFromImage(imageUrl);
-      ocrResult.remainTimes = newTimes;
-      return jsonResponse(ocrResult, callback);
-    }
-
-    return jsonResponse({status:"fail",message:"未知請求"}, callback);
-  } catch (error) {
-    console.error("doGet error:", error);
-    return jsonResponse({status:"error",message:"服務器錯誤："+error.message}, e?.parameter?.callback);
-  }
+.userInputs{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.userInputs .row{display:flex;gap:8px;width:100%;}
+.userInputs label{flex:1;display:flex;flex-direction:column;font-size:14px;color:#bbb;}
+.userInputs label span{text-align:center;margin-bottom:4px;font-size:15px;}
+.userInputs input{
+  padding:8px;font-size:16px;background:#333;color:var(--text);border:none;
+  border-radius:6px;width:100%;text-align:center;
 }
-
-// JSONP 统一响应
-function jsonResponse(data, callback) {
-  const res = callback ? `${callback}(${JSON.stringify(data)})` : JSON.stringify(data);
-  const mime = callback ? ContentService.MimeType.JAVASCRIPT : ContentService.MimeType.JSON;
-  return ContentService.createTextOutput(res).setMimeType(mime);
+.calculator-container{display:flex;gap:5px;}
+.btn{
+  border: none;
+  border-radius: var(--btn-radius);
+  padding: var(--btn-padding);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.2), 0 5px 12px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.85) !important;
 }
-
-// 工具函數：OCR識別處理（修复版）
-function handleOcrRequest(userId, displayName, imageUrl) {
-  try {
-    const remainTimes = getUserRemainingTimes(userId, displayName);
-    const isSuperAdmin = remainTimes === 99999;
-
-    if (!isSuperAdmin && remainTimes <= 0) {
-      return { status: "exceeded", message: "次數已用盡" };
-    }
-
-    const ocrResult = extractProductFromImage(imageUrl);
-    if (ocrResult.status !== "success") {
-      return ocrResult;
-    }
-
-    let newTimes = remainTimes;
-    if (!isSuperAdmin) {
-      newTimes = remainTimes - 1;
-      updateUserRemainingTimes(userId, newTimes);
-      writeUsageLog(getUsageLogSheet(), userId, displayName, "AI OCR識別", "圖片識別扣除1次");
-      writeFixedColumnVerifyLog(getVerifyLogSheet(), userId, displayName, newTimes);
-    }
-
-    return {
-      status: "success",
-      data: ocrResult.data,
-      remainTimes: isSuperAdmin ? 99999 : newTimes
-    };
-
-  } catch (err) {
-    console.error("OCR處理錯誤:", err);
-    return { status: "error", message: "識別失敗：" + err.message };
-  }
+.btn::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:-100%;
+  width:100%;
+  height:100%;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  transition:all 0.6s ease;
 }
-
-// 完整修復doPost
-function doPost(e) {
-  const output = ContentService.createTextOutput();
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  output.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  output.setHeader('Access-Control-Max-Age', '86400');
-
-  if (e === undefined || e.postData === undefined) {
-    output.setContent(JSON.stringify({ status: "ok" }));
-    output.setMimeType(ContentService.MimeType.JSON);
-    return output;
-  }
-
-  try {
-    const postData = e.postData.contents;
-    const contentType = e.postData.type;
-
-    if (contentType === "application/x-www-form-urlencoded") {
-      const params = Utilities.parseQueryString(postData);
-      const action = params.action || "";
-      const userId = params.userId || "";
-      const displayName = params.displayName || "未知用戶";
-      const imageUrl = params.imageUrl;
-
-      if (action === "ocrImage") {
-        const result = handleOcrRequest(userId, displayName, imageUrl);
-        output.setContent(JSON.stringify(result));
-        output.setMimeType(ContentService.MimeType.JSON);
-        return output;
-      }
-    }
-
-    if (contentType === "application/json") {
-      const data = JSON.parse(e.postData.contents);
-      const event = data.events?.[0];
-      if (!event) {
-        output.setContent(JSON.stringify({ status: "ignore" }));
-        return output;
-      }
-      const userId = event.source?.userId || "";
-      const remainTimes = getUserRemainingTimes(userId, "LINE使用者");
-      const isSuperAdmin = remainTimes === 99999;
-
-      if (!isSuperAdmin && remainTimes <=0 && event.type==="message" && event.message?.type==="text") {
-        replyText(event.replyToken, `❌ 你的使用次數已用盡，請聯繫管理員或點擊選單儲值購買次數
-💎 儲值50次：https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB
-🌟 儲值100次：https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD`);
-        output.setContent("OK");
-        return output;
-      }
-
-      if (["follow","join","memberJoined"].includes(event.type)) {
-        sendWelcomeGreetingFlex(event.replyToken, event.type==="follow"?"加好友":"歡迎");
-        output.setContent("OK");
-        return output;
-      }
-      if (event.type !== "message" || event.message?.type !== "text") {
-        output.setContent("ignore");
-        return output;
-      }
-
-      const msg = event.message.text.trim();
-      const token = event.replyToken;
-      if (msg === "歡迎") sendWelcomeGreetingFlex(token, "主動觸發");
-      if (msg === "一鍵試算") replyText(token, `✅ 剩餘使用次數：${remainTimes}\n請點選選單使用試算功能`);
-      if (msg === "試算系統化" || msg === "一鍵選單") sendFlexMenu(token);
-      if (msg === "購物節") sendShoppingFestivalFlex(token);
-      
-      output.setContent("OK");
-      return output;
-    }
-
-    output.setContent(JSON.stringify({ status: "ignore" }));
-    output.setMimeType(ContentService.MimeType.JSON);
-    return output;
-
-  } catch (error) {
-    console.error("doPost致命错误：", error);
-    output.setContent(JSON.stringify({ status: "error", message: "伺服器錯誤：" + error.message }));
-    output.setMimeType(ContentService.MimeType.JSON);
-    return output;
-  }
+.btn:hover::before{left:100%;}
+.btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 rgba(0,0,0,0.25), 0 8px 16px rgba(0,0,0,0.2);
+  filter: brightness(1.08);
+  border-color: #ffffff !important;
 }
-
-// ====================== LINE消息工具 ======================
-function replyText(replyToken, text) {
-  try {
-    UrlFetchApp.fetch("https://api.line.me/v2/bot/message/reply", {
-      method: "post",
-      headers: {"Content-Type":"application/json","Authorization":"Bearer "+CONFIG.ACCESS_TOKEN},
-      payload: JSON.stringify({replyToken,messages:[{type:"text",text,quickReply:getQuickReply()}]}),
-      muteHttpExceptions: true
-    });
-  } catch (e) {console.error("replyText error:",e);}
+.btn:active{
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.1);
 }
+.btn:disabled{
+  opacity:0.6;
+  cursor:not-allowed;
+  transform:none;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  filter: grayscale(30%);
+}
+.btn-primary{background: linear-gradient(145deg, #00bfa5, #00897b);}
+.btn-purple{background: linear-gradient(145deg, #ab47bc, #8e24aa);}
+.btn-warning{background: linear-gradient(145deg, #ffa726, #f57c00);}
+.btn-grey{background: linear-gradient(145deg, #757575, #424242);}
+.btn-danger{background: linear-gradient(145deg, #ef5350, #e53935);}
+.btn-sm{padding:5px 8px;font-size:12px;border-radius:4px;}
+.btn-md{padding:8px 12px;font-size:14px;border-radius:6px;min-width:80px;}
+.btn-lg{padding:10px 6px!important;font-size:15px!important;border-radius:8px!important;width:48%;height:auto;line-height:1.2;}
+#resetCalculatorBtn{
+  width:32px;height:32px;border-radius:5px;background:var(--btn-grey);color:#fff;
+  border:1px solid rgba(255,255,255,0.85);cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;transition:var(--btn-transition);
+}
+#resetCalculatorBtn:hover{background:#555;transform:scale(1.05);border-color:#fff;}
+#resetCalculatorBtn:active{transform:scale(0.95);}
+#addBtn{width:100%!important;padding:10px 14px!important;font-size:16px!important;font-weight:600!important;border-radius:8px!important;height:auto!important;}
+#reportTable{
+  width:100%;
+  min-width:280px;
+  max-width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  border-radius:8px;
+  overflow:hidden;
+  background:#f9fafb;
+  color:#374151;
+  margin:0 auto;
+  table-layout:fixed;
+  text-align: center !important;
+}
+#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:37%;}
+#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:10%;}
+#reportTable th:nth-child(3),#reportTable td:nth-child(3){width:10%;}
+#reportTable th:nth-child(4),#reportTable td:nth-child(4){width:10%;}
+#reportTable th:nth-child(5),#reportTable td:nth-child(5){width:13%;}
+#reportTable th:nth-child(6),#reportTable td:nth-child(6){width:13%;}
+#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:7%;}
+#reportTable th,#reportTable td{
+  border:1px solid #d1d5db;
+  padding:6px 4px;
+  text-align:center;
+  transition:all 0.2s ease;
+  overflow:hidden;
+  line-height:1.3;
+}
+#reportTable td:nth-child(1){
+  white-space: normal;
+  text-align:center !important;
+  padding-left:6px;
+  word-break: break-word;
+}
+.qtySelect {
+  width: 100% !important;
+  padding: 2px !important;
+  margin: 0 !important;
+  border: 1px solid #999 !important;
+  border-radius: 3px !important;
+  text-align: center !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+#reportTable td:nth-child(3),
+#reportTable td:nth-child(4),
+#reportTable td:nth-child(5),
+#reportTable td:nth-child(6){
+  font-size:10px;
+  font-weight:500;
+  text-align:center!important;
+}
+#reportTable thead{background:#555555;color:#fff;font-weight:600;text-align:center!important;}
+#reportTable tbody tr { background: #e9e9e9; }
+#reportTable tbody tr:hover{background:#1e88e5;color:#fff;font-weight:bold;}
+.deleteBtn{
+  writing-mode:vertical-rl;
+  text-orientation:upright;
+  background:var(--error);
+  border:1px solid rgba(255,255,255,0.85);
+  color:#fff;
+  border-radius:3px;
+  padding:0;
+  cursor:pointer;
+  font-size:10px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height: 26px;
+  width: 20px;
+  line-height:1;
+  transition:var(--btn-transition);
+}
+.deleteBtn:hover{transform:scale(1.05);border-color:#fff;}
+.deleteBtn:active{transform:scale(0.95);}
+.deleteBtn:disabled{opacity:0.7;cursor:not-allowed;}
+.summaryBox{text-align:center;margin-top:10px;font-size:1.1rem;font-weight:bold;color:var(--highlight);line-height:1.5;}
+.summaryBox .extra{display:block;font-size:1rem;color:var(--accent);margin-top:4px;}
+.summaryBox .done{color:#4caf50;font-weight:bold;}
+#totalPriceCellDup,#totalPvCellDup,#pvDiff2{display:inline-block;min-width:50px;text-align:center;}
+#inputArea{display:flex;flex-direction:column;gap:8px;margin:10px 0 20px 0;display:none;width:100%;max-width:600px;}
+@media (min-width:576px){#inputArea{flex-direction:row;align-items:center;}}
+#nameInput,#qtyInput{
+  background:#2c2c2c;color:var(--text);flex:1;text-align:center;padding:10px 8px;
+  font-size:16px;border-radius:6px;border:none;
+}
+#qtyInput{font-size:16px!important;font-weight:bold;}
+#ocrPreview{display:none;width:100%!important;max-width:600px;margin:10px auto!important;border:2px solid #888;border-radius:8px;object-fit:contain;}
+#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn,#uploadImageBtn,#ocrRecognitionBtn{flex:1;min-width:80px;margin:0;}
+#previewImage{display:none;width:100%!important;max-width:600px;margin:10px auto!important;border:2px solid #888;border-radius:8px;image-rendering:-webkit-optimize-contrast;object-fit:contain;}
+#shareToLineBtn,#nativeShareBtn,#clearImageBtn{display:none;}
+#imageFileInput{display:none;}
+#buyerInput,#calculatorDisplay{
+  background:#f9fafb;border:1.5px solid #d1d5db;color:#374151;border-radius:6px;
+  padding:8px 10px;font-size:16px;transition:border-color 0.3s ease,box-shadow 0.3s ease;
+  width:100%;font-weight:500;
+}
+#buyerInput:focus{
+  border-color:#2563eb;box-shadow:0 0 8px 2px rgba(37,99,235,0.3);
+  outline:none;background:#fff;
+}
+#calculatorDisplay{background:#e9ecef;cursor:default;}
+#buyerInput::placeholder{color:#9ca3af;font-weight:400;text-align:center;}
+.toast{
+  position:fixed;bottom:25px;left:50%;transform:translateX(-50%);background:var(--grad-secondary);
+  color:#fff;padding:10px 16px;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.4);
+  opacity:0;transition:opacity 0.5s ease,transform 0.5s ease;z-index:1000;text-align:center;
+  min-width:180px;font-size:15px;border:1px solid rgba(255,255,255,0.1);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-10px);}
+.toast.error{background:linear-gradient(145deg,#4a0000,#2a0000);border-color:rgba(255,82,82,0.3);}
+.toast.warning{background:linear-gradient(145deg,#4a3200,#2a1e00);border-color:rgba(255,152,0,0.3);}
+.payment-options{display:flex;justify-content:center;gap:12px;margin-top:6px;color:#fff;font-size:1.1rem;flex-wrap:wrap;}
+.payment-options label{display:flex;align-items:center;gap:8px;color:#fff;font-weight:500;}
+.payment-options input[type="checkbox"]{width:20px;height:20px;cursor:pointer;}
+.spacer{height:60px;}
+#error-message{
+  display:none;background:linear-gradient(145deg,#4a0000,#2a0000);border:1px solid rgba(255,82,82,0.3);
+  color:#fef2f2;padding:15px;border-radius:12px;margin:15px auto;max-width:360px;text-align:center;
+  box-shadow:var(--shadow);
+}
+#error-message #error-content{margin-bottom:12px;font-size:15px;}
+#error-message button{
+  background:linear-gradient(145deg,#ff5252,#d32f2f);color:#fff;border:none;border:1px solid rgba(255,255,255,0.8);
+  padding:6px 12px;border-radius:6px;cursor:pointer;margin-top:8px;font-weight:500;transition:var(--btn-transition);font-size:14px;
+}
+#error-message button:hover{
+  background:linear-gradient(145deg,#ff6b6b,#e53939);transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(255,82,82,0.3);
+}
+.button-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:center;
+  margin:8px 0;
+  display:none;
+  width:100%;
+  max-width:600px;
+}
+.button-group .btn-lg {
+  flex: 1 1 calc(33.333% - 4px);
+  max-width: calc(33.333% - 4px);
+}
+.button-group .btn-md {
+  flex: 1 1 calc(50% - 4px);
+  max-width: calc(50% - 4px);
+}
+.toast-highlight-name {
+  background: linear-gradient(135deg, #ffd700, #f9c700, #e6b800);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: bold;
+  text-shadow:0 1px 3px rgba(0,0,0,0.3);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size:15px;
+}
+@media print{
+  body{background:#fff;color:#000;}
+  #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn,#uploadImageBtn,#ocrRecognitionBtn,#ocrPreview{display:none!important;}
+  #captureArea{box-shadow:none;background:#fff;color:#000;display:block!important;padding:15px!important;}
+  #reportTable th{background:#ccc!important;color:#000!important;}
+  .deleteBtn{display:none!important;}
+  .summaryBox{color:#000!important;}
+  #reportTable td,#reportTable th{text-align:center!important;}
+  #watermark {display: none!important;}
+}
+</style>
+</head>
+<body>
+<div id="authContainer">
+  <div id="error-message">
+    <div id="error-content"></div>
+    <button onclick="location.reload()">🔄 刷新頁面重試</button>
+  </div>
+  <div id="authLoading">
+    <div class="loader"></div>
+    <h3>正在驗證用戶權限</h3>
+    <p>請稍候...</p>
+  </div>
+</div>
+<div id="authStatusBar" style="display: none;">
+  <button class="close-status" title="隱藏狀態欄">隱藏</button>
+</div>
 
-function getQuickReply() {
-  return {
-    items: [
-      {type:"action",action:{type:"uri",label:"📝 一鍵試算",uri:"https://liff.line.me/2008578880-zlK2U8dQ"}},
-      {type:"action",action:{type:"uri",label:"🌿 產品明細",uri:"https://liff.line.me/2007434020-Ovz5apjn"}},
-      {type:"action",action:{type:"message",label:"🚀 購物節",text:"購物節"}},
-      {type:"action",action:{type:"message",label:"🏠 主選單",text:"試算系統化"}}
-    ]
+<div id="captureArea">
+  <div id="watermark">『彥彬🌿試算系統』</div>
+  <h2>
+    <br>
+    🌿 康園試算報表
+    <div class="payment-options">
+      <label><input type="checkbox" id="cashOption" /> 💵 現金</label>
+      <label><input type="checkbox" id="cardOption" /> 💳 刷卡</label>
+    </div>
+    <div class="period-options">
+      <div class="period-box">一個月</div>
+      <div class="period-box">三個月</div>
+      <div class="period-box">六個月</div>
+    </div>
+  </h2>
+  <div class="userInputs">  
+    <div class="row">
+      <label>
+        <span>購買者：</span>
+        <input type="text" placeholder="輸入購買者" id="buyerInput" />
+      </label>
+      <label>
+        <span>試算者：</span>
+        <div class="calculator-container">
+          <input type="text" id="calculatorDisplay" readonly />
+          <button id="resetCalculatorBtn" title="重置試算者名稱">↺</button>
+        </div>
+      </label>
+    </div>
+  </div>
+  <table id="reportTable" aria-label="試算報表">
+    <thead>
+      <tr>
+        <th>品項名稱</th>
+        <th>數量</th>
+        <th>單價</th>
+        <th>PV</th>
+        <th>小計金額</th>
+        <th>小計PV</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="reportBody"></tbody>
+  </table>
+  <div class="summaryBox" aria-live="polite">
+    總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
+    <span class="extra">距 22 萬 PV：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
+    <span class="extra">距 30 萬 PV：<span id="pvDiff3">300000</span> <span id="pvMessage3"></span></span>
+  </div>
+</div>
+
+<!-- AI識別圖片預覽 -->
+<img id="ocrPreview" alt="AI識別圖片預覽">
+<img id="previewImage" alt="報表匯出預覽">
+
+<div class="button-group">
+  <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
+  <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
+  <!-- 新增AI圖片識別按鈕 -->
+  <button id="uploadImageBtn" class="btn btn-purple btn-lg">🖼️<br>上傳圖片</button>
+  <button id="ocrRecognitionBtn" class="btn btn-primary btn-md">🤖AI識別</button>
+  
+  <button id="shareToLineBtn" class="btn btn-primary btn-md">📱<br>安卓分享</button>
+  <button id="nativeShareBtn" class="btn btn-primary btn-md">📱<br>分享圖片</button>
+  <button id="clearImageBtn" class="btn btn-grey btn-md">❌<br>清除圖片</button>
+</div>
+
+<div id="inputArea">
+  <select id="nameInput"></select>
+  <select id="qtyInput"></select>
+  <button id="addBtn" class="btn btn-primary btn-lg">➕<br>新增品項</button>
+</div>
+
+
+<!-- 隱藏文件上傳 -->
+<input type="file" id="imageFileInput" accept="image/*">
+
+<div class="spacer"></div>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
+const IMGBB_API_KEY="5be146133d1fa6ded66878aade98880f";
+const LIFF_ID="2008578880-e4LeJzH4";
+const JSONP_TIMEOUT=30000;
+const TARGET_PV220=220000;
+const TARGET_PV300=300000;
+const DEDUCT_INTERVAL=180000;
+
+let products=[],selectedProds=[],lineName='',userInfo=null,authStatus=null,isDeleting=false;
+let lastDeductTime=parseInt(localStorage.getItem('lastDeductTime'))||0;
+let selectedImageBase64 = ""; // AI識別圖片Base64
+let els = {};
+
+function createToast() {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.id = 'toast';
+  document.body.appendChild(toast);
+  return toast;
+}
+const toast = createToast();
+
+function initElements() {
+  els = {
+    nameInput: document.getElementById("nameInput"),
+    qtyInput: document.getElementById("qtyInput"),
+    addBtn: document.getElementById("addBtn"),
+    reportBody: document.getElementById("reportBody"),
+    totalPriceCellDup: document.getElementById("totalPriceCellDup"),
+    totalPvCellDup: document.getElementById("totalPvCellDup"),
+    pvDiff2: document.getElementById("pvDiff2"),
+    pvDiff3: document.getElementById("pvDiff3"),
+    pvMessage2: document.getElementById("pvMessage2"),
+    pvMessage3: document.getElementById("pvMessage3"),
+    exportBtn: document.getElementById("exportBtn"),
+    previewImage: document.getElementById("previewImage"),
+    shareToLineBtn: document.getElementById("shareToLineBtn"),
+    nativeShareBtn: document.getElementById("nativeShareBtn"),
+    clearImageBtn: document.getElementById("clearImageBtn"),
+    resetReportBtn: document.getElementById("resetReportBtn"),
+    buyerInput: document.getElementById("buyerInput"),
+    calculatorDisplay: document.getElementById("calculatorDisplay"),
+    resetCalculatorBtn: document.getElementById("resetCalculatorBtn"),
+    toast: toast,
+    authLoading: document.getElementById("authLoading"),
+    authStatusBar: document.getElementById("authStatusBar"),
+    authContainer: document.getElementById("authContainer"),
+    captureArea: document.getElementById("captureArea"),
+    inputArea: document.getElementById("inputArea"),
+    buttonGroup: document.querySelector(".button-group"),
+    errorMessage: document.getElementById("error-message"),
+    errorContent: document.getElementById("error-content"),
+    authLoadingTitle: document.querySelector("#authLoading h3"),
+    authLoadingDesc: document.querySelector("#authLoading p"),
+    reportTable: document.getElementById("reportTable"),
+    cashOption: document.getElementById("cashOption"),
+    cardOption: document.getElementById("cardOption"),
+    watermark: document.getElementById("watermark"),
+    // 新增AI識別元素
+    imageFileInput: document.getElementById("imageFileInput"),
+    uploadImageBtn: document.getElementById("uploadImageBtn"),
+    ocrRecognitionBtn: document.getElementById("ocrRecognitionBtn"),
+    ocrPreview: document.getElementById("ocrPreview")
   };
 }
 
-function getWelcomeGreetingFlexTemplate(sceneType) {
-  return {
-    type: "flex", altText: "試算系統歡迎您",
-    contents: {
-      type: "bubble", size: "mega",
-      hero: {type:"image",url:"https://lihi.cc/7TckG?v=4",size:"full",aspectRatio:"20:13",aspectMode:"cover"},
-      body: {
-        type:"box",layout:"vertical",backgroundColor:"#f0f4f8",
-        contents: [
-          {type:"text",text:"🌿 試算系統 🌿",weight:"bold",size:"xl",color:"#1a365d"},
-          {type:"text",text:sceneType==="加好友"?"感謝加好友！":"歡迎使用",size:"lg",margin:"sm"},
-          {type:"separator",margin:"md"},
-          {type:"text",text:"新用戶免費贈送3次使用次數\n用完可聯繫管理員儲值購買",wrap:true,margin:"md"}
-        ]
-      },
-      footer: {
-        type:"box",layout:"vertical",backgroundColor:"#f5f8fc",
-        contents: [
-          {type:"button",style:"primary",color:"#1a365d",action:{type:"uri",label:"📝 一鍵試算",uri:"https://liff.line.me/2008578880-zlK2U8dQ"}},
-          {type:"button",style:"secondary",action:{type:"uri",label:"🌿 產品明細",uri:"https://liff.line.me/2007434020-Ovz5apjn"}},
-          {type:"button",style:"secondary",action:{type:"message",label:"🏠 主選單",text:"試算系統化"}}
-        ]
-      }
-    }, quickReply: getQuickReply()
-  };
+function initQtySelect() {
+  els.qtyInput.innerHTML = "";
+  for(let i=1;i<=99;i++){
+    const option=document.createElement("option");
+    option.value=i;
+    option.textContent=i;
+    els.qtyInput.appendChild(option);
+  }
 }
-function sendWelcomeGreetingFlex(replyToken, sceneType) {
-  UrlFetchApp.fetch("https://api.line.me/v2/bot/message/reply",{
-    method:"post",headers:{"Content-Type":"application/json","Authorization":"Bearer "+CONFIG.ACCESS_TOKEN},
-    payload:JSON.stringify({replyToken,messages:[getWelcomeGreetingFlexTemplate(sceneType)]}),muteHttpExceptions:true
+
+function initPeriodBox() {
+  document.querySelectorAll('.period-box').forEach(box=>{
+    box.addEventListener('click',function(){
+      document.querySelectorAll('.period-box').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+    });
   });
 }
-function sendFlexMenu(replyToken) {
-  const data = {replyToken,messages:[getFunctionMenuFlexTemplate()]};
-  UrlFetchApp.fetch("https://api.line.me/v2/bot/message/reply",{method:"post",headers:{"Content-Type":"application/json","Authorization":"Bearer "+CONFIG.ACCESS_TOKEN},payload:JSON.stringify(data),muteHttpExceptions:true});
+
+function initCloseStatus() {
+  document.querySelector('.close-status').addEventListener('click',function(){
+    els.authStatusBar.style.opacity='0';
+    setTimeout(()=>{
+      els.authStatusBar.style.display='none';
+      els.authStatusBar.style.opacity='1';
+    },300);
+  });
 }
-function getFunctionMenuFlexTemplate() {
-  return {type:"flex",altText:"主選單",contents:{type:"bubble",size:"mega",hero:{type:"image",url:"https://lihi.cc/7TckG?v=4",size:"full",aspectRatio:"20:13"},body:{type:"box",layout:"vertical",backgroundColor:"#f0f4f8",contents:[{type:"text",text:"主選單",weight:"bold",size:"xl"},{type:"separator",margin:"md"},{type:"text",text:"點擊按鈕使用功能",wrap:true}]},footer:{type:"box",layout:"vertical",contents:[{type:"button",style:"primary",action:{type:"uri",label:"一鍵試算",uri:"https://liff.line.me/2008578880-zlK2U8dQ"}},{type:"button",style:"secondary",action:{type:"uri",label:"產品明細",uri:"https://liff.line.me/2007434020-Ovz5apjn"}}]}},quickReply:getQuickReply()};
+
+function bindEvents() {
+  els.nameInput.addEventListener('change',function(){
+    checkHerbalNewMember(this.value);
+    adjustQtySelectOptions(this.value);
+  });
+  els.addBtn.addEventListener("click",addProduct);
+  els.resetCalculatorBtn.addEventListener("click",resetLineName);
+  els.resetReportBtn.addEventListener("click",resetReport);
+  els.exportBtn.addEventListener("click",exportToImage);
+  els.shareToLineBtn.addEventListener("click",shareToLine);
+  els.nativeShareBtn.addEventListener("click",nativeShare);
+  els.clearImageBtn.addEventListener("click",clearImage);
+  els.cashOption.addEventListener("change",handleCashGift);
+  els.reportBody.addEventListener("click",async function(e){
+    const btn=e.target.closest('.deleteBtn');
+    if(!btn||isDeleting||btn.disabled)return;
+    await handleDelete(btn);
+  });
+
+  // 綁定AI圖片識別事件
+  els.uploadImageBtn.addEventListener("click", () => els.imageFileInput.click());
+  els.imageFileInput.addEventListener("change", handleImageSelect);
+  els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
 }
-function sendShoppingFestivalFlex(replyToken) {
-  const data = {replyToken,messages:[getShoppingFestivalFlexTemplate()]};
-  UrlFetchApp.fetch("https://api.line.me/v2/bot/message/reply",{method:"post",headers:{"Content-Type":"application/json","Authorization":"Bearer "+CONFIG.ACCESS_TOKEN},payload:JSON.stringify(data),muteHttpExceptions:true});
+
+// 选择图片 → 无大小上限 + 兼容所有图床直链
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // 仅允许图片格式
+  if (!file.type.startsWith("image/")) {
+    showToast("❌ 僅支持JPG/PNG圖片", "error");
+    return;
+  }
+
+  // 按钮状态
+  els.ocrRecognitionBtn.disabled = true;
+  els.ocrRecognitionBtn.textContent = "上傳中...";
+  showToast("🔼 圖片上傳中...", "success");
+
+  // 上传到imgbb
+  const form = new FormData();
+  form.append("image", file);
+  form.append("key", IMGBB_API_KEY);
+
+  fetch("https://api.imgbb.com/1/upload", {
+    method: "POST",
+    body: form
+  }).then(res => {
+    if (!res.ok) throw new Error("上传接口异常");
+    return res.json();
+  }).then(data => {
+    // ✅ 兼容所有图床，仅校验链接有效性
+    if (data.success && data.data?.url) {
+      selectedImageBase64 = data.data.url;
+      // 预览
+      els.ocrPreview.src = data.data.url;
+      els.ocrPreview.style.display = "block";
+      els.ocrRecognitionBtn.style.display = "inline-block";
+      els.ocrRecognitionBtn.disabled = false;
+      els.ocrRecognitionBtn.textContent = "🤖AI識別";
+      showToast("✅ 上傳成功，點擊AI識別", "success");
+    } else {
+      throw new Error("无效图片链接");
+    }
+  }).catch(err => {
+    console.error("上传错误：", err);
+    showToast("❌ 圖片上傳失敗，請重試", "error");
+    els.ocrRecognitionBtn.disabled = false;
+    els.ocrRecognitionBtn.textContent = "🤖AI識別";
+  });
 }
-function getShoppingFestivalFlexTemplate() {
-  return {type:"flex",altText:"購物節",contents:{type:"bubble",size:"mega",hero:{type:"image",url:"https://lihi.cc/7TckG?v=4",size:"full",aspectRatio:"20:13"},body:{type:"box",layout:"vertical",backgroundColor:"#f0f4f8",contents:[{type:"text",text:"購物節試算",weight:"bold",size:"xl"},{type:"separator",margin:"md"}]},footer:{type:"box",layout:"vertical",contents:[{type:"button",style:"primary",action:{type:"uri",label:"購物節試算",uri:"https://liff.line.me/2008578880-plKtT8NZ"}}]}},quickReply:getQuickReply()};
+
+// 开始AI识别（兼容所有图床 + 修复JSON解析错误）
+async function startOcrRecognition() {
+  if (!userInfo || !userInfo.userId) {
+    showToast("❌ 用戶驗證失敗，請刷新重試", "error");
+    return;
+  }
+  if (!checkUserRemainingTimes()) {
+    showToast("❌ 剩餘次數不足", "error");
+    return;
+  }
+  // 仅校验是否有图片链接，不限制图床
+  if (!selectedImageBase64) {
+    showToast("❌ 請上傳有效的圖片", "error");
+    return;
+  }
+
+  // 按钮状态
+  els.ocrRecognitionBtn.disabled = true;
+  els.ocrRecognitionBtn.textContent = "識別中...";
+  showToast("🔍 AI正在識別品項，請稍候...", "success");
+
+  // 唯一回调函数
+  const callbackName = `ocrCallback_${Date.now()}`;
+  window[callbackName] = function(rawResp) {
+    delete window[callbackName];
+    els.ocrRecognitionBtn.disabled = false;
+    els.ocrRecognitionBtn.textContent = "🤖AI識別";
+
+    try {
+      // 🔥 核心修复：自动移除后端返回的 ```json 和 ``` 代码块标记
+      let cleanResp = rawResp;
+      if (typeof cleanResp === 'string') {
+        cleanResp = cleanResp.replace(/^```json\n/, '').replace(/\n```$/, '');
+        cleanResp = JSON.parse(cleanResp); // 解析清理后的纯JSON
+      }
+      const resp = cleanResp;
+
+      if (resp.status === "error") {
+        showToast(`❌ 識別失敗：${resp.message}`, "error");
+        return;
+      }
+      if (resp.status === "exceeded") {
+        showToast("❌ 使用次數已用盡", "error");
+        authStatus.remainTimes = 0;
+        updateAuthStatusBar();
+        checkUserRemainingTimes();
+        return;
+      }
+      if (resp.status === "success" && resp.data?.length > 0) {
+        authStatus.remainTimes = resp.remainTimes;
+        updateAuthStatusBar();
+        addOcrProducts(resp.data);
+        showToast(`✅ 識別成功！自動添加 ${resp.data.length} 個品項`, "success");
+      } else {
+        showToast("⚠️ 未識別到任何品項", "warning");
+      }
+    } catch (e) {
+      console.error("JSON解析失败：", e);
+      showToast("❌ 後端返回數據格式異常", "error");
+    }
+  };
+
+  // JSONP请求 → 传递任意图片URL
+  $.ajax({
+    url: API_URL,
+    dataType: "jsonp",
+    jsonp: "callback",
+    jsonpCallback: callbackName,
+    timeout: 60000,
+    data: {
+      action: "ocrImage",
+      userId: userInfo.userId,
+      displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
+      imageUrl: selectedImageBase64,
+      callback: callbackName
+    },
+    error: function() {
+      delete window[callbackName];
+      els.ocrRecognitionBtn.disabled = false;
+      els.ocrRecognitionBtn.textContent = "🤖AI識別";
+      showToast(`❌ 網路錯誤，請重試`, "error");
+    }
+  });
 }
+
+
+// 自動添加識別到的品項
+function addOcrProducts(ocrProducts) {
+  let addCount = 0;
+  ocrProducts.forEach(item => {
+    const product = products.find(p => p.name === item.name);
+    if (!product) return;
+
+    const exists = selectedProds.find(p => p.name === item.name);
+    const qty = parseInt(item.qty) || 1;
+
+    if (exists) {
+      exists.qty += qty;
+    } else {
+      selectedProds.push({ ...product, qty });
+    }
+    addCount++;
+  });
+
+  saveSelectedProds();
+  renderTable();
+  if (els.cashOption.checked) handleCashGift();
+}
+
+function checkHerbalNewMember(selectedValue){
+  const val=selectedValue.trim();
+  if(val.includes('新入會(9號）')){
+    setTimeout(()=>{
+      addSpecificProduct(val,1);
+      addSpecificProduct('入*會「 9號兩組」',1);
+      showToast('📋 已自動新增9號組合');
+    },300);
+  }
+  else if(val.includes('新入會(草本）男')){
+    setTimeout(()=>{
+      addSpecificProduct(val,1);
+      addSpecificProduct('入*會「 211 」',2);
+      addSpecificProduct('入*會「 101 」',2);
+      showToast('📋 已自動新增男生款組合');
+    },300);
+  }
+  else if(val.includes('新入會(草本）女')){
+    setTimeout(()=>{
+      addSpecificProduct(val,1);
+      addSpecificProduct('入*會「 211 」',2);
+      addSpecificProduct('入*會「 707 」',2);
+      showToast('📋 已自動新增女生款組合');
+    },300);
+  }
+  else if(val.includes('2711AB')){
+    setTimeout(()=>{
+      showToast('📋 此商品限定新人入會購買','warning');
+    },100);
+  }
+}
+
+function handleCashGift(){
+  if(!els.cashOption.checked){
+    selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
+    saveSelectedProds();
+    renderTable();
+    return;
+  }
+  const totalPrice = parseInt(els.totalPriceCellDup.textContent) || 0;
+  const giftQty = Math.floor(totalPrice / 20000);
+  if(giftQty <= 0) return;
+  selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
+  addSpecificProduct('贈品 211(30)', giftQty);
+  showToast(`🎁 現金滿${giftQty*2}萬，贈送 211(30) x${giftQty}`);
+}
+
+function addSpecificProduct(productName, qty) {
+  const product = products.find(p => p.name === productName);
+  if (!product) {
+    showToast(`⚠️ 找不到品項：${productName}`,'error');
+    return;
+  }
+  const exists = selectedProds.find(p => p.name === productName);
+  let maxQty=99;
+  if (productName.includes('新入會')||productName.includes('入會')) maxQty=1;
+  else if (productName.includes('2711AB')&&productName.includes('(4)')) maxQty=1;
+  else if (productName.includes('777Q')&&productName.includes('(4)')) maxQty=2;
+  else if (productName.includes('火山甘露')) maxQty=4;
+  else if (productName.includes('2711AB')&&productName.includes('(1)')) maxQty=4;
+  if(exists){
+    if(exists.qty+qty>maxQty){
+      showToast(`⚠️ 限購${maxQty}個`,'warning');
+      return;
+    }
+    exists.qty+=qty;
+  }else{
+    selectedProds.push({...product,qty});
+  }
+  saveSelectedProds();
+  renderTable();
+}
+
+function loadSelectedProds(){
+  const saved=localStorage.getItem('selectedProducts');
+  if(saved)selectedProds=JSON.parse(saved);
+  renderTable();
+}
+function saveSelectedProds(){
+  localStorage.setItem('selectedProducts',JSON.stringify(selectedProds));
+}
+
+function setupLineName(isReset=false){
+  if(isReset){
+    const input=prompt('請輸入試算者名稱：');
+    lineName=input?.trim()||'未設定';
+    localStorage.setItem('lineName',lineName);
+  }
+  else{
+    lineName=localStorage.getItem('lineName')||userInfo?.displayName||'';
+    if(!lineName){
+      const input=prompt('請輸入試算者名稱：');
+      lineName=input?.trim()||'未設定';
+      localStorage.setItem('lineName',lineName);
+    }
+  }
+  els.calculatorDisplay.value=lineName;
+}
+function resetLineName(){
+  if(confirm('確定修改試算者名稱？')){
+    localStorage.removeItem('lineName');
+    setupLineName(true);
+    showToast('名稱已更新');
+  }
+}
+
+async function syncRecordResetToBackend(){
+  if(!userInfo||authStatus.isSuperAdmin)return true;
+  els.resetReportBtn.disabled=true;
+  return new Promise((resolve)=>{
+    const callbackName=`recordResetCallback_${Date.now()}`;
+    window[callbackName]=function(resp){
+      delete window[callbackName];
+      if(resp.status==="success"){
+        authStatus.remainTimes = resp.remainTimes;
+        updateAuthStatusBar();
+        resolve(true);
+      }else{
+        showToast(`扣次失敗：${resp.message}`,'error');
+        resolve(false);
+      }
+    };
+    $.ajax({
+      url:API_URL,
+      dataType:'jsonp',
+      jsonp:'callback',
+      jsonpCallback:callbackName,
+      timeout:JSONP_TIMEOUT,
+      data:{action:'recordReset',userId:userInfo.userId,displayName:userInfo.displayName,callback:callbackName},
+      error: function(){
+        showToast('網路錯誤，扣次失敗','error');
+        resolve(false);
+      }
+    });
+  });
+}
+
+async function syncDeleteToBackend(){
+  if(!userInfo||authStatus.isSuperAdmin)return true;
+  return new Promise((resolve)=>{
+    const callbackName=`recordDeleteCallback_${Date.now()}`;
+    window[callbackName]=function(resp){
+      delete window[callbackName];
+      if(resp.status==="success"){
+        authStatus.remainTimes = resp.remainTimes;
+        updateAuthStatusBar();
+        resolve(true);
+      }else{
+        showToast(resp.message,'warning');
+        resolve(false);
+      }
+    };
+    $.ajax({
+      url:API_URL,
+      dataType:'jsonp',
+      jsonp:'callback',
+      jsonpCallback:callbackName,
+      timeout:JSONP_TIMEOUT,
+      cache:false,
+      data:{action:'recordDelete',userId:userInfo.userId,displayName:userInfo.displayName,callback:callbackName},
+      error: function(){
+        showToast('網路錯誤，扣次失敗','error');
+        resolve(false);
+      }
+    });
+  });
+}
+
+async function resetReport(){
+  if(!authStatus||!checkUserRemainingTimes())return;
+  if(!confirm('確定清空所有品項？'))return;
+  let isDeducted=false;
+  if(!authStatus.isSuperAdmin){
+    isDeducted=await syncRecordResetToBackend();
+  }
+  selectedProds=[];
+  saveSelectedProds();
+  renderTable();
+  isDeducted?showToast(`✅ 重置成功，剩餘次數：${authStatus.remainTimes}`,'warning'):showToast('報表已重置');
+  els.resetReportBtn.disabled=false;
+}
+
+async function loadProducts(){
+  try{
+    updateAuthLoadingText("驗證資料中","請稍候...");
+    // JSONP加載產品列表
+    const callbackName = `loadProductsCallback_${Date.now()}`;
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      products = data;
+      els.nameInput.innerHTML = "";
+      data.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.name;
+        opt.textContent = item.name;
+        els.nameInput.appendChild(opt);
+      });
+      setTimeout(() => {
+        checkHerbalNewMember(els.nameInput.value);
+        adjustQtySelectOptions(els.nameInput.value);
+      }, 300);
+    };
+
+    $.ajax({
+      url: API_URL,
+      dataType: "jsonp",
+      jsonp: "callback",
+      jsonpCallback: callbackName,
+      timeout: JSONP_TIMEOUT,
+      data: { action: "all", t: new Date().getTime(), callback: callbackName },
+      error: function() {
+        showToast("驗證資料失敗，請刷新重試", "error");
+        updateAuthLoadingText("驗證資料失敗", "請刷新重試");
+      }
+    });
+  }catch(error){
+    showToast(`驗證資料失敗: ${error.message}`,'error');
+    updateAuthLoadingText("驗證資料失敗","請刷新重試");
+  }
+}
+
+function renderTable(){
+  els.reportBody.innerHTML="";
+  let totalPrice=0,totalPv=0;
+  selectedProds.forEach((item,idx)=>{
+    let maxQty=99;
+    const val=item.name.trim();
+    if(val.includes('新入會')||val.includes('入會'))maxQty=1;
+    else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
+    else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+    else if(val.includes('火山甘露'))maxQty=4;
+    else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
+    if(item.qty>maxQty){
+      item.qty=maxQty;
+      saveSelectedProds();
+    }
+    const subtotalPrice=item.price*item.qty;
+    const subtotalPv=item.pv*item.qty;
+    totalPrice+=subtotalPrice;
+    totalPv+=subtotalPv;
+    const tr=document.createElement("tr");
+    const qtyOptions=Array.from({length:maxQty},(_,i)=>
+      `<option value="${i+1}" ${i+1===item.qty?"selected":""}>${i+1}</option>`
+    ).join("");
+    tr.innerHTML=`<td>${item.name}</td>
+      <td><select class="qtySelect" data-index="${idx}">${qtyOptions}</select></td>
+      <td>${item.price}</td>
+      <td>${item.pv}</td>
+      <td>${subtotalPrice}</td>
+      <td>${subtotalPv}</td>
+      <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>`;
+    els.reportBody.appendChild(tr);
+  });
+  els.totalPriceCellDup.textContent=totalPrice;
+  els.totalPvCellDup.textContent=totalPv;
+  els.pvDiff2.textContent=Math.max(TARGET_PV220-totalPv,0);
+  els.pvDiff3.textContent=Math.max(TARGET_PV300-totalPv,0);
+  els.pvMessage2.innerHTML=totalPv>=TARGET_PV220?'<span class="done">🎉 已達標</span>':'';
+  els.pvMessage3.innerHTML=totalPv>=TARGET_PV300?'<span class="done">🎉 已達標</span>':'';
+  document.querySelectorAll(".qtySelect").forEach(select=>{
+    select.onchange=e=>{
+      const idx=parseInt(e.target.dataset.index);
+      selectedProds[idx].qty=parseInt(e.target.value);
+      saveSelectedProds();
+      renderTable();
+      if(els.cashOption.checked) handleCashGift();
+    }
+  });
+}
+
+async function handleDelete(btn){
+  if(isDeleting||!checkUserRemainingTimes()){
+    showToast('權限不足，無法刪除','error');
+    return;
+  }
+  const idx=parseInt(btn.dataset.index);
+  const now=Date.now();
+  const isWithinInterval=now-lastDeductTime<DEDUCT_INTERVAL;
+  
+  if(!authStatus.isSuperAdmin&&!isWithinInterval){
+    if(!confirm('刪除將扣除1次使用次數，確認？'))return;
+  }
+  isDeleting=true;
+  btn.disabled=true;
+  btn.textContent="處理中";
+  
+  selectedProds.splice(idx,1);
+  saveSelectedProds();
+  renderTable();
+  if(els.cashOption.checked) handleCashGift();
+  
+  if(!authStatus.isSuperAdmin&&!isWithinInterval){
+    await syncDeleteToBackend();
+    lastDeductTime=now;
+    localStorage.setItem('lastDeductTime',lastDeductTime);
+  }
+  showToast(isWithinInterval?'✅ 3分鐘內不重複扣次':'✅ 刪除成功');
+  isDeleting=false;
+  btn.disabled=false;
+  btn.textContent="刪除";
+}
+
+function addProduct(){
+  els.addBtn.disabled=true;
+  if(!checkUserRemainingTimes()){
+    showToast('剩餘次數不足','error');
+    els.addBtn.disabled=false;
+    return;
+  }
+  const selectedName=els.nameInput.value;
+  let qty=parseInt(els.qtyInput.value);
+  if(!selectedName||qty<=0){
+    showToast("請選擇品項與數量",'warning');
+    els.addBtn.disabled=false;
+    return;
+  }
+  let maxQty=99;
+  const val=selectedName.trim();
+  if(val.includes('新入會')||val.includes('入會'))maxQty=1;
+  else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
+  else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+  else if(val.includes('火山甘露'))maxQty=4;
+  else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
+  if(qty>maxQty){
+    showToast(`⚠️ 限購${maxQty}個`,'warning');
+    qty=maxQty;
+  }
+  const product=products.find(p=>p.name===selectedName);
+  if(!product){
+    showToast("找不到品項",'error');
+    els.addBtn.disabled=false;
+    return;
+  }
+  const exists=selectedProds.find(p=>p.name===selectedName);
+  if(exists){
+    if(exists.qty+qty>maxQty){
+      showToast(`⚠️ 已達限購數量`,'warning');
+      els.addBtn.disabled=false;
+      return;
+    }
+    exists.qty+=qty;
+  }else{
+    selectedProds.push({...product,qty});
+  }
+  saveSelectedProds();
+  renderTable();
+  if(els.cashOption.checked) handleCashGift();
+  showToast('品項已新增');
+  els.addBtn.disabled=false;
+}
+
+function adjustQtySelectOptions(productName) {
+  if (!productName) return;
+  let maxQty=99;
+  const val=productName.trim();
+  if (val.includes('新入會')||val.includes('入會'))maxQty=1;
+  else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
+  else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+  else if(val.includes('火山甘露'))maxQty=4;
+  else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
+  els.qtyInput.innerHTML = '';
+  for (let i=1;i<=maxQty;i++){
+    const o=document.createElement('option');
+    o.value=i;
+    o.textContent=i;
+    els.qtyInput.appendChild(o);
+  }
+}
+
+function checkUserRemainingTimes(){
+  if(!authStatus) return false;
+  const canUse = authStatus.isSuperAdmin || authStatus.remainTimes > 0;
+  els.exportBtn.disabled = !canUse;
+  els.addBtn.disabled = !canUse;
+  els.resetReportBtn.disabled = !canUse;
+  els.uploadImageBtn.disabled = !canUse;
+  els.ocrRecognitionBtn.disabled = !canUse;
+  return canUse;
+}
+
+function updateAuthStatusBar(){
+  if(!authStatus||!userInfo)return;
+  let statusHtml='';
+  if(authStatus.isSuperAdmin){
+    statusHtml=`<span class="super-admin">👑 超級管理員</span><br>用戶名：<span class="super-admin-username">${userInfo.displayName}</span><br/>無限次使用`;
+  }else{
+    const textClass = authStatus.remainTimes <=0 ? 'expired' : 'gold-user';
+    statusHtml=`<span class="gold-user">✨ 黃金用戶</span><br>用戶名：${userInfo.displayName}<br/>
+    剩餘次數：<span class="${textClass}">${authStatus.remainTimes}</span>
+    <div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+      <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
+      <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
+    </div>`;
+  }
+  els.authStatusBar.innerHTML=`<button class="close-status">點我隱藏</button>${statusHtml}`;
+  els.authStatusBar.style.display='block';
+  els.authStatusBar.querySelector('.close-status').addEventListener('click',function(){
+    els.authStatusBar.style.opacity='0';
+    setTimeout(()=>{
+      els.authStatusBar.style.display='none';
+      els.authStatusBar.style.opacity='1';
+    },300);
+  });
+}
+
+async function exportToImage(){
+  if(!checkUserRemainingTimes())return;
+  if(selectedProds.length===0){
+    showToast("請先新增品項",'warning');
+    return;
+  }
+  els.exportBtn.disabled=true;
+  const opCells=document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
+  opCells.forEach(el=>el.style.display="none");
+  
+  try{
+    const canvas=await html2canvas(els.captureArea,{
+      scale: 5,
+      useCORS:true,
+      backgroundColor:null,
+      logging: false,
+      padding: { left: 30, right: 50, top:10, bottom:10 }
+    });
+    
+    els.previewImage.src=canvas.toDataURL("image/png");
+    els.previewImage.style.display="block";
+    els.shareToLineBtn.style.display="inline-block";
+    els.nativeShareBtn.style.display=navigator.share?"inline-block":"none";
+    els.clearImageBtn.style.display="inline-block";
+    showToast("✅ 報表匯出成功");
+  }catch(error){
+    showToast(`匯出失敗：${error.message}`,'error');
+  }
+  finally{
+    opCells.forEach(el=>el.style.display="");
+    els.exportBtn.disabled=false;
+  }
+}
+
+async function shareToLine(){
+  if(!els.previewImage.src){
+    showToast("請先匯出圖片",'warning');
+    return;
+  }
+  els.shareToLineBtn.disabled=true;
+  try{
+    const base64=els.previewImage.src.split(",")[1];
+    const form=new FormData();
+    form.append("image",base64);
+    form.append("key",IMGBB_API_KEY);
+    const res=await fetch("https://api.imgbb.com/1/upload",{method:"POST",body:form});
+    const data=await res.json();
+    if(data.success){
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(`康園試算報表\n購買者：${els.buyerInput.value||'未填'}\n試算者：${lineName}\n${data.data.url}`)}`);
+      showToast("✅ 上傳成功");
+    }
+  }catch(e){
+    showToast("上傳失敗",'error');
+  }
+  els.shareToLineBtn.disabled=false;
+}
+async function nativeShare(){
+  if(!navigator.share||!els.previewImage.src)return;
+  const blob=await fetch(els.previewImage.src).then(r=>r.blob());
+  navigator.share({
+    files:[new File([blob],"報表.png")],
+    text:`康園試算報表\n購買者：${els.buyerInput.value}\n試算者：${lineName}`
+  });
+}
+function clearImage(){
+  els.previewImage.style.display="none";
+  els.previewImage.src="";
+  els.ocrPreview.style.display = "none";
+  els.ocrPreview.src = "";
+  selectedImageBase64 = "";
+  els.shareToLineBtn.style.display="none";
+  els.nativeShareBtn.style.display="none";
+  els.clearImageBtn.style.display="none";
+  els.ocrRecognitionBtn.style.display = "none";
+}
+function showToast(message,type='success'){
+  els.toast.innerHTML=message.replace(/\n/g,'<br>');
+  els.toast.className='toast';
+  els.toast.classList.add(type, 'show');
+  setTimeout(()=>els.toast.classList.remove('show'),3000);
+}
+
+const showError=(msg)=>{
+  els.authLoading.style.display='none';
+  els.captureArea.style.display='none';
+  els.inputArea.style.display='none';
+  els.buttonGroup.style.display='none';
+  els.errorContent.innerHTML=msg;
+  els.errorMessage.style.display='block';
+};
+function updateAuthLoadingText(title, desc){
+  els.authLoadingTitle.textContent=title;
+  els.authLoadingDesc.innerHTML=desc;
+}
+
+const verifyUserFromBackend=(profile)=>{
+  return new Promise((resolve)=>{
+    const callbackName=`verifyCallback_${Date.now()}`;
+    window[callbackName]=function(resp){
+      delete window[callbackName];
+      if(resp.status==="exceeded"){
+        showError(resp.message);
+        resolve(null);
+        return;
+      }
+      if(resp.status==="success"){
+        authStatus={isSuperAdmin:resp.isSuperAdmin,remainTimes:resp.remainTimes};
+        resolve(authStatus);
+      }else{
+        showError(resp.message||"驗證失敗");
+        resolve(null);
+      }
+    };
+    $.ajax({
+      url:API_URL,
+      dataType:'jsonp',
+      jsonp:'callback',
+      jsonpCallback:callbackName,
+      timeout:JSONP_TIMEOUT,
+      data:{action:'verifyUser',userId:profile.userId,displayName:profile.displayName,callback:callbackName},
+      error: function(xhr, status, err){
+        showError(`驗證請求失敗<br/>錯誤：${status}<br/>請刷新頁面重試`);
+        resolve(null);
+      }
+    });
+  });
+};
+
+async function initLiffAndAuth(){
+  try{
+    updateAuthLoadingText("正在驗證用戶權限","請稍候...");
+    loadProducts();
+    
+    if (typeof liff === 'undefined') {
+      throw new Error("LIFF SDK 加載失敗，請檢查網路");
+    }
+    
+    await liff.init({
+      liffId:LIFF_ID,
+      withLoginOnExternalBrowser:true
+    });
+
+    if(!liff.isLoggedIn()){
+      updateAuthLoadingText("需要LINE登錄","即將跳轉登錄頁面...");
+      setTimeout(()=>{
+        liff.login({redirectUri:window.location.href});
+      }, 1500);
+      return;
+    }
+
+    const profile=await liff.getProfile();
+    userInfo={userId:profile.userId,displayName:profile.displayName};
+    
+    const authData=await verifyUserFromBackend(profile);
+    if(!authData)return;
+    
+    els.authContainer.style.display='none';
+    els.captureArea.style.display='block';
+    els.inputArea.style.display='flex';
+    els.buttonGroup.style.display='flex';
+
+    setupLineName();
+    loadSelectedProds();
+    checkUserRemainingTimes();
+    updateAuthStatusBar();
+    showToast(`歡迎，<span class="toast-highlight-name">${userInfo.displayName}</span>！`);
+  }catch(error){
+    console.error("初始化錯誤：", error);
+    updateAuthLoadingText("初始化失敗",`錯誤：${error.message}<br/>請點擊下方按鈕刷新重試`);
+  }
+}
+
+async function initApp(){
+  try {
+    initElements();
+    initQtySelect();
+    initPeriodBox();
+    initCloseStatus();
+    bindEvents();
+    await initLiffAndAuth();
+  } catch (err) {
+    showError(`應用啟動失敗：${err.message}<br/>請刷新頁面重試`);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
