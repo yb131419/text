@@ -843,7 +843,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-    // ✅ 修正版：專門識別手寫/印刷產品編號，過濾月份文字，完整載入報表
+  // ✅ 修正版：專門識別手寫/印刷產品編號，過濾月份文字，完整載入報表
   els.recognizeBtn.click(async () => {
     if (!base64Image) {
       showToast("❌ 請先上傳產品圖片", "error");
@@ -860,15 +860,14 @@ function initImageUpload() {
         'chi_tra+eng',
         { 
           logger: () => {},
-          tessedit_pageseg_mode: 6, // 專為單行/編號識別優化
-          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcedfghijklmnopqrstuvwxyz' // 只識別數字字母
+          tessedit_pageseg_mode: 6
         }
       );
 
       // ====================== 核心優化：過濾無用文字，只保留產品編號 ======================
       let ocrText = text.toUpperCase().trim();
       // 過濾月份/無關干擾文字
-      const filterWords = ['一個月', '三個月', '六個月', '月', '個', '試算', '報表', '康園'];
+      const filterWords = ['一個月', '三個月', '六個月', '月', '個', '試算', '報表', '康園','第','一','二','三'];
       filterWords.forEach(word => ocrText = ocrText.replaceAll(word, ''));
       
       // 提取：數字+字母組合（產品編號核心特徵）
@@ -925,6 +924,7 @@ function initImageUpload() {
       els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
     }
   });
+}
 
 
 // 加入產品
