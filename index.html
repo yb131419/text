@@ -715,7 +715,7 @@ let base64Image = ""; // 修复：全局图片变量
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
 
 // ==================== DOM 加載完成 ====================
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   initElements();
   initQtySelect();
   initPeriodBox();
@@ -723,6 +723,10 @@ window.addEventListener('DOMContentLoaded', () => {
   initImageUpload();
   loadProductList();
   setupLineName();
+  
+  // 新增：LINE登录获取用户ID + GAS验证（修复无法加载问题）
+  await initLineAuth();
+  // 加载本地数据 + 渲染表格
   loadSelectedProds();
   renderTable();
   showToast("🌿 系統載入完成");
@@ -788,13 +792,15 @@ function bindEvents() {
   els.clearImageBtn.click(clearImage);
   els.cashOption.change(handleCashGift);
 
-  els.reportBody.on("click", ".deleteBtn", function () {
-    const idx = $(this).data("index");
-    selectedProds.splice(idx, 1);
-    saveSelectedProds();
-    renderTable();
-    showToast("✅ 已刪除");
-  });
+els.reportBody.on("click", ".deleteBtn", async function () {
+  const idx = $(this).data("index");
+  // 调用GAS扣减次数
+  await deductTimes("recordDelete");
+  selectedProds.splice(idx, 1);
+  saveSelectedProds();
+  renderTable();
+  showToast("✅ 已刪除");
+});
 
   els.reportBody.on("change", ".qtySelect", function () {
     const idx = $(this).data("index");
@@ -867,7 +873,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // ✅ 终极修复版：OCR产品识别（解决编号不符+语法错误）
+  // ✅ 终极修复版：OCR产品识别
 els.recognizeBtn.click(async () => {
   if (!base64Image) {
     showToast("❌ 請先上傳產品圖片", "error");
@@ -878,7 +884,6 @@ els.recognizeBtn.click(async () => {
   els.recognizeBtn.prop("disabled", true).text("🔍 識別中，請稍候...");
 
   try {
-    // OCR识别（纯英文，数字识别更精准）
     const { data: { text } } = await Tesseract.recognize(
       base64Image,
       'eng',
@@ -889,44 +894,32 @@ els.recognizeBtn.click(async () => {
       }
     );
 
-    console.log("OCR原始識別文本：", text);
-    // 核心修复1：清理所有噪点，只保留字母数字
     const cleanText = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    console.log("清理後文本：", cleanText);
     const productMap = {};
-
-    // 核心修复2：匹配3位数字编号 + 颗数
     const regex = /(\d{3})(\d{1,2})/g;
     let match;
 
     while ((match = regex.exec(cleanText)) !== null) {
       const prodCode = match[1];
       const count = parseInt(match[2]);
-
-      // 过滤无效数量
       if (isNaN(count) || count < 2 || count > 5) continue;
 
-      // 数量转换规则
       let qty = count;
       if (count === 3) qty = 2;
       else if (count === 4) qty = 3;
       else if (count === 5) qty = 4;
 
-      // 匹配产品库
       const targetProd = products.find(p => p.name.includes(prodCode));
       if (!targetProd || targetProd.name === "贈品 211(30)") continue;
-
       productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
     }
 
-    // 结果处理
     const matchedList = Object.entries(productMap);
     if (matchedList.length === 0) {
       showToast("❌ 未識別到有效產品編號", "error");
       return;
     }
 
-    // 刷新产品列表
     selectedProds = [];
     matchedList.forEach(([name, qty]) => {
       const prod = products.find(p => p.name === name);
@@ -941,11 +934,12 @@ els.recognizeBtn.click(async () => {
     console.error("OCR錯誤：", err);
     showToast("❌ 識別失敗，請重試", "error");
   } finally {
-    // 恢复按钮状态
     els.ocrOverlay.hide();
     els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
   }
 });
+
+
 
 // 加入產品
 function addProduct() {
@@ -1056,8 +1050,10 @@ function loadSelectedProds() {
 }
 
 // 重置報表
-function resetReport() {
+async function resetReport() {
   if (!confirm("確定清空全部？")) return;
+  // 调用GAS扣减次数
+  await deductTimes("recordReset");
   selectedProds = [];
   saveSelectedProds();
   renderTable();
@@ -1107,6 +1103,70 @@ function clearImage() {
   els.shareToLineBtn.hide();
   els.nativeShareBtn.hide();
   els.clearImageBtn.hide();
+}
+// ==================== GAS API 对接（修复无法加载工作表）====================
+let lineUserId = ""; // LINE用户唯一ID
+let isSuperAdmin = false;
+let userRemainTimes = 0;
+
+// 初始化LINE登录验证
+async function initLineAuth() {
+  try {
+    // 1. 优先从URL/LIFF获取LINE用户ID
+    const params = new URLSearchParams(window.location.search);
+    lineUserId = params.get('userId') || localStorage.getItem('lineUserId') || 'temp_user_' + Date.now();
+    localStorage.setItem('lineUserId', lineUserId);
+
+    // 2. 调用GAS验证用户
+    await verifyUser();
+  } catch (e) {
+    console.error("驗證失敗", e);
+    showToast("⚠️ 用戶驗證失敗，使用本地模式", "warning");
+  }
+}
+
+// 调用GAS验证用户权限
+async function verifyUser() {
+  try {
+    const res = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${lineUserId}&displayName=${encodeURIComponent(lineName)}`);
+    const data = await res.json();
+    isSuperAdmin = data.isSuperAdmin || false;
+    userRemainTimes = data.remainTimes || 0;
+
+    // 更新顶部状态栏
+    updateAuthStatus();
+  } catch (e) {
+    console.error("GAS驗證錯誤", e);
+  }
+}
+
+// 调用GAS扣减使用次数
+async function deductTimes(action) {
+  if (isSuperAdmin) return; // 超管不扣次
+  try {
+    await fetch(`${GAS_API_URL}?action=${action}&userId=${lineUserId}`);
+    await verifyUser(); // 刷新剩余次数
+  } catch (e) {}
+}
+
+// 更新用户状态栏
+function updateAuthStatus() {
+  const statusBar = document.createElement('div');
+  statusBar.id = 'authStatusBar';
+  statusBar.innerHTML = `
+    用戶：<span class="${isSuperAdmin ? 'super-admin-username' : 'toast-highlight-name'}">${lineName}</span>
+    ｜ 狀態：${isSuperAdmin ? '<span class="super-admin">超級管理員</span>' : `<span class="gold-user">剩餘 ${userRemainTimes} 次</span>`}
+  `;
+  document.body.prepend(statusBar);
+  $(statusBar).fadeIn();
+}
+
+// ==================== 提示訊息 ====================
+function showToast(msg, type = "success") {
+  const toast = $(`<div class="toast ${type}">${msg}</div>`);
+  $("body").append(toast);
+  setTimeout(() => toast.addClass("show"), 10);
+  setTimeout(() => toast.remove(), 3000);
 }
 
 // 提示訊息
