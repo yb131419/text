@@ -852,8 +852,8 @@ function initImageUpload() {
       return;
     }
 
-    els.ocrOverlay.fadeIn(200);
-    els.recognizeBtn.prop("disabled", true).text("🔍 按月識別產品中...");
+    els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
+    els.recognizeBtn.prop("disabled", true).text("🔍 識別產品中...");
 
     try {
       // OCR优化：支持字母+数字编号，高精准识别
@@ -953,7 +953,7 @@ function initImageUpload() {
       console.error("識別錯誤：", err);
       showToast("❌ 識別失敗，請重試", "error");
     } finally {
-      els.ocrOverlay.fadeOut(200);
+      els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
       els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
     }
   });
