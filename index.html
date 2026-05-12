@@ -926,11 +926,11 @@ function initImageUpload() {
     } catch (err) {
       console.error("識別錯誤：", err);
       showToast("❌ 識別失敗，請重試", "error");
-    } finally {
-      // 隱藏浮窗
-      els.ocrOverlay.fadeOut(200);
-      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
-    }
+} finally {
+  // 标准化关闭浮窗
+  els.ocrOverlay.css('display', 'none');
+  els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
+}
   });
 }
 
