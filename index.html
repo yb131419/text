@@ -1,829 +1,612 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-<title>彥彬🌿試算系統（AI增強版）</title>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<style>
-:root{
-  --bg:#0f0f0f;--panel-bg:#1a1a1a;--text:#e0e0e0;--accent:#00d1b2;
-  --highlight:#40c4ff;--error:#ff5252;--btn-grey:#3a3a3a;--warning:#ff9800;
-  --super:#d4af37;--gold:#ffd700;--grad-primary:linear-gradient(135deg,#1a2a6c,#b21f1f,#fdbb2d);
-  --grad-secondary:linear-gradient(145deg,#2d2d2d,#1f1f1f);--shadow:0 8px 32px rgba(0,0,0,0.4);
-  --loader:#00d1b2;--super-username:linear-gradient(135deg,#d4af37,#ffff00);--yellow:#ffd700;
-  --btn-shadow:0 4px 15px rgba(0,0,0,0.2);--btn-hover-shadow:0 6px 20px rgba(0,0,0,0.3);
-  --btn-active-shadow:0 2px 8px rgba(0,0,0,0.2);--btn-transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
-  --btn-radius:8px;--btn-padding:8px 14px;
-  --period-active:linear-gradient(145deg,#ffffff,#f0f0f0);
-  --period-hover:linear-gradient(145deg,#ffffff,#e8e8e8);
-  --period-border:#ffffff;--period-shadow:0 0 15px rgba(255,255,255,0.5);
-  --period-text:#000;
-}
-/* 🔴 全局强制锁定字体大小，禁止所有设备系统缩放/自定义字体 */
-html, body {
-  -webkit-text-size-adjust: none !important;
-  text-size-adjust: none !important;
-  font-size: 16px !important; /* 全域基礎字體放大 */
-  touch-action: manipulation; /* 禁止双击缩放 */
-}
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-size-adjust: none !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-body{
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Segoe UI','Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
-  padding: 8px;
-  line-height: 1.4;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-.hidden { display: none !important; }
-#authContainer{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;justify-content:center;align-items:center;z-index:9999;background:rgba(0,0,0,0.8);}
-#authLoading{
-  width:100%;max-width:360px;background:var(--grad-secondary);border-radius:16px;padding:30px 20px;text-align:center;
-  box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.05);transition:all 0.5s ease;
-}
-#authStatusBar{
-  position:sticky;top:8px;z-index:999;background:var(--grad-secondary);padding:10px 16px;border-radius:12px;margin-bottom:15px;
-  font-size:15px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
-  display:none;width:100%;max-width:600px;transition:all 0.3s ease;
-}
-/* 🔴 狀態欄關閉按鈕 + 白框樣式 */
-#authStatusBar .close-status {
-  position: absolute;    /* 絕對定位，讓按鈕可以固定在右上角 */
-  top: 8px;              /* 按鈕距離頂部 8px */
-  right: 10px;           /* 按鈕距離右側 10px */
-  width: 28px;           /* 按鈕「寬度」，數字越大按鈕越寬 */
-  height: 75px;          /* 按鈕「高度」，數字越大按鈕越長 */
-  border-radius: 8px;    /* 按鈕圓角，數字越大越圓 */
-
-  /* 按鈕背景漸層色 */
-  background: linear-gradient(145deg, #ffffff, #f5f5f5);
-  
-  color: #000;           /* 按鈕文字顏色（黑色） */
-  cursor: pointer;       /* 滑鼠移過去變成「手型」 */
-  font-size: 16px;       /* 文字大小，數字越大字越大 */
-  
-  display: flex;                     /* 彈性布局，讓文字好置中 */
-  align-items: center;               /* 文字「垂直」置中 */
-  justify-content: center;           /* 文字「水平」置中 */
-  flex-direction: column;            /* 強制文字直式排列（一字一行） */
-  text-orientation: upright;         /* 文字保持直立不翻轉 */
-
-  /* 按鈕陰影（立體效果） */
-  box-shadow: 
-    0 2px 4px rgba(0,0,0,0.1),           /* 外陰影 */
-    inset 0 1px 0 rgba(255,255,255,0.8),  /* 內高光 */
-    inset 0 -1px 0 rgba(0,0,0,0.1);       /* 內陰影 */
-
-  padding: 0;            /* 按鈕內間距 0 */
-  font-weight: 700;      /* 文字粗細 700 = 粗體 */
-  line-height: 1.3;      /* 文字行高（控制文字上下距離） */
-  margin: 0;             /* 外邊距 0 */
-  outline: none;         /* 點擊時不要出現外框線 */
-  -webkit-tap-highlight-color: transparent;  /* 手機點擊時不要出現藍色高亮 */
-  
-  border: 1px solid rgba(255,255,255,0.9) !important;  /* 白色邊框 */
-  white-space: pre-wrap; /* 強制文字換行，讓「關」「閉」各一行 */
-}
-#authStatusBar .close-status:hover {
-  background: linear-gradient(145deg, #f8f8f8, #eaeaea);
-  transform: translateY(-2px);
-  box-shadow: 
-    0 4px 8px rgba(0,0,0,0.15),
-    inset 0 1px 0 rgba(255,255,255,0.9),
-    inset 0 -1px 0 rgba(0,0,0,0.15);
-  border-color: #ffffff !important;
-  color: #111;
-}
-.loader{
-  width:45px;height:45px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--loader);border-radius:50%;
-  animation:spin 1s linear infinite,pulse 2s ease-in-out infinite alternate;margin:0 auto 15px;
-}
-@keyframes spin{to{transform:rotate(360deg);}}
-@keyframes pulse{from{box-shadow:0 0 15px rgba(0,209,178,0.3);}to{box-shadow:0 0 25px rgba(0,209,178,0.6);}}
-#authLoading h3{margin:0 0 8px 0;font-size:1.3rem;color:var(--highlight);font-weight:600;}
-#authLoading p{margin:0;font-size:1rem;color:#bbb;line-height:1.5;}
-.super-admin{color:var(--super);font-weight:bold;font-size:15px;}
-.gold-user{color:var(--gold);font-weight:bold;text-shadow:0 0 10px rgba(255,215,0,0.6);font-size:15px;}
-.expired{color:var(--error);font-weight:bold;font-size:15px;}
-.super-admin-username{
-  background-clip:text;-webkit-background-clip:text;color:transparent;font-weight:bold;
-  text-shadow:0 0 8px rgba(255,255,255,0.3);font-size:15px;
-}
-.super-admin-username{background-image:var(--super-username);}
-#captureArea{
-  background:linear-gradient(145deg,#1c1c1c,#141414);
-  box-shadow:inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
-  color:var(--text);
-  padding:15px 20px;
-  border-radius:12px;
-  margin-bottom:10px;
-  overflow-x:auto;
-  display:none;
-  width:100%;
-  max-width:600px;
-  position: relative;
-  box-sizing:border-box;
-}
-#watermark {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  font-size:14px;
-  color: #ffffff;
-  font-weight: 500;
-  opacity: 0.9;
-  z-index: 10;
-  pointer-events: none;
-}
-#captureArea h2{
-  text-align:center;font-size:1.6rem;font-weight:bold;color:#fff;margin:0 0 12px 0;padding:8px 0;
-  line-height:1.3;width:100%;
-}
-.period-options{display:flex;justify-content:center;gap:8px;margin:8px 0 12px;flex-wrap:wrap;align-items:center;}
-.period-box{
-  border:1px solid #e0e0e0;border-radius:6px;padding:6px 12px;color:#e0e0e0;font-size:14px;cursor:pointer;
-  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;background:transparent;
-  font-weight:500;
-}
-.period-box:hover{
-  border-color:var(--period-border);background:var(--period-hover);color:var(--period-text);
-  transform:translateY(-2px);box-shadow:var(--period-shadow);
-  background-image:linear-gradient(145deg,#ffffff,#f8f8f8);
-}
-.period-box.active{
-  border-color:var(--period-border);background:var(--period-active);color:var(--period-text);
-  font-weight:bold;box-shadow:var(--period-shadow);
-  background-image:linear-gradient(145deg,#ffffff,#e8e8e8);
-  transform:translateY(-1px);
-}
-.period-box.active::after{
-  content:'';position:absolute;bottom:2px;right:2px;width:10px;height:10px;
-  background:var(--period-text);border-radius:50%;opacity:0.8;
-}
-.userInputs{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
-.userInputs .row{display:flex;gap:8px;width:100%;}
-.userInputs label{flex:1;display:flex;flex-direction:column;font-size:14px;color:#bbb;}
-.userInputs label span{text-align:center;margin-bottom:4px;font-size:15px;}
-.userInputs input{
-  padding:8px;font-size:16px;background:#333;color:var(--text);border:none;
-  border-radius:6px;width:100%;text-align:center;
-}
-.calculator-container{display:flex;gap:5px;}
-/* 🔴 高质感双层按压按钮 - 核心样式 + 白框 */
-.btn{
-  border: none;
-  border-radius: var(--btn-radius);
-  padding: var(--btn-padding);
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  cursor: pointer;
-  /* 细腻双层阴影 + 哑光质感 */
-  box-shadow: 0 3px 0 rgba(0,0,0,0.2), 0 5px 12px rgba(0,0,0,0.15);
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  text-decoration: none;
-  -webkit-tap-highlight-color: transparent;
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
-  backdrop-filter: blur(4px);
-  /* 白色外框 */
-  border: 1px solid rgba(255,255,255,0.85) !important;
-}
-/* 柔和高光流光 */
-.btn::before{
-  content:'';
-  position:absolute;
-  top:0;
-  left:-100%;
-  width:100%;
-  height:100%;
-  background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
-  transition:all 0.6s ease;
-}
-.btn:hover::before{
-  left:100%;
-}
-/* 悬浮 - 细腻上浮 */
-.btn:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 5px 0 rgba(0,0,0,0.25), 0 8px 16px rgba(0,0,0,0.2);
-  filter: brightness(1.08);
-  border-color: #ffffff !important;
-}
-/* 点击 - 双层内凹按压感 */
-.btn:active{
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.1);
-}
-/* 禁用状态 */
-.btn:disabled{
-  opacity:0.6;
-  cursor:not-allowed;
-  transform:none;
-  box-shadow: 0 3px 0 rgba(0,0,0,0.15);
-  filter: grayscale(30%);
-}
-/* 🔴 高质感配色系列 */
-.btn-primary{background: linear-gradient(145deg, #00bfa5, #00897b);}
-.btn-purple{background: linear-gradient(145deg, #ab47bc, #8e24aa);}
-.btn-warning{background: linear-gradient(145deg, #ffa726, #f57c00);}
-.btn-grey{background: linear-gradient(145deg, #757575, #424242);}
-.btn-danger{background: linear-gradient(145deg, #ef5350, #e53935);}
-.btn-ai{background: linear-gradient(145deg, #1e88e5, #0d47a1);} /* AI按钮专属配色 */
-
-/* 尺寸保持不变 */
-.btn-sm{padding:5px 8px;font-size:12px;border-radius:4px;}
-.btn-md{padding:8px 12px;font-size:14px;border-radius:6px;min-width:80px;}
-.btn-lg{padding:10px 6px!important;font-size:15px!important;border-radius:8px!important;width:48%;height:auto;line-height:1.2;}
-
-/* 🔴 重置试算者按钮 + 白框 */
-#resetCalculatorBtn{
-  width:32px;height:32px;border-radius:5px;background:var(--btn-grey);color:#fff;
-  border:1px solid rgba(255,255,255,0.85);cursor:pointer;font-size:14px;
-  display:flex;align-items:center;justify-content:center;transition:var(--btn-transition);
-}
-#resetCalculatorBtn:hover{background:#555;transform:scale(1.05);border-color:#fff;}
-#resetCalculatorBtn:active{transform:scale(0.95);}
-
-#addBtn{width:100%!important;padding:10px 14px!important;font-size:16px!important;font-weight:600!important;border-radius:8px!important;height:auto!important;}
-
-/* 🔴 手机端适配：康园试算报表 优化排版 + 全部文字置中 */
-#reportTable{
-  width:100%;
-  min-width:280px;
-  max-width:100%;
-  border-collapse:collapse;
-  font-size:12px;
-  border-radius:8px;
-  overflow:hidden;
-  background:#f9fafb;
-  color:#374151;
-  margin:0 auto;
-  table-layout:fixed;
-  text-align: center !important; /* 整個表格強制置中 */
-}
-/* 🔴 手机端最优栏宽比例 */
-#reportTable th:nth-child(1),#reportTable td:nth-child(1){width:37%;}
-#reportTable th:nth-child(2),#reportTable td:nth-child(2){width:10%;}
-#reportTable th:nth-child(3),#reportTable td:nth-child(3){width:10%;}
-#reportTable th:nth-child(4),#reportTable td:nth-child(4){width:10%;}
-#reportTable th:nth-child(5),#reportTable td:nth-child(5){width:13%;}
-#reportTable th:nth-child(6),#reportTable td:nth-child(6){width:13%;}
-#reportTable th:nth-child(7),#reportTable td:nth-child(7){width:7%;}
-#reportTable th,#reportTable td{
-  border:1px solid #d1d5db;
-  padding:6px 4px;
-  text-align:center;
-  transition:all 0.2s ease;
-  overflow:hidden;
-  line-height:1.3;
-}
-/* 品項名稱：完整显示，不省略，自动换行 + 置中 */
-#reportTable td:nth-child(1){
-  white-space: normal;
-  text-align:center !important; /* 品項名稱也置中 */
-  padding-left:6px;
-  word-break: break-word;
-}
-/* 数量选择框：适配文字大小，手机端精致样式 */
-#reportTable th:nth-child(2),#reportTable td:nth-child(2),.qtySelect{
-  font-size:13px!important;
-  font-weight:bold!important;
-  text-align:center!important;
-}
-.qtySelect {
-  width: 100% !important;
-  padding: 2px !important;
-  margin: 0 !important;
-  border: 1px solid #999 !important;
-  border-radius: 3px !important;
-  text-align: center !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
-}
-/* 单价/PV/小计 字体缩小统一 + 置中 */
-#reportTable td:nth-child(3),
-#reportTable td:nth-child(4),
-#reportTable td:nth-child(5),
-#reportTable td:nth-child(6){
-  font-size:10px;
-  font-weight:500;
-  text-align:center!important;
-}
-
-#reportTable thead{background:#555555;color:#fff;font-weight:600;text-align:center!important;}
-#reportTable tbody tr { background: #e9e9e9; }
-#reportTable tbody tr:hover{background:#1e88e5;color:#fff;font-weight:bold;}
-
-/* 🔴 删除按钮 + 白框 */
-.deleteBtn{
-  writing-mode:vertical-rl;
-  text-orientation:upright;
-  background:var(--error);
-  border:1px solid rgba(255,255,255,0.85);
-  color:#fff;
-  border-radius:3px;
-  padding:0;
-  cursor:pointer;
-  font-size:10px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  height: 26px;
-  width: 20px;
-  line-height:1;
-  transition:var(--btn-transition);
-}
-.deleteBtn:hover{transform:scale(1.05);border-color:#fff;}
-.deleteBtn:active{transform:scale(0.95);}
-.deleteBtn:disabled{opacity:0.7;cursor:not-allowed;}
-
-.summaryBox{text-align:center;margin-top:10px;font-size:1.1rem;font-weight:bold;color:var(--highlight);line-height:1.5;}
-.summaryBox .extra{display:block;font-size:1rem;color:var(--accent);margin-top:4px;}
-.summaryBox .done{color:#4caf50;font-weight:bold;}
-#totalPriceCellDup,#totalPvCellDup,#pvDiff2{display:inline-block;min-width:50px;text-align:center;}
-#inputArea{display:flex;flex-direction:column;gap:8px;margin:10px 0 20px 0;display:none;width:100%;max-width:600px;}
-@media (min-width:576px){#inputArea{flex-direction:row;align-items:center;}}
-#nameInput,#qtyInput{
-  background:#2c2c2c;color:var(--text);flex:1;text-align:center;padding:10px 8px;
-  font-size:16px;border-radius:6px;border:none;
-}
-#qtyInput{font-size:16px!important;font-weight:bold;}
-#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn,#ocrBtn{flex:1;min-width:80px;margin:0;}
-#previewImage{display:none;width:100%!important;max-width:600px;margin:10px auto!important;border:2px solid #888;border-radius:8px;image-rendering:-webkit-optimize-contrast;object-fit:contain;}
-#shareToLineBtn,#nativeShareBtn,#clearImageBtn{display:none;}
-#buyerInput,#calculatorDisplay{
-  background:#f9fafb;border:1.5px solid #d1d5db;color:#374151;border-radius:6px;
-  padding:8px 10px;font-size:16px;transition:border-color 0.3s ease,box-shadow 0.3s ease;
-  width:100%;font-weight:500;
-}
-#buyerInput:focus{
-  border-color:#2563eb;box-shadow:0 0 8px 2px rgba(37,99,235,0.3);
-  outline:none;background:#fff;
-}
-#calculatorDisplay{background:#e9ecef;cursor:default;}
-#buyerInput::placeholder{color:#9ca3af;font-weight:400;text-align:center;}
-.toast{
-  position:fixed;bottom:25px;left:50%;transform:translateX(-50%);background:var(--grad-secondary);
-  color:#fff;padding:10px 16px;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.4);
-  opacity:0;transition:opacity 0.5s ease,transform 0.5s ease;z-index:1000;text-align:center;
-  min-width:180px;font-size:15px;border:1px solid rgba(255,255,255,0.1);
-}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(-10px);}
-.toast.error{background:linear-gradient(145deg,#4a0000,#2a0000);border-color:rgba(255,82,82,0.3);}
-.toast.warning{background:linear-gradient(145deg,#4a3200,#2a1e00);border-color:rgba(255,152,0,0.3);}
-.payment-options{display:flex;justify-content:center;gap:12px;margin-top:6px;color:#fff;font-size:1.1rem;flex-wrap:wrap;}
-.payment-options label{display:flex;align-items:center;gap:8px;color:#fff;font-weight:500;}
-.payment-options input[type="checkbox"]{width:20px;height:20px;cursor:pointer;}
-.spacer{height:60px;}
-#error-message{
-  display:none;background:linear-gradient(145deg,#4a0000,#2a0000);border:1px solid rgba(255,82,82,0.3);
-  color:#fef2f2;padding:15px;border-radius:12px;margin:15px auto;max-width:360px;text-align:center;
-  box-shadow:var(--shadow);
-}
-#error-message #error-content{margin-bottom:12px;font-size:15px;}
-#error-message button{
-  background:linear-gradient(145deg,#ff5252,#d32f2f);color:#fff;border:none;border:1px solid rgba(255,255,255,0.8);
-  padding:6px 12px;border-radius:6px;cursor:pointer;margin-top:8px;font-weight:500;transition:var(--btn-transition);font-size:14px;
-}
-#error-message button:hover{
-  background:linear-gradient(145deg,#ff6b6b,#e53939);transform:translateY(-2px);
-  box-shadow:0 4px 12px rgba(255,82,82,0.3);
-}
-.button-group{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  justify-content:center;
-  margin:8px 0;
-  display:none;
-  width:100%;
-  max-width:600px;
-}
-/* 按鈕寬度排版：3個 + 2個 對齊 */
-.button-group .btn-lg {
-  flex: 1 1 calc(33.333% - 4px);
-  max-width: calc(33.333% - 4px);
-}
-.button-group .btn-md {
-  flex: 1 1 calc(50% - 4px);
-  max-width: calc(50% - 4px);
-}
-.toast-highlight-name {
-  background: linear-gradient(135deg, #ffd700, #f9c700, #e6b800);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  font-weight: bold;
-  text-shadow:0 1px 3px rgba(0,0,0,0.3);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-size:15px;
-}
-/* 打印样式 */
-@media print{
-  body{background:#fff;color:#000;}
-  #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn,#ocrArea{display:none!important;}
-  #captureArea{box-shadow:none;background:#fff;color:#000;display:block!important;padding:15px!important;}
-  #reportTable th{background:#ccc!important;color:#000!important;}
-  .deleteBtn{display:none!important;}
-  .summaryBox{color:#000!important;}
-  #reportTable td,#reportTable th{text-align:center!important;}
-  #watermark {display: none!important;}
-}
-
-/* AI OCR 上传区域样式 */
-#ocrArea {
-  display: none;
-  width: 100%;
-  max-width: 600px;
-  background: linear-gradient(145deg, #1c1c1c, #141414);
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 10px;
-  box-shadow: inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
-}
-#ocrUploadWrapper {
-  border: 2px dashed rgba(255,255,255,0.3);
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-#ocrUploadWrapper:hover {
-  border-color: rgba(0,209,178,0.6);
-  background: rgba(255,255,255,0.05);
-}
-#ocrUploadInput {
-  display: none;
-}
-#ocrUploadText {
-  color: #bbb;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-#ocrUploadText strong {
-  color: #00d1b2;
-  font-size: 16px;
-}
-#ocrPreview {
-  max-width: 100%;
-  max-height: 300px;
-  margin: 10px auto;
-  border-radius: 6px;
-  display: none;
-}
-#ocrBtn {
-  margin-top: 10px;
-  background: linear-gradient(145deg, #1e88e5, #0d47a1);
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>草本產品試算系統</title>
+    <!-- 依賴庫（CDN，GitHub兼容） -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft JhengHei", sans-serif;
+        }
+        body {
+            background: #f5f7fa;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        /* 權限驗證 */
+        #authContainer {
+            text-align: center;
+            padding: 50px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        #authStatusBar {
+            display: none;
+            background: #e6f7e6;
+            color: #0a700a;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .close-status {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-weight: bold;
+        }
+        /* 捕獲區域（報表） */
+        #captureArea {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #1a365d;
+        }
+        .info-row {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .period-group {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .period-box {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #fff;
+        }
+        .period-box.active {
+            background: #1a365d;
+            color: white;
+            border-color: #1a365d;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background: #f0f4f8;
+            font-weight: bold;
+        }
+        .deleteBtn {
+            padding: 4px 8px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .summaryBox {
+            font-size: 18px;
+            line-height: 1.8;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .extra {
+            margin-left: 15px;
+            color: #666;
+        }
+        .done {
+            color: #0a700a;
+            font-weight: bold;
+        }
+        /* OCR區域 */
+        #ocrArea {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        #ocrUploadWrapper {
+            border: 2px dashed #1a365d;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        #ocrPreview {
+            max-width: 100%;
+            max-height: 300px;
+            display: none;
+            margin: 15px auto;
+            border-radius: 8px;
+        }
+        /* 按鈕組 */
+        .button-group {
+            display: none;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn-lg {
+            padding: 15px 25px;
+            font-size: 18px;
+        }
+        .btn-primary { background: #1a365d; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-grey { background: #6c757d; color: white; }
+        .btn-purple { background: #9c27b0; color: white; }
+        .btn-ai { background: #26a69a; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        /* 輸入區域 */
+        #inputArea {
+            display: none;
+            margin-bottom: 20px;
+            gap: 10px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        #inputArea input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            flex: 1;
+            min-width: 200px;
+        }
+        /* 預覽圖 */
+        #previewImage {
+            max-width: 100%;
+            display: none;
+            margin: 20px auto;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.2);
+        }
+        /* 提示框 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 999;
+        }
+        .toast.show { opacity: 1; }
+        .toast.default { background: #1a365d; }
+        .toast.error { background: #f44336; }
+        .toast.warning { background: #ff9800; }
+    </style>
 </head>
 <body>
+
+<!-- 權限驗證區 -->
 <div id="authContainer">
-  <div id="error-message">
-    <div id="error-content"></div>
-    <button onclick="location.reload()">🔄 刷新頁面重試</button>
-  </div>
-  <div id="authLoading">
-    <div class="loader"></div>
-    <h3>正在驗證用戶權限</h3>
-    <p>請稍候...</p>
-  </div>
+    <h2>🔒 系統驗證中</h2>
+    <p>請稍候，正在驗證您的使用權限...</p>
 </div>
-<div id="authStatusBar" style="display: none;">
-  <button class="close-status" title="隱藏狀態欄">隱藏</button>
+<div id="authStatusBar">
+    <span>✅ 權限驗證成功</span>
+    <span class="close-status">✕</span>
 </div>
 
-<!-- AI OCR 上传区域（新增） -->
-<div id="ocrArea">
-  <div id="ocrUploadWrapper">
-    <input type="file" id="ocrUploadInput" accept="image/jpeg,image/png" capture="camera" />
-    <div id="ocrUploadText">
-      <strong>📷 上傳草本產品報表原圖</strong><br>
-      請上傳清晰的原圖（建議解析度≥1080P），AI將自動識別品項和數量
-    </div>
-    <img id="ocrPreview" alt="OCR預覽圖片" />
-    <button id="ocrBtn" class="btn btn-ai btn-md" disabled>🤖 AI識別圖片</button>
-  </div>
-</div>
-
+<!-- 報表捕獲區 -->
 <div id="captureArea">
-  <div id="watermark">『彥彬🌿試算系統（AI增強版）』</div>
-  <h2>
-    <br>
-    🌿 康園試算報表
-    <div class="payment-options">
-      <label><input type="checkbox" id="cashOption" /> 💵 現金</label>
-      <label><input type="checkbox" id="cardOption" /> 💳 刷卡</label>
+    <div class="title">🌿 草本產品購物明細</div>
+    <div class="info-row">
+        試算者：<input type="text" id="calculatorDisplay" readonly style="padding:5px; width:200px;">
+        <button id="resetCalculatorBtn" class="btn btn-sm btn-grey">重置試算者</button>
     </div>
-    <div class="period-options">
-      <div class="period-box">一個月</div>
-      <div class="period-box">三個月</div>
-      <div class="period-box">六個月</div>
+    <div class="period-group">
+        <div class="period-box">一個月</div>
+        <div class="period-box">三個月</div>
+        <div class="period-box">六個月</div>
     </div>
-  </h2>
-  <div class="userInputs">  
-    <div class="row">
-      <label>
-        <span>購買者：</span>
-        <input type="text" placeholder="輸入購買者" id="buyerInput" />
-      </label>
-      <label>
-        <span>試算者：</span>
-        <div class="calculator-container">
-          <input type="text" id="calculatorDisplay" readonly />
-          <button id="resetCalculatorBtn" title="重置試算者名稱">↺</button>
-        </div>
-      </label>
+    <table>
+        <thead>
+            <tr>
+                <th>品項名稱</th>
+                <th>數量</th>
+                <th>單價</th>
+                <th>單PV</th>
+                <th>小計金額</th>
+                <th>小計PV</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="reportBody"></tbody>
+    </table>
+    <div class="summaryBox">
+        總金額：<span id="totalPriceCellDup">0</span> 元<br>
+        總PV：<span id="totalPvCellDup">0</span> PV<br>
+        <span class="extra">差額PV：<span id="pvDiff2">0</span> PV</span>
+        <span class="extra done">✅ 已達合格獎金標準</span>
     </div>
-  </div>
-  <table id="reportTable" aria-label="試算報表">
-    <thead>
-      <tr>
-        <th>品項名稱</th>
-        <th>數量</th>
-        <th>單價</th>
-        <th>PV</th>
-        <th>小計金額</th>
-        <th>小計PV</th>
-        <th>操作</th>
-      </tr>
-    </thead>
-    <tbody id="reportBody"></tbody>
-  </table>
-  <div class="summaryBox">
-    總金額：<span id="totalPriceCellDup">0</span> 元<br>
-    總PV：<span id="totalPvCellDup">0</span> PV<br>
-    <span class="extra">差額PV：<span id="pvDiff2">0</span> PV</span>
-    <span class="extra done">✅ 已達合格獎金標準</span>
-  </div>
 </div>
 
-<img id="previewImage" alt="報表預覽圖">
+<!-- AI OCR識別區 -->
+<div id="ocrArea">
+    <h3>🤖 AI圖片識別（自動提取產品）</h3>
+    <div id="ocrUploadWrapper">點擊上傳購買明細圖片</div>
+    <input type="file" id="ocrUploadInput" accept="image/*" style="display:none;">
+    <img id="ocrPreview" alt="預覽圖">
+    <button id="ocrBtn" class="btn btn-ai" disabled>🤖 AI識別圖片</button>
+</div>
+
+<!-- 功能按鈕 -->
 <div class="button-group">
-  <button id="addBtn" class="btn btn-primary btn-lg">➕ 加入品項</button>
-  <button id="exportBtn" class="btn btn-warning btn-lg">💾 匯出圖片</button>
-  <button id="resetReportBtn" class="btn btn-grey btn-lg">🔄 重置報表</button>
-  <button id="shareToLineBtn" class="btn btn-md btn-purple">📤 分享至LINE</button>
-  <button id="nativeShareBtn" class="btn btn-md btn-ai">🔗 原生分享</button>
-  <button id="clearImageBtn" class="btn btn-md btn-danger">🗑️ 清除圖片</button>
+    <button id="addBtn" class="btn btn-primary btn-lg">➕ 加入品項</button>
+    <button id="exportBtn" class="btn btn-warning btn-lg">💾 匯出圖片</button>
+    <button id="resetReportBtn" class="btn btn-grey btn-lg">🔄 重置報表</button>
+    <button id="shareToLineBtn" class="btn btn-purple" style="display:none;">📤 分享至LINE</button>
+    <button id="nativeShareBtn" class="btn btn-ai" style="display:none;">🔗 原生分享</button>
+    <button id="clearImageBtn" class="btn btn-danger" style="display:none;">🗑️ 清除圖片</button>
 </div>
 
+<!-- 品項輸入區 -->
 <div id="inputArea">
-  <input type="text" id="nameInput" placeholder="輸入品項名稱" />
-  <input type="number" id="qtyInput" placeholder="數量" min="1" value="1" />
+    <input type="text" id="nameInput" placeholder="輸入品項名稱">
+    <input type="number" id="qtyInput" placeholder="數量" min="1" value="1">
 </div>
 
-<div class="spacer"></div>
+<!-- 提示框 -->
 <div class="toast" id="toast"></div>
 
 <script>
-// 全局配置
+// ====================== 核心配置（修改為你的GAS Web App URL）======================
 const CONFIG = {
-  TARGET_PV: {
-    '一個月': 100,
-    '三個月': 300,
-    '六個月': 600
-  },
-  PRODUCTS: {
-    // 这里可自行扩展产品数据
-  }
+    // 🔥 替換為你的GAS Web App 發布地址（必須帶上 /exec 結尾）
+    GAS_URL: "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec",
+    // LINE LIFF ID (選填)
+    LIFF_ID: "2008578880-e4LeJzH4",
+    // PV目標配置
+    TARGET_PV: { '一個月': 112000, '三個月': 220000, '六個月': 440000 },
+    // 全局變量
+    PRODUCTS: {},
+    USER_INFO: { userId: "", displayName: "", remainTimes: 0, isSuperAdmin: false }
 };
 
-// 全局变量
+// 全局變量
 let currentPeriod = '一個月';
 let calculatorName = '';
 let liffInitialized = false;
 
-// DOM加载完成
+// ====================== JSONP 跨域請求核心（徹底解決GAS跨域）======================
+function jsonpRequest(params, callback) {
+    const callbackName = 'jsonp_' + Date.now() + Math.random().toString(36).substr(2, 8);
+    window[callbackName] = function(data) {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        callback(data);
+    };
+    let url = CONFIG.GAS_URL + '?callback=' + callbackName;
+    for (let key in params) {
+        url += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+    }
+    const script = document.createElement('script');
+    script.src = url;
+    document.body.appendChild(script);
+}
+
+// ====================== 頁面初始化 ======================
 $(function() {
-  initAuth();
-  bindEvents();
-  initPeriodOptions();
-  loadCalculatorName();
+    initLiff();
+    bindEvents();
+    initPeriodOptions();
+    loadCalculatorName();
 });
 
-// 初始化权限验证
+// 初始化LINE LIFF
+async function initLiff() {
+    try {
+        await liff.init({ liffId: CONFIG.LIFF_ID });
+        liffInitialized = true;
+        if (liff.isLoggedIn()) {
+            const profile = await liff.getProfile();
+            verifyUser(profile.userId, profile.displayName);
+        } else {
+            liff.login();
+        }
+    } catch (e) {
+        // 非LINE環境，使用臨時用戶
+        verifyUser("TEMP_" + Date.now(), "網頁使用者");
+    }
+}
+
+// 用戶權限驗證
+function verifyUser(userId, displayName) {
+    jsonpRequest({
+        action: "verifyUser",
+        userId: userId,
+        displayName: displayName
+    }, function(res) {
+        if (res.status === "success" || res.status === "exceeded") {
+            CONFIG.USER_INFO = {
+                userId: res.userId,
+                displayName: res.displayName,
+                remainTimes: res.remainTimes,
+                isSuperAdmin: res.isSuperAdmin
+            };
+            loadAllProducts();
+            initAuth();
+        } else {
+            showToast("驗證失敗：" + res.message, "error");
+        }
+    });
+}
+
+// 加載所有產品
+function loadAllProducts() {
+    jsonpRequest({ action: "all" }, function(products) {
+        products.forEach(item => {
+            CONFIG.PRODUCTS[item.name] = { price: item.price, pv: item.pv };
+        });
+    });
+}
+
+// 初始化權限驗證動畫
 function initAuth() {
-  setTimeout(() => {
-    $('#authContainer').fadeOut();
-    $('#authStatusBar').fadeIn().html(`<span>✅ 權限驗證成功</span>`);
-    $('#captureArea, #inputArea, .button-group, #ocrArea').show();
-  }, 1500);
+    setTimeout(() => {
+        $('#authContainer').fadeOut();
+        $('#authStatusBar').fadeIn().html(`
+            <span>✅ 驗證成功 | 剩餘次數：${CONFIG.USER_INFO.remainTimes}</span>
+            <span class="close-status">✕</span>
+        `);
+        $('#captureArea, #inputArea, .button-group, #ocrArea').show();
+    }, 1000);
 }
 
-// 绑定事件
+// ====================== 事件綁定 ======================
 function bindEvents() {
-  // 关闭状态栏
-  $('.close-status').click(() => {
-    $('#authStatusBar').fadeOut();
-  });
+    // 關閉狀態欄
+    $('.close-status').click(() => $('#authStatusBar').fadeOut());
 
-  // 添加品项
-  $('#addBtn').click(addProduct);
+    // 加入品項
+    $('#addBtn').click(addProduct);
 
-  // 重置报表
-  $('#resetReportBtn').click(resetReport);
+    // 重置報表（扣次）
+    $('#resetReportBtn').click(resetReport);
 
-  // 重置试算者
-  $('#resetCalculatorBtn').click(resetCalculatorName);
+    // 重置試算者
+    $('#resetCalculatorBtn').click(resetCalculatorName);
 
-  // 导出图片
-  $('#exportBtn').click(exportImage);
+    // 匯出圖片
+    $('#exportBtn').click(exportImage);
 
-  // OCR上传区域点击
-  $('#ocrUploadWrapper').click(() => $('#ocrUploadInput').click());
-  
-  // OCR文件选择
-  $('#ocrUploadInput').change(onOcrFileSelect);
-  
-  // OCR识别按钮
-  $('#ocrBtn').click(ocrRecognition);
+    // OCR上傳
+    $('#ocrUploadWrapper').click(() => $('#ocrUploadInput').click());
+    $('#ocrUploadInput').change(onOcrFileSelect);
+    $('#ocrBtn').click(ocrRecognition);
+
+    // 圖片操作
+    $('#clearImageBtn').click(() => {
+        $('#previewImage').hide().attr('src', '');
+        $('#shareToLineBtn, #nativeShareBtn, #clearImageBtn').hide();
+        showToast("圖片已清除");
+    });
 }
 
-// 初始化周期选项
+// 初始化周期選項
 function initPeriodOptions() {
-  $('.period-box').first().addClass('active');
-  $('.period-box').click(function() {
-    $('.period-box').removeClass('active');
-    $(this).addClass('active');
-    currentPeriod = $(this).text().trim();
-    calculateTotal();
-  });
+    $('.period-box').first().addClass('active');
+    $('.period-box').click(function() {
+        $('.period-box').removeClass('active');
+        $(this).addClass('active');
+        currentPeriod = $(this).text().trim();
+        calculateTotal();
+    });
 }
 
-// 加载试算者名称
+// 加載試算者名稱
 function loadCalculatorName() {
-  const saved = localStorage.getItem('calculatorName');
-  if (saved) {
-    calculatorName = saved;
-    $('#calculatorDisplay').val(saved);
-  } else {
-    $('#calculatorDisplay').val('請設定試算者');
-  }
+    const saved = localStorage.getItem('calculatorName');
+    if (saved) {
+        calculatorName = saved;
+        $('#calculatorDisplay').val(saved);
+    } else {
+        $('#calculatorDisplay').val('請設定試算者');
+    }
 }
 
-// 重置试算者名称
+// 重置試算者
 function resetCalculatorName() {
-  calculatorName = '';
-  localStorage.removeItem('calculatorName');
-  $('#calculatorDisplay').val('');
-  showToast('試算者名稱已重置');
+    calculatorName = '';
+    localStorage.removeItem('calculatorName');
+    $('#calculatorDisplay').val('');
+    showToast('試算者名稱已重置');
 }
 
-// 添加产品
+// ====================== 報表核心功能 ======================
+// 加入產品
 function addProduct() {
-  const name = $('#nameInput').val().trim();
-  const qty = parseInt($('#qtyInput').val()) || 1;
-  if (!name) {
-    showToast('請輸入品項名稱', 'error');
-    return;
-  }
-
-  const product = CONFIG.PRODUCTS[name] || { price: 0, pv: 0 };
-  const price = product.price;
-  const pv = product.pv;
-
-  const row = $(`
-    <tr>
-      <td>${name}</td>
-      <td>
-        <select class="qtySelect">
-          ${Array.from({length: 50}, (_,i) => `<option ${i+1 === qty ? 'selected' : ''}>${i+1}</option>`).join('')}
-        </select>
-      </td>
-      <td>${price}</td>
-      <td>${pv}</td>
-      <td class="subTotal">${price * qty}</td>
-      <td class="subPv">${pv * qty}</td>
-      <td><button class="deleteBtn">刪</button></td>
-    </tr>
-  `);
-
-  $('#reportBody').append(row);
-  bindRowEvents(row);
-  calculateTotal();
-  $('#nameInput, #qtyInput').val('');
-  $('#qtyInput').val(1);
-  showToast(`已加入：${name}`);
-}
-
-// 绑定行事件
-function bindRowEvents(row) {
-  row.find('.qtySelect').change(calculateTotal);
-  row.find('.deleteBtn').click(function() {
-    row.remove();
+    const name = $('#nameInput').val().trim();
+    const qty = parseInt($('#qtyInput').val()) || 1;
+    if (!name) {
+        showToast('請輸入品項名稱', 'error');
+        return;
+    }
+    const product = CONFIG.PRODUCTS[name] || { price: 0, pv: 0 };
+    const row = $(`
+        <tr>
+            <td>${name}</td>
+            <td><select class="qtySelect">${Array.from({length:50},(_,i)=>`<option ${i+1===qty?'selected':''}>${i+1}</option>`).join('')}</select></td>
+            <td>${product.price}</td>
+            <td>${product.pv}</td>
+            <td class="subTotal">${product.price * qty}</td>
+            <td class="subPv">${product.pv * qty}</td>
+            <td><button class="deleteBtn">刪</button></td>
+        </tr>
+    `);
+    $('#reportBody').append(row);
+    bindRowEvents(row);
     calculateTotal();
-  });
+    $('#nameInput').val(''); $('#qtyInput').val(1);
+    showToast(`已加入：${name}`);
 }
 
-// 计算总计
+// 綁定行事件
+function bindRowEvents(row) {
+    row.find('.qtySelect').change(calculateTotal);
+    row.find('.deleteBtn').click(function() {
+        jsonpRequest({
+            action: "recordDelete",
+            userId: CONFIG.USER_INFO.userId,
+            displayName: CONFIG.USER_INFO.displayName
+        }, function(res) {
+            if (res.status === "success") {
+                row.remove();
+                calculateTotal();
+                CONFIG.USER_INFO.remainTimes = res.remainTimes;
+                $('#authStatusBar span').first().text(`✅ 驗證成功 | 剩餘次數：${res.remainTimes}`);
+                showToast(res.message);
+            } else {
+                showToast(res.message, "error");
+            }
+        });
+    });
+}
+
+// 計算總計
 function calculateTotal() {
-  let totalPrice = 0;
-  let totalPv = 0;
-
-  $('#reportBody tr').each(function() {
-    const qty = parseInt($(this).find('.qtySelect').val()) || 1;
-    const price = parseInt($(this).find('td:eq(2)').text()) || 0;
-    const pv = parseInt($(this).find('td:eq(3)').text()) || 0;
-
-    const subTotal = price * qty;
-    const subPv = pv * qty;
-
-    $(this).find('.subTotal').text(subTotal);
-    $(this).find('.subPv').text(subPv);
-
-    totalPrice += subTotal;
-    totalPv += subPv;
-  });
-
-  const target = CONFIG.TARGET_PV[currentPeriod];
-  const diff = Math.max(0, target - totalPv);
-
-  $('#totalPriceCellDup').text(totalPrice);
-  $('#totalPvCellDup').text(totalPv);
-  $('#pvDiff2').text(diff);
+    let totalPrice = 0, totalPv = 0;
+    $('#reportBody tr').each(function() {
+        const qty = parseInt($(this).find('.qtySelect').val()) || 1;
+        const price = parseInt($(this).find('td:eq(2)').text()) || 0;
+        const pv = parseInt($(this).find('td:eq(3)').text()) || 0;
+        const subTotal = price * qty, subPv = pv * qty;
+        $(this).find('.subTotal').text(subTotal);
+        $(this).find('.subPv').text(subPv);
+        totalPrice += subTotal; totalPv += subPv;
+    });
+    const target = CONFIG.TARGET_PV[currentPeriod];
+    const diff = Math.max(0, target - totalPv);
+    $('#totalPriceCellDup').text(totalPrice);
+    $('#totalPvCellDup').text(totalPv);
+    $('#pvDiff2').text(diff);
 }
 
-// 重置报表
+// 重置報表（扣次）
 function resetReport() {
-  $('#reportBody').empty();
-  calculateTotal();
-  $('#buyerInput, #nameInput').val('');
-  $('#qtyInput').val(1);
-  $('#cashOption, #cardOption').prop('checked', false);
-  showToast('報表已重置');
+    jsonpRequest({
+        action: "recordReset",
+        userId: CONFIG.USER_INFO.userId,
+        displayName: CONFIG.USER_INFO.displayName
+    }, function(res) {
+        if (res.status === "success") {
+            $('#reportBody').empty();
+            calculateTotal();
+            $('#nameInput').val(''); $('#qtyInput').val(1);
+            CONFIG.USER_INFO.remainTimes = res.remainTimes;
+            $('#authStatusBar span').first().text(`✅ 驗證成功 | 剩餘次數：${res.remainTimes}`);
+            showToast(res.message);
+        } else {
+            showToast(res.message, "error");
+        }
+    });
 }
 
-// 导出图片
+// ====================== 匯出圖片 ======================
 function exportImage() {
-  const element = document.getElementById('captureArea');
-  $('#exportBtn').prop('disabled', true).text('處理中...');
-
-  html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: '#1a1a1a'
-  }).then(canvas => {
-    const imgData = canvas.toDataURL('image/png');
-    $('#previewImage').attr('src', imgData).show();
-    $('#shareToLineBtn, #nativeShareBtn, #clearImageBtn').show();
-    $('#exportBtn').prop('disabled', false).text('💾 匯出圖片');
-    showToast('匯出成功！');
-  }).catch(err => {
-    showToast('匯出失敗', 'error');
-    $('#exportBtn').prop('disabled', false).text('💾 匯出圖片');
-  });
+    const element = document.getElementById('captureArea');
+    $('#exportBtn').prop('disabled', true).text('處理中...');
+    html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        $('#previewImage').attr('src', imgData).show();
+        $('#shareToLineBtn, #nativeShareBtn, #clearImageBtn').show();
+        $('#exportBtn').prop('disabled', false).text('💾 匯出圖片');
+        showToast('匯出成功！');
+    }).catch(err => {
+        showToast('匯出失敗', 'error');
+        $('#exportBtn').prop('disabled', false).text('💾 匯出圖片');
+    });
 }
 
-// OCR文件选择
+// ====================== AI OCR 識別 ======================
 function onOcrFileSelect(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    $('#ocrPreview').attr('src', e.target.result).show();
-    $('#ocrBtn').prop('disabled', false);
-  };
-  reader.readAsDataURL(file);
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        $('#ocrPreview').attr('src', e.target.result).show();
+        $('#ocrBtn').prop('disabled', false);
+    };
+    reader.readAsDataURL(file);
 }
 
-// AI OCR识别（模拟）
 function ocrRecognition() {
-  $('#ocrBtn').prop('disabled', true).text('識別中...');
-  setTimeout(() => {
-    showToast('AI識別功能開發中', 'warning');
-    $('#ocrBtn').prop('disabled', false).text('🤖 AI識別圖片');
-  }, 1500);
+    const base64 = $('#ocrPreview').attr('src').split(',')[1];
+    $('#ocrBtn').prop('disabled', true).text('識別中...');
+    jsonpRequest({
+        action: "ocrImage",
+        userId: CONFIG.USER_INFO.userId,
+        displayName: CONFIG.USER_INFO.displayName,
+        imageBase64: base64
+    }, function(res) {
+        if (res.status === "success") {
+            $('#reportBody').empty();
+            res.data.forEach(item => {
+                if (item.name && item.qty) {
+                    $('#nameInput').val(item.name);
+                    $('#qtyInput').val(item.qty);
+                    addProduct();
+                }
+            });
+            CONFIG.USER_INFO.remainTimes = res.remainTimes;
+            $('#authStatusBar span').first().text(`✅ 驗證成功 | 剩餘次數：${res.remainTimes}`);
+            showToast('OCR識別完成，已自動加入產品');
+        } else {
+            showToast('識別失敗：' + res.message, "error");
+        }
+        $('#ocrBtn').prop('disabled', false).text('🤖 AI識別圖片');
+    });
 }
 
-// 提示框
+// ====================== 提示框 ======================
 function showToast(msg, type = 'default') {
-  const toast = $('#toast');
-  toast.text(msg).removeClass('error warning default').addClass(type).addClass('show');
-  setTimeout(() => toast.removeClass('show'), 2000);
+    const toast = $('#toast');
+    toast.text(msg).removeClass('error warning default').addClass(type).addClass('show');
+    setTimeout(() => toast.removeClass('show'), 2500);
 }
 </script>
 </body>
