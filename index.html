@@ -717,17 +717,55 @@ async function initSystem() {
   showToast("🌿 登入成功");
 }
 
-// 🔥 核心：從Google Sheets加載產品（修復CORS）
+// 🔥 核心：GAS 重試機制（3次重試）+ 失敗不兜底 + 無本地產品
 async function fetchProductsFromSheet() {
+  // 重試配置
+  const MAX_RETRY = 3;
+  let retryCount = 0;
+
+  // 重試請求函數
+  const fetchWithRetry = async () => {
+    try {
+      const response = await fetch(`${GAS_API_URL}?action=all`);
+      if (!response.ok) throw new Error(`HTTP 錯誤：${response.status}`);
+      const data = await response.json();
+      
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error("GAS 返回產品數據為空");
+      }
+
+      // 成功：覆蓋產品數據
+      products.length = 0;
+      products.push(...data);
+      console.log(`✅ 第 ${retryCount+1} 次嘗試，GAS 產品加載成功`);
+      return true;
+
+    } catch (err) {
+      retryCount++;
+      console.warn(`⚠️ 第 ${retryCount} 次 GAS 請求失敗：`, err);
+      
+      // 未達最大重試次數 → 延遲重試
+      if (retryCount < MAX_RETRY) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return fetchWithRetry();
+      }
+      
+      // 重試全部失敗 → 直接拋錯，不使用本地兜底
+      throw new Error(`❌ GAS 重試 ${MAX_RETRY} 次全部失敗`);
+    }
+  };
+
+  // 執行重試請求
   try {
-    const res = await fetch(`${GAS_API_URL}?action=all`, {
-      mode: 'no-cors' // 修復跨域報錯
-    });
-    console.log("✅ 請求發送成功");
+    await fetchWithRetry();
     loadProductList();
+    showToast("✅ 產品數據加載成功", "success");
   } catch (err) {
-    console.log("使用本地資料");
-    loadProductList();
+    console.error("❌ 最終失敗：", err);
+    showToast("❌ 系統加載失敗，請刷新重試", "error");
+    // 鎖定功能（可選，建議開啟）
+    els.addBtn.prop("disabled", true);
+    els.recognizeBtn.prop("disabled", true);
   }
 }
 
@@ -866,99 +904,71 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // 🔥 核心：OpenAI GPT-4V 精準圖片識別（取代Tesseract）
-  els.recognizeBtn.click(async () => {
-    if (!base64Image) {
-      showToast("❌ 請先上傳產品圖片", "error");
+  // 🔥 核心：調用GAS AI圖片識別 + 自動添加產品
+els.recognizeBtn.click(async () => {
+  if (!base64Image) {
+    showToast("❌ 請先上傳產品圖片", "error");
+    return;
+  }
+
+  // 加載狀態
+  els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
+  els.recognizeBtn.prop("disabled", true).text("🔍 AI識別中...");
+
+  try {
+    // 調用你自己的GAS OCR接口（無跨域、無API Key洩露）
+    const response = await fetch(`${GAS_API_URL}?action=ocr&base64=${encodeURIComponent(base64Image)}`);
+    const result = await response.json();
+
+    if (!result.data || result.data.length === 0) {
+      showToast("❌ 未識別到任何產品", "error");
       return;
     }
-    if (!OPENAI_API_KEY || OPENAI_API_KEY === "YOUR_OPENAI_API_KEY") {
-      showToast("❌ 請填寫OpenAI API Key", "error");
-      return;
-    }
 
-    els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
-    els.recognizeBtn.prop("disabled", true).text("🔍 OpenAI 識別中...");
+    console.log("✅ AI識別結果：", result.data);
+    let addCount = 0;
 
-    try {
-      // 調用OpenAI GPT-4V
-      const response = await fetch(OPENAI_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: `識別圖片中的產品編號(如211/300/255A/701)和數量，嚴格返回JSON格式，不要任何多餘文字，格式範例：[{"code":"211","qty":1},{"code":"300","qty":2}]`
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: base64Image,
-                    detail: "high"
-                  }
-                }
-              ]
-            }
-          ],
-          max_tokens: 300
-        })
-      });
+    // 🔥 自動匹配產品 + 自動添加到列表（不覆蓋，追加模式）
+    result.data.forEach(item => {
+      const code = item.code?.trim().toUpperCase();
+      const qty = parseInt(item.qty) || 1;
+      if (!code) return;
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error?.message || "識別失敗");
+      // 匹配產品庫
+      const targetProd = products.find(p => 
+        p.name.toUpperCase().includes(code) || p.name === code
+      );
+      if (!targetProd) return;
 
-      // 解析AI返回的產品列表
-      const aiResult = JSON.parse(result.choices[0].message.content.trim());
-      console.log("✅ OpenAI識別結果：", aiResult);
-
-      // 匹配產品 + 自動累加數量
-      const productMap = new Map();
-      aiResult.forEach(item => {
-        const code = item.code?.trim().toUpperCase();
-        const qty = parseInt(item.qty) || 1;
-        if (!code) return;
-
-        // 精準匹配工作表中的產品
-        const targetProd = products.find(p => 
-          p.name.toUpperCase().includes(code) || p.name === code
-        );
-        if (!targetProd) return;
-
-        const key = targetProd.name;
-        if (productMap.has(key)) {
-          productMap.get(key).qty += qty;
-        } else {
-          productMap.set(key, { ...targetProd, qty });
-        }
-      });
-
-      // 更新表格
-      selectedProds = Array.from(productMap.values());
-      if (selectedProds.length === 0) {
-        showToast("❌ 未識別到有效產品", "error");
-        return;
+      // 自動添加/累加產品
+      const exist = selectedProds.find(x => x.name === targetProd.name);
+      if (exist) {
+        exist.qty += qty;
+      } else {
+        selectedProds.push({ ...targetProd, qty });
       }
+      addCount++;
+    });
 
-      saveSelectedProds();
-      renderTable();
-      showToast(`✅ 識別成功！匯入 ${selectedProds.length} 個品項`, "success");
-
-    } catch (err) {
-      console.error("❌ OpenAI識別錯誤：", err);
-      showToast(`❌ 識別失敗：${err.message.slice(0,20)}`, "error");
-    } finally {
-      els.ocrOverlay.fadeOut(200);
-      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+    // 保存並刷新列表
+    saveSelectedProds();
+    renderTable();
+    
+    if (addCount > 0) {
+      showToast(`✅ 識別成功！自動添加 ${addCount} 個品項`, "success");
+    } else {
+      showToast("⚠️ 識別到編號，但未匹配到產品", "warning");
     }
-  });
+
+  } catch (err) {
+    console.error("❌ 識別失敗：", err);
+    showToast("❌ 圖片識別失敗，請重試", "error");
+  } finally {
+    // 恢復按鈕
+    els.ocrOverlay.fadeOut(200);
+    els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+  }
+});
 }
 
 // 加入產品
