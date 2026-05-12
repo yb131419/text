@@ -681,7 +681,7 @@ function handleImageSelect(e) {
 }
 
 
-// 開始AI識別（Fetch POST 徹底修復網路錯誤/URL過長/跨域問題）
+// 开始AI识别（彻底修复GAS网络错误版）
 async function startOcrRecognition() {
   // 防呆校验
   if (!userInfo || !userInfo.userId) {
@@ -703,22 +703,25 @@ async function startOcrRecognition() {
   showToast("🔍 AI正在識別品項，請稍候...", "success");
 
   try {
-    // 發送POST請求（無URL長度限制，根治網路錯誤）
+    // 🔥 修复：用 GAS 兼容的 POST 请求（去掉多余跨域配置）
+    const formData = new URLSearchParams();
+    formData.append("action", "ocrImage");
+    formData.append("userId", userInfo.userId);
+    formData.append("displayName", userInfo.displayName || "未知用戶");
+    formData.append("imageBase64", selectedImageBase64);
+
     const response = await fetch(API_URL, {
       method: "POST",
-      mode: "cors",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        action: "ocrImage",
-        userId: userInfo.userId,
-        displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
-        imageBase64: selectedImageBase64,
-      }),
+      body: formData
     });
 
+    // 打印详细日志（方便排查）
+    console.log("响应状态码:", response.status);
     const resp = await response.json();
+    console.log("识别返回结果:", resp);
 
     // 處理返回結果
     if (resp.status === "error") {
@@ -743,13 +746,13 @@ async function startOcrRecognition() {
     }
 
   } catch (err) {
-    // 唯一的網路錯誤提示
-    showToast(`❌ 網路錯誤，請重試`, "error");
-    console.error("識別錯誤：", err);
+    // 打印详细错误日志
+    console.error("AI识别完整错误：", err);
+    showToast(`❌ 網路/服務器錯誤，請重試`, "error");
   } finally {
     // 還原按鈕
     els.ocrRecognitionBtn.disabled = false;
-    els.ocrRecognitionBtn.textContent = "🤖<br>AI識別";
+    els.ocrRecognitionBtn.textContent = "🤖AI識別";
   }
 }
 
