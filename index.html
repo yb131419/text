@@ -134,11 +134,10 @@ body{
   height: 100vh;
   background: rgba(0, 0, 0, 0.9);
   z-index: 99999;
+  /* 修复：删除 !important 冲突，默认隐藏 */
   display: none;
-  /* 强制全屏居中，兼容所有设备 */
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
+  justify-content: center;
+  align-items: center;
   flex-direction: column;
   gap: 20px;
   backdrop-filter: blur(6px);
