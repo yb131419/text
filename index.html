@@ -404,6 +404,54 @@ body{
   #reportTable td,#reportTable th{text-align:center!important;}
   #watermark {display: none!important;}
 }
+
+/* 🔥 高级感 AI 识别浮窗 */
+.ocr-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 99999;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(8px);
+}
+.ocr-modal {
+  background: linear-gradient(145deg, #2d2d2d, #1f1f1f);
+  border: 1px solid rgba(0,209,178,0.4);
+  border-radius: 20px;
+  padding: 45px 35px;
+  text-align: center;
+  box-shadow: 0 12px 45px rgba(0,0,0,0.6);
+  animation: modalPop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  min-width: 300px;
+}
+.ocr-modal .loader {
+  width: 55px;
+  height: 55px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--accent);
+  margin: 0 auto 22px;
+}
+.ocr-modal h3 {
+  color: var(--highlight);
+  font-size: 1.5rem;
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+.ocr-modal p {
+  color: #bbb;
+  font-size: 1.05rem;
+  margin: 0;
+}
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.88); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 </style>
 </head>
 <body>
@@ -420,6 +468,15 @@ body{
 </div>
 <div id="authStatusBar" style="display: none;">
   <button class="close-status" title="隱藏狀態欄">隱藏</button>
+</div>
+
+<!-- AI 识别高级浮窗 -->
+<div class="ocr-overlay" id="ocrOverlay">
+  <div class="ocr-modal">
+    <div class="loader"></div>
+    <h3>🤖 AI 識別中</h3>
+    <p>正在解析圖片品項，請稍候...</p>
+  </div>
 </div>
 
 <div id="captureArea">
@@ -565,6 +622,7 @@ function initElements() {
     uploadImageBtn: document.getElementById("uploadImageBtn"),
     ocrRecognitionBtn: document.getElementById("ocrRecognitionBtn"),
     ocrPreview: document.getElementById("ocrPreview")
+    ocrOverlay: document.getElementById("ocrOverlay") // 新增这行
   };
 }
 
@@ -656,7 +714,6 @@ function handleImageSelect(e) {
       // 预览
       els.ocrPreview.src = data.data.url;
       els.ocrPreview.style.display = "block";
-      els.ocrRecognitionBtn.style.display = "inline-block";
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
       showToast("✅ 上傳成功，點擊AI識別", "success");
@@ -691,11 +748,15 @@ async function startOcrRecognition() {
   els.ocrRecognitionBtn.disabled = true;
   els.ocrRecognitionBtn.textContent = "識別中...";
   showToast("🔍 AI正在識別品項，請稍候...", "success");
+  // 🔥 显示高级识别浮窗
+  els.ocrOverlay.style.display = "flex";
 
   // 唯一回调函数
   const callbackName = `ocrCallback_${Date.now()}`;
   window[callbackName] = function(rawResp) {
     delete window[callbackName];
+    // 🔥 隐藏识别浮窗
+    els.ocrOverlay.style.display = "none";
     els.ocrRecognitionBtn.disabled = false;
     els.ocrRecognitionBtn.textContent = "🤖AI識別";
 
@@ -740,13 +801,13 @@ async function startOcrRecognition() {
     jsonp: "callback",
     jsonpCallback: callbackName,
     timeout: 60000,
-    data: {
-      action: "ocrImage",
-      userId: userInfo.userId,
-      displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
-      imageUrl: selectedImageBase64,
-      callback: callbackName
-    },
+data: {
+  action: "ocrImage",
+  userId: userInfo.userId,
+  displayName: userInfo.displayName || "未知用戶", // 移除encodeURIComponent
+  imageUrl: selectedImageBase64,
+  callback: callbackName
+},
     error: function() {
       delete window[callbackName];
       els.ocrRecognitionBtn.disabled = false;
@@ -757,46 +818,58 @@ async function startOcrRecognition() {
 }
 
 
-// 🔥 修复版：自动拿正确总颗数 + 240必添加 + 数量不会变1 + 火山甘露自动锁4
+// 🔥 最终修复版：精准匹配 + 正确数量 + 无BUG添加
 function addOcrProducts(ocrProducts) {
   let addCount = 0;
+  console.log("✅ OCR 识别全部数据：", ocrProducts);
 
-  console.log("✅ OCR 识别返回的全部数据：", ocrProducts);
-
+  // 遍历所有识别结果
   ocrProducts.forEach(item => {
-    const productName = item.name || "";
-    const correctQty = parseInt(item.qty) || 3; // 🔥 修复：用 qty 而不是 totalQty
+    // 1. 安全获取品名+数量（强制兜底，杜绝undefined报错）
+    const ocrName = (item.name || "").trim();
+    let recognizedQty = parseInt(item.qty);
+    // 遵循后端规则：数量无效=2，3强制转2
+    if (isNaN(recognizedQty) || recognizedQty <= 0) recognizedQty = 2;
+    if (recognizedQty === 3) recognizedQty = 2;
 
-    if (!productName) return;
+    // 空名称直接跳过
+    if (!ocrName) return;
 
-    // 查找产品库
-    const product = products.find(p => p.name === productName);
+    // 2. 🔥 精准匹配产品库（用displayName全名匹配，解决匹配错误）
+    const product = products.find(p => 
+      p.displayName.includes(ocrName) || ocrName.includes(p.displayName)
+    );
+
+    // 未匹配到产品 → 提示并跳过
     if (!product) {
-      console.log("⚠️ 产品库找不到：", productName);
+      console.log("⚠️ 未匹配产品：", ocrName);
+      showToast(`⚠️ 未匹配品项：${ocrName}`, "warning");
       return;
     }
 
-    // ======================
-    // 🔥 强制限制：火山甘露 = 4
-    // ======================
-    let finalQty = correctQty;
-    if (productName.includes("火山甘露")) {
+    // 3. 🔥 特殊商品强制数量（火山甘露固定4盒）
+    let finalQty = recognizedQty;
+    if (ocrName.includes("火山甘露") || product.displayName.includes("火山甘露")) {
       finalQty = 4;
     }
 
-    // 去重
-    const exists = selectedProds.find(p => p.name === productName);
-    if (exists) {
-      exists.qty = finalQty;
+    // 4. 🔥 正确去重：已存在则更新数量，不存在则新增
+    const existsIndex = selectedProds.findIndex(p => p.displayName === product.displayName);
+    if (existsIndex !== -1) {
+      selectedProds[existsIndex].qty = finalQty;
     } else {
       selectedProds.push({ ...product, qty: finalQty });
+      addCount++;
     }
-    addCount++;
   });
 
+  // 5. 强制保存+渲染表格（解决添加后不显示）
   saveSelectedProds();
   renderTable();
+  // 现金赠品逻辑重新计算
   if (els.cashOption.checked) handleCashGift();
+  
+  showToast(`✅ 识别完成！成功添加 ${addCount} 个品项`, "success");
 }
 
 function checkHerbalNewMember(selectedValue){
