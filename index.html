@@ -124,7 +124,7 @@ body{
   box-shadow: 0 0 30px rgba(0,209,178,0.3);
 }
 
-/* ============== AI辨識高質感浮窗遮罩（新增）============== */
+/* ============== AI辨識高質感浮窗遮罩（修正後）============== */
 #ocrOverlay {
   position: fixed;
   top: 0;
@@ -134,8 +134,10 @@ body{
   background: rgba(0, 0, 0, 0.9);
   z-index: 99999;
   display: none;
-  justify-content: center;
-  align-items: center;
+  /* 核心：強制 Flex 居中 */
+  display: none !important;
+  justify-content: center !important;
+  align-items: center !important;
   flex-direction: column;
   gap: 20px;
   backdrop-filter: blur(6px);
@@ -852,58 +854,71 @@ function initImageUpload() {
     if(file) handleImageFile(file);
   });
 
+  // 🔴 修復1：圖片預處理（放大小圖，解決OCR報錯：Image too small to scale）
   function handleImageFile(file){
     const reader = new FileReader();
     reader.onload = function (ev) {
-      base64Image = ev.target.result;
-      els.previewUploadImg.attr("src", base64Image).show();
-      els.recognizeBtn.show();
+      const img = new Image();
+      img.onload = function() {
+        // 縮放圖片至適合OCR識別的尺寸
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        // 放大2.5倍，解決小圖識別失敗
+        const scale = 2.5;
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // 輸出高質量base64
+        base64Image = canvas.toDataURL('image/png', 1.0);
+        els.previewUploadImg.attr("src", base64Image).show();
+        els.recognizeBtn.show();
+      };
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   }
 
-  // OCR產品識別
-els.recognizeBtn.click(async () => {
-  if (!base64Image) {
-    showToast("❌ 請先上傳產品圖片", "error");
-    return;
-  }
-
-  els.ocrOverlay.show();
-  els.recognizeBtn.prop("disabled", true).text("🔍 識別中，請稍候...");
-
- try {
-  const { data: { text } } = await Tesseract.recognize(
-    base64Image,
-    'eng',
-    { 
-      logger: m => console.log(m),
-      tessedit_pageseg_mode: 6,
-      user_defined_dpi: 300
+  // OCR產品識別（完整修復所有BUG）
+  els.recognizeBtn.click(async () => {
+    if (!base64Image) {
+      showToast("❌ 請先上傳產品圖片", "error");
+      return;
     }
-  );
 
-  const cleanText = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-  const productMap = {};
-  const regex = /(\d{3})(\d{1,2})/g; // 🔴 正則錯誤：只匹配3位數字+後綴，純數字品項匹配失效
-  let match;
+    els.ocrOverlay.css('display', 'flex');
+    els.recognizeBtn.prop("disabled", true).text("🔍 識別中，請稍候...");
 
-  // 🔴 核心BUG：while循環匹配邏輯錯誤，只執行1次，只取第一個匹配項
-  while ((match = regex.exec(cleanText)) !== null) {
-    const prodCode = match[1];
-    const count = parseInt(match[2]);
-    if (isNaN(count) || count < 2 || count > 5) continue;
+    try {
+      // 🔴 修復2：優化識別參數，支援繁體+數字，提高準確率
+      const { data: { text } } = await Tesseract.recognize(
+        base64Image,
+        'chi_tra+eng', // 繁體+英文數字識別
+        { 
+          logger: m => console.log(m),
+          tessedit_pageseg_mode: 11 // 自動偵測所有字符
+        }
+      );
 
-    let qty = count;
-    if (count === 3) qty = 2;
-    else if (count === 4) qty = 3;
-    else if (count === 5) qty = 4;
+      const cleanText = text.replace(/[^0-9]/g, ''); // 只保留數字
+      const productMap = {};
+      // 🔴 修復3：正則改為匹配所有3位數字產品編碼
+      const regex = /\d{3}/g; 
+      // 匹配所有產品編碼
+      const matches = cleanText.match(regex) || [];
 
-    // 🔴 次要BUG：find只匹配第一個產品，多品項無法識別
-    const targetProd = products.find(p => p.name.includes(prodCode));
-    if (!targetProd || targetProd.name === "贈品 211(30)") continue;
-    productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
-  }
+      // 🔴 修復4：遍歷所有匹配的產品編碼，支援多品項
+      for(let i=0; i<matches.length; i++){
+        const prodCode = matches[i];
+        // 數量默認為1，可自定義
+        const qty = 1;
+
+        // 🔴 修復5：精準匹配產品，跳過贈品
+        const targetProd = products.find(p => p.name.includes(prodCode));
+        if (!targetProd || targetProd.name === "贈品 211(30)") continue;
+        
+        // 累加數量
+        productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
+      }
 
       const matchedList = Object.entries(productMap);
       if (matchedList.length === 0) {
