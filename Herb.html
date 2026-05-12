@@ -11,7 +11,8 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: "Microsoft JhengHei", "PingFang TC", "Heiti TC", sans-serif;
+            font-family: "Microsoft JhengHei", "PingFang TC", "Heiti TC", sans-serif !important;
+            font-size: 12px !important; /* 🔥 强制全局统一字体大小 */
         }
 
         :root {
@@ -27,7 +28,7 @@
 
         body {
             background-color: #F3F5F4;
-            padding: 10px;
+            padding: 5px;
             color: var(--dark);
         }
 
@@ -44,90 +45,85 @@
         .header {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            padding: 12px 16px;
+            padding: 8px 12px;
             text-align: center;
         }
 
         .header h1 {
-            font-size: 18px;
+            font-size: 16px !important;
             font-weight: 600;
         }
 
-        /* 基本资料 - 电脑端默认 */
+        /* 基本资料 - 姓名+介绍人强制同一行 */
         .info-card {
-            padding: 16px;
+            padding: 10px 8px;
             border-bottom: 1px solid var(--gray);
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 6px;
             align-items: center;
         }
 
         .info-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        /* 🔥 姓名+介绍人强制同一行 */
+        .info-item:nth-child(2),
+        .info-item:nth-child(3) {
+            flex: 0 0 48% !important;
+            min-width: auto !important;
         }
 
         .info-item label {
             font-weight: 600;
             color: var(--primary);
-            font-size: 14px;
+            width: 38px;
         }
 
         .info-item input, .info-item select {
             border: 1px solid var(--gray);
             border-radius: 4px;
-            padding: 6px 8px;
+            padding: 3px 5px;
             outline: none;
             transition: 0.2s;
-            font-size: 14px;
+            flex: 1;
         }
 
-        /* 🔥 手机端一行两列 + 紧凑排版 */
+        /* 🔥 手机端极致紧凑排版 */
         @media (max-width: 768px) {
-            body { padding: 5px; }
+            body { padding: 2px; }
             .info-card {
-                padding: 12px 8px;
-                gap: 8px;
+                padding: 8px 5px;
+                gap: 4px;
             }
             .info-item {
-                flex: 0 0 48%; /* 一行两列核心 */
-                justify-content: flex-start;
+                flex: 0 0 48%;
+                min-width: auto;
             }
-            .info-item label {
-                font-size: 12px;
-                width: 40px;
-            }
-            .info-item input, .info-item select {
-                font-size: 12px;
-                padding: 4px 6px;
-                flex: 1;
-            }
-            .month-section { padding: 12px 8px; }
-            .month-title { font-size: 14px; }
-            .btn { font-size: 11px; padding: 4px 8px; }
-            .nutrition-table th, .nutrition-table td {
-                font-size: 11px;
-                padding: 6px 4px;
-            }
-            .edit-input { width: 70px; }
-            .check-btn { width: 24px; height: 24px; }
+            .month-section { padding: 8px 5px; }
+            .month-title { font-size: 14px !important; }
+            .btn { padding: 3px 6px; }
+            .table-wrapper { overflow-x: auto; }
         }
 
-        /* 月份模块容器 */
+        /* 月份模块 */
         .month-section {
-            padding: 16px;
+            padding: 10px 8px;
             border-bottom: 2px solid var(--gray);
         }
 
         .month-title {
-            font-size: 16px;
+            font-size: 14px !important;
             font-weight: 600;
             color: var(--primary);
-            margin-bottom: 12px;
-            padding-left: 8px;
-            border-left: 4px solid var(--accent);
+            margin-bottom: 8px;
+            padding-left: 6px;
+            border-left: 3px solid var(--accent);
         }
 
         /* 折叠面板 */
@@ -135,225 +131,129 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 12px;
+            padding: 6px 8px;
             background: var(--light);
             border-radius: var(--radius);
             cursor: pointer;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .collapse-content {
             display: none;
-            padding: 8px 12px;
+            padding: 6px 8px;
             background: var(--light);
             border-radius: var(--radius);
         }
 
-        .collapse-content.show {
-            display: block;
-        }
+        .collapse-content.show { display: block; }
+        .collapse-btn { background: none; border: none; color: var(--primary); cursor: pointer; }
 
-        .collapse-btn {
-            background: none;
-            border: none;
-            color: var(--primary);
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        /* 产品快捷选择区 */
-        .product-panel {
-            margin-bottom: 12px;
-        }
-
-        .panel-title {
-            font-weight: 600;
-            color: var(--primary);
-            font-size: 13px;
-        }
-
+        /* 产品标签 */
         .product-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            max-height: 120px;
+            gap: 4px;
+            max-height: 100px;
             overflow-y: auto;
-            padding-right: 8px;
         }
 
         .product-tag {
-            padding: 5px 10px;
+            padding: 3px 8px;
             background: white;
             border: 1px solid var(--secondary);
             border-radius: 20px;
-            font-size: 12px;
             cursor: pointer;
-            transition: 0.2s;
             white-space: nowrap;
         }
 
-        /* 已添加产品样式（防呆标识） */
         .product-tag.added {
             background: var(--secondary);
             color: white;
             cursor: not-allowed;
-            border-color: var(--primary);
         }
 
-        .product-tag:hover:not(.added) {
-            background: var(--secondary);
-            color: white;
-        }
-
-        /* 操作按钮区 */
+        /* 操作按钮 */
         .action-bar {
-            padding: 8px 0;
+            padding: 6px 0;
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
         }
 
         .btn {
-            padding: 6px 12px;
+            padding: 3px 6px;
             border: none;
             border-radius: 4px;
-            font-size: 12px;
             font-weight: 500;
             cursor: pointer;
-            transition: 0.2s;
         }
 
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-light { background: white; border: 1px solid var(--gray); }
+        .btn-accent { background: var(--accent); color: white; }
 
-        .btn-light {
-            background: white;
-            border: 1px solid var(--gray);
-        }
-
-        .btn-accent {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-        }
-
-        /* 直式高质感表格 */
-        .table-wrapper {
-            overflow-x: auto;
-        }
-
+        /* 🔥 表格极致缩小 - 适配手机尺寸 */
         .nutrition-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 550px;
+            min-width: 420px;
         }
 
-        .nutrition-table thead {
-            background: var(--primary);
-            color: white;
-        }
-
+        .nutrition-table thead { background: var(--primary); color: white; }
         .nutrition-table th {
-            padding: 10px 8px;
-            font-size: 13px;
-            font-weight: 600;
-            text-align: center;
+            padding: 4px 2px;
             border-right: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .nutrition-table th:last-child {
-            border-right: none;
-        }
-
-        .nutrition-table tbody tr {
-            border-bottom: 1px solid var(--gray);
-            transition: 0.2s;
-        }
-
-        .nutrition-table tbody tr:hover {
-            background: var(--light);
+            font-weight: 500;
         }
 
         .nutrition-table td {
-            padding: 8px 6px;
+            padding: 4px 2px;
             text-align: center;
-            font-size: 13px;
             vertical-align: middle;
         }
 
+        /* 🔥 输入框/按钮强制缩小 */
         .edit-input {
-            width: 100px;
+            width: 50px !important; /* 顆數欄縮小 */
             text-align: center;
             border: 1px solid var(--gray);
-            border-radius: 4px;
-            padding: 4px;
-            outline: none;
+            border-radius: 3px;
+            padding: 2px;
         }
 
         .check-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
+            width: 20px !important; /* 早中晚按鈕縮小 */
+            height: 20px !important;
+            border-radius: 3px;
             border: 1px solid var(--secondary);
             background: white;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
             color: var(--accent);
         }
 
-        /* 勾選樣式 */
-        .check-btn.active {
-            background: #FFF0F3;
-        }
+        .check-btn.active { background: #FFF0F3; }
 
-        /* 單行刪除按鈕 */
+        /* 🔥 刪除按鈕縮小 */
         .del-single-btn {
-            padding: 4px 8px;
+            padding: 2px 5px;
             background: var(--accent);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 3px;
             cursor: pointer;
-            font-size: 12px;
         }
 
-        /* 分享按鈕區 */
-        .share-section {
-            padding: 16px;
-            text-align: center;
-            border-top: 1px solid var(--gray);
-        }
-
-        /* 备注区 */
-        .notes {
-            padding: 16px;
-            background: var(--light);
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .note-item {
-            margin-bottom: 6px;
-        }
+        /* 分享/备注 */
+        .share-section { padding: 10px; text-align: center; border-top: 1px solid var(--gray); }
+        .notes { padding: 10px; background: var(--light); line-height: 1.4; }
+        .note-item { margin-bottom: 4px; }
 
         /* 滚动条美化 */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--secondary);
-            border-radius: 3px;
-        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 2px; }
     </style>
 </head>
 <body>
@@ -369,6 +269,7 @@
                 <label>日期：</label>
                 <input type="text" id="date" readonly>
             </div>
+            <!-- 🔥 姓名 + 介紹人 同一行 -->
             <div class="info-item">
                 <label>姓名：</label>
                 <input type="text" id="name" placeholder="請輸入姓名">
@@ -377,12 +278,12 @@
                 <label>介紹人：</label>
                 <input type="text" id="introducer" placeholder="請輸入介紹人">
             </div>
-            <!-- 地點欄位 -->
+            <!-- 地點 -->
             <div class="info-item">
                 <label>地點：</label>
                 <input type="text" id="location" placeholder="請輸入地點" value="">
             </div>
-            <!-- 入會下拉欄位 -->
+            <!-- 入會 -->
             <div class="info-item">
                 <label>入會：</label>
                 <select id="memberType">
@@ -397,10 +298,10 @@
                 <label>基本保養：</label>
                 <input type="text" id="basicNutrition" value="211、300、299A各3顆">
             </div>
-            <!-- 火山甘露 下拉選擇包數 -->
+            <!-- 火山甘露 -->
             <div class="info-item">
                 <label>火山甘露：</label>
-                <select id="volcanoTea" style="width:70px">
+                <select id="volcanoTea">
                     <option value="0">0包</option>
                     <option value="1">1包</option>
                     <option value="2">2包</option>
@@ -426,24 +327,22 @@
                 </div>
             </div>
             <div class="action-bar">
-                <button class="btn btn-primary" onclick="addRow(1)">➕ 新增行</button>
+                <button class="btn btn-primary" onclick="addRow(1)">➕ 新增</button>
                 <button class="btn btn-light" onclick="clearTable(1)">🧹 清空</button>
             </div>
-            <div class="table-wrapper">
-                <table class="nutrition-table">
-                    <thead>
-                        <tr>
-                            <th>產品編號</th>
-                            <th>顆數</th>
-                            <th>早</th>
-                            <th>中</th>
-                            <th>晚</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="body1"></tbody>
-                </table>
-            </div>
+            <table class="nutrition-table">
+                <thead>
+                    <tr>
+                        <th>產品編號</th>
+                        <th>顆數</th>
+                        <th>早</th>
+                        <th>中</th>
+                        <th>晚</th>
+                        <th>刪除</th>
+                    </tr>
+                </thead>
+                <tbody id="body1"></tbody>
+            </table>
         </div>
 
         <!-- 第二個月 -->
@@ -459,24 +358,22 @@
                 </div>
             </div>
             <div class="action-bar">
-                <button class="btn btn-primary" onclick="addRow(2)">➕ 新增行</button>
+                <button class="btn btn-primary" onclick="addRow(2)">➕ 新增</button>
                 <button class="btn btn-light" onclick="clearTable(2)">🧹 清空</button>
             </div>
-            <div class="table-wrapper">
-                <table class="nutrition-table">
-                    <thead>
-                        <tr>
-                            <th>產品編號</th>
-                            <th>顆數</th>
-                            <th>早</th>
-                            <th>中</th>
-                            <th>晚</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="body2"></tbody>
-                </table>
-            </div>
+            <table class="nutrition-table">
+                <thead>
+                    <tr>
+                        <th>產品編號</th>
+                        <th>顆數</th>
+                        <th>早</th>
+                        <th>中</th>
+                        <th>晚</th>
+                        <th>刪除</th>
+                    </tr>
+                </thead>
+                <tbody id="body2"></tbody>
+            </table>
         </div>
 
         <!-- 第三個月 -->
@@ -492,24 +389,22 @@
                 </div>
             </div>
             <div class="action-bar">
-                <button class="btn btn-primary" onclick="addRow(3)">➕ 新增行</button>
+                <button class="btn btn-primary" onclick="addRow(3)">➕ 新增</button>
                 <button class="btn btn-light" onclick="clearTable(3)">🧹 清空</button>
             </div>
-            <div class="table-wrapper">
-                <table class="nutrition-table">
-                    <thead>
-                        <tr>
-                            <th>產品編號</th>
-                            <th>顆數</th>
-                            <th>早</th>
-                            <th>中</th>
-                            <th>晚</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="body3"></tbody>
-                </table>
-            </div>
+            <table class="nutrition-table">
+                <thead>
+                    <tr>
+                        <th>產品編號</th>
+                        <th>顆數</th>
+                        <th>早</th>
+                        <th>中</th>
+                        <th>晚</th>
+                        <th>刪除</th>
+                    </tr>
+                </thead>
+                <tbody id="body3"></tbody>
+            </table>
         </div>
 
         <!-- 备注 -->
@@ -586,11 +481,8 @@
             const tags = document.querySelectorAll(`#tags${month} .product-tag`);
             tags.forEach(tag => {
                 if(tag.dataset.product === product) {
-                    if(isAdded) {
-                        tag.classList.add('added');
-                    } else {
-                        tag.classList.remove('added');
-                    }
+                    if(isAdded) tag.classList.add('added');
+                    else tag.classList.remove('added');
                 }
             });
         }
@@ -601,7 +493,6 @@
                 alert(`❌ 【${product}】已添加至本月，無法重複添加！`);
                 return;
             }
-
             const tbody = document.getElementById(`body${month}`);
             const tr = document.createElement('tr');
             
@@ -614,28 +505,26 @@
                 <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
                 <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
                 <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-                <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪除</button></td>
+                <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>
             `;
             tbody.appendChild(tr);
         }
 
         // ===================== 表格操作 =====================
-        // 新增空白行
         function addRow(month) {
             const tbody = document.getElementById(`body${month}`);
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" class="edit-input prod-name" placeholder="雙擊產品添加"></td>
+                <td><input type="text" class="edit-input prod-name" placeholder="雙擊添加"></td>
                 <td><input type="number" class="edit-input" value="3"></td>
                 <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
                 <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
                 <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-                <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪除</button></td>
+                <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>
             `;
             tbody.appendChild(tr);
         }
 
-        // 單行刪除（同步更新防呆列表）
         function delSingleRow(month, btn) {
             const row = btn.closest('tr');
             const product = row.querySelector('.prod-name').value;
@@ -645,17 +534,14 @@
                 addedProducts[month].splice(index, 1);
                 updateTagStyle(month, product, false);
             }
-            
             row.remove();
         }
 
-        // 清空表格（重置防呆列表）
         function clearTable(month) {
             if(confirm('確定清空？')) {
                 document.getElementById(`body${month}`).innerHTML = '';
                 addedProducts[month] = [];
-                const tags = document.querySelectorAll(`#tags${month} .product-tag`);
-                tags.forEach(tag => tag.classList.remove('added'));
+                document.querySelectorAll(`#tags${month} .product-tag`).forEach(tag => tag.classList.remove('added'));
             }
         }
 
@@ -676,39 +562,26 @@
             btn.textContent = btn.classList.contains('active') ? '√' : '';
         }
 
-        // ===================== 🔥 截图分享报表图片 =====================
+        // ===================== 截圖分享 =====================
         async function shareReportImage() {
             try {
-                const container = document.getElementById('captureContainer');
-                // 生成截图
-                const canvas = await html2canvas(container, {
-                    useCORS: true,
-                    scale: 2,
-                    backgroundColor: '#ffffff'
+                const canvas = await html2canvas(document.getElementById('captureContainer'), {
+                    useCORS: true, scale: 2, backgroundColor: '#ffffff'
                 });
-                
-                // 转图片Blob
                 canvas.toBlob(async (blob) => {
                     const file = new File([blob], "草本產品報表.png", { type: "image/png" });
-                    
-                    // 原生分享图片
                     if (navigator.share) {
-                        await navigator.share({
-                            title: '草本產品購買明細表',
-                            files: [file]
-                        });
+                        await navigator.share({ title: '草本產品購買明細表', files: [file] });
                     } else {
-                        // 不支持分享则下载图片
                         const link = document.createElement('a');
                         link.download = '草本產品報表.png';
                         link.href = canvas.toDataURL('image/png');
                         link.click();
-                        alert('瀏覽器不支援分享，已自動下載圖片！');
+                        alert('瀏覽器不支援分享，已自動下載！');
                     }
                 }, 'image/png');
             } catch (err) {
                 alert('分享失敗，請手動截圖！');
-                console.log(err);
             }
         }
 
