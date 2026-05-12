@@ -802,20 +802,20 @@ window.addEventListener('DOMContentLoaded', async () => {
   initLiffAuth();
 });
 
-// ==================== 🔥 LIFF 完整权限验证（修复卡死版） ====================
+// ==================== 🔥 LIFF 完整權限驗證（修復語法錯誤+卡死） ====================
 async function initLiffAuth() {
-  // 防止重复初始化
+  // 防止重複初始化
   if (window.liffInitializing) {
     return;
   }
   window.liffInitializing = true;
 
+  // 頂層 try + catch + finally 🔴 修復語法錯誤的核心
   try {
-    // 检查SDK是否加载成功
+    // 檢查SDK是否加載成功
     if (!window.liff) {
       $("#loginTip").text("LIFF SDK加載失敗，請檢查網路").show();
       showToast("❌ 網路異常，SDK加載失敗", "error");
-      window.liffInitializing = false;
       return;
     }
 
@@ -823,67 +823,60 @@ async function initLiffAuth() {
     // 初始化LIFF
     await liff.init({ liffId: LIFF_ID });
 
-    // 必须在LINE内打开
+    // 必須在LINE內打開
     if (!liff.isInClient()) {
       $("#loginTip").text("請在LINE內打開此系統").show();
       showToast("❌ 請在LINE內打開使用", "error");
-      window.liffInitializing = false;
       return;
     }
 
-    // 未登录则跳转登录
+    // 未登錄則跳轉登錄
     if (!liff.isLoggedIn()) {
       liff.login({ redirectUri: window.location.href });
-      window.liffInitializing = false;
       return;
     }
 
-    // 获取用户资料
+    // 獲取用戶資料
     const profile = await liff.getProfile();
     userInfo = { userId: profile.userId, displayName: profile.displayName };
 
-    // 读取本地缓存
+    // 讀取本地緩存
     if (isTodayValidAuth(profile.userId)) {
       authStatus = JSON.parse(localStorage.getItem(`authCache_${profile.userId}`)).data;
       $("#authContainer").addClass("logged-in");
       await initSystem();
       showToast(`✅ 歡迎💎尊爵用戶<br><span class="toast-highlight-name">${userInfo.displayName}</span>`, "success");
-      window.liffInitializing = false;
       return;
     }
 
-    // 開始驗證權限
+    // 開始驗證權限（GAS後端）
     updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
-    // 修复：添加超时 + 网络错误捕获
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
     
-    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {
-      method: "GET",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      }
-    });
-    clearTimeout(timeoutId);
-
-    // 修改后（打印错误，方便排查）
-    let verifyData = { status: "error", message: "网络异常，无法获取权限" };
+    // 內層 try catch 單獨處理網路請求
+    let verifyData;
     try {
+      const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {
+        method: "GET",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json", "Accept": "application/json" }
+      });
+      clearTimeout(timeoutId);
       verifyData = await verifyRes.json();
     } catch (e) {
-      console.error("解析权限响应失败：", e);
+      console.error("GAS 請求失敗：", e);
+      verifyData = { status: "error", message: "網路異常，無法獲取權限" };
     }
 
     // 權限驗證失敗
     if (verifyData.status !== "success") {
       $("#loginTip").text(verifyData.message || "權限驗證失敗").show();
       showToast(verifyData.message || "❌ 權限驗證失敗", "error");
-      window.liffInitializing = false;
       return;
     }
 
+    // 計算過期時間
     const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
     authStatus = {
       ...verifyData,
@@ -893,26 +886,31 @@ async function initLiffAuth() {
       remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount||0)
     };
 
+    // 帳號過期
     if(authStatus.isExpired){
-      $("#loginTip").text("賬號已過期，請聯繫管理員").show();
-      showToast("❌ 賬號已過期", "error");
-      window.liffInitializing = false;
+      $("#loginTip").text("帳號已過期，請聯繫管理員").show();
+      showToast("❌ 帳號已過期", "error");
       return;
     }
 
-    if(authStatus.isVip || authStatus.isSuperAdmin) saveTodayAuthCache(profile.userId, authStatus);
+    // 緩存權限
+    if(authStatus.isVip || authStatus.isSuperAdmin) {
+      saveTodayAuthCache(profile.userId, authStatus);
+    }
     
+    // 登錄成功
     $("#authContainer").addClass("logged-in");
     $("#loginTip").hide();
     await initSystem();
     showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
 
   } catch (err) {
-    console.error("詳細錯誤：", err);
+    // 頂層錯誤捕獲 🔴 必備！修復語法錯誤
+    console.error("LIFF 驗證崩潰：", err);
     $("#loginTip").text("網路/伺服器異常，請重新整理").show();
     showToast("❌ 驗證失敗，請重新整理", "error");
   } finally {
-    // 🔥 强制释放锁，解决卡死
+    // 強制釋放鎖 🔴 必備！解決卡死
     window.liffInitializing = false;
   }
 }
@@ -1356,28 +1354,6 @@ function showToast(msg, type = "success") {
   setTimeout(() => toast.remove(), 3000);
 }
 
-// 檢查登錄狀態
-function initLoginCheck() {
-  if(localStorage.getItem("system_login") === "true"){
-    $("#authContainer").addClass("logged-in");
-    initSystem();
-  }
-}
-// 登錄按鈕事件
-function bindLoginEvent() {
-  $("#loginBtn").click(()=>{
-    const val = $("#loginKeyInput").val().trim();
-    if(val === ADMIN_KEY){
-      localStorage.setItem("system_login", "true");
-      $("#authContainer").addClass("logged-in");
-      $("#loginTip").hide();
-      initSystem();
-    }else{
-      $("#loginTip").show();
-    }
-  });
-  $("#loginKeyInput").keyup(e=>e.key===13&&$("#loginBtn").click());
-}
 </script>
 
 </body>
