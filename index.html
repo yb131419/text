@@ -170,44 +170,6 @@ body{
   width:100%;max-width:360px;background:var(--grad-secondary);border-radius:16px;padding:30px 20px;text-align:center;
   box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.05);transition:all 0.5s ease;
 }
-#authStatusBar{
-  position:sticky;top:8px;z-index:999;background:var(--grad-secondary);padding:10px 16px;border-radius:12px;margin-bottom:15px;
-  font-size:15px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
-  display:none;width:100%;max-width:600px;transition:all 0.3s ease;
-}
-#authStatusBar .close-status {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  width: 28px;
-  height: 70px;
-  border-radius: 8px;
-  background: linear-gradient(145deg, #ffffff, #f5f5f5);
-  color: #000;
-  cursor: pointer;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  text-orientation: upright;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.8),inset 0 -1px 0 rgba(0,0,0,0.1);
-  padding: 0;
-  font-weight: 700;
-  line-height: 1.3;
-  margin: 0;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-  border: 1px solid rgba(255,255,255,0.9) !important;
-  white-space: pre-wrap;
-}
-#authStatusBar .close-status:hover {
-  background: linear-gradient(145deg, #f8f8f8, #eaeaea);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.9),inset 0 -1px 0 rgba(0,0,0,0.15);
-  border-color: #ffffff !important;
-  color: #111;
-}
 .loader{
   width:45px;height:45px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--loader);border-radius:50%;
   animation:spin 1s linear infinite,pulse 2s ease-in-out infinite alternate;margin:0 auto 15px;
@@ -575,6 +537,60 @@ body{
 #authContainer.logged-in ~ #captureArea {
   display: block !important;
 }
+
+/* 授权状态栏样式（代码二完整逻辑） */
+#authStatusBar{
+  position:sticky;top:8px;z-index:999;background:var(--grad-secondary);padding:10px 16px;border-radius:12px;margin-bottom:15px;
+  font-size:15px;text-align:center;border:1px solid rgba(0,209,178,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  display:none;width:100%;max-width:600px;transition:all 0.3s ease;
+}
+#authStatusBar .close-status {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 28px;
+  height: 70px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #ffffff, #f5f5f5);
+  color: #000;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-orientation: upright;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.8),inset 0 -1px 0 rgba(0,0,0,0.1);
+  padding: 0;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  border: 1px solid rgba(255,255,255,0.9) !important;
+  white-space: pre-wrap;
+}
+#authStatusBar .close-status:hover {
+  background: linear-gradient(145deg, #f8f8f8, #eaeaea);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.9),inset 0 -1px 0 rgba(0,0,0,0.15);
+  border-color: #ffffff !important;
+  color: #111;
+}
+/* 修复登录后显示逻辑（覆盖代码一错误的CSS） */
+#captureArea, .upload-area, #recognizeBtn, .button-group, #inputArea, .spacer {
+  display: none !important;
+}
+#authContainer.logged-in ~ #captureArea {
+  display: block !important;
+}
+#authContainer.logged-in ~ .upload-area,
+#authContainer.logged-in ~ #recognizeBtn,
+#authContainer.logged-in ~ .button-group,
+#authContainer.logged-in ~ #inputArea,
+#authContainer.logged-in ~ .spacer {
+  display: flex !important;
+}
 </style>
 </head>
 <body>
@@ -587,6 +603,11 @@ body{
     <p>正在驗證 LINE 授權中...</p>
     <p id="loginTip" style="color:#ff5252;margin-top:10px;display:none;">驗證失敗，次數用盡或請重新整理</p>
   </div>
+</div>
+
+<!-- 授权状态栏（带关闭按钮） -->
+<div id="authStatusBar" style="display: none;">
+  <button class="close-status" title="隱藏狀態欄">關閉</button>
 </div>
 
 <!-- 全屏原圖預覽 -->
@@ -684,6 +705,12 @@ body{
 // ==================== 產品資料庫（可自行編輯）====================
 // ==================== 全局常量 ====================
 const products = [];
+// 权限全局变量（代码二核心）
+let userInfo = null, authStatus = null;
+const PERMANENT_EXPIRY_DATE = "9999/12/31";
+const MAX_NORMAL_USER_USAGE = 3;
+let userUsageRecord = JSON.parse(localStorage.getItem('userUsageRecord')) || {};
+
 let selectedProds = [];
 let lineName = '';
 let els = {};
@@ -693,6 +720,76 @@ let base64Image = "";
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
 // LIFF ID（從你的GAS代碼中獲取）
 const LIFF_ID = "2008578880-zlK2U8dQ";
+
+// ==================== 权限工具函数（代码二完整逻辑） ====================
+const getTodayDate=()=>{
+  const d=new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+};
+const isTodayValidAuth=(userId)=>{
+  const authCache=JSON.parse(localStorage.getItem(`authCache_${userId}`))||{};
+  return authCache.date===getTodayDate()&&authCache.data;
+};
+const saveTodayAuthCache=(userId,authData)=>{
+  localStorage.setItem(`authCache_${userId}`,JSON.stringify({date:getTodayDate(),data:authData}));
+};
+const calculateRemainingDays=(expiryDateStr)=>{
+  try{
+    if(expiryDateStr===PERMANENT_EXPIRY_DATE)return{displayDate:"永久有效",remainingDays:"永久有效",isExpired:false};
+    const dateReg=/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/;
+    if(!dateReg.test(expiryDateStr))return{displayDate:"格式錯誤",remainingDays:"格式錯誤",isExpired:true};
+    const dateParts=expiryDateStr.replace(/-/g,'/').split('/').map(Number);
+    const [year,month,day]=dateParts;
+    const expiryDate=new Date(year,month-1,day,23,59,59,999);
+    const now=new Date();
+    const oneDayMs=1000*3600*24;
+    const timeDiff=expiryDate.getTime()-now.getTime();
+    const dayDiff=Math.ceil(timeDiff/oneDayMs);
+    const fmtMonth=String(month).padStart(2,'0');
+    const fmtDay=String(day).padStart(2,'0');
+    const displayDate=`${year}/${fmtMonth}/${fmtDay}`;
+    let remainingDaysText,isExpired=false;
+    if(timeDiff<0){remainingDaysText="<span class='expired'>已過期</span>";isExpired=true;}
+    else if(dayDiff<=30){remainingDaysText=`<span class='warning'>${dayDiff} 天</span>`;}
+    else{remainingDaysText=`${dayDiff} 天`;}
+    return{displayDate,remainingDays:remainingDaysText,isExpired};
+  }catch(e){
+    return{displayDate:"計算錯誤",remainingDays:"計算錯誤",isExpired:true};
+  }
+};
+function updateAuthStatusBar(){
+  if(!authStatus||!userInfo)return;
+  let statusHtml='';
+  if(authStatus.isSuperAdmin){
+    statusHtml=`
+      <span class="super-admin">👑 超級管理員 👑</span> | 
+      用戶名：<span class="super-admin-username">${userInfo.displayName}</span>
+      <br/>有效期限：${authStatus.displayExpiryDate} | 剩餘：${authStatus.remainingDays}
+    `;
+  }else if(authStatus.isVip){
+    statusHtml=`
+      <span class="vip-admin">💎 尊爵用戶 💎</span> | 
+      用戶名：<span class="vip-admin-username">${userInfo.displayName}</span>
+      <br/>有效期限：${authStatus.displayExpiryDate} | 剩餘：${authStatus.remainingDays}
+    `;
+  }else{
+    statusHtml=`
+      <span class="normal">🪙 普通用戶 🪙</span> | 
+      用戶名：${userInfo.displayName}
+      <br/>剩餘使用次數：<span class="${authStatus.remainingTimes<=0?'expired':'normal'}">${authStatus.remainingTimes||0}/${MAX_NORMAL_USER_USAGE}次</span>
+    `;
+  }
+  els.authStatusBar.innerHTML = `<button class="close-status" title="隱藏狀態欄">關閉</button>${statusHtml}`;
+  els.authStatusBar.querySelector('.close-status').addEventListener('click',function(){
+    els.authStatusBar.style.opacity='0';
+    setTimeout(()=>{els.authStatusBar.style.display='none';els.authStatusBar.style.opacity='1';},300);
+  });
+  els.authStatusBar.style.display='block';
+}
+function updateAuthLoadingText(title, desc) {
+  $("#authLoading h3").text(title);
+  $("#authLoading p").html(desc);
+}
 
 // ==================== DOM 加載完成 ====================
 window.addEventListener('DOMContentLoaded', async () => {
@@ -706,54 +803,70 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==================== 🔥 LIFF 自動驗證登錄（最終修復版）====================
-// ==================== 🔥 LIFF 自動驗證登錄（修復版）====================
+// ==================== 🔥 LIFF 完整权限验证（代码二逻辑） ====================
 async function initLiffAuth() {
   try {
-    // 修复1：判断LIFF SDK是否加载
     if (!window.liff) {
       $("#loginTip").text("LIFF SDK加載失敗，請檢查網路").show();
       showToast("❌ 網路異常，SDK加載失敗", "error");
       return;
     }
+    updateAuthLoadingText("正在驗證", "請稍候...");
+    await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser:true });
 
-    // 修复2：标准try/catch初始化LIFF（删除错误的链式catch）
-    await liff.init({ liffId: LIFF_ID });
-
-    // 非LINE客户端提示
     if (!liff.isInClient()) {
       $("#loginTip").text("請在LINE內打開此系統").show();
       showToast("❌ 請在LINE內打開使用", "error");
       return;
     }
+    if (!liff.isLoggedIn()) { liff.login(); return; }
 
-    // 未登錄則跳轉
-    if (!liff.isLoggedIn()) {
-      liff.login();
+    const profile = await liff.getProfile();
+    userInfo = { userId: profile.userId, displayName: profile.displayName };
+
+    // VIP/超管 当日缓存
+    if(isTodayValidAuth(profile.userId)){
+      authStatus = JSON.parse(localStorage.getItem(`authCache_${profile.userId}`)).data;
+      $("#authContainer").addClass("logged-in");
+      await initSystem();
+      showToast(`✅ 歡迎💎尊爵用戶<br><span class="toast-highlight-name">${userInfo.displayName}</span>`, "success");
       return;
     }
 
-    // 獲取使用者資訊
-    const profile = await liff.getProfile();
-    const userId = profile.userId;
-    const displayName = profile.displayName;
-    console.log("LINE用戶：", userId, displayName);
-
-    // 修复3：删除 mode: 'cors'，解决LIFF环境跨域异常
-    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${userId}&displayName=${encodeURIComponent(displayName)}`, {
-      cache: 'no-cache'
-    });
+    // 后端验证
+    updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
+    const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {cache: 'no-cache'});
     const verifyData = await verifyRes.json();
 
-    // 驗證結果
-    if (verifyData.status === "success") {
-      $("#authContainer").addClass("logged-in");
-      $("#loginTip").hide();
-      await initSystem();
-      showToast(verifyData.message, "success");
-    } else {
+    if (verifyData.status !== "success") {
       $("#loginTip").text(verifyData.message).show();
       showToast(verifyData.message, "error");
+      return;
     }
+
+    // 权限计算
+    const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
+    authStatus = {
+      ...verifyData,
+      displayExpiryDate: expiry.displayDate,
+      remainingDays: expiry.remainingDays,
+      isExpired: expiry.isExpired,
+      remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount||0)
+    };
+
+    if(authStatus.isExpired){
+      $("#loginTip").text("賬號已過期，請聯繫管理員").show();
+      showToast("❌ 賬號已過期", "error");
+      return;
+    }
+
+    // 缓存VIP/超管
+    if(authStatus.isVip || authStatus.isSuperAdmin) saveTodayAuthCache(profile.userId, authStatus);
+    
+    $("#authContainer").addClass("logged-in");
+    $("#loginTip").hide();
+    await initSystem();
+    showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
 
   } catch (err) {
     console.error("驗證錯誤：", err);
@@ -762,13 +875,13 @@ async function initLiffAuth() {
   }
 }
 
-// 登錄成功後初始化系統（不動，保留原有邏輯）
+// 登录成功后初始化（权限校验）
 async function initSystem() {
-  // 執行 GAS 產品獲取（3次重試+不兜底）
   await fetchProductsFromSheet();
   setupLineName();
   loadSelectedProds();
   renderTable();
+  updateAuthStatusBar(); // 显示状态栏
 }
 
 // 🔥 核心：GAS 重試機制（3次重試）+ 失敗不兜底 + 無本地產品（完全不動）
@@ -1180,8 +1293,9 @@ function clearImage() {
   els.clearImageBtn.hide();
 }
 
-// 提示訊息
+// 提示訊息（支持换行）
 function showToast(msg, type = "success") {
+  msg = msg.replace(/\n/g, '<br>');
   const toast = $(`<div class="toast ${type}">${msg}</div>`);
   $("body").append(toast);
   setTimeout(() => toast.addClass("show"), 10);
