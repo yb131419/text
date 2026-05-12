@@ -856,15 +856,16 @@ async function initLiffAuth() {
     updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
     const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {
       method: "GET",
-      mode: "no-cors",
       cache: "no-cache"
     });
 
-    // 处理返回数据
-    let verifyData = { status: "success" };
-    try {
-      verifyData = await verifyRes.json();
-    } catch (e) {}
+// 修改后（打印错误，方便排查）
+let verifyData = { status: "error", message: "网络异常，无法获取权限" };
+try {
+  verifyData = await verifyRes.json();
+} catch (e) {
+  console.error("解析权限响应失败：", e);
+}
 
     // 权限验证失败
     if (verifyData.status !== "success") {
