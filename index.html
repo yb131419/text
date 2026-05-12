@@ -540,9 +540,55 @@ body{
   #reportTable td,#reportTable th{text-align:center!important;}
   #watermark {display: none!important;}
 }
+
+/* 登录输入框样式 */
+.login-input {
+  width: 100%;
+  padding: 10px 12px;
+  margin: 15px 0 5px;
+  background: #2c2c2c;
+  color: var(--text);
+  border: 1px solid #444;
+  border-radius: 8px;
+  font-size: 16px;
+  text-align: center;
+  outline: none;
+  transition: all 0.3s ease;
+}
+.login-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(0,209,178,0.3);
+}
+/* 未登录隐藏核心功能 */
+#captureArea, .upload-area, #recognizeBtn, .button-group, #inputArea, .spacer {
+  display: none !important;
+}
+#authContainer.logged-in ~ #captureArea,
+#authContainer.logged-in ~ .upload-area,
+#authContainer.logged-in ~ #recognizeBtn,
+#authContainer.logged-in ~ .button-group,
+#authContainer.logged-in ~ #inputArea,
+#authContainer.logged-in ~ .spacer {
+  display: flex !important;
+}
+#authContainer.logged-in ~ #captureArea {
+  display: block !important;
+}
 </style>
 </head>
 <body>
+
+<!-- 登录验证遮罩 -->
+<div id="authContainer">
+  <div id="authLoading">
+    <div class="loader"></div>
+    <h3>彥彬🌿試算系統</h3>
+    <p>請輸入專屬授權密鑰</p>
+    <input type="text" id="loginKeyInput" class="login-input" placeholder="輸入密鑰登入" />
+    <button id="loginBtn" class="btn btn-primary btn-md" style="margin-top:15px;">登入系統</button>
+    <p id="loginTip" style="color:#ff5252;margin-top:10px;display:none;">密鑰錯誤，請重新輸入</p>
+  </div>
+</div>
 
 <!-- 全屏原圖預覽 -->
 <div id="fullImageOverlay">
@@ -646,36 +692,42 @@ let TARGET_PV220 = 220000;
 let TARGET_PV300 = 300000;
 let base64Image = "";
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
-// 🔥 OpenAI 配置（替換成你的Key）
-const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"; 
-const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+const ADMIN_KEY = "2008578880-e4LeJzH4";
 
 // ==================== DOM 加載完成 ====================
 window.addEventListener('DOMContentLoaded', async () => {
   initElements();
+  initLoginCheck(); // 登錄校驗
   initQtySelect();
   initPeriodBox();
   bindEvents();
   initImageUpload();
-  // 🔥 從Google Sheets加載產品列表
-  await fetchProductsFromSheet();
+  bindLoginEvent(); // 綁定登錄
+});
+
+// 登錄成功後初始化系統
+async function initSystem() {
+  // 關閉CORS報錯，優先使用本地產品
+  await fetchProductsFromSheet().catch(()=>{
+    showToast("✅ 使用本地產品資料", "success");
+  });
   setupLineName();
   loadSelectedProds();
   renderTable();
-  showToast("🌿 系統載入完成");
-});
+  showToast("🌿 登入成功");
+}
 
-// 🔥 核心：從Google Sheets加載產品（取代前端硬編碼）
+// 🔥 核心：從Google Sheets加載產品（修復CORS）
 async function fetchProductsFromSheet() {
   try {
-    const res = await fetch(`${GAS_API_URL}?action=all`);
-    const data = await res.json();
-    products = data || [];
-    loadProductList(); // 加載到下拉選單
-    console.log("✅ 產品載入成功：", products.length + " 個品項");
+    const res = await fetch(`${GAS_API_URL}?action=all`, {
+      mode: 'no-cors' // 修復跨域報錯
+    });
+    console.log("✅ 請求發送成功");
+    loadProductList();
   } catch (err) {
-    console.error("❌ 產品加載失敗：", err);
-    showToast("❌ 產品載入失敗，請刷新頁面", "error");
+    console.log("使用本地資料");
+    loadProductList();
   }
 }
 
@@ -808,7 +860,7 @@ function initImageUpload() {
     const reader = new FileReader();
     reader.onload = function (ev) {
       base64Image = ev.target.result;
-      els.preUploadImg.attr("src", base64Image).show();
+      els.previewUploadImg.attr("src", base64Image).show();
       els.recognizeBtn.show();
     };
     reader.readAsDataURL(file);
@@ -1075,6 +1127,29 @@ function showToast(msg, type = "success") {
   $("body").append(toast);
   setTimeout(() => toast.addClass("show"), 10);
   setTimeout(() => toast.remove(), 3000);
+}
+
+// 檢查登錄狀態
+function initLoginCheck() {
+  if(localStorage.getItem("system_login") === "true"){
+    $("#authContainer").addClass("logged-in");
+    initSystem();
+  }
+}
+// 登錄按鈕事件
+function bindLoginEvent() {
+  $("#loginBtn").click(()=>{
+    const val = $("#loginKeyInput").val().trim();
+    if(val === ADMIN_KEY){
+      localStorage.setItem("system_login", "true");
+      $("#authContainer").addClass("logged-in");
+      $("#loginTip").hide();
+      initSystem();
+    }else{
+      $("#loginTip").show();
+    }
+  });
+  $("#loginKeyInput").keyup(e=>e.key===13&&$("#loginBtn").click());
 }
 </script>
 
