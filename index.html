@@ -757,20 +757,33 @@ async function startOcrRecognition() {
 }
 
 
-// 自動添加識別到的品項
+// 🔥 修复版：自动拿正确总颗数 + 240必添加 + 数量不会变1
 function addOcrProducts(ocrProducts) {
   let addCount = 0;
-  ocrProducts.forEach(item => {
-    const product = products.find(p => p.name === item.name);
-    if (!product) return;
 
-    const exists = selectedProds.find(p => p.name === item.name);
-    const qty = parseInt(item.qty) || 1;
+  // 强制打印识别结果（你可以看控制台确认240是否回来）
+  console.log("✅ OCR 识别返回的全部数据：", ocrProducts);
+
+  ocrProducts.forEach(item => {
+    // 🔥 关键修复：拿 totalQty（三个月累加后的正确数量）
+    const productName = item.name || "";
+    const correctQty = parseInt(item.totalQty) || 3; // 这里用 totalQty，不是 qty！
+
+    if (!productName) return;
+
+    // 查找产品库是否存在
+    const product = products.find(p => p.name === productName);
+    if (!product) {
+      console.log("⚠️ 产品库找不到：", productName);
+      return;
+    }
+
+    const exists = selectedProds.find(p => p.name === productName);
 
     if (exists) {
-      exists.qty += qty;
+      exists.qty = correctQty; // 直接覆盖为正确总数
     } else {
-      selectedProds.push({ ...product, qty });
+      selectedProds.push({ ...product, qty: correctQty });
     }
     addCount++;
   });
