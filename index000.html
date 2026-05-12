@@ -161,7 +161,15 @@
             white-space: nowrap;
         }
 
-        .product-tag:hover {
+        /* 已添加产品样式（防呆标识） */
+        .product-tag.added {
+            background: var(--secondary);
+            color: white;
+            cursor: not-allowed;
+            border-color: var(--primary);
+        }
+
+        .product-tag:hover:not(.added) {
             background: var(--secondary);
             color: white;
         }
@@ -338,23 +346,31 @@
                 <label>介紹人：</label>
                 <input type="text" id="introducer" placeholder="請輸入介紹人">
             </div>
-            <!-- 新增：入會下拉欄位 -->
+            <!-- 新增：地點欄位 -->
+            <div class="info-item">
+                <label>地點：</label>
+                <input type="text" id="location" placeholder="請輸入地點" value="">
+            </div>
+            <!-- 修改：入會下拉欄位 -->
             <div class="info-item">
                 <label>入會：</label>
                 <select id="memberType">
                     <option value="">請選擇</option>
-                    <option value="新入會草本（男）">新入會草本（男）</option>
-                    <option value="新入會草本（女）">新入會草本（女）</option>
-                    <option value="新入會命運九號">新入會命運九號</option>
+                    <option value="草本（男）">草本（男）</option>
+                    <option value="草本（女）">草本（女）</option>
+                    <option value="命運九號">命運九號</option>
+                    <option value="已入會">已入會</option>
                 </select>
             </div>
             <div class="info-item">
                 <label>基本保養：</label>
                 <input type="text" id="basicNutrition" value="211、300、299A各3顆">
             </div>
+            <!-- 修改：火山甘露 數字選擇包數 -->
             <div class="info-item">
                 <label>火山甘露：</label>
-                <input type="text" id="volcanoTea" value="每天3包">
+                <input type="number" id="volcanoTea" min="0" value="3" style="width:60px">
+                <span>包/天</span>
             </div>
         </div>
 
@@ -491,6 +507,9 @@
             3: ["211", "300", "299A"]
         };
 
+        // 存儲每個月份已添加的產品（防呆用）
+        const addedProducts = {1: [], 2: [], 3: []};
+
         // ===================== 自動加載今日日期 =====================
         function loadTodayDate() {
             const now = new Date();
@@ -498,7 +517,7 @@
             const month = now.getMonth() + 1;
             const day = now.getDate();
             const week = ['日','一','二','三','四','五','六'][now.getDay()];
-            document.getElementById('date').value = `${year}.${month}.${day}(${week})`;
+            document.getElementById('date').value = `${year}.${month}.${day}(${week})金門`;
         }
 
         // ===================== 折疊面板切換 =====================
@@ -517,24 +536,51 @@
                     const tag = document.createElement('div');
                     tag.className = 'product-tag';
                     tag.textContent = item;
-                    tag.ondblclick = () => addProductWithRow(month, item);
+                    tag.dataset.product = item;
+                    tag.ondblclick = () => addProductWithRow(month, item, tag);
                     container.appendChild(tag);
                 });
             });
         }
 
-        // ===================== 雙擊產品：自動新增行+填入產品 =====================
-        function addProductWithRow(month, product) {
+        // 更新產品標籤樣式（已添加/未添加）
+        function updateTagStyle(month, product, isAdded) {
+            const tags = document.querySelectorAll(`#tags${month} .product-tag`);
+            tags.forEach(tag => {
+                if(tag.dataset.product === product) {
+                    if(isAdded) {
+                        tag.classList.add('added');
+                    } else {
+                        tag.classList.remove('added');
+                    }
+                }
+            });
+        }
+
+        // ===================== 雙擊產品：防呆+自動新增行 =====================
+        function addProductWithRow(month, product, tag) {
+            // 防呆：判斷產品是否已添加
+            if(addedProducts[month].includes(product)) {
+                alert(`❌ 【${product}】已添加至本月，無法重複添加！`);
+                return;
+            }
+
             const tbody = document.getElementById(`body${month}`);
             const tr = document.createElement('tr');
+            
+            // 添加產品到數組
+            addedProducts[month].push(product);
+            // 更新標籤樣式為已添加
+            updateTagStyle(month, product, true);
+
             // 早、晚默認勾選，中午空白
             tr.innerHTML = `
-                <td><input type="text" class="edit-input prod-name" value="${product}"></td>
+                <td><input type="text" class="edit-input prod-name" value="${product}" readonly></td>
                 <td><input type="number" class="edit-input" value="3"></td>
                 <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
                 <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
                 <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-                <td><button class="del-single-btn" onclick="delSingleRow(this)">刪除</button></td>
+                <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪除</button></td>
             `;
             tbody.appendChild(tr);
         }
@@ -550,20 +596,34 @@
                 <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
                 <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
                 <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-                <td><button class="del-single-btn" onclick="delSingleRow(this)">刪除</button></td>
+                <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪除</button></td>
             `;
             tbody.appendChild(tr);
         }
 
-        // 單行刪除
-        function delSingleRow(btn) {
-            btn.closest('tr').remove();
+        // 單行刪除（同步更新防呆列表）
+        function delSingleRow(month, btn) {
+            const row = btn.closest('tr');
+            const product = row.querySelector('.prod-name').value;
+            
+            // 從已添加列表移除
+            const index = addedProducts[month].indexOf(product);
+            if(index > -1) {
+                addedProducts[month].splice(index, 1);
+                updateTagStyle(month, product, false);
+            }
+            
+            row.remove();
         }
 
-        // 清空表格
+        // 清空表格（重置防呆列表）
         function clearTable(month) {
             if(confirm('確定清空？')) {
                 document.getElementById(`body${month}`).innerHTML = '';
+                addedProducts[month] = [];
+                // 重置所有標籤樣式
+                const tags = document.querySelectorAll(`#tags${month} .product-tag`);
+                tags.forEach(tag => tag.classList.remove('added'));
             }
         }
 
@@ -571,7 +631,11 @@
         function loadDefaultProducts() {
             for (let month in defaultProducts) {
                 const products = defaultProducts[month];
-                products.forEach(p => addProductWithRow(month, p));
+                products.forEach(p => {
+                    // 找到對應標籤
+                    const tag = document.querySelector(`#tags${month} .product-tag[data-product="${p}"]`);
+                    addProductWithRow(month, p, tag);
+                });
             }
         }
 
@@ -585,12 +649,14 @@
         function nativeShare() {
             const name = document.getElementById('name').value || '未填寫';
             const introducer = document.getElementById('introducer').value || '未填寫';
+            const location = document.getElementById('location').value || '未填寫';
             const member = document.getElementById('memberType').value || '未選擇';
+            const volcano = document.getElementById('volcanoTea').value || '0';
             const date = document.getElementById('date').value;
 
             const shareData = {
                 title: '草本產品購買明細表',
-                text: `日期：${date}\n姓名：${name}\n介紹人：${introducer}\n入會類型：${member}\n產品：211/300/299A/211A`
+                text: `日期：${date}\n地點：${location}\n姓名：${name}\n介紹人：${introducer}\n入會：${member}\n火山甘露：${volcano}包/天`
             };
 
             if (navigator.share) {
