@@ -844,119 +844,75 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // ✅ 终极版：按月识别 + 字母编号精准识别 + 数量自动转换 + 合并导入报表
-  els.recognizeBtn.click(async () => {
-    if (!base64Image) {
-      showToast("❌ 請先上傳產品圖片", "error");
+  // ✅ 终极手写数字识别版（无多余逻辑，全局抓取手写编号）
+els.recognizeBtn.click(async () => {
+  if (!base64Image) {
+    showToast("❌ 請先上傳產品圖片", "error");
+    return;
+  }
+
+  els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
+  els.recognizeBtn.prop("disabled", true).text("🔍 識別產品中...");
+
+  try {
+    // 🔥 手写数字最强识别模式 + 纯数字识别配置
+    const { data: { text } } = await Tesseract.recognize(
+      base64Image,
+      'eng', // 纯数字用英文引擎，识别率翻倍！
+      { 
+        logger: () => {},
+        tessedit_pageseg_mode: 13, // 手写数字专用模式
+        tessedit_char_whitelist: '0123456789' // 只允许识别数字！绝杀！
+      }
+    );
+
+    console.log("识别到的文字：", text); // 调试用，可看识别结果
+    let ocrText = text.trim();
+    
+    // 🔥 全局提取所有手写数字（核心！删除了无用的月份分割）
+    const codeRegex = /\d+/g;
+    const codes = ocrText.match(codeRegex) || [];
+    
+    // 去重，避免重复添加
+    const uniqueCodes = [...new Set(codes)];
+
+    if (uniqueCodes.length === 0) {
+      showToast("❌ 未識別到任何產品編號", "error");
       return;
     }
 
-    els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
-    els.recognizeBtn.prop("disabled", true).text("🔍 識別產品中...");
-
-    try {
-      // OCR优化：支持字母+数字编号，高精准识别
-      const { data: { text } } = await Tesseract.recognize(
-        base64Image,
-        'chi_tra+eng',
-        { 
-          logger: () => {},
-          tessedit_pageseg_mode: 13
-        }
+    // 匹配产品库
+    const matchedMap = new Map();
+    uniqueCodes.forEach(code => {
+      const targetProd = products.find(prod => 
+        prod.name === code || prod.name.includes(code)
       );
-
-      // ====================== 1. 基础清理 + 过滤干扰文字 ======================
-      let ocrText = text.toUpperCase().trim();
-      const filterWords = ['試算', '報表', '康園', '顆', '個', '第'];
-      filterWords.forEach(word => ocrText = ocrText.replaceAll(word, ''));
-
-      // ====================== 2. 按月份分割文本（优先级：1月→2月→3月） ======================
-      const monthSections = {
-        first: ocrText.match(/第一個月([\s\S]*?)(第二個月|第三個月|$)/)?.[1] || '',
-        second: ocrText.match(/第二個月([\s\S]*?)(第三個月|$)/)?.[1] || '',
-        third: ocrText.match(/第三個月([\s\S]*)/)?.[1] || ''
-      };
-
-      // ====================== 3. 核心规则：数量转换 3顆=2 / 4顆=3 / 5顆=4 ======================
-      function getConvertedQty(str) {
-        if (str.includes('3')) return 2;
-        if (str.includes('4')) return 3;
-        if (str.includes('5')) return 4;
-        return 1; // 默认数量1
+      if (targetProd) {
+        matchedMap.set(targetProd.name, { ...targetProd, qty: 1 });
       }
+    });
 
-      // ====================== 4. 專門提取【手寫純數字編號】 ======================
-function extractProducts(section) {
-  const productsList = [];
-  if (!section) return productsList;
+    // 转换为数组
+    selectedProds = Array.from(matchedMap.values());
 
-  // 🔥 核心修正：只匹配手寫連續數字（最適合手寫編號識別）
-  const codeRegex = /\d+/g;
-  // 匹配數量規則
-  const qtyRegex = /[345]/g;
-  
-  // 提取所有手寫數字編號
-  const codes = section.match(codeRegex) || [];
-  const qtys = section.match(qtyRegex) || [];
-
-  codes.forEach((code, index) => {
-    const qty = qtys[index] ? getConvertedQty(qtys[index]) : 1;
-    productsList.push({ code: code.trim(), qty });
-  });
-  return productsList;
-}
-
-      // ====================== 5. 提取三个月所有产品 ======================
-      const allMonthProducts = [
-        ...extractProducts(monthSections.first),
-        ...extractProducts(monthSections.second),
-        ...extractProducts(monthSections.third)
-      ];
-
-      if (allMonthProducts.length === 0) {
-        showToast("❌ 未識別到任何產品編號", "error");
-        return;
-      }
-
-      // ====================== 6. 匹配产品库 + 合并去重 ======================
-      // 🔥 核心修正：優化匹配手寫數字編號，精準對應產品
-allMonthProducts.forEach(item => {
-  const targetProd = products.find(prod => 
-    // 匹配產品名中的數字編號（手寫核心）
-    prod.name.includes(item.code) && prod.name !== "贈品 211(30)"
-  );
-
-  if (targetProd) {
-    if (matchedMap.has(targetProd.name)) {
-      matchedMap.get(targetProd.name).qty += item.qty;
-    } else {
-      matchedMap.set(targetProd.name, { ...targetProd, qty: item.qty });
+    if (selectedProds.length === 0) {
+      showToast("❌ 未匹配到對應產品", "error");
+      return;
     }
+
+    // 保存并导入报表
+    saveSelectedProds();
+    renderTable();
+    showToast(`✅ 識別完成！匯入 ${selectedProds.length} 個品項`, "success");
+
+  } catch (err) {
+    console.error("識別錯誤：", err);
+    showToast("❌ 識別失敗，請重試", "error");
+  } finally {
+    els.ocrOverlay.fadeOut(200);
+    els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
   }
 });
-
-      // 转换为数组
-      selectedProds = Array.from(matchedMap.values());
-
-      if (selectedProds.length === 0) {
-        showToast("❌ 未匹配到對應產品", "error");
-        return;
-      }
-
-      // ====================== 7. 保存并导入报表 ======================
-      saveSelectedProds();
-      renderTable();
-      showToast(`✅ 識別完成！匯入 ${selectedProds.length} 個品項`, "success");
-
-    } catch (err) {
-      console.error("識別錯誤：", err);
-      showToast("❌ 識別失敗，請重試", "error");
-    } finally {
-      els.ocrOverlay.fadeOut(200);
-      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
-    }
-  });
-}
 
 
 // 加入產品
