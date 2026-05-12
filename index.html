@@ -134,8 +134,6 @@ body{
   background: rgba(0, 0, 0, 0.9);
   z-index: 99999;
   display: none;
-  /* 核心：強制 Flex 居中 */
-  display: none !important;
   justify-content: center !important;
   align-items: center !important;
   flex-direction: column;
@@ -143,6 +141,7 @@ body{
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
+
 .ocr-loader {
   width: 60px;
   height: 60px;
@@ -927,10 +926,11 @@ function handleImageFile(file){
     } catch (err) {
       console.error("OCR錯誤：", err);
       showToast("❌ 識別失敗，請重試", "error");
-    } finally {
-      els.ocrOverlay.hide();
-      els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
-    }
+} finally {
+  // 标准化关闭浮窗
+  els.ocrOverlay.css('display', 'none');
+  els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
+}
   });
 }
 
