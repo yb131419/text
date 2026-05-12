@@ -805,6 +805,8 @@ async function initLiffAuth() {
     updateAuthLoadingText("正在驗證", "請稍候...");
     // 初始化LIFF
     await liff.init({ liffId: LIFF_ID });
+    // 新增这一行 → 强制关闭LIFF缓存，解决网络异常
+liff._setFeatureFlags({ disableStrictOriginCheck: true });
 
     // 強制LINE內部打開
     if (!liff.isInClient()) {
