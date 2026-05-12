@@ -788,12 +788,12 @@ async function initLiffAuth() {
     }
 
     updateAuthLoadingText("正在驗證", "請稍候...");
-    // ✅ 修復1：補全LIFF核心參數（代碼二正常的關鍵）
-    await liff.init({ 
-      liffId: LIFF_ID,
-      withLoginOnExternalBrowser: true,
-      scope: 'profile openid email'
-    });
+// 🔥 修復1：LIFF參數（刪除不支持的email scope）
+await liff.init({ 
+  liffId: LIFF_ID,
+  withLoginOnExternalBrowser: true,
+  scope: 'profile openid' // 刪除email，LINE LIFF不支持
+});
 
     // 強制LINE內部打開
     if (!liff.isInClient()) {
@@ -1097,7 +1097,8 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  els.recognizeBtn.click(async () => {
+  // 🔥 修復2：OCR請求改用JSONP（完全兼容GitHub+GAS）
+els.recognizeBtn.click(async () => {
   if (!base64Image) {
     showToast("❌ 請先上傳產品圖片", "error");
     return;
@@ -1107,79 +1108,70 @@ function initImageUpload() {
   els.ocrOverlay.css('display', 'flex').hide().fadeIn(200);
   els.recognizeBtn.prop("disabled", true).text("🔍 AI識別中...");
 
-  try {
-    // 超時控制器
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
-    
-    // 安全參數拼接
-    const params = new URLSearchParams({
+  // JSONP 請求OCR
+  const callbackName = `ocr_${Date.now()}`;
+  window[callbackName] = (result) => {
+    delete window[callbackName];
+    try {
+      if (!result || !result.data || result.data.length === 0) {
+        showToast("❌ 未識別到任何產品", "error");
+        return;
+      }
+
+      console.log("✅ AI識別結果：", result.data);
+      let addCount = 0;
+      result.data.forEach(item => {
+        const code = item.code?.trim().toUpperCase();
+        const qty = parseInt(item.qty) || 1;
+        if (!code) return;
+
+        const targetProd = products.find(p => 
+          p.name.toUpperCase().includes(code) || p.name === code
+        );
+        if (!targetProd) return;
+
+        const exist = selectedProds.find(x => x.name === targetProd.name);
+        if (exist) { exist.qty += qty; } 
+        else { selectedProds.push({ ...targetProd, qty }); }
+        addCount++;
+      });
+
+      // 🔥 扣次：OCR識別
+      deductUsage("recordOcr");
+      
+      saveSelectedProds();
+      renderTable();
+      addCount > 0 ? showToast(`✅ 識別成功！自動添加 ${addCount} 個品項`, "success") : showToast("⚠️ 識別到編號，但未匹配到產品", "warning");
+    } catch (err) {
+      console.error("❌ 識別處理失敗：", err);
+      showToast("❌ 圖片識別失敗，請重試", "error");
+    } finally {
+      els.ocrOverlay.fadeOut(200);
+      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+    }
+  };
+
+  // JSONP 發起請求
+  $.ajax({
+    url: GAS_API_URL,
+    dataType: "jsonp",
+    jsonp: "callback",
+    jsonpCallback: callbackName,
+    timeout: 20000,
+    data: {
       action: "ocr",
       base64: base64Image
-    });
-    const requestUrl = `${GAS_API_URL}?${params.toString()}`;
-
-    let result;
-    try {
-      const response = await fetch(requestUrl, {
-        signal: controller.signal,
-        mode: "cors"
-      });
-      clearTimeout(timeoutId);
-      result = await response.json();
-    } catch (fetchErr) {
-      console.error("OCR請求失敗：", fetchErr);
+    },
+    error: () => {
+      delete window[callbackName];
+      els.ocrOverlay.fadeOut(200);
+      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
       showToast("❌ 網路異常，識別失敗", "error");
-      return;
     }
-
-    if (!result.data || result.data.length === 0) {
-      showToast("❌ 未識別到任何產品", "error");
-      return;
-    }
-
-    console.log("✅ AI識別結果：", result.data);
-    let addCount = 0;
-
-    result.data.forEach(item => {
-      const code = item.code?.trim().toUpperCase();
-      const qty = parseInt(item.qty) || 1;
-      if (!code) return;
-
-      const targetProd = products.find(p => 
-        p.name.toUpperCase().includes(code) || p.name === code
-      );
-      if (!targetProd) return;
-
-      const exist = selectedProds.find(x => x.name === targetProd.name);
-      if (exist) {
-        exist.qty += qty;
-      } else {
-        selectedProds.push({ ...targetProd, qty });
-      }
-      addCount++;
-    });
-
-    saveSelectedProds();
-    renderTable();
-    
-    if (addCount > 0) {
-      showToast(`✅ 識別成功！自動添加 ${addCount} 個品項`, "success");
-    } else {
-      showToast("⚠️ 識別到編號，但未匹配到產品", "warning");
-    }
-
-  } catch (err) {
-    console.error("❌ 識別失敗：", err);
-    showToast("❌ 圖片識別失敗，請重試", "error");
-  } finally {
-    els.ocrOverlay.fadeOut(200);
-    els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
-  }
+  });
 });
-}
 
-// 加入產品
+// 加入產品 + 扣次
 function addProduct() {
   const name = els.nameInput.val();
   const qty = parseInt(els.qtyInput.val());
@@ -1191,109 +1183,35 @@ function addProduct() {
   if (!prod) return;
 
   const exist = selectedProds.find(x => x.name === name);
-  if (exist) {
-    exist.qty += qty;
-  } else {
-    selectedProds.push({ ...prod, qty });
-  }
+  exist ? exist.qty += qty : selectedProds.push({ ...prod, qty });
+  
+  deductUsage("recordAdd"); // 扣次
   saveSelectedProds();
   renderTable();
   showToast("✅ 加入成功");
 }
 
-// 渲染表格
-function renderTable() {
-  els.reportBody.empty();
-  let totalPrice = 0, totalPv = 0;
-
-  selectedProds.forEach((item, idx) => {
-    const subtotalPrice = item.price * item.qty;
-    const subtotalPv = item.pv * item.qty;
-    totalPrice += subtotalPrice;
-    totalPv += subtotalPv;
-
-    let opts = "";
-    for (let i = 1; i <= 99; i++) {
-      opts += `<option value="${i}" ${i == item.qty ? "selected" : ""}>${i}</option>`;
-    }
-
-    const tr = `
-      <tr>
-        <td>${item.name}</td>
-        <td><select class="qtySelect" data-index="${idx}">${opts}</select></td>
-        <td>${item.price}</td>
-        <td>${item.pv}</td>
-        <td>${subtotalPrice}</td>
-        <td>${subtotalPv}</td>
-        <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>
-      </tr>`;
-    els.reportBody.append(tr);
-  });
-
-  els.totalPriceCellDup.text(totalPrice);
-  els.totalPvCellDup.text(totalPv);
-  els.pvDiff2.text(Math.max(TARGET_PV220 - totalPv, 0));
-  els.pvDiff3.text(Math.max(TARGET_PV300 - totalPv, 0));
-  els.pvMessage2.html(totalPv >= TARGET_PV220 ? '<span class="done">達標</span>' : "");
-  els.pvMessage3.html(totalPv >= TARGET_PV300 ? '<span class="done">達標</span>' : "");
-}
-
-// 現金滿額贈
-function handleCashGift() {
-  selectedProds = selectedProds.filter(p => !p.name.includes("贈品"));
-  
-  if (!els.cashOption.is(":checked")) {
-    saveSelectedProds();
-    renderTable();
-    return;
-  }
-
-  const total = parseInt(els.totalPriceCellDup.text()) || 0;
-  const giftQty = Math.floor(total / 20000);
-  
-  if (giftQty > 0) {
-    selectedProds.push({ name: "贈品 211(30)", price: 0, pv: 0, qty: giftQty });
-    showToast(`🎁 現金滿額，自動贈送 x${giftQty}`, "success");
-  }
-  
+// 刪除產品 + 扣次
+els.reportBody.on("click", ".deleteBtn", function () {
+  const idx = $(this).data("index");
+  selectedProds.splice(idx, 1);
+  deductUsage("recordDelete"); // 扣次
   saveSelectedProds();
   renderTable();
-}
+  showToast("✅ 已刪除");
+});
 
-// 試算者名稱
-function setupLineName() {
-  lineName = localStorage.getItem("lineName") || "彥彬🌿";
-  els.calculatorDisplay.val(lineName);
-}
-function resetLineName() {
-  const name = prompt("輸入試算者名稱：", lineName);
-  if (name) {
-    lineName = name;
-    localStorage.setItem("lineName", name);
-    els.calculatorDisplay.val(name);
-    showToast("✅ 名稱已更新");
-  }
-}
-
-// 本機存檔
-function saveSelectedProds() {
-  localStorage.setItem("selectedProds", JSON.stringify(selectedProds));
-}
-function loadSelectedProds() {
-  const data = localStorage.getItem("selectedProds");
-  if (data) selectedProds = JSON.parse(data);
-}
-
-// 重置報表
+// 重置報表 + 扣次
 function resetReport() {
   if (!confirm("確定清空全部？")) return;
   selectedProds = [];
+  deductUsage("recordReset"); // 扣次
   saveSelectedProds();
   renderTable();
   showToast("✅ 已重置");
 }
 
-// 匯出圖片
+// 匯出圖片 + 扣次
 async function exportToImage() {
   if (selectedProds.length === 0) {
     showToast("請先加入產品", "warning");
@@ -1303,17 +1221,15 @@ async function exportToImage() {
   $(".deleteBtn").hide();
 
   const canvas = await html2canvas(document.querySelector("#captureArea"), {
-    scale: 4,
-    useCORS: true,
-    backgroundColor: "#fff"
+    scale: 4, useCORS: true, backgroundColor: "#fff"
   });
 
   els.previewImage.attr("src", canvas.toDataURL("image/png")).show();
-  els.shareToLineBtn.show();
-  els.nativeShareBtn.show();
-  els.clearImageBtn.show();
+  els.shareToLineBtn.show(); els.nativeShareBtn.show(); els.clearImageBtn.show();
   $(".deleteBtn").show();
   els.exportBtn.prop("disabled", false);
+  
+  deductUsage("recordExport"); // 扣次
   showToast("✅ 匯出成功");
 }
 
@@ -1346,6 +1262,33 @@ function showToast(msg, type = "success") {
   setTimeout(() => toast.addClass("show"), 10);
   setTimeout(() => toast.remove(), 3000);
 }
+
+// 🔥 修復3：全局扣次函數（JSONP，解決跨域）
+function deductUsage(usageType) {
+  // 超管/VIP不扣次
+  if (authStatus.isSuperAdmin || authStatus.isVip) return;
+  
+  const callbackName = `deduct_${Date.now()}`;
+  window[callbackName] = (resp) => {
+    delete window[callbackName];
+    if (resp.status === "exceeded") {
+      showToast("❌ 使用次數已用盡，請聯繫管理員", "error");
+    }
+  };
+
+  $.ajax({
+    url: GAS_API_URL,
+    dataType: "jsonp",
+    jsonp: "callback",
+    jsonpCallback: callbackName,
+    data: {
+      action: usageType,
+      userId: userInfo.userId,
+      displayName: userInfo.displayName
+    }
+  });
+}
+
 </script>
 </body>
 </html>
