@@ -872,36 +872,38 @@ function initImageUpload() {
     els.ocrOverlay.show();
     els.recognizeBtn.prop("disabled", true).text("🔍 識別中，請稍候...");
 
-    try {
-      const { data: { text } } = await Tesseract.recognize(
-        base64Image,
-        'eng',
-        { 
-          logger: m => console.log(m),
-          tessedit_pageseg_mode: 6,
-          user_defined_dpi: 300
-        }
-      );
-
-      const cleanText = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-      const productMap = {};
-      const regex = /(\d{3})(\d{1,2})/g;
-      let match;
-
-      while ((match = regex.exec(cleanText)) !== null) {
-        const prodCode = match[1];
-        const count = parseInt(match[2]);
-        if (isNaN(count) || count < 2 || count > 5) continue;
-
-        let qty = count;
-        if (count === 3) qty = 2;
-        else if (count === 4) qty = 3;
-        else if (count === 5) qty = 4;
-
-        const targetProd = products.find(p => p.name.includes(prodCode));
-        if (!targetProd || targetProd.name === "贈品 211(30)") continue;
-        productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
+   try {
+    const { data: { text } } = await Tesseract.recognize(
+      base64Image,
+      'eng',
+      { 
+        logger: m => console.log(m),
+        tessedit_pageseg_mode: 6,
+        user_defined_dpi: 300
       }
+    );
+
+    const cleanText = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const productMap = {};
+    const regex = /(\d{3})(\d{1,2})/g; // 🔴 正则错误：只匹配3位数字+后缀，纯数字品项匹配失效
+    let match;
+
+    // 🔴 核心BUG：while循环匹配逻辑错误，只执行1次，只取第一个匹配项
+    while ((match = regex.exec(cleanText)) !== null) {
+      const prodCode = match[1];
+      const count = parseInt(match[2]);
+      if (isNaN(count) || count < 2 || count > 5) continue;
+
+      let qty = count;
+      if (count === 3) qty = 2;
+      else if (count === 4) qty = 3;
+      else if (count === 5) qty = 4;
+
+      // 🔴 次要BUG：find只匹配第一个产品，多品项无法识别
+      const targetProd = products.find(p => p.name.includes(prodCode));
+      if (!targetProd || targetProd.name === "贈品 211(30)") continue;
+      productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
+    }
 
       const matchedList = Object.entries(productMap);
       if (matchedList.length === 0) {
