@@ -852,43 +852,59 @@ function initImageUpload() {
     if(file) handleImageFile(file);
   });
 
-// 1. 圖片未做放大處理，導致Tesseract報錯：Image too small to scale，只識別出2113
-function handleImageFile(file){
-  const reader = new FileReader();
-  reader.onload = function (ev) {
-    base64Image = ev.target.result; // 🔴 未縮放小圖片，OCR直接識別失敗
-    els.previewUploadImg.attr("src", base64Image).show();
-    els.recognizeBtn.show();
-  };
-  reader.readAsDataURL(file);
-}
+  function handleImageFile(file){
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      base64Image = ev.target.result;
+      els.previewUploadImg.attr("src", base64Image).show();
+      els.recognizeBtn.show();
+    };
+    reader.readAsDataURL(file);
+  }
 
-  // 2. OCR核心邏輯完全未修復，導致即使識別成功也只取第一個品項
+  // OCR產品識別
 els.recognizeBtn.click(async () => {
+  if (!base64Image) {
+    showToast("❌ 請先上傳產品圖片", "error");
+    return;
+  }
+
+  els.ocrOverlay.show();
+  els.recognizeBtn.prop("disabled", true).text("🔍 識別中，請稍候...");
+
  try {
   const { data: { text } } = await Tesseract.recognize(
     base64Image,
     'eng',
-    { tessedit_pageseg_mode: 6, user_defined_dpi: 300 } // 🔴 參數不適配小圖片
+    { 
+      logger: m => console.log(m),
+      tessedit_pageseg_mode: 6,
+      user_defined_dpi: 300
+    }
   );
 
   const cleanText = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   const productMap = {};
-  const regex = /(\d{3})(\d{1,2})/g; // 🔴 正則錯誤，只匹配3位+後綴
+  const regex = /(\d{3})(\d{1,2})/g; // 🔴 正則錯誤：只匹配3位數字+後綴，純數字品項匹配失效
   let match;
 
-  // 🔴 循環BUG，只執行1次
+  // 🔴 核心BUG：while循環匹配邏輯錯誤，只執行1次，只取第一個匹配項
   while ((match = regex.exec(cleanText)) !== null) {
     const prodCode = match[1];
     const count = parseInt(match[2]);
-    let qty = count;
-    if (count === 3) qty = 2; // 🔴 數量轉換錯誤，強制3變2
+    if (isNaN(count) || count < 2 || count > 5) continue;
 
-    // 🔴 匹配BUG，只找第一個產品
+    let qty = count;
+    if (count === 3) qty = 2;
+    else if (count === 4) qty = 3;
+    else if (count === 5) qty = 4;
+
+    // 🔴 次要BUG：find只匹配第一個產品，多品項無法識別
     const targetProd = products.find(p => p.name.includes(prodCode));
+    if (!targetProd || targetProd.name === "贈品 211(30)") continue;
     productMap[targetProd.name] = (productMap[targetProd.name] || 0) + qty;
   }
-  
+
       const matchedList = Object.entries(productMap);
       if (matchedList.length === 0) {
         showToast("❌ 未識別到有效產品編號", "error");
