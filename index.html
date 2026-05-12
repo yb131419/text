@@ -656,7 +656,6 @@ function handleImageSelect(e) {
       // 预览
       els.ocrPreview.src = data.data.url;
       els.ocrPreview.style.display = "block";
-      els.ocrRecognitionBtn.style.display = "inline-block";
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
       showToast("✅ 上傳成功，點擊AI識別", "success");
@@ -740,13 +739,13 @@ async function startOcrRecognition() {
     jsonp: "callback",
     jsonpCallback: callbackName,
     timeout: 60000,
-    data: {
-      action: "ocrImage",
-      userId: userInfo.userId,
-      displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
-      imageUrl: selectedImageBase64,
-      callback: callbackName
-    },
+data: {
+  action: "ocrImage",
+  userId: userInfo.userId,
+  displayName: userInfo.displayName || "未知用戶", // 移除encodeURIComponent
+  imageUrl: selectedImageBase64,
+  callback: callbackName
+},
     error: function() {
       delete window[callbackName];
       els.ocrRecognitionBtn.disabled = false;
@@ -757,50 +756,57 @@ async function startOcrRecognition() {
 }
 
 
-// 🔥 最终修复版：无语法错误 + 模糊匹配 + 完整识别（解决 qty is not defined）
+// 🔥 最终修复版：精准匹配 + 正确数量 + 无BUG添加
 function addOcrProducts(ocrProducts) {
   let addCount = 0;
   console.log("✅ OCR 识别全部数据：", ocrProducts);
 
   // 遍历所有识别结果
   ocrProducts.forEach(item => {
-    // 安全获取品名和数量（兜底处理，防止undefined）
+    // 1. 安全获取品名+数量（强制兜底，杜绝undefined报错）
     const ocrName = (item.name || "").trim();
-    const recognizedQty = parseInt(item.qty) || 2;
+    let recognizedQty = parseInt(item.qty);
+    // 遵循后端规则：数量无效=2，3强制转2
+    if (isNaN(recognizedQty) || recognizedQty <= 0) recognizedQty = 2;
+    if (recognizedQty === 3) recognizedQty = 2;
 
-    // 空数据跳过
-    if (!ocrName || recognizedQty <= 0) return;
+    // 空名称直接跳过
+    if (!ocrName) return;
 
-    // 🔥 模糊匹配产品库（不用一字不差）
+    // 2. 🔥 精准匹配产品库（用displayName全名匹配，解决匹配错误）
     const product = products.find(p => 
-      p.name.includes(ocrName) || ocrName.includes(p.name)
+      p.displayName.includes(ocrName) || ocrName.includes(p.displayName)
     );
 
-    // 未匹配到产品则跳过
+    // 未匹配到产品 → 提示并跳过
     if (!product) {
       console.log("⚠️ 未匹配产品：", ocrName);
+      showToast(`⚠️ 未匹配品项：${ocrName}`, "warning");
       return;
     }
 
-    // 规则：火山甘露强制4盒
+    // 3. 🔥 特殊商品强制数量（火山甘露固定4盒）
     let finalQty = recognizedQty;
-    if (ocrName.includes("火山甘露")) {
+    if (ocrName.includes("火山甘露") || product.displayName.includes("火山甘露")) {
       finalQty = 4;
     }
 
-    // 去重添加
-    const exists = selectedProds.find(p => p.name === product.name);
-    if (exists) {
-      exists.qty = finalQty;
+    // 4. 🔥 正确去重：已存在则更新数量，不存在则新增
+    const existsIndex = selectedProds.findIndex(p => p.displayName === product.displayName);
+    if (existsIndex !== -1) {
+      selectedProds[existsIndex].qty = finalQty;
     } else {
       selectedProds.push({ ...product, qty: finalQty });
+      addCount++;
     }
-    addCount++;
   });
 
+  // 5. 强制保存+渲染表格（解决添加后不显示）
   saveSelectedProds();
   renderTable();
+  // 现金赠品逻辑重新计算
   if (els.cashOption.checked) handleCashGift();
+  
   showToast(`✅ 识别完成！成功添加 ${addCount} 个品项`, "success");
 }
 
