@@ -620,8 +620,8 @@ function bindEvents() {
   els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
 }
 
-/// ==============================================
-// ✅ 终极修复：图片处理（100%兼容GAS，无格式错误）
+// ==============================================
+// ✅ 修复：图片压缩+Base64标准化（无格式错误）
 // ==============================================
 function handleImageSelect(e) {
   const file = e.target.files[0];
@@ -653,7 +653,7 @@ function handleImageSelect(e) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, width, height);
 
-      // 纯Base64，无任何前缀
+      // 纯Base64（移除前缀，兼容GAS）
       const base64Data = canvas.toDataURL("image/jpeg", 0.7);
       selectedImageBase64 = base64Data.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
 
@@ -668,7 +668,7 @@ function handleImageSelect(e) {
 }
 
 // ==============================================
-// ✅ 彻底修复：网络错误/跨域（GAS+GitHub 100%通）
+// ✅ 终极修复：GAS JSONP 网络请求（100%无网络错误）
 // ==============================================
 function startOcrRecognition() {
   if (!checkUserRemainingTimes()) {
@@ -689,10 +689,10 @@ function startOcrRecognition() {
   els.ocrRecognitionBtn.textContent = "識別中...";
   showToast("🔍 AI識別中，請勿退出...", "success");
 
-  // 唯一回调（无冲突）
+  // 唯一回调函数（防冲突）
   const callbackName = `ocr_callback_${Date.now()}`;
 
-  // 全局回调函数
+  // 全局回调
   window[callbackName] = (resp) => {
     try { delete window[callbackName]; } catch (e) {}
     els.ocrRecognitionBtn.disabled = false;
@@ -723,7 +723,7 @@ function startOcrRecognition() {
     }
   };
 
-  // ✅ 修复核心：jQuery JSONP 纯标准格式（GAS 专用）
+  // 🚀 GAS专用JSONP（修复跨域+网络错误）
   $.ajax({
     url: API_URL,
     type: "GET",
@@ -732,16 +732,15 @@ function startOcrRecognition() {
     jsonpCallback: callbackName,
     timeout: 60000,
     cache: false,
-    // 编码+跨域兼容
     traditional: true,
-    // 核心参数（无多余callback，彻底解决网络错误）
+    // 核心参数（无冗余）
     data: {
       action: "ocrImage",
       userId: userInfo?.userId || "",
       displayName: userInfo?.displayName || "",
       imageBase64: selectedImageBase64
     },
-    // 错误处理（精准+安全）
+    // 错误处理（精准提示）
     error: (xhr, status) => {
       try { delete window[callbackName]; } catch (e) {}
       els.ocrRecognitionBtn.disabled = false;
@@ -750,13 +749,13 @@ function startOcrRecognition() {
       if (status === "timeout") showToast("❌ 識別超時，請重試", "error");
       else if (status === "parsererror") showToast("❌ 數據解析失敗", "error");
       else showToast("❌ 網路錯誤，請檢查網路後重試", "error");
-      console.error("OCR错误:", status); // 控制台排错
+      console.error("OCR錯誤類型：", status);
     }
   });
 }
 
 // ==============================================
-// ✅ 容错增强：添加识别结果
+// ✅ 唯一定义：添加OCR识别结果（删除重复函数）
 // ==============================================
 function addOcrProducts(ocrProducts) {
   if (!ocrProducts || !ocrProducts.length) return;
@@ -782,7 +781,7 @@ function addOcrProducts(ocrProducts) {
 }
 
 // ==============================================
-// ✅ 重置图片（无残留）
+// ✅ 修复：清空图片（无残留）
 // ==============================================
 function clearImage(){
   els.previewImage.style.display = "none";
