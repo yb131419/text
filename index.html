@@ -802,17 +802,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   initLiffAuth();
 });
 
-// ==================== 🔥 LIFF 完整權限驗證（修復語法錯誤+卡死） ====================
+// ==================== 🔥 LIFF 完整權限驗證（最終修復版） ====================
 async function initLiffAuth() {
   // 防止重複初始化
-  if (window.liffInitializing) {
-    return;
-  }
+  if (window.liffInitializing) return;
   window.liffInitializing = true;
 
-  // 頂層 try + catch + finally 🔴 修復語法錯誤的核心
   try {
-    // 檢查SDK是否加載成功
+    // 檢查SDK是否加載
     if (!window.liff) {
       $("#loginTip").text("LIFF SDK加載失敗，請檢查網路").show();
       showToast("❌ 網路異常，SDK加載失敗", "error");
@@ -823,14 +820,14 @@ async function initLiffAuth() {
     // 初始化LIFF
     await liff.init({ liffId: LIFF_ID });
 
-    // 必須在LINE內打開
+    // 強制LINE內部打開
     if (!liff.isInClient()) {
       $("#loginTip").text("請在LINE內打開此系統").show();
       showToast("❌ 請在LINE內打開使用", "error");
       return;
     }
 
-    // 未登錄則跳轉登錄
+    // 未登錄則跳轉
     if (!liff.isLoggedIn()) {
       liff.login({ redirectUri: window.location.href });
       return;
@@ -849,32 +846,89 @@ async function initLiffAuth() {
       return;
     }
 
-    // 開始驗證權限（GAS後端）
+    // 權限驗證：GAS接口（修復參數編碼+超時+錯誤捕獲）
     updateAuthLoadingText("彥彬🌿試算系統", "核對用戶權限中...");
+    
+    // ✅ 修復1：使用URLSearchParams安全拼接參數（杜絕編碼錯誤）
+    const params = new URLSearchParams({
+      action: "verifyUser",
+      userId: profile.userId,
+      displayName: profile.displayName
+    });
+    const requestUrl = `${GAS_API_URL}?${params.toString()}`;
+
+    // ✅ 修復2：標準超時控制器
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
-    
-    // 內層 try catch 單獨處理網路請求
+
     let verifyData;
     try {
-      const verifyRes = await fetch(`${GAS_API_URL}?action=verifyUser&userId=${profile.userId}&displayName=${encodeURIComponent(profile.displayName)}`, {
+      // ✅ 修復3：標準fetch請求（兼容GAS/GitHub）
+      const verifyRes = await fetch(requestUrl, {
         method: "GET",
         signal: controller.signal,
-        headers: { "Content-Type": "application/json", "Accept": "application/json" }
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        mode: "cors" // 強制跨域兼容
       });
       clearTimeout(timeoutId);
+      
+      // 請求失敗直接拋出
+      if (!verifyRes.ok) throw new Error(`HTTP ${verifyRes.status}`);
       verifyData = await verifyRes.json();
+
     } catch (e) {
-      console.error("GAS 請求失敗：", e);
+      console.error("GAS請求失敗：", e);
       verifyData = { status: "error", message: "網路異常，無法獲取權限" };
     }
 
-    // 權限驗證失敗
+    // 權限校驗
     if (verifyData.status !== "success") {
-      $("#loginTip").text(verifyData.message || "權限驗證失敗").show();
-      showToast(verifyData.message || "❌ 權限驗證失敗", "error");
+      $("#loginTip").text(verifyData.message).show();
+      showToast(verifyData.message, "error");
       return;
     }
+
+    // 計算過期時間
+    const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
+    authStatus = {
+      ...verifyData,
+      displayExpiryDate: expiry.displayDate,
+      remainingDays: expiry.remainingDays,
+      isExpired: expiry.isExpired,
+      remainingTimes: MAX_NORMAL_USER_USAGE - (verifyData.usageCount || 0)
+    };
+
+    // 過期判斷
+    if (authStatus.isExpired) {
+      $("#loginTip").text("帳號已過期，請聯繫管理員").show();
+      showToast("❌ 帳號已過期", "error");
+      return;
+    }
+
+    // 緩存權限
+    if (authStatus.isVip || authStatus.isSuperAdmin) {
+      saveTodayAuthCache(profile.userId, authStatus);
+    }
+
+    // 登錄成功
+    $("#authContainer").addClass("logged-in");
+    $("#loginTip").hide();
+    await initSystem();
+    showToast(`✅ 歡迎回來，${userInfo.displayName}`, "success");
+
+  } catch (err) {
+    // 全局錯誤捕獲
+    console.error("LIFF驗證崩潰：", err);
+    $("#loginTip").text("網路/伺服器異常，請重新整理").show();
+    showToast("❌ 驗證失敗，請重新整理", "error");
+  } finally {
+    // 釋放鎖
+    window.liffInitializing = false;
+  }
+}
 
     // 計算過期時間
     const expiry = calculateRemainingDays(verifyData.expiryDate || PERMANENT_EXPIRY_DATE);
@@ -1113,8 +1167,7 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // 🔥 核心：調用GAS AI圖片識別 + 自動添加產品
-els.recognizeBtn.click(async () => {
+  els.recognizeBtn.click(async () => {
   if (!base64Image) {
     showToast("❌ 請先上傳產品圖片", "error");
     return;
@@ -1125,20 +1178,28 @@ els.recognizeBtn.click(async () => {
   els.recognizeBtn.prop("disabled", true).text("🔍 AI識別中...");
 
   try {
+    // 超時控制器
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
     
-    // 🔴 修复：内层try + catch 补齐语法，100%合规
+    // 安全參數拼接
+    const params = new URLSearchParams({
+      action: "ocr",
+      base64: base64Image
+    });
+    const requestUrl = `${GAS_API_URL}?${params.toString()}`;
+
     let result;
     try {
-      const response = await fetch(`${GAS_API_URL}?action=ocr&base64=${encodeURIComponent(base64Image)}`, {
-        signal: controller.signal
+      const response = await fetch(requestUrl, {
+        signal: controller.signal,
+        mode: "cors"
       });
       clearTimeout(timeoutId);
       result = await response.json();
     } catch (fetchErr) {
       console.error("OCR請求失敗：", fetchErr);
-      showToast("❌ 網路異常，識別請求失敗", "error");
+      showToast("❌ 網路異常，識別失敗", "error");
       return;
     }
 
@@ -1150,19 +1211,16 @@ els.recognizeBtn.click(async () => {
     console.log("✅ AI識別結果：", result.data);
     let addCount = 0;
 
-    // 🔥 自動匹配產品 + 自動添加到列表（不覆蓋，追加模式）
     result.data.forEach(item => {
       const code = item.code?.trim().toUpperCase();
       const qty = parseInt(item.qty) || 1;
       if (!code) return;
 
-      // 匹配產品庫
       const targetProd = products.find(p => 
         p.name.toUpperCase().includes(code) || p.name === code
       );
       if (!targetProd) return;
 
-      // 自動添加/累加產品
       const exist = selectedProds.find(x => x.name === targetProd.name);
       if (exist) {
         exist.qty += qty;
@@ -1172,7 +1230,6 @@ els.recognizeBtn.click(async () => {
       addCount++;
     });
 
-    // 保存並刷新列表
     saveSelectedProds();
     renderTable();
     
@@ -1186,7 +1243,6 @@ els.recognizeBtn.click(async () => {
     console.error("❌ 識別失敗：", err);
     showToast("❌ 圖片識別失敗，請重試", "error");
   } finally {
-    // 恢復按鈕
     els.ocrOverlay.fadeOut(200);
     els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
   }
