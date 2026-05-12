@@ -1194,14 +1194,22 @@ async function exportToImage(){
   els.exportBtn.disabled=true;
   const opCells=document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
   opCells.forEach(el=>el.style.display="none");
-  
+
+  // 🔥 修复：临时加大表格行高 + 内边距，防止文字被截断
+  document.querySelectorAll("#reportTable td, #reportTable th").forEach(el => {
+    el.style.padding = "10px 6px";  // 上下内边距加大
+    el.style.lineHeight = "1.5";    // 行高加大
+    el.style.fontSize = "14px";     // 统一清晰字体
+  });
+
   try{
     const canvas=await html2canvas(els.captureArea,{
       scale: 5,
       useCORS:true,
       backgroundColor:null,
       logging: false,
-      padding: { left: 30, right: 50, top:10, bottom:10 }
+      padding: { left: 40, right: 50, top: 30, bottom: 30 }, // 加大整体边距
+      letterRendering: true
     });
     
     els.previewImage.src=canvas.toDataURL("image/png");
@@ -1215,6 +1223,12 @@ async function exportToImage(){
   }
   finally{
     opCells.forEach(el=>el.style.display="");
+    // 🔥 恢复表格原本样式
+    document.querySelectorAll("#reportTable td, #reportTable th").forEach(el => {
+      el.style.padding = "";
+      el.style.lineHeight = "";
+      el.style.fontSize = "";
+    });
     els.exportBtn.disabled=false;
   }
 }
