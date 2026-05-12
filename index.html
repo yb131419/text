@@ -622,20 +622,14 @@ function bindEvents() {
   els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
 }
 
-// 选择图片 → 直接上传imgbb获取URL（修复有效图片校验）
+// 选择图片 → 无大小上限 + 强制imgbb原始直链
 function handleImageSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  // 严格校验图片格式
+  // 仅允许图片格式
   if (!file.type.startsWith("image/")) {
     showToast("❌ 僅支持JPG/PNG圖片", "error");
-    return;
-  }
-
-  // 限制图片大小（2MB以内，避免后端识别失败）
-  if (file.size > 2 * 1024 * 1024) {
-    showToast("❌ 圖片超過2MB，請壓縮後上傳", "error");
     return;
   }
 
@@ -656,8 +650,8 @@ function handleImageSelect(e) {
     if (!res.ok) throw new Error("上传接口异常");
     return res.json();
   }).then(data => {
-    if (data.success && data.data?.url) {
-      // ✅ 关键：保存imgbb原始图片URL（后端可直接识别）
+    // ✅ 强制保存imgbb原始直链（后端100%识别）
+    if (data.success && data.data?.url && data.data.url.startsWith("https://i.ibb.co/")) {
       selectedImageBase64 = data.data.url;
       // 预览
       els.ocrPreview.src = data.data.url;
@@ -665,9 +659,9 @@ function handleImageSelect(e) {
       els.ocrRecognitionBtn.style.display = "inline-block";
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
-      showToast("✅ 圖片上傳成功，點擊AI識別", "success");
+      showToast("✅ 上傳成功，點擊AI識別", "success");
     } else {
-      throw new Error("图片上传失败");
+      throw new Error("无效图片链接");
     }
   }).catch(err => {
     console.error("上传错误：", err);
@@ -678,7 +672,7 @@ function handleImageSelect(e) {
 }
 
 
-// 开始AI识别（JSONP+有效图片URL 修复版）
+// 开始AI识别（纯imgbb URL 识别）
 async function startOcrRecognition() {
   if (!userInfo || !userInfo.userId) {
     showToast("❌ 用戶驗證失敗，請刷新重試", "error");
@@ -688,7 +682,8 @@ async function startOcrRecognition() {
     showToast("❌ 剩餘次數不足", "error");
     return;
   }
-  if (!selectedImageBase64 || !selectedImageBase64.startsWith("http")) {
+  // 校验必须是imgbb有效直链
+  if (!selectedImageBase64 || !selectedImageBase64.startsWith("https://i.ibb.co/")) {
     showToast("❌ 請上傳有效的圖片", "error");
     return;
   }
@@ -726,7 +721,7 @@ async function startOcrRecognition() {
     }
   };
 
-  // JSONP请求（无跨域、传有效图片URL）
+  // JSONP请求 → 传递imgbb图片URL
   $.ajax({
     url: API_URL,
     dataType: "jsonp",
@@ -737,7 +732,7 @@ async function startOcrRecognition() {
       action: "ocrImage",
       userId: userInfo.userId,
       displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
-      imageUrl: selectedImageBase64,
+      imageUrl: selectedImageBase64, // 传递imgbb直链
       callback: callbackName
     },
     error: function() {
