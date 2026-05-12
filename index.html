@@ -681,8 +681,14 @@ function handleImageSelect(e) {
 }
 
 
-// 開始AI識別（JSONP調用GAS，解決跨域）
+// 開始AI識別（JSONP調用GAS，徹底修復網路錯誤）
 function startOcrRecognition() {
+  // 防呆：用戶信息未初始化
+  if (!userInfo || !userInfo.userId) {
+    showToast("❌ 用戶驗證失敗，請刷新重試", "error");
+    els.ocrRecognitionBtn.disabled = false;
+    return;
+  }
   if (!checkUserRemainingTimes()) {
     showToast("❌ 剩餘次數不足", "error");
     return;
@@ -725,24 +731,27 @@ function startOcrRecognition() {
     }
   };
 
-  // JSONP請求GAS OCR接口
+  // ✅ 核心修復：Base64 編碼 + 參數安全傳遞（解決GAS網路錯誤）
   $.ajax({
     url: API_URL,
     dataType: "jsonp",
     jsonp: "callback",
     jsonpCallback: callbackName,
-    timeout: JSONP_TIMEOUT,
+    timeout: 40000, // 延長超時時間
     data: {
       action: "ocrImage",
       userId: userInfo.userId,
-      displayName: userInfo.displayName,
-      imageBase64: selectedImageBase64,
+      displayName: encodeURIComponent(userInfo.displayName || "未知用戶"),
+      // 關鍵：編碼Base64，解決特殊字符/參數過長問題
+      imageBase64: encodeURIComponent(selectedImageBase64),
       callback: callbackName
     },
-    error: function () {
+    // 優化錯誤提示
+    error: function (xhr, status, err) {
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
-      showToast("❌ 網路錯誤，識別失敗", "error");
+      showToast(`❌ 網路錯誤：${status}，請重試`, "error");
+      console.error("OCR錯誤詳情:", xhr, status, err);
     }
   });
 }
