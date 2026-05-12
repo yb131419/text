@@ -1125,14 +1125,22 @@ els.recognizeBtn.click(async () => {
   els.recognizeBtn.prop("disabled", true).text("🔍 AI識別中...");
 
   try {
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 20000);
-try {
-  const response = await fetch(`${GAS_API_URL}?action=ocr&base64=${encodeURIComponent(base64Image)}`, {
-    signal: controller.signal
-  });
-  clearTimeout(timeoutId);
-  const result = await response.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    
+    // 🔴 修复：内层try + catch 补齐语法，100%合规
+    let result;
+    try {
+      const response = await fetch(`${GAS_API_URL}?action=ocr&base64=${encodeURIComponent(base64Image)}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      result = await response.json();
+    } catch (fetchErr) {
+      console.error("OCR請求失敗：", fetchErr);
+      showToast("❌ 網路異常，識別請求失敗", "error");
+      return;
+    }
 
     if (!result.data || result.data.length === 0) {
       showToast("❌ 未識別到任何產品", "error");
@@ -1183,7 +1191,6 @@ try {
     els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
   }
 });
-}
 
 // 加入產品
 function addProduct() {
