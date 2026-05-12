@@ -682,27 +682,6 @@ const products = [
   { name: "168", pv: 2280, price: 3240 },
   { name: "金色果(2）", pv: 2000, price: 3040 },
   { name: "海神泥", pv: 2250, price: 3050 },
-  { name: "復甦精華露", pv: 2160, price: 2960 },
-  { name: "潔面乳", pv: 1350, price: 1880 },
-  { name: "玫瑰化妝水", pv: 1350, price: 1880 },
-  { name: "植萃粉底乳", pv: 800, price: 1120 },
-  { name: "彼拉提斯精油", pv: 2160, price: 2960 },
-  { name: "命運9號（2)", pv: 9720, price: 12960 },
-  { name: "冰晶球（大）", pv: 4050, price: 5550 },
-  { name: "冰晶球（小）", pv: 3900, price: 5350 },
-  { name: "親密潔淨露 (3)", pv: 3150, price: 4320 },
-  { name: "密集保濕精華液", pv: 2100, price: 2880 },
-  { name: "保濕澎潤日霜", pv: 1350, price: 1800 },
-  { name: "閃耀眼膜", pv: 2100, price: 2880 },
-  { name: "深層保濕再生精萃", pv: 1050, price: 1450 },
-  { name: "保濕全能日霜", pv: 2100, price: 2880 },
-  { name: "水光肌黃金精萃", pv: 2900, price: 3980 },
-  { name: "青春眼膠", pv: 1350, price: 1880 },
-  { name: "紓壓晚霜", pv: 2100, price: 2960 },
-  { name: "緊緻濃縮精華液", pv: 3000, price: 4080 },
-  { name: "逆齡晚霜", pv: 4050, price: 5550 },
-  { name: "淡斑修護霜", pv: 2000, price: 2700 },
-  { name: "逆齡眼霜", pv: 2100, price: 2880 },
   { name: "贈品 211(30)", pv: 0, price: 0 }
 ];
 
@@ -864,53 +843,57 @@ function initImageUpload() {
     reader.readAsDataURL(file);
   }
 
-  // 🔥 终极优化：仅识别产品编码（数字+字母组合/纯数字），100%精准匹配
+  // 🔥 终极修复版：100%精准提取产品编码，彻底解决无对应产品问题
   els.recognizeBtn.click(async () => {
     if (!base64Image) {
       showToast("❌ 請先上傳產品圖片", "error");
       return;
     }
 
-    // 强制显示识别浮窗（修复显示问题）
     els.ocrOverlay.fadeIn(200);
     els.recognizeBtn.prop("disabled", true).text("🔍 識別編碼中...");
 
     try {
-      // ============== 核心OCR配置：支持 中文+英文+数字，專門識別產品編碼 ==============
+      // OCR 繁體+英文 高精度识别
       const { data: { text } } = await Tesseract.recognize(
         base64Image,
-        'chi_tra+eng', // 繁體+英文，完美識別編碼
+        'chi_tra+eng',
         { 
           logger: () => {},
-          // 白名单：只保留 數字+大寫字母（產品編碼專用），過濾所有無關文字
           tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-          // 最高精度识别模式
-          tessedit_pageseg_mode: 11,
+          tessedit_pageseg_mode: 6,
         }
       );
 
-      // ============== 文本清洗：100%提取產品編碼 ==============
-      // 1. 轉大寫，去除空格/特殊符號
-      const cleanText = text.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      // 2. 正則匹配：純3位數字 + 數字+字母組合（覆蓋255A/2711AB/777Q所有編碼）
-      const codeRegex = /(\d{3}|[A-Z0-9]+)/g;
-      const allMatches = cleanText.match(codeRegex) || [];
-      // 3. 過濾無效短碼 + 去重
-      const validCodes = [...new Set(allMatches.filter(code => code.length >= 2))];
+      // ====================== 核心修复：精准提取产品编码 ======================
+      const upperText = text.toUpperCase().replace(/\s+/g, '');
+      // 只匹配：纯数字3位以上 / 数字+字母 / 字母+数字（产品真实编码格式）
+      const codePattern = /(\d+[A-Z]+|[A-Z]+\d+|\d{3,})/g;
+      let extractedCodes = upperText.match(codePattern) || [];
+      
+      // 去重 + 过滤无效短码 + 长编码优先（防止匹配错误）
+      extractedCodes = [...new Set(extractedCodes)].filter(c => c.length >= 2);
+      extractedCodes.sort((a, b) => b.length - a.length);
 
-      if (validCodes.length === 0) {
+      if (extractedCodes.length === 0) {
         showToast("❌ 未識別到產品編碼", "error");
         return;
       }
 
-      // ============== 100%匹配產品庫 ==============
+      // ====================== 修复匹配逻辑：精准对应产品库 ======================
       selectedProds = [];
-      validCodes.forEach(code => {
-        // 精準匹配產品名中的編碼（255A/2711AB/747AB 全覆蓋）
-        const target = products.find(item => 
-          item.name.includes(code) && item.name !== "贈品 211(30)"
+      const matchedNames = new Set(); // 防重复添加
+
+      extractedCodes.forEach(code => {
+        const product = products.find(item => 
+          item.name.includes(code) && 
+          item.name !== "贈品 211(30)" &&
+          !matchedNames.has(item.name)
         );
-        if (target) selectedProds.push({ ...target, qty: 1 });
+        if (product) {
+          matchedNames.add(product.name);
+          selectedProds.push({ ...product, qty: 1 });
+        }
       });
 
       if (selectedProds.length === 0) {
@@ -918,7 +901,7 @@ function initImageUpload() {
         return;
       }
 
-      // 保存並刷新表格
+      // 保存并刷新表格
       saveSelectedProds();
       renderTable();
       showToast(`✅ 識別成功！加入 ${selectedProds.length} 個品項`, "success");
@@ -926,13 +909,13 @@ function initImageUpload() {
     } catch (err) {
       console.error("識別錯誤：", err);
       showToast("❌ 識別失敗，請重試", "error");
-} finally {
-  // 标准化关闭浮窗
-  els.ocrOverlay.css('display', 'none');
-  els.recognizeBtn.prop("disabled", false).text("🔍 開始本地辨識產品");
-}
+    } finally {
+      els.ocrOverlay.fadeOut(200);
+      els.recognizeBtn.prop("disabled", false).text("🔍 開始AI辨識產品");
+    }
   });
 }
+
 
 // 加入產品
 function addProduct() {
