@@ -22,7 +22,6 @@
   --period-border:#ffffff;--period-shadow:0 0 15px rgba(255,255,255,0.5);
   --period-text:#000;
 }
-/* 🔴 全局强制锁定字体大小，禁止所有设备系统缩放/自定义字体 */
 html, body {
   -webkit-text-size-adjust: none !important;
   text-size-adjust: none !important;
@@ -473,7 +472,6 @@ body{
   </div>
 </div>
 
-<!-- AI識別圖片預覽 -->
 <img id="ocrPreview" alt="AI識別圖片預覽">
 <img id="previewImage" alt="報表匯出預覽">
 
@@ -494,9 +492,7 @@ body{
   <button id="addBtn" class="btn btn-primary btn-lg">➕<br>新增品項</button>
 </div>
 
-<!-- ✅ 修复：支持相簿+相機（删除了 capture="camera"） -->
 <input type="file" id="imageFileInput" accept="image/*">
-
 <div class="spacer"></div>
 
 <script>
@@ -510,7 +506,7 @@ const DEDUCT_INTERVAL=180000;
 
 let products=[],selectedProds=[],lineName='',userInfo=null,authStatus=null,isDeleting=false;
 let lastDeductTime=parseInt(localStorage.getItem('lastDeductTime'))||0;
-let selectedImageBase64 = ""; // AI識別圖片Base64
+let selectedImageBase64 = "";
 let els = {};
 
 function createToast() {
@@ -558,7 +554,6 @@ function initElements() {
     cashOption: document.getElementById("cashOption"),
     cardOption: document.getElementById("cardOption"),
     watermark: document.getElementById("watermark"),
-    // 新增AI識別元素
     imageFileInput: document.getElementById("imageFileInput"),
     uploadImageBtn: document.getElementById("uploadImageBtn"),
     ocrRecognitionBtn: document.getElementById("ocrRecognitionBtn"),
@@ -613,57 +608,38 @@ function bindEvents() {
     if(!btn||isDeleting||btn.disabled)return;
     await handleDelete(btn);
   });
-
-  // 綁定AI圖片識別事件
   els.uploadImageBtn.addEventListener("click", () => els.imageFileInput.click());
   els.imageFileInput.addEventListener("change", handleImageSelect);
   els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
 }
 
-// ==============================================
-// ✅ 超高画质 + 纯标准 Base64（兼容 GitHub + GAS）
-// ==============================================
 function handleImageSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
-
   if (!file.type.startsWith("image/")) {
     showToast("❌ 請選擇圖片文件", "error");
     return;
   }
-
   const reader = new FileReader();
   reader.onload = function (e) {
     const img = new Image();
     img.onload = function () {
       const canvas = document.createElement("canvas");
-      
-      // 🚀 超高画质：不压缩宽度，保持原图清晰度（可根据需求调整 MAX_WIDTH）
-      const MAX_WIDTH = 1200; // 比原来 640 提升近 2 倍画质
+      const MAX_WIDTH = 1200;
       let width = img.width;
       let height = img.height;
-
       if (width > MAX_WIDTH) {
         height = Math.floor((MAX_WIDTH / width) * height);
         width = MAX_WIDTH;
       }
-
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
-      
-      // 白底兜底，保证识别率
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // 高清绘制
       ctx.drawImage(img, 0, 0, width, height);
-
-      // 🚀 核心：输出 高质量 JPEG + 标准纯 Base64（无前缀，100% 兼容 GAS）
-      const highQualityBase64 = canvas.toDataURL("image/jpeg", 0.95); // 0.95 超高画质
+      const highQualityBase64 = canvas.toDataURL("image/jpeg", 0.95);
       selectedImageBase64 = highQualityBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
-
-      // 预览图也用高清
       els.ocrPreview.src = highQualityBase64;
       els.ocrPreview.style.display = "block";
       els.ocrRecognitionBtn.style.display = "inline-block";
@@ -674,9 +650,6 @@ function handleImageSelect(e) {
   reader.readAsDataURL(file);
 }
 
-// ==============================================
-// ✅ 终极修复：GAS JSONP 网络请求（100%无网络错误）
-// ==============================================
 function startOcrRecognition() {
   if (!checkUserRemainingTimes()) {
     showToast("❌ 剩餘次數不足", "error");
@@ -686,25 +659,18 @@ function startOcrRecognition() {
     showToast("❌ 請先載入圖片", "warning");
     return;
   }
-
   if (selectedImageBase64.length > 1800000) {
     showToast("❌ 圖片偏大，請截圖後重試", "error");
     return;
   }
-
   els.ocrRecognitionBtn.disabled = true;
   els.ocrRecognitionBtn.textContent = "識別中...";
   showToast("🔍 AI識別中，請勿退出...", "success");
-
-  // 唯一回调函数（防冲突）
   const callbackName = `ocr_callback_${Date.now()}`;
-
-  // 全局回调
   window[callbackName] = (resp) => {
     try { delete window[callbackName]; } catch (e) {}
     els.ocrRecognitionBtn.disabled = false;
     els.ocrRecognitionBtn.textContent = "🤖AI識別";
-
     if (!resp) {
       showToast("❌ 服務器無響應", "error");
       return;
@@ -729,8 +695,6 @@ function startOcrRecognition() {
       showToast("⚠️ 未識別到品項", "warning");
     }
   };
-
-  // 🚀 GAS专用JSONP（修复跨域+网络错误）
   $.ajax({
     url: API_URL,
     type: "GET",
@@ -740,56 +704,42 @@ function startOcrRecognition() {
     timeout: 60000,
     cache: false,
     traditional: true,
-    // 核心参数（无冗余）
     data: {
       action: "ocrImage",
       userId: userInfo?.userId || "",
       displayName: userInfo?.displayName || "",
       imageBase64: selectedImageBase64
     },
-    // 错误处理（精准提示）
     error: (xhr, status) => {
       try { delete window[callbackName]; } catch (e) {}
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
-      
       if (status === "timeout") showToast("❌ 識別超時，請重試", "error");
       else if (status === "parsererror") showToast("❌ 數據解析失敗", "error");
       else showToast("❌ 網路錯誤，請檢查網路後重試", "error");
-      console.error("OCR錯誤類型：", status);
     }
   });
 }
 
-// ==============================================
-// ✅ 唯一定义：添加OCR识别结果（删除重复函数）
-// ==============================================
-// 自動添加識別到的品項
 function addOcrProducts(ocrProducts) {
-  let addCount = 0;
+  if (!ocrProducts || !ocrProducts.length) return;
   ocrProducts.forEach(item => {
+    if (!item.name || !item.qty) return;
     const product = products.find(p => p.name === item.name);
     if (!product) return;
-
+    const qty = Math.max(parseInt(item.qty) || 1, 1);
     const exists = selectedProds.find(p => p.name === item.name);
-    const qty = parseInt(item.qty) || 1;
-
     if (exists) {
       exists.qty += qty;
     } else {
       selectedProds.push({ ...product, qty });
     }
-    addCount++;
   });
-
   saveSelectedProds();
   renderTable();
-  if (els.cashOption.checked) handleCashGift();
+  els.cashOption.checked && handleCashGift();
 }
 
-// ==============================================
-// ✅ 修复：清空图片（无残留）
-// ==============================================
 function clearImage(){
   els.previewImage.style.display = "none";
   els.previewImage.src = "";
@@ -801,29 +751,6 @@ function clearImage(){
   els.clearImageBtn.style.display = "none";
   els.ocrRecognitionBtn.style.display = "none";
   els.imageFileInput.value = "";
-}
-
-// 自動添加識別到的品項
-function addOcrProducts(ocrProducts) {
-  let addCount = 0;
-  ocrProducts.forEach(item => {
-    const product = products.find(p => p.name === item.name);
-    if (!product) return;
-
-    const exists = selectedProds.find(p => p.name === item.name);
-    const qty = parseInt(item.qty) || 1;
-
-    if (exists) {
-      exists.qty += qty;
-    } else {
-      selectedProds.push({ ...product, qty });
-    }
-    addCount++;
-  });
-
-  saveSelectedProds();
-  renderTable();
-  if (els.cashOption.checked) handleCashGift();
 }
 
 function checkHerbalNewMember(selectedValue){
@@ -1011,7 +938,6 @@ async function resetReport(){
 async function loadProducts(){
   try{
     updateAuthLoadingText("驗證資料中","請稍候...");
-    // JSONP加載產品列表
     const callbackName = `loadProductsCallback_${Date.now()}`;
     window[callbackName] = function(data) {
       delete window[callbackName];
@@ -1028,7 +954,6 @@ async function loadProducts(){
         adjustQtySelectOptions(els.nameInput.value);
       }, 300);
     };
-
     $.ajax({
       url: API_URL,
       dataType: "jsonp",
@@ -1316,50 +1241,51 @@ function updateAuthLoadingText(title, desc){
   els.authLoadingDesc.innerHTML=desc;
 }
 
-const verifyUserFromBackend = (profile) => {
-  return new Promise((resolve) => {
-    const callbackName = `verifyCallback_${Date.now()}`;
-    
-    window[callbackName] = function(resp) {
+const verifyUserFromBackend=(profile)=>{
+  return new Promise((resolve)=>{
+    const callbackName=`verifyCallback_${Date.now()}`;
+    window[callbackName]=function(resp){
       try { delete window[callbackName]; } catch(e){}
-      
-      if (!resp) {
-        showError("伺服器無回應");
+      if(!resp){
+        showError("伺服器無回應，請稍後重試");
         resolve(null);
         return;
       }
-      
-      if (resp.status === "success") {
-        authStatus = {
-          isSuperAdmin: resp.isSuperAdmin,
-          remainTimes: resp.remainTimes || 0
-        };
+      if(resp.status==="exceeded"){
+        showError(resp.message);
+        resolve(null);
+        return;
+      }
+      if(resp.status==="success"){
+        authStatus={isSuperAdmin:resp.isSuperAdmin,remainTimes:resp.remainTimes};
         resolve(authStatus);
-      } else {
-        showError(resp.message || "驗證失敗");
+      }else{
+        showError(resp.message||"驗證失敗");
         resolve(null);
       }
     };
 
     $.ajax({
-      url: API_URL,
-      dataType: "jsonp",
-      jsonp: "callback",
-      jsonpCallback: callbackName,
-      timeout: 20000,
+      url:API_URL,
+      dataType:'jsonp',
+      jsonp:'callback',
+      jsonpCallback:callbackName,
+      timeout:20000,
       cache: false,
-      data: {
-        action: "verifyUser",
-        userId: profile.userId,
-        displayName: profile.displayName,
+      data:{
+        action:'verifyUser',
+        userId:profile.userId,
+        displayName:profile.displayName,
         t: new Date().getTime()
       },
       error: function(xhr, status){
         try { delete window[callbackName]; } catch(e){}
-        if (status === "timeout") {
-          showError("驗證超時，請重試");
-        } else {
-          showError("網路錯誤，無法登入");
+        if(status === "timeout"){
+          showError("請求超時，請檢查網路後重試");
+        }else if(status === "parsererror"){
+          showError("資料解析錯誤，請刷新重試");
+        }else{
+          showError("網路連線異常，請刷新頁面重試");
         }
         resolve(null);
       }
@@ -1370,53 +1296,57 @@ const verifyUserFromBackend = (profile) => {
 async function initLiffAndAuth(){
   try{
     updateAuthLoadingText("正在驗證用戶權限","請稍候...");
-    
-    // 先加载产品，不影响登录
     loadProducts();
-
-    // 安全判断 LIFF
+    
     if (typeof liff === 'undefined') {
-      showError("LIFF SDK 加載失敗，請切換網路重試");
-      return;
+      throw new Error("LIFF SDK 加載失敗，請檢查網路");
     }
     
     await liff.init({
-      liffId: LIFF_ID,
-      withLoginOnExternalBrowser: true
+      liffId:LIFF_ID,
+      withLoginOnExternalBrowser:true
     });
 
     if(!liff.isLoggedIn()){
       updateAuthLoadingText("需要LINE登錄","即將跳轉登錄頁面...");
-      setTimeout(()=> liff.login({redirectUri:window.location.href}), 1500);
+      setTimeout(()=>{
+        liff.login({redirectUri:window.location.href});
+      }, 1500);
       return;
     }
 
-    // 获取用户资料
-    const profile = await liff.getProfile();
-    userInfo = { userId: profile.userId, displayName: profile.displayName };
+    const profile=await liff.getProfile();
+    userInfo={userId:profile.userId,displayName:profile.displayName};
     
-    // 后端验证（关键修复）
-    const authData = await verifyUserFromBackend(profile);
-    if(!authData) {
-      showError("權限驗證失敗，請聯繫管理員");
-      return;
-    }
+    const authData=await verifyUserFromBackend(profile);
+    if(!authData)return;
     
-    // 登录成功 → 显示界面
-    els.authContainer.style.display = 'none';
-    els.captureArea.style.display = 'block';
-    els.inputArea.style.display = 'flex';
-    els.buttonGroup.style.display = 'flex';
+    els.authContainer.style.display='none';
+    els.captureArea.style.display='block';
+    els.inputArea.style.display='flex';
+    els.buttonGroup.style.display='flex';
 
     setupLineName();
     loadSelectedProds();
     checkUserRemainingTimes();
     updateAuthStatusBar();
     showToast(`歡迎，<span class="toast-highlight-name">${userInfo.displayName}</span>！`);
-    
-  } catch(error) {
+  }catch(error){
     console.error("初始化錯誤：", error);
     showError(`登入失敗：${error.message}<br>請刷新頁面重試`);
+  }
+}
+
+async function initApp(){
+  try {
+    initElements();
+    initQtySelect();
+    initPeriodBox();
+    initCloseStatus();
+    bindEvents();
+    await initLiffAndAuth();
+  } catch (err) {
+    showError(`應用啟動失敗：${err.message}<br/>請刷新頁面重試`);
   }
 }
 
