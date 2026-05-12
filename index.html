@@ -854,29 +854,17 @@ function initImageUpload() {
     if(file) handleImageFile(file);
   });
 
-  // 🔴 修復1：圖片預處理（放大小圖，解決OCR報錯：Image too small to scale）
-  function handleImageFile(file){
-    const reader = new FileReader();
-    reader.onload = function (ev) {
-      const img = new Image();
-      img.onload = function() {
-        // 縮放圖片至適合OCR識別的尺寸
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        // 放大2.5倍，解決小圖識別失敗
-        const scale = 2.5;
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        // 輸出高質量base64
-        base64Image = canvas.toDataURL('image/png', 1.0);
-        els.previewUploadImg.attr("src", base64Image).show();
-        els.recognizeBtn.show();
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
+// 原图上传 - 替换原来的 handleImageFile 函数
+function handleImageFile(file){
+  const reader = new FileReader();
+  reader.onload = function (ev) {
+    // 直接使用原图，不做任何缩放处理
+    base64Image = ev.target.result;
+    els.previewUploadImg.attr("src", base64Image).show();
+    els.recognizeBtn.show();
+  };
+  reader.readAsDataURL(file);
+}
 
   // OCR產品識別（完整修復所有BUG）
   els.recognizeBtn.click(async () => {
