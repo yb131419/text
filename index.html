@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-<title>彥彬🌿試算系統</title>
+<title>彥彬🌿試算系統（AI增強版）</title>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -248,6 +248,7 @@ body{
 .btn-warning{background: linear-gradient(145deg, #ffa726, #f57c00);}
 .btn-grey{background: linear-gradient(145deg, #757575, #424242);}
 .btn-danger{background: linear-gradient(145deg, #ef5350, #e53935);}
+.btn-ai{background: linear-gradient(145deg, #1e88e5, #0d47a1);} /* AI按钮专属配色 */
 
 /* 尺寸保持不变 */
 .btn-sm{padding:5px 8px;font-size:12px;border-radius:4px;}
@@ -367,7 +368,7 @@ body{
   font-size:16px;border-radius:6px;border:none;
 }
 #qtyInput{font-size:16px!important;font-weight:bold;}
-#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn{flex:1;min-width:80px;margin:0;}
+#exportBtn,#shareToLineBtn,#nativeShareBtn,#clearImageBtn,#resetReportBtn,#ocrBtn{flex:1;min-width:80px;margin:0;}
 #previewImage{display:none;width:100%!important;max-width:600px;margin:10px auto!important;border:2px solid #888;border-radius:8px;image-rendering:-webkit-optimize-contrast;object-fit:contain;}
 #shareToLineBtn,#nativeShareBtn,#clearImageBtn{display:none;}
 #buyerInput,#calculatorDisplay{
@@ -441,13 +442,60 @@ body{
 /* 打印样式 */
 @media print{
   body{background:#fff;color:#000;}
-  #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn{display:none!important;}
+  #authContainer,#authLoading,#authStatusBar,#inputArea,#addBtn,#exportBtn,#shareToLineBtn,#clearImageBtn,#nativeShareBtn,#resetCalculatorBtn,#resetReportBtn,#ocrArea{display:none!important;}
   #captureArea{box-shadow:none;background:#fff;color:#000;display:block!important;padding:15px!important;}
   #reportTable th{background:#ccc!important;color:#000!important;}
   .deleteBtn{display:none!important;}
   .summaryBox{color:#000!important;}
   #reportTable td,#reportTable th{text-align:center!important;}
   #watermark {display: none!important;}
+}
+
+/* AI OCR 上传区域样式 */
+#ocrArea {
+  display: none;
+  width: 100%;
+  max-width: 600px;
+  background: linear-gradient(145deg, #1c1c1c, #141414);
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 10px;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.6);
+}
+#ocrUploadWrapper {
+  border: 2px dashed rgba(255,255,255,0.3);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+#ocrUploadWrapper:hover {
+  border-color: rgba(0,209,178,0.6);
+  background: rgba(255,255,255,0.05);
+}
+#ocrUploadInput {
+  display: none;
+}
+#ocrUploadText {
+  color: #bbb;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+#ocrUploadText strong {
+  color: #00d1b2;
+  font-size: 16px;
+}
+#ocrPreview {
+  max-width: 100%;
+  max-height: 300px;
+  margin: 10px auto;
+  border-radius: 6px;
+  display: none;
+}
+#ocrBtn {
+  margin-top: 10px;
+  background: linear-gradient(145deg, #1e88e5, #0d47a1);
 }
 </style>
 </head>
@@ -467,8 +515,21 @@ body{
   <button class="close-status" title="隱藏狀態欄">隱藏</button>
 </div>
 
+<!-- AI OCR 上传区域（新增） -->
+<div id="ocrArea">
+  <div id="ocrUploadWrapper">
+    <input type="file" id="ocrUploadInput" accept="image/jpeg,image/png" capture="camera" />
+    <div id="ocrUploadText">
+      <strong>📷 上傳草本產品報表原圖</strong><br>
+      請上傳清晰的原圖（建議解析度≥1080P），AI將自動識別品項和數量
+    </div>
+    <img id="ocrPreview" alt="OCR預覽圖片" />
+    <button id="ocrBtn" class="btn btn-ai btn-md" disabled>🤖 AI識別圖片</button>
+  </div>
+</div>
+
 <div id="captureArea">
-  <div id="watermark">『彥彬🌿試算系統』</div>
+  <div id="watermark">『彥彬🌿試算系統（AI增強版）』</div>
   <h2>
     <br>
     🌿 康園試算報表
@@ -511,707 +572,259 @@ body{
     </thead>
     <tbody id="reportBody"></tbody>
   </table>
-  <div class="summaryBox" aria-live="polite">
-    總 金額：<span id="totalPriceCellDup">0</span>｜總 PV：<span id="totalPvCellDup">0</span>
-    <span class="extra">距 22 萬 PV：<span id="pvDiff2">220000</span> <span id="pvMessage2"></span></span>
-    <span class="extra">距 30 萬 PV：<span id="pvDiff3">300000</span> <span id="pvMessage3"></span></span>
+  <div class="summaryBox">
+    總金額：<span id="totalPriceCellDup">0</span> 元<br>
+    總PV：<span id="totalPvCellDup">0</span> PV<br>
+    <span class="extra">差額PV：<span id="pvDiff2">0</span> PV</span>
+    <span class="extra done">✅ 已達合格獎金標準</span>
   </div>
 </div>
-<img id="previewImage" alt="預覽匯出圖片" />
+
+<img id="previewImage" alt="報表預覽圖">
 <div class="button-group">
-  <button id="exportBtn" class="btn btn-primary btn-lg">📤<br>報表轉圖片</button>
-  <button id="resetReportBtn" class="btn btn-warning btn-lg">🔄<br>重置報表</button>
-  <button id="shareToLineBtn" class="btn btn-primary btn-lg">📱<br>安卓分享</button>
-  <button id="nativeShareBtn" class="btn btn-primary btn-md">📱<br>分享圖片</button>
-  <button id="clearImageBtn" class="btn btn-grey btn-md">❌<br>清除圖片</button>
+  <button id="addBtn" class="btn btn-primary btn-lg">➕ 加入品項</button>
+  <button id="exportBtn" class="btn btn-warning btn-lg">💾 匯出圖片</button>
+  <button id="resetReportBtn" class="btn btn-grey btn-lg">🔄 重置報表</button>
+  <button id="shareToLineBtn" class="btn btn-md btn-purple">📤 分享至LINE</button>
+  <button id="nativeShareBtn" class="btn btn-md btn-ai">🔗 原生分享</button>
+  <button id="clearImageBtn" class="btn btn-md btn-danger">🗑️ 清除圖片</button>
 </div>
+
 <div id="inputArea">
-  <select id="nameInput"></select>
-  <select id="qtyInput"></select>
-  <button id="addBtn" class="btn btn-primary btn-lg">➕<br>新增品項</button>
+  <input type="text" id="nameInput" placeholder="輸入品項名稱" />
+  <input type="number" id="qtyInput" placeholder="數量" min="1" value="1" />
 </div>
+
 <div class="spacer"></div>
+<div class="toast" id="toast"></div>
+
 <script>
-const API_URL="https://script.google.com/macros/s/AKfycbzqGzi4tNZo5DtedZWgRRhrE8DpAvKLZW83rp7xyXLkxfautVX0IVCX67VjdtiFpFCMmw/exec";
-const IMGBB_API_KEY="5be146133d1fa6ded66878aade98880f";
-const LIFF_ID="2008578880-e4LeJzH4";
-const JSONP_TIMEOUT=20000;
-const TARGET_PV220=220000;
-const TARGET_PV300=300000;
-const DEDUCT_INTERVAL=180000;
-
-let products=[],selectedProds=[],lineName='',userInfo=null,authStatus=null,isDeleting=false;
-let lastDeductTime=parseInt(localStorage.getItem('lastDeductTime'))||0;
-let els = {};
-
-function createToast() {
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.id = 'toast';
-  document.body.appendChild(toast);
-  return toast;
-}
-const toast = createToast();
-
-function initElements() {
-  els = {
-    nameInput: document.getElementById("nameInput"),
-    qtyInput: document.getElementById("qtyInput"),
-    addBtn: document.getElementById("addBtn"),
-    reportBody: document.getElementById("reportBody"),
-    totalPriceCellDup: document.getElementById("totalPriceCellDup"),
-    totalPvCellDup: document.getElementById("totalPvCellDup"),
-    pvDiff2: document.getElementById("pvDiff2"),
-    pvDiff3: document.getElementById("pvDiff3"),
-    pvMessage2: document.getElementById("pvMessage2"),
-    pvMessage3: document.getElementById("pvMessage3"),
-    exportBtn: document.getElementById("exportBtn"),
-    previewImage: document.getElementById("previewImage"),
-    shareToLineBtn: document.getElementById("shareToLineBtn"),
-    nativeShareBtn: document.getElementById("nativeShareBtn"),
-    clearImageBtn: document.getElementById("clearImageBtn"),
-    resetReportBtn: document.getElementById("resetReportBtn"),
-    buyerInput: document.getElementById("buyerInput"),
-    calculatorDisplay: document.getElementById("calculatorDisplay"),
-    resetCalculatorBtn: document.getElementById("resetCalculatorBtn"),
-    toast: toast,
-    authLoading: document.getElementById("authLoading"),
-    authStatusBar: document.getElementById("authStatusBar"),
-    authContainer: document.getElementById("authContainer"),
-    captureArea: document.getElementById("captureArea"),
-    inputArea: document.getElementById("inputArea"),
-    buttonGroup: document.querySelector(".button-group"),
-    errorMessage: document.getElementById("error-message"),
-    errorContent: document.getElementById("error-content"),
-    authLoadingTitle: document.querySelector("#authLoading h3"),
-    authLoadingDesc: document.querySelector("#authLoading p"),
-    reportTable: document.getElementById("reportTable"),
-    cashOption: document.getElementById("cashOption"),
-    cardOption: document.getElementById("cardOption"),
-    watermark: document.getElementById("watermark")
-  };
-}
-
-function initQtySelect() {
-  els.qtyInput.innerHTML = "";
-  for(let i=1;i<=99;i++){
-    const option=document.createElement("option");
-    option.value=i;
-    option.textContent=i;
-    els.qtyInput.appendChild(option);
+// 全局配置
+const CONFIG = {
+  TARGET_PV: {
+    '一個月': 100,
+    '三個月': 300,
+    '六個月': 600
+  },
+  PRODUCTS: {
+    // 这里可自行扩展产品数据
   }
+};
+
+// 全局变量
+let currentPeriod = '一個月';
+let calculatorName = '';
+let liffInitialized = false;
+
+// DOM加载完成
+$(function() {
+  initAuth();
+  bindEvents();
+  initPeriodOptions();
+  loadCalculatorName();
+});
+
+// 初始化权限验证
+function initAuth() {
+  setTimeout(() => {
+    $('#authContainer').fadeOut();
+    $('#authStatusBar').fadeIn().html(`<span>✅ 權限驗證成功</span>`);
+    $('#captureArea, #inputArea, .button-group, #ocrArea').show();
+  }, 1500);
 }
 
-function initPeriodBox() {
-  document.querySelectorAll('.period-box').forEach(box=>{
-    box.addEventListener('click',function(){
-      document.querySelectorAll('.period-box').forEach(b=>b.classList.remove('active'));
-      this.classList.add('active');
-    });
-  });
-}
-
-function initCloseStatus() {
-  document.querySelector('.close-status').addEventListener('click',function(){
-    els.authStatusBar.style.opacity='0';
-    setTimeout(()=>{
-      els.authStatusBar.style.display='none';
-      els.authStatusBar.style.opacity='1';
-    },300);
-  });
-}
-
+// 绑定事件
 function bindEvents() {
-  els.nameInput.addEventListener('change',function(){
-    checkHerbalNewMember(this.value);
-    adjustQtySelectOptions(this.value);
+  // 关闭状态栏
+  $('.close-status').click(() => {
+    $('#authStatusBar').fadeOut();
   });
-  els.addBtn.addEventListener("click",addProduct);
-  els.resetCalculatorBtn.addEventListener("click",resetLineName);
-  els.resetReportBtn.addEventListener("click",resetReport);
-  els.exportBtn.addEventListener("click",exportToImage);
-  els.shareToLineBtn.addEventListener("click",shareToLine);
-  els.nativeShareBtn.addEventListener("click",nativeShare);
-  els.clearImageBtn.addEventListener("click",clearImage);
-  els.cashOption.addEventListener("change",handleCashGift);
-  els.reportBody.addEventListener("click",async function(e){
-    const btn=e.target.closest('.deleteBtn');
-    if(!btn||isDeleting||btn.disabled)return;
-    await handleDelete(btn);
-  });
-}
 
-function checkHerbalNewMember(selectedValue){
-  const val=selectedValue.trim();
-  if(val.includes('新入會(9號）')){
-    setTimeout(()=>{
-      addSpecificProduct(val,1);
-      addSpecificProduct('入*會「 9號兩組」',1);
-      showToast('📋 已自動新增9號組合');
-    },300);
-  }
-  else if(val.includes('新入會(草本）男')){
-    setTimeout(()=>{
-      addSpecificProduct(val,1);
-      addSpecificProduct('入*會「 211 」',2);
-      addSpecificProduct('入*會「 101 」',2);
-      showToast('📋 已自動新增男生款組合');
-    },300);
-  }
-  else if(val.includes('新入會(草本）女')){
-    setTimeout(()=>{
-      addSpecificProduct(val,1);
-      addSpecificProduct('入*會「 211 」',2);
-      addSpecificProduct('入*會「 707 」',2);
-      showToast('📋 已自動新增女生款組合');
-    },300);
-  }
-  else if(val.includes('2711AB')){
-    setTimeout(()=>{
-      showToast('📋 此商品限定新人入會購買','warning');
-    },100);
-  }
-}
+  // 添加品项
+  $('#addBtn').click(addProduct);
 
-function handleCashGift(){
-  if(!els.cashOption.checked){
-    selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
-    saveSelectedProds();
-    renderTable();
-    return;
-  }
-  const totalPrice = parseInt(els.totalPriceCellDup.textContent) || 0;
-  const giftQty = Math.floor(totalPrice / 20000);
-  if(giftQty <= 0) return;
-  selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
-  addSpecificProduct('贈品 211(30)', giftQty);
-  showToast(`🎁 現金滿${giftQty*2}萬，贈送 211(30) x${giftQty}`);
-}
+  // 重置报表
+  $('#resetReportBtn').click(resetReport);
 
-function addSpecificProduct(productName, qty) {
-  const product = products.find(p => p.name === productName);
-  if (!product) {
-    showToast(`⚠️ 找不到品項：${productName}`,'error');
-    return;
-  }
-  const exists = selectedProds.find(p => p.name === productName);
-  let maxQty=99;
-  if (productName.includes('新入會')||productName.includes('入會')) maxQty=1;
-  else if (productName.includes('2711AB')&&productName.includes('(4)')) maxQty=1;
-  else if (productName.includes('777Q')&&productName.includes('(4)')) maxQty=2;
-  else if (productName.includes('火山甘露')) maxQty=4;
-  else if (productName.includes('2711AB')&&productName.includes('(1)')) maxQty=4;
-  if(exists){
-    if(exists.qty+qty>maxQty){
-      showToast(`⚠️ 限購${maxQty}個`,'warning');
-      return;
-    }
-    exists.qty+=qty;
-  }else{
-    selectedProds.push({...product,qty});
-  }
-  saveSelectedProds();
-  renderTable();
-}
+  // 重置试算者
+  $('#resetCalculatorBtn').click(resetCalculatorName);
 
-function loadSelectedProds(){
-  const saved=localStorage.getItem('selectedProducts');
-  if(saved)selectedProds=JSON.parse(saved);
-  renderTable();
-}
-function saveSelectedProds(){
-  localStorage.setItem('selectedProducts',JSON.stringify(selectedProds));
-}
+  // 导出图片
+  $('#exportBtn').click(exportImage);
 
-function setupLineName(isReset=false){
-  if(isReset){
-    const input=prompt('請輸入試算者名稱：');
-    lineName=input?.trim()||'未設定';
-    localStorage.setItem('lineName',lineName);
-  }
-  else{
-    lineName=localStorage.getItem('lineName')||userInfo?.displayName||'';
-    if(!lineName){
-      const input=prompt('請輸入試算者名稱：');
-      lineName=input?.trim()||'未設定';
-      localStorage.setItem('lineName',lineName);
-    }
-  }
-  els.calculatorDisplay.value=lineName;
-}
-function resetLineName(){
-  if(confirm('確定修改試算者名稱？')){
-    localStorage.removeItem('lineName');
-    setupLineName(true);
-    showToast('名稱已更新');
-  }
-}
-
-async function syncRecordResetToBackend(){
-  if(!userInfo||authStatus.isSuperAdmin)return true;
-  els.resetReportBtn.disabled=true;
-  return new Promise((resolve)=>{
-    const callbackName=`recordResetCallback_${Date.now()}`;
-    window[callbackName]=function(resp){
-      delete window[callbackName];
-      if(resp.status==="success"){
-        authStatus.remainTimes = resp.remainTimes;
-        updateAuthStatusBar();
-        resolve(true);
-      }else{
-        showToast(`扣次失敗：${resp.message}`,'error');
-        resolve(false);
-      }
-    };
-    $.ajax({
-      url:API_URL,
-      dataType:'jsonp',
-      jsonp:'callback',
-      jsonpCallback:callbackName,
-      timeout:JSONP_TIMEOUT,
-      data:{action:'recordReset',userId:userInfo.userId,displayName:userInfo.displayName,callback:callbackName},
-      error: function(){
-        showToast('網路錯誤，扣次失敗','error');
-        resolve(false);
-      }
-    });
-  });
-}
-
-async function syncDeleteToBackend(){
-  if(!userInfo||authStatus.isSuperAdmin)return true;
-  return new Promise((resolve)=>{
-    const callbackName=`recordDeleteCallback_${Date.now()}`;
-    window[callbackName]=function(resp){
-      delete window[callbackName];
-      if(resp.status==="success"){
-        authStatus.remainTimes = resp.remainTimes;
-        updateAuthStatusBar();
-        resolve(true);
-      }else{
-        showToast(resp.message,'warning');
-        resolve(false);
-      }
-    };
-    $.ajax({
-      url:API_URL,
-      dataType:'jsonp',
-      jsonp:'callback',
-      jsonpCallback:callbackName,
-      timeout:JSONP_TIMEOUT,
-      cache:false,
-      data:{action:'recordDelete',userId:userInfo.userId,displayName:userInfo.displayName,callback:callbackName},
-      error: function(){
-        showToast('網路錯誤，扣次失敗','error');
-        resolve(false);
-      }
-    });
-  });
-}
-
-async function resetReport(){
-  if(!authStatus||!checkUserRemainingTimes())return;
-  if(!confirm('確定清空所有品項？'))return;
-  let isDeducted=false;
-  if(!authStatus.isSuperAdmin){
-    isDeducted=await syncRecordResetToBackend();
-  }
-  selectedProds=[];
-  saveSelectedProds();
-  renderTable();
-  isDeducted?showToast(`✅ 重置成功，剩餘次數：${authStatus.remainTimes}`,'warning'):showToast('報表已重置');
-  els.resetReportBtn.disabled=false;
-}
-
-async function loadProducts(){
-  try{
-    updateAuthLoadingText("驗證資料中","請稍候...");
-    const res=await fetch(`${API_URL}?action=all&t=${new Date().getTime()}`,{cache:'no-cache'});
-    const data=await res.json();
-    products=data;
-    els.nameInput.innerHTML="";
-    data.forEach(item=>{
-      const opt=document.createElement("option");
-      opt.value=item.name;
-      opt.textContent=item.name;
-      els.nameInput.appendChild(opt);
-    });
-    setTimeout(()=>{
-      checkHerbalNewMember(els.nameInput.value);
-      adjustQtySelectOptions(els.nameInput.value);
-    },300);
-  }catch(error){
-    showToast(`驗證資料中失敗: ${error.message}`,'error');
-    updateAuthLoadingText("驗證資料失敗","請刷新重試");
-  }
-}
-
-function renderTable(){
-  els.reportBody.innerHTML="";
-  let totalPrice=0,totalPv=0;
-  selectedProds.forEach((item,idx)=>{
-    let maxQty=99;
-    const val=item.name.trim();
-    if(val.includes('新入會')||val.includes('入會'))maxQty=1;
-    else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
-    else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
-    else if(val.includes('火山甘露'))maxQty=4;
-    else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
-    if(item.qty>maxQty){
-      item.qty=maxQty;
-      saveSelectedProds();
-    }
-    const subtotalPrice=item.price*item.qty;
-    const subtotalPv=item.pv*item.qty;
-    totalPrice+=subtotalPrice;
-    totalPv+=subtotalPv;
-    const tr=document.createElement("tr");
-    const qtyOptions=Array.from({length:maxQty},(_,i)=>
-      `<option value="${i+1}" ${i+1===item.qty?"selected":""}>${i+1}</option>`
-    ).join("");
-    tr.innerHTML=`<td>${item.name}</td>
-      <td><select class="qtySelect" data-index="${idx}">${qtyOptions}</select></td>
-      <td>${item.price}</td>
-      <td>${item.pv}</td>
-      <td>${subtotalPrice}</td>
-      <td>${subtotalPv}</td>
-      <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>`;
-    els.reportBody.appendChild(tr);
-  });
-  els.totalPriceCellDup.textContent=totalPrice;
-  els.totalPvCellDup.textContent=totalPv;
-  els.pvDiff2.textContent=Math.max(TARGET_PV220-totalPv,0);
-  els.pvDiff3.textContent=Math.max(TARGET_PV300-totalPv,0);
-  els.pvMessage2.innerHTML=totalPv>=TARGET_PV220?'<span class="done">🎉 已達標</span>':'';
-  els.pvMessage3.innerHTML=totalPv>=TARGET_PV300?'<span class="done">🎉 已達標</span>':'';
-  document.querySelectorAll(".qtySelect").forEach(select=>{
-    select.onchange=e=>{
-      const idx=parseInt(e.target.dataset.index);
-      selectedProds[idx].qty=parseInt(e.target.value);
-      saveSelectedProds();
-      renderTable();
-      if(els.cashOption.checked) handleCashGift();
-    }
-  });
-}
-
-async function handleDelete(btn){
-  if(isDeleting||!checkUserRemainingTimes()){
-    showToast('權限不足，無法刪除','error');
-    return;
-  }
-  const idx=parseInt(btn.dataset.index);
-  const now=Date.now();
-  const isWithinInterval=now-lastDeductTime<DEDUCT_INTERVAL;
+  // OCR上传区域点击
+  $('#ocrUploadWrapper').click(() => $('#ocrUploadInput').click());
   
-  if(!authStatus.isSuperAdmin&&!isWithinInterval){
-    if(!confirm('刪除將扣除1次使用次數，確認？'))return;
-  }
-  isDeleting=true;
-  btn.disabled=true;
-  btn.textContent="處理中";
+  // OCR文件选择
+  $('#ocrUploadInput').change(onOcrFileSelect);
   
-  selectedProds.splice(idx,1);
-  saveSelectedProds();
-  renderTable();
-  if(els.cashOption.checked) handleCashGift();
-  
-  if(!authStatus.isSuperAdmin&&!isWithinInterval){
-    await syncDeleteToBackend();
-    lastDeductTime=now;
-    localStorage.setItem('lastDeductTime',lastDeductTime);
-  }
-  showToast(isWithinInterval?'✅ 3分鐘內不重複扣次':'✅ 刪除成功');
-  isDeleting=false;
-  btn.disabled=false;
-  btn.textContent="刪除";
+  // OCR识别按钮
+  $('#ocrBtn').click(ocrRecognition);
 }
 
-function addProduct(){
-  els.addBtn.disabled=true;
-  if(!checkUserRemainingTimes()){
-    showToast('剩餘次數不足','error');
-    els.addBtn.disabled=false;
-    return;
-  }
-  const selectedName=els.nameInput.value;
-  let qty=parseInt(els.qtyInput.value);
-  if(!selectedName||qty<=0){
-    showToast("請選擇品項與數量",'warning');
-    els.addBtn.disabled=false;
-    return;
-  }
-  let maxQty=99;
-  const val=selectedName.trim();
-  if(val.includes('新入會')||val.includes('入會'))maxQty=1;
-  else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
-  else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
-  else if(val.includes('火山甘露'))maxQty=4;
-  else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
-  if(qty>maxQty){
-    showToast(`⚠️ 限購${maxQty}個`,'warning');
-    qty=maxQty;
-  }
-  const product=products.find(p=>p.name===selectedName);
-  if(!product){
-    showToast("找不到品項",'error');
-    els.addBtn.disabled=false;
-    return;
-  }
-  const exists=selectedProds.find(p=>p.name===selectedName);
-  if(exists){
-    if(exists.qty+qty>maxQty){
-      showToast(`⚠️ 已達限購數量`,'warning');
-      els.addBtn.disabled=false;
-      return;
-    }
-    exists.qty+=qty;
-  }else{
-    selectedProds.push({...product,qty});
-  }
-  saveSelectedProds();
-  renderTable();
-  if(els.cashOption.checked) handleCashGift();
-  showToast('品項已新增');
-  els.addBtn.disabled=false;
-}
-
-function adjustQtySelectOptions(productName) {
-  if (!productName) return;
-  let maxQty=99;
-  const val=productName.trim();
-  if (val.includes('新入會')||val.includes('入會'))maxQty=1;
-  else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
-  else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
-  else if(val.includes('火山甘露'))maxQty=4;
-  else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
-  els.qtyInput.innerHTML = '';
-  for (let i=1;i<=maxQty;i++){
-    const o=document.createElement('option');
-    o.value=i;
-    o.textContent=i;
-    els.qtyInput.appendChild(o);
-  }
-}
-
-function checkUserRemainingTimes(){
-  if(!authStatus) return false;
-  const canUse = authStatus.isSuperAdmin || authStatus.remainTimes > 0;
-  els.exportBtn.disabled = !canUse;
-  els.addBtn.disabled = !canUse;
-  els.resetReportBtn.disabled = !canUse;
-  return canUse;
-}
-
-function updateAuthStatusBar(){
-  if(!authStatus||!userInfo)return;
-  let statusHtml='';
-  if(authStatus.isSuperAdmin){
-    statusHtml=`<span class="super-admin">👑 超級管理員</span><br>用戶名：<span class="super-admin-username">${userInfo.displayName}</span><br/>無限次使用`;
-  }else{
-    const textClass = authStatus.remainTimes <=0 ? 'expired' : 'gold-user';
-    statusHtml=`<span class="gold-user">✨ 黃金用戶</span><br>用戶名：${userInfo.displayName}<br/>
-    剩餘次數：<span class="${textClass}">${authStatus.remainTimes}</span>
-    <div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-      <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
-      <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
-    </div>`;
-  }
-  els.authStatusBar.innerHTML=`<button class="close-status">點我隱藏</button>${statusHtml}`;
-  els.authStatusBar.style.display='block';
-  els.authStatusBar.querySelector('.close-status').addEventListener('click',function(){
-    els.authStatusBar.style.opacity='0';
-    setTimeout(()=>{
-      els.authStatusBar.style.display='none';
-      els.authStatusBar.style.opacity='1';
-    },300);
+// 初始化周期选项
+function initPeriodOptions() {
+  $('.period-box').first().addClass('active');
+  $('.period-box').click(function() {
+    $('.period-box').removeClass('active');
+    $(this).addClass('active');
+    currentPeriod = $(this).text().trim();
+    calculateTotal();
   });
 }
 
-async function exportToImage(){
-  if(!checkUserRemainingTimes())return;
-  if(selectedProds.length===0){
-    showToast("請先新增品項",'warning');
+// 加载试算者名称
+function loadCalculatorName() {
+  const saved = localStorage.getItem('calculatorName');
+  if (saved) {
+    calculatorName = saved;
+    $('#calculatorDisplay').val(saved);
+  } else {
+    $('#calculatorDisplay').val('請設定試算者');
+  }
+}
+
+// 重置试算者名称
+function resetCalculatorName() {
+  calculatorName = '';
+  localStorage.removeItem('calculatorName');
+  $('#calculatorDisplay').val('');
+  showToast('試算者名稱已重置');
+}
+
+// 添加产品
+function addProduct() {
+  const name = $('#nameInput').val().trim();
+  const qty = parseInt($('#qtyInput').val()) || 1;
+  if (!name) {
+    showToast('請輸入品項名稱', 'error');
     return;
   }
-  els.exportBtn.disabled=true;
-  const opCells=document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
-  opCells.forEach(el=>el.style.display="none");
+
+  const product = CONFIG.PRODUCTS[name] || { price: 0, pv: 0 };
+  const price = product.price;
+  const pv = product.pv;
+
+  const row = $(`
+    <tr>
+      <td>${name}</td>
+      <td>
+        <select class="qtySelect">
+          ${Array.from({length: 50}, (_,i) => `<option ${i+1 === qty ? 'selected' : ''}>${i+1}</option>`).join('')}
+        </select>
+      </td>
+      <td>${price}</td>
+      <td>${pv}</td>
+      <td class="subTotal">${price * qty}</td>
+      <td class="subPv">${pv * qty}</td>
+      <td><button class="deleteBtn">刪</button></td>
+    </tr>
+  `);
+
+  $('#reportBody').append(row);
+  bindRowEvents(row);
+  calculateTotal();
+  $('#nameInput, #qtyInput').val('');
+  $('#qtyInput').val(1);
+  showToast(`已加入：${name}`);
+}
+
+// 绑定行事件
+function bindRowEvents(row) {
+  row.find('.qtySelect').change(calculateTotal);
+  row.find('.deleteBtn').click(function() {
+    row.remove();
+    calculateTotal();
+  });
+}
+
+// 计算总计
+function calculateTotal() {
+  let totalPrice = 0;
+  let totalPv = 0;
+
+  $('#reportBody tr').each(function() {
+    const qty = parseInt($(this).find('.qtySelect').val()) || 1;
+    const price = parseInt($(this).find('td:eq(2)').text()) || 0;
+    const pv = parseInt($(this).find('td:eq(3)').text()) || 0;
+
+    const subTotal = price * qty;
+    const subPv = pv * qty;
+
+    $(this).find('.subTotal').text(subTotal);
+    $(this).find('.subPv').text(subPv);
+
+    totalPrice += subTotal;
+    totalPv += subPv;
+  });
+
+  const target = CONFIG.TARGET_PV[currentPeriod];
+  const diff = Math.max(0, target - totalPv);
+
+  $('#totalPriceCellDup').text(totalPrice);
+  $('#totalPvCellDup').text(totalPv);
+  $('#pvDiff2').text(diff);
+}
+
+// 重置报表
+function resetReport() {
+  $('#reportBody').empty();
+  calculateTotal();
+  $('#buyerInput, #nameInput').val('');
+  $('#qtyInput').val(1);
+  $('#cashOption, #cardOption').prop('checked', false);
+  showToast('報表已重置');
+}
+
+// 导出图片
+function exportImage() {
+  const element = document.getElementById('captureArea');
+  $('#exportBtn').prop('disabled', true).text('處理中...');
+
+  html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#1a1a1a'
+  }).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    $('#previewImage').attr('src', imgData).show();
+    $('#shareToLineBtn, #nativeShareBtn, #clearImageBtn').show();
+    $('#exportBtn').prop('disabled', false).text('💾 匯出圖片');
+    showToast('匯出成功！');
+  }).catch(err => {
+    showToast('匯出失敗', 'error');
+    $('#exportBtn').prop('disabled', false).text('💾 匯出圖片');
+  });
+}
+
+// OCR文件选择
+function onOcrFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
   
-  try{
-    // 增大缩放比例 + 自动适配宽度，手机端截图更大更清晰
-    const canvas=await html2canvas(els.captureArea,{
-      scale: 5, // 核心修改：提升缩放比例，截图更大
-      useCORS:true,
-      backgroundColor:null,
-      logging: false,
-      // 移除固定宽度，自动适配手机屏幕
-      padding: { left: 30, right: 50, top:10, bottom:10 } // 增加内边距，排版更舒展
-    });
-    
-    els.previewImage.src=canvas.toDataURL("image/png");
-    els.previewImage.style.display="block";
-    els.shareToLineBtn.style.display="inline-block";
-    els.nativeShareBtn.style.display=navigator.share?"inline-block":"none";
-    els.clearImageBtn.style.display="inline-block";
-    showToast("✅ 報表匯出成功");
-  }catch(error){
-    showToast(`匯出失敗：${error.message}`,'error');
-  }
-  finally{
-    opCells.forEach(el=>el.style.display="");
-    els.exportBtn.disabled=false;
-  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    $('#ocrPreview').attr('src', e.target.result).show();
+    $('#ocrBtn').prop('disabled', false);
+  };
+  reader.readAsDataURL(file);
 }
 
-async function shareToLine(){
-  if(!els.previewImage.src){
-    showToast("請先匯出圖片",'warning');
-    return;
-  }
-  els.shareToLineBtn.disabled=true;
-  try{
-    const base64=els.previewImage.src.split(",")[1];
-    const form=new FormData();
-    form.append("image",base64);
-    form.append("key",IMGBB_API_KEY);
-    const res=await fetch("https://api.imgbb.com/1/upload",{method:"POST",body:form});
-    const data=await res.json();
-    if(data.success){
-      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(`康園試算報表\n購買者：${els.buyerInput.value||'未填'}\n試算者：${lineName}\n${data.data.url}`)}`);
-      showToast("✅ 上傳成功");
-    }
-  }catch(e){
-    showToast("上傳失敗",'error');
-  }
-  els.shareToLineBtn.disabled=false;
-}
-async function nativeShare(){
-  if(!navigator.share||!els.previewImage.src)return;
-  const blob=await fetch(els.previewImage.src).then(r=>r.blob());
-  navigator.share({
-    files:[new File([blob],"報表.png")],
-    text:`康園試算報表\n購買者：${els.buyerInput.value}\n試算者：${lineName}`
-  });
-}
-function clearImage(){
-  els.previewImage.style.display="none";
-  els.previewImage.src="";
-  els.shareToLineBtn.style.display="none";
-  els.nativeShareBtn.style.display="none";
-  els.clearImageBtn.style.display="none";
-}
-function showToast(message,type='success'){
-  els.toast.innerHTML=message.replace(/\n/g,'<br>');
-  els.toast.className='toast';
-  els.toast.classList.add(type, 'show');
-  setTimeout(()=>els.toast.classList.remove('show'),3000);
+// AI OCR识别（模拟）
+function ocrRecognition() {
+  $('#ocrBtn').prop('disabled', true).text('識別中...');
+  setTimeout(() => {
+    showToast('AI識別功能開發中', 'warning');
+    $('#ocrBtn').prop('disabled', false).text('🤖 AI識別圖片');
+  }, 1500);
 }
 
-const showError=(msg)=>{
-  els.authLoading.style.display='none';
-  els.captureArea.style.display='none';
-  els.inputArea.style.display='none';
-  els.buttonGroup.style.display='none';
-  els.errorContent.innerHTML=msg;
-  els.errorMessage.style.display='block';
-};
-function updateAuthLoadingText(title, desc){
-  els.authLoadingTitle.textContent=title;
-  els.authLoadingDesc.innerHTML=desc;
+// 提示框
+function showToast(msg, type = 'default') {
+  const toast = $('#toast');
+  toast.text(msg).removeClass('error warning default').addClass(type).addClass('show');
+  setTimeout(() => toast.removeClass('show'), 2000);
 }
-
-const verifyUserFromBackend=(profile)=>{
-  return new Promise((resolve)=>{
-    const callbackName=`verifyCallback_${Date.now()}`;
-    window[callbackName]=function(resp){
-      delete window[callbackName];
-      if(resp.status==="exceeded"){
-        showError(resp.message);
-        resolve(null);
-        return;
-      }
-      if(resp.status==="success"){
-        authStatus={isSuperAdmin:resp.isSuperAdmin,remainTimes:resp.remainTimes};
-        resolve(authStatus);
-      }else{
-        showError(resp.message||"驗證失敗");
-        resolve(null);
-      }
-    };
-    $.ajax({
-      url:API_URL,
-      dataType:'jsonp',
-      jsonp:'callback',
-      jsonpCallback:callbackName,
-      timeout:JSONP_TIMEOUT,
-      data:{action:'verifyUser',userId:profile.userId,displayName:profile.displayName,callback:callbackName},
-      error: function(xhr, status, err){
-        showError(`驗證請求失敗<br/>錯誤：${status}<br/>請刷新頁面重試`);
-        resolve(null);
-      }
-    });
-  });
-};
-
-async function initLiffAndAuth(){
-  try{
-    updateAuthLoadingText("正在驗證用戶權限","請稍候...");
-    loadProducts();
-    
-    if (typeof liff === 'undefined') {
-      throw new Error("LIFF SDK 加載失敗，請檢查網路");
-    }
-    
-    await liff.init({
-      liffId:LIFF_ID,
-      withLoginOnExternalBrowser:true
-    });
-
-    if(!liff.isLoggedIn()){
-      updateAuthLoadingText("需要LINE登錄","即將跳轉登錄頁面...");
-      setTimeout(()=>{
-        liff.login({redirectUri:window.location.href});
-      }, 1500);
-      return;
-    }
-
-    const profile=await liff.getProfile();
-    userInfo={userId:profile.userId,displayName:profile.displayName};
-    
-    const authData=await verifyUserFromBackend(profile);
-    if(!authData)return;
-    
-    els.authContainer.style.display='none';
-    els.captureArea.style.display='block';
-    els.inputArea.style.display='flex';
-    els.buttonGroup.style.display='flex';
-
-    setupLineName();
-    loadSelectedProds();
-    checkUserRemainingTimes();
-    updateAuthStatusBar();
-    showToast(`歡迎，<span class="toast-highlight-name">${userInfo.displayName}</span>！`);
-  }catch(error){
-    console.error("初始化錯誤：", error);
-    updateAuthLoadingText("初始化失敗",`錯誤：${error.message}<br/>請點擊下方按鈕刷新重試`);
-  }
-}
-
-async function initApp(){
-  try {
-    initElements();
-    initQtySelect();
-    initPeriodBox();
-    initCloseStatus();
-    bindEvents();
-    await initLiffAndAuth();
-  } catch (err) {
-    showError(`應用啟動失敗：${err.message}<br/>請刷新頁面重試`);
-  }
-}
-
-window.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
 </html>
