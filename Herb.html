@@ -441,7 +441,7 @@
                 </div>
             </div>
             <div class="action-bar">
-                <button class="btn btn-primary" onclick="alert('❌ 已是最後一個月，無法複製！')">📋 已到最後一月</button>
+                <button class="btn btn-primary" onclick="copyToNextMonth(3)">📋 複製到下個月</button>
                 <button class="btn btn-light" onclick="clearTable(3)">🧹 清空</button>
             </div>
             <div class="table-wrapper">
@@ -457,6 +457,39 @@
                         </tr>
                     </thead>
                     <tbody id="body3"></tbody>
+                </table>
+            </div>
+        </div>
+		
+        <!-- 第四個月 - 保養 -->
+        <div class="month-section">
+            <div class="month-title">保養 / 第四個月</div>
+            <div class="product-panel screenshot-target">
+                <div class="collapse-header" onclick="toggleCollapse(4)">
+                    <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
+                    <button class="collapse-btn" id="collapseBtn4">展開 ▼</button>
+                </div>
+                <div class="collapse-content" id="collapseContent4">
+                    <div class="product-tags" id="tags4"></div>
+                </div>
+            </div>
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="alert('❌ 已是最後一個月，無法複製！')">📋 已到最後一月</button>
+                <button class="btn btn-light" onclick="clearTable(4)">🧹 清空</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="nutrition-table">
+                    <thead>
+                        <tr>
+                            <th>產品編號</th>
+                            <th>顆數</th>
+                            <th>早</th>
+                            <th>中</th>
+                            <th>晚</th>
+                            <th class="delete-col">刪除</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body4"></tbody>
                 </table>
             </div>
         </div>
@@ -483,12 +516,12 @@
             "大女王","極樂鳥","101","111","168","金色果(2）","海神泥","復甦精華露"
         ];
 
-        const defaultProducts = {1: ["211","300","299A","211A"],2: ["211","300","299A"],3: ["211","300","299A"]};
-        const addedProducts = {1:[],2:[],3:[]};
+        const defaultProducts = {1: ["211","300","299A","211A"],2: ["211","300","299A"],3: ["211","300","299A"],4: ["211","300","299A"]};
+        const addedProducts = {1:[],2:[],3:[],4:[]};
 
         function loadTodayDate(){const now=new Date();const year=now.getFullYear()-1911;const month=now.getMonth()+1;const day=now.getDate();const week=['日','一','二','三','四','五','六'][now.getDay()];document.getElementById('date').value=`${year}.${month}.${day}(${week})`;}
         function toggleCollapse(month){const content=document.getElementById(`collapseContent${month}`);const btn=document.getElementById(`collapseBtn${month}`);content.classList.toggle('show');btn.textContent=content.classList.contains('show')?'收起 ▲':'展開 ▼';}
-        function renderAllTags(){[1,2,3].forEach(month=>{const container=document.getElementById(`tags${month}`);productList.forEach(item=>{const tag=document.createElement('div');tag.className='product-tag';tag.textContent=item;tag.dataset.product=item;tag.ondblclick=()=>addProductWithRow(month,item,tag);container.appendChild(tag);});});}
+        function renderAllTags(){[1,2,3,4].forEach(month=>{const container=document.getElementById(`tags${month}`);productList.forEach(item=>{const tag=document.createElement('div');tag.className='product-tag';tag.textContent=item;tag.dataset.product=item;tag.ondblclick=()=>addProductWithRow(month,item,tag);container.appendChild(tag);});});}
         function updateTagStyle(month,product,isAdded){const tags=document.querySelectorAll(`#tags${month} .product-tag`);tags.forEach(tag=>{if(tag.dataset.product===product){if(isAdded)tag.classList.add('added');else tag.classList.remove('added');}});}
         
         function addProductWithRow(month,product,tag){
@@ -518,9 +551,9 @@
         function delSingleRow(month,btn){const row=btn.closest('tr');const product=row.querySelector('.prod-name').value;const index=addedProducts[month].indexOf(product);if(index>-1){addedProducts[month].splice(index,1);updateTagStyle(month,product,false);}row.remove();}
         function clearTable(month){if(confirm('確定清空？')){document.getElementById(`body${month}`).innerHTML='';addedProducts[month]=[];document.querySelectorAll(`#tags${month} .product-tag`).forEach(tag=>tag.classList.remove('added'));}}
         
-        // 🔥 統一顆數選單（三個月完全一致）
+        // 🔥 統一顆數選單（四個月完全一致）
         function copyToNextMonth(currentMonth){
-            const nextMonth=currentMonth+1;if(nextMonth>3){alert("❌ 已是最後一個月，無法複製！");return;}
+            const nextMonth=currentMonth+1;if(nextMonth>4){alert("❌ 已是最後一個月，無法複製！");return;}
             const rows=document.querySelectorAll(`#body${currentMonth} tr`);if(rows.length===0){alert("❌ 當月沒有資料可複製！");return;}
             clearTable(nextMonth);
             rows.forEach(row=>{
