@@ -611,19 +611,26 @@
         function loadDefaultProducts(){for(let month in defaultProducts){const products=defaultProducts[month];products.forEach(p=>{const tag=document.querySelector(`#tags${month} .product-tag[data-product="${p}"]`);addProductWithRow(month,p,tag);});}}
         function toggleCheck(btn){btn.classList.toggle('active');btn.textContent=btn.classList.contains('active')?'√':'';}
         
-        // 🔥 截圖優化：加寬、減少高度
+        // 🔥 截圖優化：加寬、高度縮短
         async function shareReportImage(){
             const hideElements = document.querySelectorAll('.screenshot-target, .delete-col');
             hideElements.forEach(el => el.classList.add('screenshot-hide'));
 
             try{
-                const canvas=await html2canvas(document.getElementById('captureContainer'),{
+                const container = document.getElementById('captureContainer');
+                const originalWidth = container.style.width;
+                container.style.width = "1000px"; // 強制加寬
+
+                const canvas=await html2canvas(container,{
                     useCORS:true,
-                    scale:1.8,
+                    scale:1.6,
                     backgroundColor:'#ffffff',
-                    width: document.getElementById('captureContainer').scrollWidth,
-                    padding: { top:0, right:25, bottom:0, left:25 }
+                    width: container.scrollWidth,
+                    padding: { top:0, right:30, bottom:0, left:30 }
                 });
+
+                container.style.width = originalWidth; // 恢復原寬度
+
                 canvas.toBlob(async(blob)=>{
                     const file=new File([blob],"草本產品報表.png",{type:"image/png"});
                     if(navigator.share){
