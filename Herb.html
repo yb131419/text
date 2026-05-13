@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
     <title>草本產品購買明細表</title>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
@@ -11,7 +11,11 @@
             padding: 0;
             box-sizing: border-box;
             font-family: "Microsoft JhengHei", "PingFang TC", "Heiti TC", sans-serif !important;
-            font-size: 12px !important;
+            font-size: 11px !important;
+            -webkit-text-size-adjust: none !important;
+            text-size-adjust: none !important;
+            transform: none !important;
+            transition: none !important;
         }
 
         :root {
@@ -21,15 +25,15 @@
             --light: #F8FAF9;
             --gray: #E9ECEB;
             --dark: #333333;
-            --shadow: 0 4px 12px rgba(0,0,0,0.08);
-            --radius: 8px;
+            --shadow: 0 2px 6px rgba(0,0,0,0.06);
+            --radius: 6px;
         }
 
         body {
             background-color: #F3F5F4;
-            padding: 5px;
+            padding: 3px;
             color: var(--dark);
-            -webkit-text-size-adjust: 100%;
+            overflow-x: hidden;
         }
 
         .container {
@@ -45,22 +49,22 @@
         .header {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            padding: 10px 12px;
+            padding: 6px 10px;
             text-align: center;
         }
 
         .header h1 {
-            font-size: 16px !important;
+            font-size: 15px !important;
             font-weight: 600;
-            margin: 2px 0;
+            margin: 1px 0;
         }
 
         .info-card {
-            padding: 10px 8px;
+            padding: 6px 5px;
             border-bottom: 1px solid var(--gray);
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 4px;
             align-items: center;
             width: 100%;
         }
@@ -68,105 +72,91 @@
         .info-item {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
             flex: 1;
-            min-width: 150px;
+            min-width: 140px;
         }
 
         .info-item label {
             font-weight: 600;
             color: var(--primary);
-            width: 38px;
+            width: 36px;
             flex-shrink: 0;
             text-align: left;
+            line-height: 1.2;
         }
 
         .info-item input, .info-item select {
             border: 1px solid var(--gray);
-            border-radius: 4px;
-            padding: 3px 5px;
+            border-radius: 3px;
+            padding: 2px 4px;
             outline: none;
-            transition: 0.2s;
             flex: 1;
             min-width: 0;
             width: 100%;
         }
 
-        /* 手機端專用優化 */
+        /* 手機端徹底鎖定 */
         @media (max-width: 768px) {
-            body { padding: 2px; }
-            .info-card { padding: 8px 5px; gap: 4px; }
+            body { padding: 1px; }
+            .info-card { padding: 5px 4px; gap: 3px; }
             .info-item {
                 flex: 0 0 100% !important;
                 min-width: auto !important;
                 margin-bottom: 2px;
             }
-            .month-section { padding: 8px 5px; }
-            .month-title { font-size: 14px !important; }
-            .btn { padding: 4px 8px; }
-            .action-bar { gap: 4px; }
-            .nutrition-table {
-                min-width: unset;
-                width: 100%;
-                table-layout: fixed;
-            }
-            .note-input {
-                width: 28px;
-            }
+            .month-section { padding: 6px 4px; }
+            .month-title { font-size: 13px !important; margin-bottom: 5px; }
+            .btn { padding: 3px 5px; border-radius: 3px; }
+            .action-bar { gap: 3px; padding: 4px 0; }
+            .note-input { width: 26px; padding: 0 1px; }
             .share-btn {
-                padding: 10px 20px !important;
-                width: 90%;
+                padding: 8px 16px !important;
+                width: 92%;
+                font-size: 14px !important;
             }
+            .share-section { padding: 10px; }
         }
 
         .month-section {
-            padding: 10px 8px;
+            padding: 8px 6px;
             border-bottom: 2px solid var(--gray);
-        }
-
-        .month-title {
-            font-size: 14px !important;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 8px;
-            padding-left: 6px;
-            border-left: 3px solid var(--accent);
         }
 
         .collapse-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 8px;
+            padding: 4px 6px;
             background: var(--light);
             border-radius: var(--radius);
             cursor: pointer;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .collapse-content {
             display: none;
-            padding: 6px 8px;
+            padding: 4px 6px;
             background: var(--light);
             border-radius: var(--radius);
         }
 
         .collapse-content.show { display: block; }
-        .collapse-btn { background: none; border: none; color: var(--primary); cursor: pointer; }
+        .collapse-btn { background: none; border: none; color: var(--primary); cursor: pointer; padding: 2px; }
 
         .product-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
-            max-height: 100px;
+            gap: 3px;
+            max-height: 90px;
             overflow-y: auto;
         }
 
         .product-tag {
-            padding: 3px 8px;
+            padding: 2px 6px;
             background: white;
             border: 1px solid var(--secondary);
-            border-radius: 20px;
+            border-radius: 12px;
             cursor: pointer;
             white-space: nowrap;
         }
@@ -178,16 +168,16 @@
         }
 
         .action-bar {
-            padding: 6px 0;
+            padding: 4px 0;
             display: flex;
-            gap: 6px;
+            gap: 4px;
             flex-wrap: wrap;
         }
 
         .btn {
-            padding: 3px 6px;
+            padding: 2px 5px;
             border: none;
-            border-radius: 4px;
+            border-radius: 3px;
             font-weight: 500;
             cursor: pointer;
         }
@@ -196,82 +186,69 @@
         .btn-light { background: white; border: 1px solid var(--gray); }
         .btn-accent { background: var(--accent); color: white; }
 
+        /* 🔥 手機左右滑動表格容器 */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 2px;
+        }
+
         .nutrition-table {
             width: 100%;
+            min-width: 340px;
             border-collapse: collapse;
-            min-width: 380px;
+            table-layout: fixed;
         }
 
         .nutrition-table thead { background: var(--primary); color: white; }
         .nutrition-table th {
-            padding: 3px 1px !important;
+            padding: 2px 0 !important;
             border-right: 1px solid rgba(255,255,255,0.2);
             font-weight: 500;
             white-space: nowrap;
         }
 
         .nutrition-table td {
-            padding: 3px 1px !important;
+            padding: 2px 0 !important;
             text-align: center;
             vertical-align: middle;
         }
 
-        /* 產品編號欄位 */
+        /* 🔥 極致壓縮欄位寬度 */
         .nutrition-table th:first-child,
-        .nutrition-table td:first-child {
-            width:  90px !important;
-            max-width: 90px !important;
-            padding: 2px 1px !important;
-        }
-
-        /* 顆數欄位 */
+        .nutrition-table td:first-child { width: 82px !important; }
         .nutrition-table th:nth-child(2),
-        .nutrition-table td:nth-child(2) {
-            width: 40px !important;
-            max-width: 40px !important;
-        }
-
-        /* 早 / 中 / 晚 欄位 */
+        .nutrition-table td:nth-child(2) { width: 36px !important; }
         .nutrition-table th:nth-child(3),
         .nutrition-table td:nth-child(3),
         .nutrition-table th:nth-child(4),
         .nutrition-table td:nth-child(4),
         .nutrition-table th:nth-child(5),
-        .nutrition-table td:nth-child(5) {
-            width: 24px !important;
-            max-width: 24px !important;
-        }
+        .nutrition-table td:nth-child(5) { width: 22px !important; }
+        .delete-col { width: 22px !important; }
 
-        /* 刪除欄位 - 截圖專用隱藏 */
-        .delete-col {
-            width: 24px !important;
-            max-width: 24px !important;
-        }
-
-        /* 產品編號輸入框 */
+        /* 元件壓縮 */
         .edit-input.prod-name {
-            width: 88px !important;
-            height: 22px !important;
-            text-align: left !important;
-            padding-left: 4px !important;
+            width: 80px !important;
+            height: 20px !important;
+            padding-left: 2px !important;
             border: 1px solid var(--gray);
-            border-radius: 3px;
+            border-radius: 2px;
         }
 
-        /* 顆數下拉選單 */
         .pills-select {
-            width: 36px !important;
-            height: 22px !important;
-            text-align: center;
+            width: 34px !important;
+            height: 20px !important;
             border: 1px solid var(--gray);
-            border-radius: 3px;
+            border-radius: 2px;
             padding: 0;
         }
 
         .check-btn {
-            width: 20px !important;
-            height: 20px !important;
-            border-radius: 3px;
+            width: 18px !important;
+            height: 18px !important;
+            border-radius: 2px;
             border: 1px solid var(--secondary);
             background: white;
             cursor: pointer;
@@ -284,51 +261,33 @@
         .check-btn.active { background: #FFF0F3; }
 
         .del-single-btn {
-            width: 20px !important;
-            height: 20px !important;
+            width: 18px !important;
+            height: 18px !important;
             padding: 0;
             background: var(--accent);
             color: white;
             border: none;
-            border-radius: 3px;
+            border-radius: 2px;
             cursor: pointer;
-            font-size: 11px !important;
+            font-size: 10px !important;
         }
 
-        /* 備註專用輸入框 */
         .note-input {
-            width: 30px;
-            display: inline-block;
+            width: 28px;
             border: 1px solid #ccc;
-            border-radius: 3px;
+            border-radius: 2px;
             text-align: center;
-            padding: 1px 2px;
-            font-size: 12px;
+            padding: 0 1px;
         }
 
-        /* 分享按鈕 */
-        .share-section {
-            padding: 15px;
-            text-align: center;
-            border-top: 1px solid var(--gray);
-        }
-        .share-btn {
-            font-size: 16px !important;
-            padding: 12px 25px !important;
-            border-radius: 8px !important;
-            font-weight: bold !important;
-        }
+        .notes { padding: 6px; background: var(--light); line-height: 1.6; }
+        .note-item { margin-bottom: 3px; }
 
-        .notes { padding: 10px; background: var(--light); line-height: 1.8; }
-        .note-item { margin-bottom: 4px; }
-
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar { width: 3px; height: 3px; }
         ::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 2px; }
 
-        /* 截圖時隱藏 */
-        .screenshot-hide {
-            display: none !important;
-        }
+        /* 截圖專用 */
+        .screenshot-hide { display: none !important; }
     </style>
 </head>
 <body>
@@ -367,7 +326,7 @@
             </div>
 			
             <div class="info-item">
-                <label>火山<br>甘露：</label>
+                <label>火山甘露：</label>
                 <select id="volcanoTea">
                     <option value="2">2包</option>
                     <option value="3" selected>3包</option>
@@ -379,7 +338,7 @@
             </div>
 			
             <div class="info-item">
-                <label>付款<br>方式：</label>
+                <label>付款方式：</label>
                 <select id="payType">
                     <option value="">請選擇</option>
                     <option value="現金">現金</option>
@@ -388,25 +347,15 @@
             </div>
         </div>
 
-        <!-- 備註改為輸入框 -->
         <div class="notes" style="border-bottom:1px solid var(--gray);">
-            <div class="note-item">
-                金色果：每天 <input type="text" class="note-input" maxlength="2"> 包　
-            </div>
-            <div class="note-item">
-                一氧化氮：早、晚各 <input type="text" class="note-input" maxlength="2"> 顆　
-                循清蔘：早、晚各 <input type="text" class="note-input" maxlength="2"> 顆
-            </div>
-            <div class="note-item">
-                復甦精華露：每次 <input type="text" class="note-input" maxlength="2"> 管　、
-                海神泥：每週數 <input type="text" class="note-input" maxlength="2"> 次
-            </div>
+            <div class="note-item">金色果：每天 <input type="text" class="note-input" maxlength="2"> 包</div>
+            <div class="note-item">一氧化氮：早、晚各 <input type="text" class="note-input" maxlength="2"> 顆　循清蔘：早、晚各 <input type="text" class="note-input" maxlength="2"> 顆</div>
+            <div class="note-item">復甦精華露：每次 <input type="text" class="note-input" maxlength="2"> 管　海神泥：每週數 <input type="text" class="note-input" maxlength="2"> 次</div>
         </div>
 
         <!-- 第一個月 -->
         <div class="month-section">
             <div class="month-title">第一個月</div>
-            
             <div class="product-panel screenshot-target">
                 <div class="collapse-header" onclick="toggleCollapse(1)">
                     <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
@@ -416,30 +365,30 @@
                     <div class="product-tags" id="tags1"></div>
                 </div>
             </div>
-
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="copyToNextMonth(1)">📋 複製到下個月</button>
                 <button class="btn btn-light" onclick="clearTable(1)">🧹 清空</button>
             </div>
-            <table class="nutrition-table">
-                <thead>
-                    <tr>
-                        <th>產品編號</th>
-                        <th>顆數</th>
-                        <th>早</th>
-                        <th>中</th>
-                        <th>晚</th>
-                        <th class="delete-col">刪除</th>
-                    </tr>
-                </thead>
-                <tbody id="body1"></tbody>
-            </table>
+            <div class="table-wrapper">
+                <table class="nutrition-table">
+                    <thead>
+                        <tr>
+                            <th>產品編號</th>
+                            <th>顆數</th>
+                            <th>早</th>
+                            <th>中</th>
+                            <th>晚</th>
+                            <th class="delete-col">刪除</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body1"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- 第二個月 -->
         <div class="month-section">
             <div class="month-title">第二個月</div>
-            
             <div class="product-panel screenshot-target">
                 <div class="collapse-header" onclick="toggleCollapse(2)">
                     <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
@@ -449,30 +398,30 @@
                     <div class="product-tags" id="tags2"></div>
                 </div>
             </div>
-
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="copyToNextMonth(2)">📋 複製到下個月</button>
                 <button class="btn btn-light" onclick="clearTable(2)">🧹 清空</button>
             </div>
-            <table class="nutrition-table">
-                <thead>
-                    <tr>
-                        <th>產品編號</th>
-                        <th>顆數</th>
-                        <th>早</th>
-                        <th>中</th>
-                        <th>晚</th>
-                        <th class="delete-col">刪除</th>
-                    </tr>
-                </thead>
-                <tbody id="body2"></tbody>
-            </table>
+            <div class="table-wrapper">
+                <table class="nutrition-table">
+                    <thead>
+                        <tr>
+                            <th>產品編號</th>
+                            <th>顆數</th>
+                            <th>早</th>
+                            <th>中</th>
+                            <th>晚</th>
+                            <th class="delete-col">刪除</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body2"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- 第三個月 -->
         <div class="month-section">
             <div class="month-title">第三個月</div>
-            
             <div class="product-panel screenshot-target">
                 <div class="collapse-header" onclick="toggleCollapse(3)">
                     <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
@@ -482,27 +431,27 @@
                     <div class="product-tags" id="tags3"></div>
                 </div>
             </div>
-
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="alert('❌ 已是最後一個月，無法複製！')">📋 已到最後一月</button>
                 <button class="btn btn-light" onclick="clearTable(3)">🧹 清空</button>
             </div>
-            <table class="nutrition-table">
-                <thead>
-                    <tr>
-                        <th>產品編號</th>
-                        <th>顆數</th>
-                        <th>早</th>
-                        <th>中</th>
-                        <th>晚</th>
-                        <th class="delete-col">刪除</th>
-                    </tr>
-                </thead>
-                <tbody id="body3"></tbody>
-            </table>
+            <div class="table-wrapper">
+                <table class="nutrition-table">
+                    <thead>
+                        <tr>
+                            <th>產品編號</th>
+                            <th>顆數</th>
+                            <th>早</th>
+                            <th>中</th>
+                            <th>晚</th>
+                            <th class="delete-col">刪除</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body3"></tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- 注意事項 -->
         <div class="notes">
             <div class="note-item"> 注意事項 </div>
             <div class="note-item"> 基本保養：211、300、299A各3顆 </div>
@@ -519,8 +468,7 @@
 
     <script>
         const productList = [
-            "2711AB(1)限4盒",
-            "211","300","299A","火山甘露_限4盒","200","201","202","205","209","210","211A","220","222",
+            "2711AB(1)限4盒","211","300","299A","火山甘露_限4盒","200","201","202","205","209","210","211A","220","222",
             "233","240","255A","260","266","268","270","280","286","288","289","290","295","299",
             "701","702","703","705","706","707","708","747AB","777Q","777Q(4)限2組",
             "大女王","極樂鳥","101","111","168","金色果(2）","海神泥","復甦精華露"
@@ -558,30 +506,10 @@
             tbody.appendChild(tr);
         }
 
-        function addRow(month){
-            const tbody=document.getElementById(`body${month}`);
-            const tr=document.createElement('tr');
-            tr.innerHTML=`
-            <td><input type="text" class="edit-input prod-name" placeholder="雙擊添加"></td>
-            <td>
-                <select class="pills-select">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3" selected>3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                </select>
-            </td>
-            <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-            <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
-            <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
-            <td class="delete-col"><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>`;
-            tbody.appendChild(tr);
-        }
-
         function delSingleRow(month,btn){const row=btn.closest('tr');const product=row.querySelector('.prod-name').value;const index=addedProducts[month].indexOf(product);if(index>-1){addedProducts[month].splice(index,1);updateTagStyle(month,product,false);}row.remove();}
         function clearTable(month){if(confirm('確定清空？')){document.getElementById(`body${month}`).innerHTML='';addedProducts[month]=[];document.querySelectorAll(`#tags${month} .product-tag`).forEach(tag=>tag.classList.remove('added'));}}
+        
+        // 🔥 統一顆數選單（三個月完全一致）
         function copyToNextMonth(currentMonth){
             const nextMonth=currentMonth+1;if(nextMonth>3){alert("❌ 已是最後一個月，無法複製！");return;}
             const rows=document.querySelectorAll(`#body${currentMonth} tr`);if(rows.length===0){alert("❌ 當月沒有資料可複製！");return;}
@@ -597,12 +525,11 @@
                 <td><input type="text" class="edit-input prod-name" value="${product}" readonly></td>
                 <td>
                     <select class="pills-select">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
+                        <option value="2" ${pills==2?'selected':''}>2</option>
                         <option value="3" ${pills==3?'selected':''}>3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
+                        <option value="4" ${pills==4?'selected':''}>4</option>
+                        <option value="5" ${pills==5?'selected':''}>5</option>
+                        <option value="10" ${pills==10?'selected':''}>10</option>
                     </select>
                 </td>
                 <td><button class="check-btn ${morning?'active':''}" ondblclick="toggleCheck(this)">${morning?'√':''}</button></td>
@@ -619,13 +546,18 @@
         function loadDefaultProducts(){for(let month in defaultProducts){const products=defaultProducts[month];products.forEach(p=>{const tag=document.querySelector(`#tags${month} .product-tag[data-product="${p}"]`);addProductWithRow(month,p,tag);});}}
         function toggleCheck(btn){btn.classList.toggle('active');btn.textContent=btn.classList.contains('active')?'√':'';}
         
-        // 截圖時 隱藏快捷區 + 隱藏刪除欄
+        // 🔥 截圖強制左右留白20px
         async function shareReportImage(){
             const hideElements = document.querySelectorAll('.screenshot-target, .delete-col');
             hideElements.forEach(el => el.classList.add('screenshot-hide'));
 
             try{
-                const canvas=await html2canvas(document.getElementById('captureContainer'),{useCORS:true,scale:2,backgroundColor:'#ffffff'});
+                const canvas=await html2canvas(document.getElementById('captureContainer'),{
+                    useCORS:true,
+                    scale:2,
+                    backgroundColor:'#ffffff',
+                    padding: { top:0, right:20, bottom:0, left:20 }
+                });
                 canvas.toBlob(async(blob)=>{
                     const file=new File([blob],"草本產品報表.png",{type:"image/png"});
                     if(navigator.share){
