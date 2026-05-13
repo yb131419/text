@@ -820,34 +820,40 @@ function addOcrProducts(ocrProducts) {
     if (item.name) allText += item.name + " ";
     if (item.rawText) allText += item.rawText + " ";
   });
-  allText = allText.trim().toLowerCase();
+  allText = allText.trim();
   console.log("📝 圖片全部文字：", allText);
 
   // ======================
-  // 1. 自動偵測「現金」→ 勾選現金（修復：只要出現就勾選）
+  // 1. 修復：自動偵測「現金」→ 強制勾選（只要出現就勾）
   // ======================
   els.cashOption.checked = allText.includes("現金") || allText.includes("cash");
 
   // ======================
-  // 2. 自動偵測「姓名」→ 填入購買者（加強正則）
+  // 2. 修復：自動偵測「姓名」→ 加強正則（支援:：空格 全角空格）
   // ======================
-  const nameMatch = allText.match(/姓名[：:\s]+([^，。\s\n]{2,6})/);
+  const nameMatch = allText.match(/姓名[：:\s　]+([^，。\s\n]{2,8})/);
   if (nameMatch && nameMatch[1]) {
     els.buyerInput.value = nameMatch[1].trim();
   }
 
   // ======================
-  // 3. 自動偵測「入會套組」→ 三選一互斥，只觸發一個
+  // 3. 修復：自動偵測「入會套組」→ 嚴格三選一互斥
   // ======================
   let hasAddedPackage = false;
+  // 先清空現有的入會套組，避免重複
+  selectedProds = selectedProds.filter(p => 
+    !p.name.includes("新入會(9號）") && 
+    !p.name.includes("新入會(草本）男") && 
+    !p.name.includes("新入會(草本）女")
+  );
 
   // 草本男（優先1）
-  if (!hasAddedPackage && (allText.includes("草本") && allText.includes("男") || allText.includes("草本男"))) {
+  if (!hasAddedPackage && (allText.includes("草本") && allText.includes("男") || allText.includes("草本男") || allText.includes("草本(男)"))) {
     addSpecificProduct("新入會(草本）男", 1);
     hasAddedPackage = true;
   }
   // 草本女（優先2）
-  else if (!hasAddedPackage && (allText.includes("草本") && allText.includes("女") || allText.includes("草本女"))) {
+  else if (!hasAddedPackage && (allText.includes("草本") && allText.includes("女") || allText.includes("草本女") || allText.includes("草本(女)"))) {
     addSpecificProduct("新入會(草本）女", 1);
     hasAddedPackage = true;
   }
@@ -858,7 +864,7 @@ function addOcrProducts(ocrProducts) {
   }
 
   // ======================
-  // 4. 一般品項匹配
+  // 4. 一般品項匹配（無修改）
   // ======================
   ocrProducts.forEach(item => {
     const ocrName = (item.name || "").trim();
@@ -889,14 +895,16 @@ function addOcrProducts(ocrProducts) {
     }
   });
 
-  // 強制刷新
+  // 強制刷新表格
   saveSelectedProds();
   renderTable();
   
   // ======================
-  // 5. 修復：現金贈品強制重新計算
+  // 5. 修復：現金贈品強制重新計算（保證100%執行）
   // ======================
-  if (els.cashOption.checked) handleCashGift();
+  setTimeout(() => {
+    if (els.cashOption.checked) handleCashGift();
+  }, 100);
 
   if (hasAddedPackage) {
     showToast(`✅ 已自動加入對應入會套組`, "success");
