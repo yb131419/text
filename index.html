@@ -818,42 +818,74 @@ data: {
 }
 
 
-// 🔥 最终修复版：精准匹配 + 正确数量 + 无BUG添加
+// 🔥 最終修復版：精准匹配 + 正確數量 + 自動帶入現金/入會/購買者
 function addOcrProducts(ocrProducts) {
   let addCount = 0;
-  console.log("✅ OCR 识别全部数据：", ocrProducts);
+  console.log("✅ OCR 識別全部數據：", ocrProducts);
 
-  // 遍历所有识别结果
+  // ======================
+  // 🔥 1. 提取圖片裡的所有文字（用來偵測關鍵字）
+  // ======================
+  let allText = "";
   ocrProducts.forEach(item => {
-    // 1. 安全获取品名+数量（强制兜底，杜绝undefined报错）
+    if (item.name) allText += item.name + " ";
+    if (item.rawText) allText += item.rawText + " ";
+  });
+  allText = allText.trim();
+  console.log("📝 圖片全部文字：", allText);
+
+  // ======================
+  // 🔥 2. 自動偵測「現金」→ 勾選現金
+  // ======================
+  if (allText.includes("現金")) {
+    els.cashOption.checked = true;
+  }
+
+  // ======================
+  // 🔥 3. 自動偵測「姓名」→ 填入購買者
+  // ======================
+  const nameMatch = allText.match(/姓名[:：\s]([^，。\s]+)/);
+  if (nameMatch && nameMatch[1]) {
+    els.buyerInput.value = nameMatch[1].trim();
+  }
+
+  // ======================
+  // 🔥 4. 自動偵測「入會類型」→ 自動加入對應套組
+  // ======================
+  if (allText.includes("草本") && allText.includes("男")) {
+    addSpecificProduct("新入會(草本）男", 1);
+  }
+  if (allText.includes("草本") && allText.includes("女")) {
+    addSpecificProduct("新入會(草本）女", 1);
+  }
+  if (allText.includes("9號") || allText.includes("命運九號")) {
+    addSpecificProduct("新入會(9號）", 1);
+  }
+
+  // ======================
+  // 原有邏輯：品項匹配
+  // ======================
+  ocrProducts.forEach(item => {
     const ocrName = (item.name || "").trim();
     let recognizedQty = parseInt(item.qty);
-    // 遵循后端规则：数量无效=2，3强制转2
     if (isNaN(recognizedQty) || recognizedQty <= 0) recognizedQty = 2;
     if (recognizedQty === 3) recognizedQty = 2;
-
-    // 空名称直接跳过
     if (!ocrName) return;
 
-    // 2. 🔥 精准匹配产品库（用displayName全名匹配，解决匹配错误）
-    const product = products.find(p => 
+    const product = products.find(p =>
       p.displayName.includes(ocrName) || ocrName.includes(p.displayName)
     );
-
-    // 未匹配到产品 → 提示并跳过
     if (!product) {
-      console.log("⚠️ 未匹配产品：", ocrName);
-      showToast(`⚠️ 未匹配品项：${ocrName}`, "warning");
+      console.log("⚠️ 未匹配產品：", ocrName);
+      showToast(`⚠️ 未匹配品項：${ocrName}`, "warning");
       return;
     }
 
-    // 3. 🔥 特殊商品强制数量（火山甘露固定4盒）
     let finalQty = recognizedQty;
     if (ocrName.includes("火山甘露") || product.displayName.includes("火山甘露")) {
       finalQty = 4;
     }
 
-    // 4. 🔥 正确去重：已存在则更新数量，不存在则新增
     const existsIndex = selectedProds.findIndex(p => p.displayName === product.displayName);
     if (existsIndex !== -1) {
       selectedProds[existsIndex].qty = finalQty;
@@ -863,13 +895,12 @@ function addOcrProducts(ocrProducts) {
     }
   });
 
-  // 5. 强制保存+渲染表格（解决添加后不显示）
+  // 強制刷新
   saveSelectedProds();
   renderTable();
-  // 现金赠品逻辑重新计算
   if (els.cashOption.checked) handleCashGift();
-  
-  showToast(`✅ 识别完成！成功添加 ${addCount} 个品项`, "success");
+
+  showToast(`✅ 識別完成！成功添加 ${addCount} 個品項`, "success");
 }
 
 function checkHerbalNewMember(selectedValue){
