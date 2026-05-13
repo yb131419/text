@@ -207,8 +207,8 @@
         /* 🔥 顆數欄位 縮小 */
         .nutrition-table th:nth-child(2),
         .nutrition-table td:nth-child(2) {
-            width: 25px !important;
-            max-width: 25px !important;
+            width: 30px !important;
+            max-width: 30px !important;
         }
 
         /* 🔥 早 / 中 / 晚 欄位 縮小 */
@@ -239,10 +239,10 @@
             border-radius: 3px;
         }
 
-        /* 顆數 */
-        .edit-input:not(.prod-name) {
+        /* 🔥 顆數下拉選單 */
+        .pills-select {
             width: 25px !important;
-            height: 25px !important;
+            height: 20px !important;
             text-align: center;
             border: 1px solid var(--gray);
             border-radius: 3px;
@@ -289,8 +289,8 @@
             font-weight: bold !important;
         }
 
-        .notes { padding: 10px; background: var(--light); line-height: 1.4; }
-        .note-item { margin-bottom: 4px; }
+        .notes { padding: 10px; background: var(--light); line-height: 1.6; }
+        .note-item { margin-bottom: 6px; }
 
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 2px; }
@@ -351,6 +351,12 @@
                 </select>
                 <span>/天</span>
             </div>
+        </div>
+
+        <!-- 🔥 你要新增的上方備註欄位 -->
+        <div class="notes" style="border-bottom:1px solid var(--gray);">
+            <div class="note-item">金色果：每天____包　復甦精華露：每次____管　海神泥：每週數____次</div>
+            <div class="note-item">一氧化氮：早、晚各____顆　循清蔘：早、晚各____顆</div>
         </div>
 
         <!-- 第一個月 -->
@@ -455,13 +461,12 @@
             </table>
         </div>
 
+        <!-- 🔥 重新排版的注意事項 -->
         <div class="notes">
-            <div class="note-item">☐220～飯後服用。</div>
-            <div class="note-item">◇晚上睡覺前6小時，不能吃澱粉類食物。</div>
-            <div class="note-item">○705～月經來時不能服用。</div>
-            <div class="note-item">金色果：每天____包　復甦精華露：每次____管　海神泥：每週數____次</div>
-            <div class="note-item">一氧化氮：早、晚各____顆　循清蔘：早、晚各____顆</div>
-            <div class="note-item">○205 兩顆加211A一顆～拆殼後，粉倒入口中含著。</div>
+            <div class="note-item">☐ 220 ～ 飯後服用</div>
+            <div class="note-item">◇ 晚上睡覺前 6 小時，不能吃澱粉類食物</div>
+            <div class="note-item">○ 705 ～ 月經來時不能服用</div>
+            <div class="note-item">○ 205 兩顆 + 211A 一顆 ～ 拆殼後，粉倒入口中含著</div>
         </div>
 
         <div class="share-section">
@@ -486,11 +491,91 @@
         function toggleCollapse(month){const content=document.getElementById(`collapseContent${month}`);const btn=document.getElementById(`collapseBtn${month}`);content.classList.toggle('show');btn.textContent=content.classList.contains('show')?'收起 ▲':'展開 ▼';}
         function renderAllTags(){[1,2,3].forEach(month=>{const container=document.getElementById(`tags${month}`);productList.forEach(item=>{const tag=document.createElement('div');tag.className='product-tag';tag.textContent=item;tag.dataset.product=item;tag.ondblclick=()=>addProductWithRow(month,item,tag);container.appendChild(tag);});});}
         function updateTagStyle(month,product,isAdded){const tags=document.querySelectorAll(`#tags${month} .product-tag`);tags.forEach(tag=>{if(tag.dataset.product===product){if(isAdded)tag.classList.add('added');else tag.classList.remove('added');}});}
-        function addProductWithRow(month,product,tag){if(addedProducts[month].includes(product)){alert(`❌ 【${product}】已添加至本月，無法重複添加！`);return;}const tbody=document.getElementById(`body${month}`);const tr=document.createElement('tr');addedProducts[month].push(product);updateTagStyle(month,product,true);tr.innerHTML=`<td><input type="text" class="edit-input prod-name" value="${product}" readonly></td><td><input type="number" class="edit-input" value="3"></td><td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td><td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td><td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td><td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>`;tbody.appendChild(tr);}
-        function addRow(month){const tbody=document.getElementById(`body${month}`);const tr=document.createElement('tr');tr.innerHTML=`<td><input type="text" class="edit-input prod-name" placeholder="雙擊添加"></td><td><input type="number" class="edit-input" value="3"></td><td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td><td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td><td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td><td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>`;tbody.appendChild(tr);}
+        
+        // 🔥 加入「顆數下拉選單」預設 3
+        function addProductWithRow(month,product,tag){
+            if(addedProducts[month].includes(product)){alert(`❌ 【${product}】已添加至本月，無法重複添加！`);return;}
+            const tbody=document.getElementById(`body${month}`);
+            const tr=document.createElement('tr');
+            addedProducts[month].push(product);
+            updateTagStyle(month,product,true);
+            tr.innerHTML=`
+            <td><input type="text" class="edit-input prod-name" value="${product}" readonly></td>
+            <td>
+                <select class="pills-select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+            </td>
+            <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
+            <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
+            <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
+            <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>`;
+            tbody.appendChild(tr);
+        }
+
+        function addRow(month){
+            const tbody=document.getElementById(`body${month}`);
+            const tr=document.createElement('tr');
+            tr.innerHTML=`
+            <td><input type="text" class="edit-input prod-name" placeholder="雙擊添加"></td>
+            <td>
+                <select class="pills-select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+            </td>
+            <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
+            <td><button class="check-btn" ondblclick="toggleCheck(this)"></button></td>
+            <td><button class="check-btn active" ondblclick="toggleCheck(this)">√</button></td>
+            <td><button class="del-single-btn" onclick="delSingleRow(${month}, this)">刪</button></td>`;
+            tbody.appendChild(tr);
+        }
+
         function delSingleRow(month,btn){const row=btn.closest('tr');const product=row.querySelector('.prod-name').value;const index=addedProducts[month].indexOf(product);if(index>-1){addedProducts[month].splice(index,1);updateTagStyle(month,product,false);}row.remove();}
         function clearTable(month){if(confirm('確定清空？')){document.getElementById(`body${month}`).innerHTML='';addedProducts[month]=[];document.querySelectorAll(`#tags${month} .product-tag`).forEach(tag=>tag.classList.remove('added'));}}
-        function copyToNextMonth(currentMonth){const nextMonth=currentMonth+1;if(nextMonth>3){alert("❌ 已是最後一個月，無法複製！");return;}const rows=document.querySelectorAll(`#body${currentMonth} tr`);if(rows.length===0){alert("❌ 當月沒有資料可複製！");return;}clearTable(nextMonth);rows.forEach(row=>{const product=row.querySelector('.prod-name').value;const count=row.querySelector('.edit-input:not(.prod-name)').value;const morning=row.querySelector('td:nth-child(3) .check-btn').classList.contains('active');const noon=row.querySelector('td:nth-child(4) .check-btn').classList.contains('active');const night=row.querySelector('td:nth-child(5) .check-btn').classList.contains('active');const tr=document.createElement('tr');tr.innerHTML=`<td><input type="text" class="edit-input prod-name" value="${product}" readonly></td><td><input type="number" class="edit-input" value="${count}"></td><td><button class="check-btn ${morning?'active':''}" ondblclick="toggleCheck(this)">${morning?'√':''}</button></td><td><button class="check-btn ${noon?'active':''}" ondblclick="toggleCheck(this)">${noon?'√':''}</button></td><td><button class="check-btn ${night?'active':''}" ondblclick="toggleCheck(this)">${night?'√':''}</button></td><td><button class="del-single-btn" onclick="delSingleRow(${nextMonth}, this)">刪</button></td>`;document.getElementById(`body${nextMonth}`).appendChild(tr);addedProducts[nextMonth].push(product);updateTagStyle(nextMonth,product,true);});alert(`✅ 成功複製【第${currentMonth}個月】→【第${nextMonth}個月】`);}
+        function copyToNextMonth(currentMonth){
+            const nextMonth=currentMonth+1;if(nextMonth>3){alert("❌ 已是最後一個月，無法複製！");return;}
+            const rows=document.querySelectorAll(`#body${currentMonth} tr`);if(rows.length===0){alert("❌ 當月沒有資料可複製！");return;}
+            clearTable(nextMonth);
+            rows.forEach(row=>{
+                const product=row.querySelector('.prod-name').value;
+                const pills=row.querySelector('.pills-select').value;
+                const morning=row.querySelector('td:nth-child(3) .check-btn').classList.contains('active');
+                const noon=row.querySelector('td:nth-child(4) .check-btn').classList.contains('active');
+                const night=row.querySelector('td:nth-child(5) .check-btn').classList.contains('active');
+                const tr=document.createElement('tr');
+                tr.innerHTML=`
+                <td><input type="text" class="edit-input prod-name" value="${product}" readonly></td>
+                <td>
+                    <select class="pills-select">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3" ${pills==3?'selected':''}>3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </td>
+                <td><button class="check-btn ${morning?'active':''}" ondblclick="toggleCheck(this)">${morning?'√':''}</button></td>
+                <td><button class="check-btn ${noon?'active':''}" ondblclick="toggleCheck(this)">${noon?'√':''}</button></td>
+                <td><button class="check-btn ${night?'active':''}" ondblclick="toggleCheck(this)">${night?'√':''}</button></td>
+                <td><button class="del-single-btn" onclick="delSingleRow(${nextMonth}, this)">刪</button></td>`;
+                document.getElementById(`body${nextMonth}`).appendChild(tr);
+                addedProducts[nextMonth].push(product);
+                updateTagStyle(nextMonth,product,true);
+            });
+            alert(`✅ 成功複製【第${currentMonth}個月】→【第${nextMonth}個月】`);
+        }
+
         function loadDefaultProducts(){for(let month in defaultProducts){const products=defaultProducts[month];products.forEach(p=>{const tag=document.querySelector(`#tags${month} .product-tag[data-product="${p}"]`);addProductWithRow(month,p,tag);});}}
         function toggleCheck(btn){btn.classList.toggle('active');btn.textContent=btn.classList.contains('active')?'√':'';}
         
