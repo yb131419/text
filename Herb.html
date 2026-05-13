@@ -276,12 +276,29 @@
             font-size: 11px !important;
         }
 
-        .share-section { padding: 10px; text-align: center; border-top: 1px solid var(--gray); }
+        /* 🔥 分享按鈕加大 */
+        .share-section {
+            padding: 15px;
+            text-align: center;
+            border-top: 1px solid var(--gray);
+        }
+        .share-btn {
+            font-size: 16px !important;
+            padding: 12px 25px !important;
+            border-radius: 8px !important;
+            font-weight: bold !important;
+        }
+
         .notes { padding: 10px; background: var(--light); line-height: 1.4; }
         .note-item { margin-bottom: 4px; }
 
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 2px; }
+
+        /* 截圖時隱藏快捷選擇區塊 */
+        .screenshot-hide {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -318,11 +335,11 @@
                 </select>
             </div>
             <div class="info-item">
-                <label>基本保養：</label>
+                <label>基本<br>保養：</label>
                 <input type="text" id="basicNutrition" value="211、300、299A各3顆">
             </div>
             <div class="info-item">
-                <label>火山甘露：</label>
+                <label>火山<br>甘露：</label>
                 <select id="volcanoTea">
                     <option value="0">0包</option>
                     <option value="1">1包</option>
@@ -339,7 +356,9 @@
         <!-- 第一個月 -->
         <div class="month-section">
             <div class="month-title">第一個月</div>
-            <div class="product-panel">
+            
+            <!-- 🔥 要忽略截圖的區塊 -->
+            <div class="product-panel screenshot-target">
                 <div class="collapse-header" onclick="toggleCollapse(1)">
                     <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
                     <button class="collapse-btn" id="collapseBtn1">展開 ▼</button>
@@ -348,6 +367,7 @@
                     <div class="product-tags" id="tags1"></div>
                 </div>
             </div>
+
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="copyToNextMonth(1)">📋 複製到下個月</button>
                 <button class="btn btn-light" onclick="clearTable(1)">🧹 清空</button>
@@ -370,7 +390,9 @@
         <!-- 第二個月 -->
         <div class="month-section">
             <div class="month-title">第二個月</div>
-            <div class="product-panel">
+            
+            <!-- 🔥 要忽略截圖的區塊 -->
+            <div class="product-panel screenshot-target">
                 <div class="collapse-header" onclick="toggleCollapse(2)">
                     <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
                     <button class="collapse-btn" id="collapseBtn2">展開 ▼</button>
@@ -379,6 +401,7 @@
                     <div class="product-tags" id="tags2"></div>
                 </div>
             </div>
+
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="copyToNextMonth(2)">📋 複製到下個月</button>
                 <button class="btn btn-light" onclick="clearTable(2)">🧹 清空</button>
@@ -401,7 +424,9 @@
         <!-- 第三個月 -->
         <div class="month-section">
             <div class="month-title">第三個月</div>
-            <div class="product-panel">
+            
+            <!-- 🔥 要忽略截圖的區塊 -->
+            <div class="product-panel screenshot-target">
                 <div class="collapse-header" onclick="toggleCollapse(3)">
                     <div class="panel-title">🔘 快捷選擇產品（雙擊添加）</div>
                     <button class="collapse-btn" id="collapseBtn3">展開 ▼</button>
@@ -410,6 +435,7 @@
                     <div class="product-tags" id="tags3"></div>
                 </div>
             </div>
+
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="alert('❌ 已是最後一個月，無法複製！')">📋 已到最後一月</button>
                 <button class="btn btn-light" onclick="clearTable(3)">🧹 清空</button>
@@ -439,13 +465,14 @@
         </div>
 
         <div class="share-section">
-            <button class="btn btn-accent" onclick="shareReportImage()">📤 分享報表圖片</button>
+            <!-- 🔥 加大的分享按鈕 -->
+            <button class="btn btn-accent share-btn" onclick="shareReportImage()">📤 分享報表圖片</button>
         </div>
     </div>
 
     <script>
         const productList = [
-            "2711AB(1)限4盒"
+            "2711AB(1)限4盒",
             "211","300","299A","火山甘露_限4盒","200","201","202","205","209","210","211A","220","222",
             "233","240","255A","260","266","268","270","280","286","288","289","290","295","299",
             "701","702","703","705","706","707","708","747AB","777Q","777Q(4)限2組",
@@ -466,7 +493,33 @@
         function copyToNextMonth(currentMonth){const nextMonth=currentMonth+1;if(nextMonth>3){alert("❌ 已是最後一個月，無法複製！");return;}const rows=document.querySelectorAll(`#body${currentMonth} tr`);if(rows.length===0){alert("❌ 當月沒有資料可複製！");return;}clearTable(nextMonth);rows.forEach(row=>{const product=row.querySelector('.prod-name').value;const count=row.querySelector('.edit-input:not(.prod-name)').value;const morning=row.querySelector('td:nth-child(3) .check-btn').classList.contains('active');const noon=row.querySelector('td:nth-child(4) .check-btn').classList.contains('active');const night=row.querySelector('td:nth-child(5) .check-btn').classList.contains('active');const tr=document.createElement('tr');tr.innerHTML=`<td><input type="text" class="edit-input prod-name" value="${product}" readonly></td><td><input type="number" class="edit-input" value="${count}"></td><td><button class="check-btn ${morning?'active':''}" ondblclick="toggleCheck(this)">${morning?'√':''}</button></td><td><button class="check-btn ${noon?'active':''}" ondblclick="toggleCheck(this)">${noon?'√':''}</button></td><td><button class="check-btn ${night?'active':''}" ondblclick="toggleCheck(this)">${night?'√':''}</button></td><td><button class="del-single-btn" onclick="delSingleRow(${nextMonth}, this)">刪</button></td>`;document.getElementById(`body${nextMonth}`).appendChild(tr);addedProducts[nextMonth].push(product);updateTagStyle(nextMonth,product,true);});alert(`✅ 成功複製【第${currentMonth}個月】→【第${nextMonth}個月】`);}
         function loadDefaultProducts(){for(let month in defaultProducts){const products=defaultProducts[month];products.forEach(p=>{const tag=document.querySelector(`#tags${month} .product-tag[data-product="${p}"]`);addProductWithRow(month,p,tag);});}}
         function toggleCheck(btn){btn.classList.toggle('active');btn.textContent=btn.classList.contains('active')?'√':'';}
-        async function shareReportImage(){try{const canvas=await html2canvas(document.getElementById('captureContainer'),{useCORS:true,scale:2,backgroundColor:'#ffffff'});canvas.toBlob(async(blob)=>{const file=new File([blob],"草本產品報表.png",{type:"image/png"});if(navigator.share){await navigator.share({title:'草本產品購買明細表',files:[file]});}else{const link=document.createElement('a');link.download='草本產品報表.png';link.href=canvas.toDataURL('image/png');link.click();alert('瀏覽器不支援分享，已自動下載！');}},'image/png');}catch(err){alert('分享失敗，請手動截圖！');}}
+        
+        // 🔥 截圖時自動隱藏快捷選擇區塊
+        async function shareReportImage(){
+            const hideElements = document.querySelectorAll('.screenshot-target');
+            hideElements.forEach(el => el.classList.add('screenshot-hide'));
+
+            try{
+                const canvas=await html2canvas(document.getElementById('captureContainer'),{useCORS:true,scale:2,backgroundColor:'#ffffff'});
+                canvas.toBlob(async(blob)=>{
+                    const file=new File([blob],"草本產品報表.png",{type:"image/png"});
+                    if(navigator.share){
+                        await navigator.share({title:'草本產品購買明細表',files:[file]});
+                    }else{
+                        const link=document.createElement('a');
+                        link.download='草本產品報表.png';
+                        link.href=canvas.toDataURL('image/png');
+                        link.click();
+                        alert('報表圖片已下載！');
+                    }
+                },'image/png');
+            }catch(err){
+                alert('分享失敗，請手動截圖！');
+            }finally{
+                hideElements.forEach(el => el.classList.remove('screenshot-hide'));
+            }
+        }
+
         window.onload=function(){loadTodayDate();renderAllTags();loadDefaultProducts();};
     </script>
 </body>
