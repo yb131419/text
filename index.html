@@ -824,39 +824,35 @@ function addOcrProducts(ocrProducts) {
   console.log("📝 圖片全部文字：", allText);
 
   // ======================
-  // 1. 自動偵測「現金」→ 勾選現金
+  // 1. 自動偵測「現金」→ 勾選現金（修復：只要出現就勾選）
   // ======================
-  if (allText.includes("現金") || allText.includes("cash")) {
-    els.cashOption.checked = true;
-  } else {
-    els.cashOption.checked = false;
-  }
+  els.cashOption.checked = allText.includes("現金") || allText.includes("cash");
 
   // ======================
-  // 2. 自動偵測「姓名」→ 填入購買者
+  // 2. 自動偵測「姓名」→ 填入購買者（加強正則）
   // ======================
-  const nameMatch = allText.match(/姓名[:：\s]([^，。\s\b\n]{2,6})/);
+  const nameMatch = allText.match(/姓名[：:\s]+([^，。\s\n]{2,6})/);
   if (nameMatch && nameMatch[1]) {
     els.buyerInput.value = nameMatch[1].trim();
   }
 
   // ======================
-  // 3. 自動偵測「入會套組」→ 直接加入
+  // 3. 自動偵測「入會套組」→ 三選一互斥，只觸發一個
   // ======================
   let hasAddedPackage = false;
 
-  // 草本男
-  if ((allText.includes("草本") && allText.includes("男")) || allText.includes("草本男")) {
+  // 草本男（優先1）
+  if (!hasAddedPackage && (allText.includes("草本") && allText.includes("男") || allText.includes("草本男"))) {
     addSpecificProduct("新入會(草本）男", 1);
     hasAddedPackage = true;
   }
-  // 草本女
-  else if ((allText.includes("草本") && allText.includes("女")) || allText.includes("草本女")) {
+  // 草本女（優先2）
+  else if (!hasAddedPackage && (allText.includes("草本") && allText.includes("女") || allText.includes("草本女"))) {
     addSpecificProduct("新入會(草本）女", 1);
     hasAddedPackage = true;
   }
-  // 9號 / 命運九號
-  else if (allText.includes("9號") || allText.includes("命運九號") || allText.includes("9號")) {
+  // 9號 / 命運九號（優先3）
+  else if (!hasAddedPackage && (allText.includes("9號") || allText.includes("命運九號"))) {
     addSpecificProduct("新入會(9號）", 1);
     hasAddedPackage = true;
   }
@@ -896,6 +892,10 @@ function addOcrProducts(ocrProducts) {
   // 強制刷新
   saveSelectedProds();
   renderTable();
+  
+  // ======================
+  // 5. 修復：現金贈品強制重新計算
+  // ======================
   if (els.cashOption.checked) handleCashGift();
 
   if (hasAddedPackage) {
