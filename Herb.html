@@ -179,18 +179,19 @@
         .nutrition-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 420px;
+            min-width: 380px;
         }
 
         .nutrition-table thead { background: var(--primary); color: white; }
         .nutrition-table th {
-            padding: 4px 2px;
+            padding: 3px 1px !important;
             border-right: 1px solid rgba(255,255,255,0.2);
             font-weight: 500;
+            white-space: nowrap;
         }
 
         .nutrition-table td {
-            padding: 4px 2px;
+            padding: 3px 1px !important;
             text-align: center;
             vertical-align: middle;
         }
@@ -201,6 +202,31 @@
             width:  90px !important;
             max-width: 90px !important;
             padding: 2px 1px !important;
+        }
+
+        /* 🔥 顆數欄位 縮小 */
+        .nutrition-table th:nth-child(2),
+        .nutrition-table td:nth-child(2) {
+            width: 24px !important;
+            max-width: 24px !important;
+        }
+
+        /* 🔥 早 / 中 / 晚 欄位 縮小 */
+        .nutrition-table th:nth-child(3),
+        .nutrition-table td:nth-child(3),
+        .nutrition-table th:nth-child(4),
+        .nutrition-table td:nth-child(4),
+        .nutrition-table th:nth-child(5),
+        .nutrition-table td:nth-child(5) {
+            width: 24px !important;
+            max-width: 24px !important;
+        }
+
+        /* 🔥 刪除欄位 縮小 */
+        .nutrition-table th:last-child,
+        .nutrition-table td:last-child {
+            width: 24px !important;
+            max-width: 24px !important;
         }
 
         /* 🔥 產品編號「輸入框」放大一點 + 靠左 */
@@ -279,7 +305,7 @@
             </div>
             <div class="info-item">
                 <label>地點：</label>
-                <input type="text" id="location" placeholder="請輸入地點" value="金門">
+                <input type="text" id="location" placeholder="請輸入地點" value="">
             </div>
             <div class="info-item">
                 <label>入會：</label>
@@ -419,7 +445,7 @@
 
     <script>
         const productList = [
-            "新入會(9號）","新入會(草本）男","新入會(草本）女","2711AB(1)限4盒","限入會2711AB(4)限1組",
+            "2711AB(1)限4盒"
             "211","300","299A","火山甘露_限4盒","200","201","202","205","209","210","211A","220","222",
             "233","240","255A","260","266","268","270","280","286","288","289","290","295","299",
             "701","702","703","705","706","707","708","747AB","777Q","777Q(4)限2組",
@@ -429,7 +455,7 @@
         const defaultProducts = {1: ["211","300","299A","211A"],2: ["211","300","299A"],3: ["211","300","299A"]};
         const addedProducts = {1:[],2:[],3:[]};
 
-        function loadTodayDate(){const now=new Date();const year=now.getFullYear()-1911;const month=now.getMonth()+1;const day=now.getDate();const week=['日','一','二','三','四','五','六'][now.getDay()];document.getElementById('date').value=`${year}.${month}.${day}(${week})金門`;}
+        function loadTodayDate(){const now=new Date();const year=now.getFullYear()-1911;const month=now.getMonth()+1;const day=now.getDate();const week=['日','一','二','三','四','五','六'][now.getDay()];document.getElementById('date').value=`${year}.${month}.${day}(${week})`;}
         function toggleCollapse(month){const content=document.getElementById(`collapseContent${month}`);const btn=document.getElementById(`collapseBtn${month}`);content.classList.toggle('show');btn.textContent=content.classList.contains('show')?'收起 ▲':'展開 ▼';}
         function renderAllTags(){[1,2,3].forEach(month=>{const container=document.getElementById(`tags${month}`);productList.forEach(item=>{const tag=document.createElement('div');tag.className='product-tag';tag.textContent=item;tag.dataset.product=item;tag.ondblclick=()=>addProductWithRow(month,item,tag);container.appendChild(tag);});});}
         function updateTagStyle(month,product,isAdded){const tags=document.querySelectorAll(`#tags${month} .product-tag`);tags.forEach(tag=>{if(tag.dataset.product===product){if(isAdded)tag.classList.add('added');else tag.classList.remove('added');}});}
