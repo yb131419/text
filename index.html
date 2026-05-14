@@ -1014,7 +1014,7 @@ function checkHerbalNewMember(selectedValue){
   }
 }
 
-// 修复：现金赠品实时计算逻辑
+// 修复：现金赠品实时计算逻辑 + 每3个赠品211扣1个正常211
 function handleCashGift(){
   if(!els.cashOption.checked){
     selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
@@ -1023,7 +1023,7 @@ function handleCashGift(){
     return;
   }
   
-  // 实时计算总价，避免DOM读取错误
+  // 实时计算总价
   let totalPrice = 0;
   selectedProds.forEach(item => {
     totalPrice += item.price * item.qty;
@@ -1036,9 +1036,31 @@ function handleCashGift(){
     renderTable();
     return;
   }
+
+  // 🔥 核心修正：每3个赠品211(30)，扣除1个正常211
+  const deduct211Qty = Math.floor(giftQty / 3);
   
+  // 先移除旧赠品
   selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
+  // 添加新赠品
   addSpecificProduct('贈品 211(30)', giftQty);
+
+  // 执行扣除正常211
+  if(deduct211Qty > 0){
+    // 修正：匹配商品名称为 211（不是211(30)）
+    const normal211Index = selectedProds.findIndex(p => p.name === '211');
+    if(normal211Index !== -1){
+      // 减少数量，最低为0
+      selectedProds[normal211Index].qty -= deduct211Qty;
+      if(selectedProds[normal211Index].qty <= 0){
+        selectedProds.splice(normal211Index, 1);
+      }
+      showToast(`🔥 因贈品累計${giftQty}個，自動扣除${deduct211Qty}個 211`);
+      saveSelectedProds();
+      renderTable();
+    }
+  }
+
   showToast(`🎁 現金滿${giftQty*2}萬，贈送 211(30) x${giftQty}`);
 }
 
