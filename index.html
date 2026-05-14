@@ -804,119 +804,91 @@ async function startOcrRecognition() {
   });
 }
 
-// 修复：AI识别自动匹配套组、现金、姓名
-function addOcrProducts(ocrProducts) {
+// 修复：AI识别自动匹配套组、现金、姓名【完全匹配最新OCR模板】
+function addOcrProducts(ocrResult) {
   let addCount = 0;
-  console.log("✅ OCR 識別全部數據：", ocrProducts);
+  console.log("✅ OCR 識別完整數據：", ocrResult);
 
-  // ============== 终极修复：现金识别（强制100%匹配） ==============
-  let hasCash = false;
-  let allText = "";
-  // 遍历所有OCR文本 + 拼接全文，双重检测
-  ocrProducts.forEach(item => {
-    const text = (item.name || item.rawText || "").replace(/\s/g, ""); // 去除所有空格
-    allText += text;
-    if (text.includes("現金") || text.includes("现金") || text.includes("cash")) {
-      hasCash = true;
-    }
-  });
-  // 全文兜底检测
-  if (!hasCash) {
-    const cleanAllText = allText.replace(/\s/g, "");
-    if (cleanAllText.includes("現金") || cleanAllText.includes("现金")) {
-      hasCash = true;
-    }
-  }
-  // 强制勾选现金 + 立即触发事件（核心修复）
+  // ============== 1. 解构OCR返回数据（完全对接后端模板） ==============
+  const { 
+    data: ocrProducts = [],    // 处理好的产品列表
+    name: buyerName = "",      // 姓名（后端精准识别）
+    payment = "",              // 付款方式（后端精准识别）
+    memberType = ""            // 入会类型（后端精准识别）
+  } = ocrResult;
+
+  // ============== 2. 现金自动勾选（100%精准，后端返回值） ==============
+  const hasCash = payment.includes("現金") || payment.includes("现金");
   els.cashOption.checked = hasCash;
   if (hasCash) {
     els.cashOption.dispatchEvent(new Event('change', { bubbles: true }));
+    console.log("💰 已自動勾選現金");
   }
 
-  // ============== 终极修复：姓名强制填入购买者 ==============
-  let buyerName = "";
-  // 超强正则：兼容所有「姓名：XX」格式
-  const nameRegex = /姓名[：:\s　]{0,}([^\n]{2,8})/i;
-  
-  // 第一步：正则匹配
-  const nameMatch = allText.match(nameRegex);
-  if (nameMatch && nameMatch[1]) {
-    buyerName = nameMatch[1].trim().replace(/[，。\n\r]/g, "");
-  }
-
-  // 第二步：兜底逐行扫描
-  if (!buyerName) {
-    ocrProducts.forEach(item => {
-      const text = (item.rawText || item.name || "").trim();
-      if (text.includes("姓名") && text.length > 3) {
-        let temp = text.replace(/姓名[：:\s　]{0,}/i, "").trim();
-        temp = temp.replace(/[，。\n\r]/g, "");
-        if (temp.length >= 2 && temp.length <= 8) {
-          buyerName = temp;
-        }
-      }
-    });
-  }
-
-  // 强制写入购买者输入框（核心修复）
-  if (buyerName) {
-    els.buyerInput.value = buyerName;
+  // ============== 3. 姓名强制填入购买者（后端直接返回，无解析） ==============
+  if (buyerName.trim()) {
+    els.buyerInput.value = buyerName.trim();
     console.log("📝 已填入購買者：", buyerName);
   }
 
-  // 套组匹配逻辑（保持不变）
+  // ============== 4. 套组自动添加（后端返回类型，直接匹配） ==============
   let hasAddedPackage = false;
   let addedPackageName = "";
+  
+  // 清空旧套组
   selectedProds = selectedProds.filter(p => 
     !p.name.includes("新入會(9號）") && 
     !p.name.includes("新入會(草本）男") && 
     !p.name.includes("新入會(草本）女")
   );
 
-  const herbalMaleCodes = ["211", "300", "299A", "101", "111", "168"];
-  const hasHerbalMale = ocrProducts.some(p => herbalMaleCodes.includes(p.name)); 
-  const hasHerbalFemale = ocrProducts.some(p => p.name == "211" || p.name == "707"); 
-  const hasNine = ocrProducts.some(p => p.name == "299" || p.name == "299A"); 
-
-  if (!hasAddedPackage && hasHerbalMale) {
+  // 草本男套组
+  if (memberType.includes("草本男") || memberType.includes("草本(男)")) {
     addSpecificProduct("新入會(草本）男", 1);
     addSpecificProduct("入*會「 211 」", 2);
     addSpecificProduct("入*會「 101 」", 2);
     hasAddedPackage = true;
     addedPackageName = "新入會(草本）男";
-  } else if (!hasAddedPackage && hasHerbalFemale) {
+  }
+  // 草本女套组
+  else if (memberType.includes("草本女") || memberType.includes("草本(女)")) {
     addSpecificProduct("新入會(草本）女", 1);
     addSpecificProduct("入*會「 211 」", 2);
     addSpecificProduct("入*會「 707 」", 2);
     hasAddedPackage = true;
     addedPackageName = "新入會(草本）女";
-  } else if (!hasAddedPackage && hasNine) {
+  }
+  // 9号套组
+  else if (memberType.includes("9號")) {
     addSpecificProduct("新入會(9號）", 1);
     hasAddedPackage = true;
     addedPackageName = "新入會(9號）";
   }
 
-  // 普通品项匹配
+  // ============== 5. 产品添加（后端已处理：全半角/累加/数量换算） ==============
   ocrProducts.forEach(item => {
     const ocrName = (item.name || "").trim();
-    let recognizedQty = parseInt(item.qty);
-    if (isNaN(recognizedQty) || recognizedQty <= 0) recognizedQty = 2;
-    if (recognizedQty === 3) recognizedQty = 2;
-    if (!ocrName) return;
+    let recognizedQty = parseInt(item.qty) || 0;
+    
+    if (!ocrName || recognizedQty <= 0) return;
 
+    // 精准匹配产品
     const product = products.find(p =>
-      p.displayName.includes(ocrName) || ocrName.includes(p.displayName)
+      p.displayName === ocrName || p.displayName.includes(ocrName)
     );
+    
     if (!product) {
       console.log("⚠️ 未匹配產品：", ocrName);
       return;
     }
 
+    // 火山甘露固定数量（沿用规则）
     let finalQty = recognizedQty;
-    if (ocrName.includes("火山甘露") || product.displayName.includes("火山甘露")) {
+    if (ocrName.includes("火山甘露")) {
       finalQty = 4;
     }
 
+    // 覆盖/添加产品
     const existsIndex = selectedProds.findIndex(p => p.displayName === product.displayName);
     if (existsIndex !== -1) {
       selectedProds[existsIndex].qty = finalQty;
@@ -926,18 +898,16 @@ function addOcrProducts(ocrProducts) {
     }
   });
 
+  // 保存并刷新表格
   saveSelectedProds();
   renderTable();
 
   // 套组提示
-  if(hasAddedPackage && addedPackageName){
-    setTimeout(()=>{
+  if (hasAddedPackage && addedPackageName) {
+    setTimeout(() => {
       checkHerbalNewMember(addedPackageName);
     }, 200);
-  }
-
-  if (hasAddedPackage) {
-    showToast(`✅ 已自動加入對應入會套組`, "success");
+    showToast(`✅ 已自動加入 ${addedPackageName}`, "success");
   }
 }
 
