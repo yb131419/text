@@ -842,19 +842,25 @@ function addOcrProducts(ocrProducts) {
   const hasHerbalFemale = ocrProducts.some(p => p.name == "211" || p.name == "707"); 
   const hasNine = ocrProducts.some(p => p.name == "299" || p.name == "299A"); 
 
-  if (!hasAddedPackage && hasHerbalMale) {
-    addSpecificProduct("新入會(草本）男", 1);
-    hasAddedPackage = true;
-    addedPackageName = "新入會(草本）男";
-  } else if (!hasAddedPackage && hasHerbalFemale) {
-    addSpecificProduct("新入會(草本）女", 1);
-    hasAddedPackage = true;
-    addedPackageName = "新入會(草本）女";
-  } else if (!hasAddedPackage && hasNine) {
-    addSpecificProduct("新入會(9號）", 1);
-    hasAddedPackage = true;
-    addedPackageName = "新入會(9號）";
-  }
+if (!hasAddedPackage && hasHerbalMale) {
+  addSpecificProduct("新入會(草本）男", 1);
+  // 🔥 追加：草本男配套产品
+  addSpecificProduct("入*會「 211 」", 2);
+  addSpecificProduct("入*會「 101 」", 2);
+  hasAddedPackage = true;
+  addedPackageName = "新入會(草本）男";
+} else if (!hasAddedPackage && hasHerbalFemale) {
+  addSpecificProduct("新入會(草本）女", 1);
+  // 🔥 追加：草本女配套产品
+  addSpecificProduct("入*會「 211 」", 2);
+  addSpecificProduct("入*會「 707 」", 2);
+  hasAddedPackage = true;
+  addedPackageName = "新入會(草本）女";
+} else if (!hasAddedPackage && hasNine) {
+  addSpecificProduct("新入會(9號）", 1);
+  hasAddedPackage = true;
+  addedPackageName = "新入會(9號）";
+}
 
   // 普通品项匹配
   ocrProducts.forEach(item => {
