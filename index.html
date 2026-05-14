@@ -930,41 +930,41 @@ function addOcrProducts(ocrResult) {
     addedPackageName = "新入會(9號）";
   }
 
-  // 🔥 第二步：添加AI識別的產品
-  ocrProducts.forEach(item => {
-    const ocrName = (item.name || "").trim();
-    let recognizedQty = parseInt(item.qty) || 0;
-    
-    if (!ocrName || recognizedQty <= 0) return;
+// 🔥 第二步：添加AI識別的產品
+ocrProducts.forEach(item => {
+  const ocrName = (item.name || "").trim();
+  let recognizedQty = parseInt(item.qty) || 0;
+  
+  if (!ocrName || recognizedQty <= 0) return;
 
-    const product = products.find(p =>
-      p.name === ocrName || p.name.includes(ocrName)
-    );
-    
-    if (!product) {
-      console.log("⚠️ 未匹配產品：", ocrName);
-      return;
-    }
+  const product = products.find(p =>
+    p.name === ocrName || p.name.includes(ocrName)
+  );
+  
+  if (!product) {
+    console.log("⚠️ 未匹配產品：", ocrName);
+    return;
+  }
 
-// 火山甘露固定數量
-let finalQty = recognizedQty;
-if (ocrName.includes("火山甘露")) {
-  finalQty = 4;
-}
-// 🔥 新增：2711AB(1) 強制固定4盒（和火山甘露逻辑一致）
-if (ocrName.includes("2711AB(1)") || ocrName.includes("2711AB")) {
-  finalQty = 4;
-}
+  // 火山甘露固定數量
+  let finalQty = recognizedQty;
+  if (ocrName.includes("火山甘露")) {
+    finalQty = 4;
+  }
+  // 🔥 新增：2711AB 所有變體都強制固定4盒（和火山甘露邏輯完全一致）
+  if (ocrName.includes("2711AB")) {
+    finalQty = 4;
+  }
 
-    // 覆蓋/添加產品
-    const existsIndex = selectedProds.findIndex(p => p.name === product.name);
-    if (existsIndex !== -1) {
-      selectedProds[existsIndex].qty = finalQty;
-    } else {
-      selectedProds.push({ ...product, qty: finalQty });
-      addCount++;
-    }
-  });
+  // 覆蓋/添加產品
+  const existsIndex = selectedProds.findIndex(p => p.name === product.name);
+  if (existsIndex !== -1) {
+    selectedProds[existsIndex].qty = finalQty;
+  } else {
+    selectedProds.push({ ...product, qty: finalQty });
+    addCount++;
+  }
+});
 
   // ======================================================
   // 🔥 核心修復：手動填寫必強制補滿，無條件達標（最後執行！）
@@ -1150,7 +1150,7 @@ function addSpecificProduct(productName, qty) {
   else if (productName.includes('2711AB(4)')) maxQty=1;
   else if (productName.includes('777Q(4)')) maxQty=2;
   else if (productName.includes('火山甘露')) maxQty=4;
-  else if (productName.includes('2711AB(1)')) maxQty=4;
+  else if (productName.includes('2711AB')) maxQty=4; // 確保2711AB所有變體都限4盒
 
   const exists = selectedProds.find(p => p.name === productName);
   if(exists){
