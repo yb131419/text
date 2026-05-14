@@ -568,8 +568,8 @@ const TARGET_PV300=300000;
 const DEDUCT_INTERVAL=180000;
 
 let products=[],selectedProds=[],lineName='',userInfo=null,authStatus=null,isDeleting=false;
-let lastDeductTime=parseInt(localStorage.getItem('lastDeductTime'))||0;
-let selectedImageBase64 = ""; // AI識別圖片Base64
+let lastDeductTime= Number(localStorage.getItem('lastDeductTime')) || 0;
+let selectedImageBase64 = "";
 let els = {};
 
 function createToast() {
@@ -617,12 +617,11 @@ function initElements() {
     cashOption: document.getElementById("cashOption"),
     cardOption: document.getElementById("cardOption"),
     watermark: document.getElementById("watermark"),
-    // 新增AI識別元素
     imageFileInput: document.getElementById("imageFileInput"),
     uploadImageBtn: document.getElementById("uploadImageBtn"),
     ocrRecognitionBtn: document.getElementById("ocrRecognitionBtn"),
     ocrPreview: document.getElementById("ocrPreview"),
-    ocrOverlay: document.getElementById("ocrOverlay") // 新增这行
+    ocrOverlay: document.getElementById("ocrOverlay")
   };
 }
 
@@ -646,7 +645,7 @@ function initPeriodBox() {
 }
 
 function initCloseStatus() {
-  document.querySelector('.close-status').addEventListener('click',function(){
+  document.querySelector('.close-status')?.addEventListener('click',function(){
     els.authStatusBar.style.opacity='0';
     setTimeout(()=>{
       els.authStatusBar.style.display='none';
@@ -674,29 +673,25 @@ function bindEvents() {
     await handleDelete(btn);
   });
 
-  // 綁定AI圖片識別事件
   els.uploadImageBtn.addEventListener("click", () => els.imageFileInput.click());
   els.imageFileInput.addEventListener("change", handleImageSelect);
   els.ocrRecognitionBtn.addEventListener("click", startOcrRecognition);
 }
 
-// 选择图片 → 无大小上限 + 兼容所有图床直链
+// 选择图片上传
 function handleImageSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  // 仅允许图片格式
   if (!file.type.startsWith("image/")) {
     showToast("❌ 僅支持JPG/PNG圖片", "error");
     return;
   }
 
-  // 按钮状态
   els.ocrRecognitionBtn.disabled = true;
   els.ocrRecognitionBtn.textContent = "上傳中...";
   showToast("🔼 圖片上傳中...", "success");
 
-  // 上传到imgbb
   const form = new FormData();
   form.append("image", file);
   form.append("key", IMGBB_API_KEY);
@@ -708,10 +703,8 @@ function handleImageSelect(e) {
     if (!res.ok) throw new Error("上传接口异常");
     return res.json();
   }).then(data => {
-    // ✅ 兼容所有图床，仅校验链接有效性
     if (data.success && data.data?.url) {
       selectedImageBase64 = data.data.url;
-      // 预览
       els.ocrPreview.src = data.data.url;
       els.ocrPreview.style.display = "block";
       els.ocrRecognitionBtn.disabled = false;
@@ -728,7 +721,7 @@ function handleImageSelect(e) {
   });
 }
 
-// 开始AI识别（兼容所有图床 + 修复JSON解析错误）
+// AI识别核心（修复JSON解析、数据兼容）
 async function startOcrRecognition() {
   if (!userInfo || !userInfo.userId) {
     showToast("❌ 用戶驗證失敗，請刷新重試", "error");
@@ -803,6 +796,7 @@ async function startOcrRecognition() {
     },
     error: function() {
       delete window[callbackName];
+      els.ocrOverlay.style.display = "none";
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
       showToast(`❌ 網路錯誤，請重試`, "error");
@@ -810,7 +804,7 @@ async function startOcrRecognition() {
   });
 }
 
-// 🔥 最終修復版：精准匹配 + 正確數量 + 自動帶入現金/入會/購買者
+// 修复：AI识别自动匹配套组、现金、姓名
 function addOcrProducts(ocrProducts) {
   let addCount = 0;
   console.log("✅ OCR 識別全部數據：", ocrProducts);
@@ -823,53 +817,46 @@ function addOcrProducts(ocrProducts) {
   allText = allText.trim();
   console.log("📝 圖片全部文字：", allText);
 
-  // ======================
-  // 1. 修復：自動偵測「現金/现金」→ 強制勾選 + 主動觸發change事件
-  // ======================
+  // 自动检测现金支付
   const hasCash = allText.includes("現金") || allText.includes("cash") || allText.includes("现金");
   els.cashOption.checked = hasCash;
-  // ✅ 关键修复：手动触发change事件，执行现金赠品逻辑
   if(hasCash) els.cashOption.dispatchEvent(new Event('change'));
 
-  // ======================
-  // 2. 修復：自動偵測「姓名」→ 加強正則
-  // ======================
+  // 自动识别购买者姓名
   const nameMatch = allText.match(/姓名[：:\\s　]+([^，。\\s\\n]{2,8})/);
   if (nameMatch && nameMatch[1]) {
     els.buyerInput.value = nameMatch[1].trim();
   }
 
-  // ======================
-  // 3. 入會套組 → 适配图片编码（核心补充）
-let hasAddedPackage = false;
-// 清空旧套组
-selectedProds = selectedProds.filter(p => 
-  !p.name.includes("新入會(9號）") && 
-  !p.name.includes("新入會(草本）男") && 
-  !p.name.includes("新入會(草本）女")
-);
+  // 修复：套组互斥匹配逻辑
+  let hasAddedPackage = false;
+  let addedPackageName = "";
+  selectedProds = selectedProds.filter(p => 
+    !p.name.includes("新入會(9號）") && 
+    !p.name.includes("新入會(草本）男") && 
+    !p.name.includes("新入會(草本）女")
+  );
 
-// 匹配规则：适配图片里的草本男套组编码（211+300+299A+101）
-const herbalMaleCodes = ["211", "300", "299A", "101", "111", "168"];
-const hasHerbalMale = ocrProducts.some(p => herbalMaleCodes.includes(p.name)); 
-const hasHerbalFemale = ocrProducts.some(p => p.name == "211" || p.name == "707"); 
-const hasNine = ocrProducts.some(p => p.name == "299" || p.name == "299A"); 
+  const herbalMaleCodes = ["211", "300", "299A", "101", "111", "168"];
+  const hasHerbalMale = ocrProducts.some(p => herbalMaleCodes.includes(p.name)); 
+  const hasHerbalFemale = ocrProducts.some(p => p.name == "211" || p.name == "707"); 
+  const hasNine = ocrProducts.some(p => p.name == "299" || p.name == "299A"); 
 
-// 三选一互斥逻辑
-if (!hasAddedPackage && hasHerbalMale) {
-  addSpecificProduct("新入會(草本）男", 1);
-  hasAddedPackage = true;
-} else if (!hasAddedPackage && hasHerbalFemale) {
-  addSpecificProduct("新入會(草本）女", 1);
-  hasAddedPackage = true;
-} else if (!hasAddedPackage && hasNine) {
-  addSpecificProduct("新入會(9號）", 1);
-  hasAddedPackage = true;
-}
+  if (!hasAddedPackage && hasHerbalMale) {
+    addSpecificProduct("新入會(草本）男", 1);
+    hasAddedPackage = true;
+    addedPackageName = "新入會(草本）男";
+  } else if (!hasAddedPackage && hasHerbalFemale) {
+    addSpecificProduct("新入會(草本）女", 1);
+    hasAddedPackage = true;
+    addedPackageName = "新入會(草本）女";
+  } else if (!hasAddedPackage && hasNine) {
+    addSpecificProduct("新入會(9號）", 1);
+    hasAddedPackage = true;
+    addedPackageName = "新入會(9號）";
+  }
 
-  // ======================
-  // 4. 一般品項匹配
-  // ======================
+  // 普通品项匹配
   ocrProducts.forEach(item => {
     const ocrName = (item.name || "").trim();
     let recognizedQty = parseInt(item.qty);
@@ -899,16 +886,13 @@ if (!hasAddedPackage && hasHerbalMale) {
     }
   });
 
-  // 強制刷新表格
   saveSelectedProds();
   renderTable();
   
-  // ======================
-  // 5. 修復：AI添加套组后，自动触发配套产品逻辑
-  // ======================
-  if(hasAddedPackage){
+  // 修复：根据实际套组触发配套逻辑
+  if(hasAddedPackage && addedPackageName){
     setTimeout(()=>{
-      checkHerbalNewMember("新入會(草本）男"); // 主动调用，添加配套品
+      checkHerbalNewMember(addedPackageName);
     }, 200);
   }
 
@@ -917,38 +901,17 @@ if (!hasAddedPackage && hasHerbalMale) {
   }
 }
 
+// 新人商品提示
 function checkHerbalNewMember(selectedValue){
   const val=selectedValue.trim();
-  if(val.includes('新入會(9號）')){
-    setTimeout(()=>{
-      addSpecificProduct(val,1);
-      addSpecificProduct('入*會「 9號兩組」',1);
-      showToast('📋 已自動新增9號組合');
-    },300);
-  }
-  else if(val.includes('新入會(草本）男')){
-    setTimeout(()=>{
-      addSpecificProduct(val,1);
-      addSpecificProduct('入*會「 211 」',2);
-      addSpecificProduct('入*會「 101 」',2);
-      showToast('📋 已自動新增男生款組合');
-    },300);
-  }
-  else if(val.includes('新入會(草本）女')){
-    setTimeout(()=>{
-      addSpecificProduct(val,1);
-      addSpecificProduct('入*會「 211 」',2);
-      addSpecificProduct('入*會「 707 」',2);
-      showToast('📋 已自動新增女生款組合');
-    },300);
-  }
-  else if(val.includes('2711AB')){
+  if(val.includes('2711AB')){
     setTimeout(()=>{
       showToast('📋 此商品限定新人入會購買','warning');
     },100);
   }
 }
 
+// 修复：现金赠品实时计算逻辑
 function handleCashGift(){
   if(!els.cashOption.checked){
     selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
@@ -956,33 +919,48 @@ function handleCashGift(){
     renderTable();
     return;
   }
-  const totalPrice = parseInt(els.totalPriceCellDup.textContent) || 0;
+  
+  // 实时计算总价，避免DOM读取错误
+  let totalPrice = 0;
+  selectedProds.forEach(item => {
+    totalPrice += item.price * item.qty;
+  });
+  
   const giftQty = Math.floor(totalPrice / 20000);
-  if(giftQty <= 0) return;
+  if(giftQty <= 0) {
+    selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
+    saveSelectedProds();
+    renderTable();
+    return;
+  }
+  
   selectedProds = selectedProds.filter(p => !p.name.includes('贈品 211(30)'));
   addSpecificProduct('贈品 211(30)', giftQty);
   showToast(`🎁 現金滿${giftQty*2}萬，贈送 211(30) x${giftQty}`);
 }
 
+// 修复：商品限购规则
 function addSpecificProduct(productName, qty) {
   const product = products.find(p => p.name === productName);
   if (!product) {
     showToast(`⚠️ 找不到品項：${productName}`,'error');
     return;
   }
-  const exists = selectedProds.find(p => p.name === productName);
+  
   let maxQty=99;
-  if (productName.includes('新入會')||productName.includes('入會')) maxQty=1;
-  else if (productName.includes('2711AB')&&productName.includes('(4)')) maxQty=1;
-  else if (productName.includes('777Q')&&productName.includes('(4)')) maxQty=2;
+  if (productName.includes('新入會') || productName.includes('入會')) maxQty=1;
+  else if (productName.includes('2711AB(4)')) maxQty=1;
+  else if (productName.includes('777Q(4)')) maxQty=2;
   else if (productName.includes('火山甘露')) maxQty=4;
-  else if (productName.includes('2711AB')&&productName.includes('(1)')) maxQty=4;
+  else if (productName.includes('2711AB(1)')) maxQty=4;
+
+  const exists = selectedProds.find(p => p.name === productName);
   if(exists){
-    if(exists.qty+qty>maxQty){
+    if(exists.qty + qty > maxQty){
       showToast(`⚠️ 限購${maxQty}個`,'warning');
       return;
     }
-    exists.qty+=qty;
+    exists.qty += qty;
   }else{
     selectedProds.push({...product,qty});
   }
@@ -990,6 +968,7 @@ function addSpecificProduct(productName, qty) {
   renderTable();
 }
 
+// 本地存储
 function loadSelectedProds(){
   const saved=localStorage.getItem('selectedProducts');
   if(saved)selectedProds=JSON.parse(saved);
@@ -999,6 +978,7 @@ function saveSelectedProds(){
   localStorage.setItem('selectedProducts',JSON.stringify(selectedProds));
 }
 
+// 试算者名称
 function setupLineName(isReset=false){
   if(isReset){
     const input=prompt('請輸入試算者名稱：');
@@ -1023,6 +1003,7 @@ function resetLineName(){
   }
 }
 
+// 后端扣次接口
 async function syncRecordResetToBackend(){
   if(!userInfo||authStatus.isSuperAdmin)return true;
   els.resetReportBtn.disabled=true;
@@ -1085,6 +1066,7 @@ async function syncDeleteToBackend(){
   });
 }
 
+// 重置报表
 async function resetReport(){
   if(!authStatus||!checkUserRemainingTimes())return;
   if(!confirm('確定清空所有品項？'))return;
@@ -1099,10 +1081,10 @@ async function resetReport(){
   els.resetReportBtn.disabled=false;
 }
 
+// 加载商品列表
 async function loadProducts(){
   try{
     updateAuthLoadingText("驗證資料中","請稍候...");
-    // JSONP加載產品列表
     const callbackName = `loadProductsCallback_${Date.now()}`;
     window[callbackName] = function(data) {
       delete window[callbackName];
@@ -1138,29 +1120,31 @@ async function loadProducts(){
   }
 }
 
+// 渲染表格
 function renderTable(){
   els.reportBody.innerHTML="";
   let totalPrice=0,totalPv=0;
+  
   selectedProds.forEach((item,idx)=>{
     let maxQty=99;
     const val=item.name.trim();
     if(val.includes('新入會')||val.includes('入會'))maxQty=1;
-    else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
-    else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+    else if(val.includes('2711AB(4)'))maxQty=1;
+    else if(val.includes('777Q(4)'))maxQty=2;
     else if(val.includes('火山甘露'))maxQty=4;
-    else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
-    if(item.qty>maxQty){
-      item.qty=maxQty;
-      saveSelectedProds();
-    }
+    else if(val.includes('2711AB(1)'))maxQty=4;
+    
+    if(item.qty>maxQty) item.qty=maxQty;
     const subtotalPrice=item.price*item.qty;
     const subtotalPv=item.pv*item.qty;
     totalPrice+=subtotalPrice;
     totalPv+=subtotalPv;
+    
     const tr=document.createElement("tr");
     const qtyOptions=Array.from({length:maxQty},(_,i)=>
       `<option value="${i+1}" ${i+1===item.qty?"selected":""}>${i+1}</option>`
     ).join("");
+    
     tr.innerHTML=`<td>${item.name}</td>
       <td><select class="qtySelect" data-index="${idx}">${qtyOptions}</select></td>
       <td>${item.price}</td>
@@ -1170,23 +1154,26 @@ function renderTable(){
       <td><button class="deleteBtn" data-index="${idx}">刪除</button></td>`;
     els.reportBody.appendChild(tr);
   });
+  
   els.totalPriceCellDup.textContent=totalPrice;
   els.totalPvCellDup.textContent=totalPv;
   els.pvDiff2.textContent=Math.max(TARGET_PV220-totalPv,0);
   els.pvDiff3.textContent=Math.max(TARGET_PV300-totalPv,0);
   els.pvMessage2.innerHTML=totalPv>=TARGET_PV220?'<span class="done">🎉 已達標</span>':'';
   els.pvMessage3.innerHTML=totalPv>=TARGET_PV300?'<span class="done">🎉 已達標</span>':'';
+  
   document.querySelectorAll(".qtySelect").forEach(select=>{
     select.onchange=e=>{
       const idx=parseInt(e.target.dataset.index);
       selectedProds[idx].qty=parseInt(e.target.value);
       saveSelectedProds();
       renderTable();
-      if(els.cashOption.checked) handleCashGift();
+      handleCashGift();
     }
   });
 }
 
+// 删除商品
 async function handleDelete(btn){
   if(isDeleting||!checkUserRemainingTimes()){
     showToast('權限不足，無法刪除','error');
@@ -1206,7 +1193,7 @@ async function handleDelete(btn){
   selectedProds.splice(idx,1);
   saveSelectedProds();
   renderTable();
-  if(els.cashOption.checked) handleCashGift();
+  handleCashGift();
   
   if(!authStatus.isSuperAdmin&&!isWithinInterval){
     await syncDeleteToBackend();
@@ -1219,6 +1206,7 @@ async function handleDelete(btn){
   btn.textContent="刪除";
 }
 
+// 添加商品
 function addProduct(){
   els.addBtn.disabled=true;
   if(!checkUserRemainingTimes()){
@@ -1233,23 +1221,27 @@ function addProduct(){
     els.addBtn.disabled=false;
     return;
   }
+  
   let maxQty=99;
   const val=selectedName.trim();
   if(val.includes('新入會')||val.includes('入會'))maxQty=1;
-  else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
-  else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+  else if(val.includes('2711AB(4)'))maxQty=1;
+  else if(val.includes('777Q(4)'))maxQty=2;
   else if(val.includes('火山甘露'))maxQty=4;
-  else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
+  else if(val.includes('2711AB(1)'))maxQty=4;
+  
   if(qty>maxQty){
     showToast(`⚠️ 限購${maxQty}個`,'warning');
     qty=maxQty;
   }
+  
   const product=products.find(p=>p.name===selectedName);
   if(!product){
     showToast("找不到品項",'error');
     els.addBtn.disabled=false;
     return;
   }
+  
   const exists=selectedProds.find(p=>p.name===selectedName);
   if(exists){
     if(exists.qty+qty>maxQty){
@@ -1261,22 +1253,25 @@ function addProduct(){
   }else{
     selectedProds.push({...product,qty});
   }
+  
   saveSelectedProds();
   renderTable();
-  if(els.cashOption.checked) handleCashGift();
+  handleCashGift();
   showToast('品項已新增');
   els.addBtn.disabled=false;
 }
 
+// 动态调整数量选择
 function adjustQtySelectOptions(productName) {
   if (!productName) return;
   let maxQty=99;
   const val=productName.trim();
   if (val.includes('新入會')||val.includes('入會'))maxQty=1;
-  else if(val.includes('2711AB')&&val.includes('(4)'))maxQty=1;
-  else if(val.includes('777Q')&&val.includes('(4)'))maxQty=2;
+  else if(val.includes('2711AB(4)'))maxQty=1;
+  else if(val.includes('777Q(4)'))maxQty=2;
   else if(val.includes('火山甘露'))maxQty=4;
-  else if(val.includes('2711AB')&&val.includes('(1)'))maxQty=4;
+  else if(val.includes('2711AB(1)'))maxQty=4;
+  
   els.qtyInput.innerHTML = '';
   for (let i=1;i<=maxQty;i++){
     const o=document.createElement('option');
@@ -1286,6 +1281,7 @@ function adjustQtySelectOptions(productName) {
   }
 }
 
+// 权限校验
 function checkUserRemainingTimes(){
   if(!authStatus) return false;
   const canUse = authStatus.isSuperAdmin || authStatus.remainTimes > 0;
@@ -1297,6 +1293,7 @@ function checkUserRemainingTimes(){
   return canUse;
 }
 
+// 更新用户状态栏
 function updateAuthStatusBar(){
   if(!authStatus||!userInfo)return;
   let statusHtml='';
@@ -1312,16 +1309,10 @@ function updateAuthStatusBar(){
     </div>`;
   }
   els.authStatusBar.innerHTML=`<button class="close-status">點我隱藏</button>${statusHtml}`;
-  els.authStatusBar.style.display='block';
-  els.authStatusBar.querySelector('.close-status').addEventListener('click',function(){
-    els.authStatusBar.style.opacity='0';
-    setTimeout(()=>{
-      els.authStatusBar.style.display='none';
-      els.authStatusBar.style.opacity='1';
-    },300);
-  });
+  initCloseStatus();
 }
 
+// 导出图片（修复文字截断）
 async function exportToImage(){
   if(!checkUserRemainingTimes())return;
   if(selectedProds.length===0){
@@ -1332,21 +1323,19 @@ async function exportToImage(){
   const opCells=document.querySelectorAll("#reportTable td:last-child, #reportTable th:last-child");
   opCells.forEach(el=>el.style.display="none");
 
-  // 🔥 修复：临时加大表格行高 + 内边距，防止文字被截断
   document.querySelectorAll("#reportTable td, #reportTable th").forEach(el => {
-    el.style.padding = "10px 6px";  // 上下内边距加大
-    el.style.lineHeight = "1.5";    // 行高加大
-    el.style.fontSize = "14px";     // 统一清晰字体
+    el.style.padding = "10px 6px";
+    el.style.lineHeight = "1.5";
+    el.style.fontSize = "14px";
   });
 
   try{
     const canvas=await html2canvas(els.captureArea,{
-      scale: 5,
+      scale: 4,
       useCORS:true,
-      backgroundColor:null,
+      backgroundColor: "#ffffff",
       logging: false,
-      padding: { left: 40, right: 50, top: 30, bottom: 30 }, // 加大整体边距
-      letterRendering: true
+      padding: { left: 20, right: 20, top: 20, bottom: 20 }
     });
     
     els.previewImage.src=canvas.toDataURL("image/png");
@@ -1360,7 +1349,6 @@ async function exportToImage(){
   }
   finally{
     opCells.forEach(el=>el.style.display="");
-    // 🔥 恢复表格原本样式
     document.querySelectorAll("#reportTable td, #reportTable th").forEach(el => {
       el.style.padding = "";
       el.style.lineHeight = "";
@@ -1370,6 +1358,7 @@ async function exportToImage(){
   }
 }
 
+// 分享到LINE
 async function shareToLine(){
   if(!els.previewImage.src){
     showToast("請先匯出圖片",'warning');
@@ -1392,14 +1381,18 @@ async function shareToLine(){
   }
   els.shareToLineBtn.disabled=false;
 }
+
+// 原生分享
 async function nativeShare(){
   if(!navigator.share||!els.previewImage.src)return;
   const blob=await fetch(els.previewImage.src).then(r=>r.blob());
   navigator.share({
     files:[new File([blob],"報表.png")],
-    text:`康園試算報表\n購買者：${els.buyerInput.value}\n試算者：${lineName}`
+    text:`康園試算報表\n購買者：${els.buyerInput.value||'未填'}\n試算者：${lineName}`
   });
 }
+
+// 清空图片
 function clearImage(){
   els.previewImage.style.display="none";
   els.previewImage.src="";
@@ -1409,8 +1402,9 @@ function clearImage(){
   els.shareToLineBtn.style.display="none";
   els.nativeShareBtn.style.display="none";
   els.clearImageBtn.style.display="none";
-  els.ocrRecognitionBtn.style.display = "none";
 }
+
+// 提示框
 function showToast(message,type='success'){
   els.toast.innerHTML=message.replace(/\n/g,'<br>');
   els.toast.className='toast';
@@ -1418,6 +1412,7 @@ function showToast(message,type='success'){
   setTimeout(()=>els.toast.classList.remove('show'),3000);
 }
 
+// 错误显示
 const showError=(msg)=>{
   els.authLoading.style.display='none';
   els.captureArea.style.display='none';
@@ -1426,11 +1421,13 @@ const showError=(msg)=>{
   els.errorContent.innerHTML=msg;
   els.errorMessage.style.display='block';
 };
+
 function updateAuthLoadingText(title, desc){
   els.authLoadingTitle.textContent=title;
   els.authLoadingDesc.innerHTML=desc;
 }
 
+// 后端验证用户
 const verifyUserFromBackend=(profile)=>{
   return new Promise((resolve)=>{
     const callbackName=`verifyCallback_${Date.now()}`;
@@ -1464,6 +1461,7 @@ const verifyUserFromBackend=(profile)=>{
   });
 };
 
+// LIFF初始化 + 登录
 async function initLiffAndAuth(){
   try{
     updateAuthLoadingText("正在驗證用戶權限","請稍候...");
@@ -1508,12 +1506,12 @@ async function initLiffAndAuth(){
   }
 }
 
+// 应用初始化
 async function initApp(){
   try {
     initElements();
     initQtySelect();
     initPeriodBox();
-    initCloseStatus();
     bindEvents();
     await initLiffAndAuth();
   } catch (err) {
@@ -1523,5 +1521,6 @@ async function initApp(){
 
 window.addEventListener('DOMContentLoaded', initApp);
 </script>
+
 </body>
 </html>
