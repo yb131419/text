@@ -804,38 +804,124 @@ async function startOcrRecognition() {
   });
 }
 
-// 修复：AI识别自动匹配套组、现金、姓名【完全匹配最新OCR模板】
+// 修复：AI识别核心入口（修正传参）
+async function startOcrRecognition() {
+  if (!userInfo || !userInfo.userId) {
+    showToast("❌ 用戶驗證失敗，請刷新重試", "error");
+    return;
+  }
+  if (!checkUserRemainingTimes()) {
+    showToast("❌ 剩餘次數不足", "error");
+    return;
+  }
+  if (!selectedImageBase64) {
+    showToast("❌ 請上傳有效的圖片", "error");
+    return;
+  }
+
+  els.ocrRecognitionBtn.disabled = true;
+  els.ocrRecognitionBtn.textContent = "識別中...";
+  showToast("🔍 AI正在識別品項，請稍候...", "success");
+  els.ocrOverlay.style.display = "flex";
+
+  const callbackName = `ocrCallback_${Date.now()}`;
+  window[callbackName] = function(rawResp) {
+    delete window[callbackName];
+    els.ocrOverlay.style.display = "none";
+    els.ocrRecognitionBtn.disabled = false;
+    els.ocrRecognitionBtn.textContent = "🤖AI識別";
+
+    try {
+      let cleanResp = rawResp;
+      if (typeof cleanResp === 'string') {
+        cleanResp = cleanResp.replace(/^```json\n/, '').replace(/\n```$/, '');
+        cleanResp = JSON.parse(cleanResp);
+      }
+      const resp = cleanResp;
+
+      if (resp.status === "error") {
+        showToast(`❌ 識別失敗：${resp.message}`, "error");
+        return;
+      }
+      if (resp.status === "exceeded") {
+        showToast("❌ 使用次數已用盡", "error");
+        authStatus.remainTimes = 0;
+        updateAuthStatusBar();
+        checkUserRemainingTimes();
+        return;
+      }
+      // 修复：直接传完整的resp（不是resp.data）
+      if (resp.status === "success" && resp.data?.length > 0) {
+        authStatus.remainTimes = resp.remainTimes;
+        updateAuthStatusBar();
+        addOcrProducts(resp); // 关键修复：传resp而不是resp.data
+        showToast(`✅ 識別成功！自動添加 ${resp.data.length} 個品項`, "success");
+      } else {
+        showToast("⚠️ 未識別到任何品項", "warning");
+      }
+    } catch (e) {
+      console.error("JSON解析失败：", e);
+      showToast("❌ 後端返回數據格式異常", "error");
+    }
+  };
+
+  $.ajax({
+    url: API_URL,
+    dataType: "jsonp",
+    jsonp: "callback",
+    jsonpCallback: callbackName,
+    timeout: 60000,
+    data: {
+      action: "ocrImage",
+      userId: userInfo.userId,
+      displayName: userInfo.displayName || "未知用戶",
+      imageUrl: selectedImageBase64,
+      callback: callbackName
+    },
+    error: function() {
+      delete window[callbackName];
+      els.ocrOverlay.style.display = "none";
+      els.ocrRecognitionBtn.disabled = false;
+      els.ocrRecognitionBtn.textContent = "🤖AI識別";
+      showToast(`❌ 網路錯誤，請重試`, "error");
+    }
+  });
+}
+
+// 修复：AI识别自动匹配套组、现金、姓名【修复所有匹配问题】
 function addOcrProducts(ocrResult) {
   let addCount = 0;
   console.log("✅ OCR 識別完整數據：", ocrResult);
 
-  // ============== 1. 解构OCR返回数据（完全对接后端模板） ==============
+  // ============== 1. 解构OCR返回数据（修正层级） ==============
   const { 
-    data: ocrProducts = [],    // 处理好的产品列表
-    name: buyerName = "",      // 姓名（后端精准识别）
-    payment = "",              // 付款方式（后端精准识别）
-    memberType = ""            // 入会类型（后端精准识别）
+    data: ocrProducts = [],    // 现在能正确拿到产品列表
+    name: buyerName = "",      // 姓名
+    payment = "",              // 付款方式
+    memberType = ""            // 入会类型
   } = ocrResult;
 
-  // ============== 2. 现金自动勾选（100%精准，后端返回值） ==============
+  // ============== 2. 现金自动勾选（修复事件触发） ==============
   const hasCash = payment.includes("現金") || payment.includes("现金");
   els.cashOption.checked = hasCash;
+  // 强制触发change事件（修复不生效问题）
+  const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+  els.cashOption.dispatchEvent(changeEvent);
   if (hasCash) {
-    els.cashOption.dispatchEvent(new Event('change', { bubbles: true }));
     console.log("💰 已自動勾選現金");
   }
 
-  // ============== 3. 姓名强制填入购买者（后端直接返回，无解析） ==============
+  // ============== 3. 姓名强制填入购买者 ==============
   if (buyerName.trim()) {
     els.buyerInput.value = buyerName.trim();
     console.log("📝 已填入購買者：", buyerName);
   }
 
-  // ============== 4. 套组自动添加（后端返回类型，直接匹配） ==============
+  // ============== 4. 套组自动添加（修复清空逻辑） ==============
   let hasAddedPackage = false;
   let addedPackageName = "";
   
-  // 清空旧套组
+  // 修复：清空旧套组（匹配正确的name字段）
   selectedProds = selectedProds.filter(p => 
     !p.name.includes("新入會(9號）") && 
     !p.name.includes("新入會(草本）男") && 
@@ -865,16 +951,16 @@ function addOcrProducts(ocrResult) {
     addedPackageName = "新入會(9號）";
   }
 
-  // ============== 5. 产品添加（后端已处理：全半角/累加/数量换算） ==============
+  // ============== 5. 产品添加（核心修复：匹配字段） ==============
   ocrProducts.forEach(item => {
     const ocrName = (item.name || "").trim();
     let recognizedQty = parseInt(item.qty) || 0;
     
     if (!ocrName || recognizedQty <= 0) return;
 
-    // 精准匹配产品
+    // 修复：用p.name匹配（不是displayName）
     const product = products.find(p =>
-      p.displayName === ocrName || p.displayName.includes(ocrName)
+      p.name === ocrName || p.name.includes(ocrName)
     );
     
     if (!product) {
@@ -882,14 +968,14 @@ function addOcrProducts(ocrResult) {
       return;
     }
 
-    // 火山甘露固定数量（沿用规则）
+    // 火山甘露固定数量
     let finalQty = recognizedQty;
     if (ocrName.includes("火山甘露")) {
       finalQty = 4;
     }
 
-    // 覆盖/添加产品
-    const existsIndex = selectedProds.findIndex(p => p.displayName === product.displayName);
+    // 覆盖/添加产品（修复匹配字段）
+    const existsIndex = selectedProds.findIndex(p => p.name === product.name);
     if (existsIndex !== -1) {
       selectedProds[existsIndex].qty = finalQty;
     } else {
@@ -902,6 +988,9 @@ function addOcrProducts(ocrResult) {
   saveSelectedProds();
   renderTable();
 
+  // 修复：套组添加后重新计算现金赠品
+  handleCashGift();
+
   // 套组提示
   if (hasAddedPackage && addedPackageName) {
     setTimeout(() => {
@@ -909,6 +998,10 @@ function addOcrProducts(ocrResult) {
     }, 200);
     showToast(`✅ 已自動加入 ${addedPackageName}`, "success");
   }
+  
+  // 额外提示：实际添加数量
+  console.log(`📊 最终添加产品数量：${addCount}`);
+  showToast(`📊 實際匹配並添加 ${addCount} 個有效品項`, "success");
 }
 
 // 新人商品提示
