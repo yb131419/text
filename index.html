@@ -510,7 +510,7 @@ body{
   <!-- 新增：手动填写强制达标数值 -->
   <div style="margin-left: 10px; display: flex; gap: 5px; align-items: center;">
     <input type="number" id="targetPvInput" placeholder="目標PV" style="width:80px; padding:4px; border-radius:4px; text-align:center;">
-    <input type="number" id="minPriceInput" placeholder="保底金額" style="width:80px; padding:4px; border-radius:4px; text-align:center;">
+    <input type="number" id="minPriceInput" placeholder="目標金額" style="width:80px; padding:4px; border-radius:4px; text-align:center;">
   </div>
 </div>
   </h2>
@@ -733,6 +733,12 @@ function handleImageSelect(e) {
       els.ocrRecognitionBtn.disabled = false;
       els.ocrRecognitionBtn.textContent = "🤖AI識別";
       showToast("✅ 上傳成功，點擊AI識別", "success");
+      
+      // 🔥 核心修正：上傳成功後，自動平滑滾動到「上傳圖片」按鈕
+      els.uploadImageBtn.scrollIntoView({
+        behavior: "smooth",  // 平滑滾動
+        block: "center"      // 按鈕居中顯示
+      });
     } else {
       throw new Error("無效圖片鏈接");
     }
