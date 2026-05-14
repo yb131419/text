@@ -838,30 +838,29 @@ function addOcrProducts(ocrResult) {
   let addCount = 0;
   console.log("✅ OCR 識別完整數據：", ocrResult);
 
-  // ============== 🔥 核心：讀取手動輸入值（填寫則強制達標，不填則按實際） ==============
-  const manualTargetPv = Number(els.targetPvInput.value.trim());
-  const manualMinPrice = Number(els.minPriceInput.value.trim());
-  // 判斷是否需要強制達標
-  const needForcePv = !isNaN(manualTargetPv) && manualTargetPv > 0;
-  const needForcePrice = !isNaN(manualMinPrice) && manualMinPrice > 0;
+  // ============== 🔥 核心修復：強制讀取手動輸入值（100%帶入） ==============
+  const manualTargetPv = parseFloat(els.targetPvInput.value) || 0;
+  const manualMinPrice = parseFloat(els.minPriceInput.value) || 0;
+  // 強制判定：只要填寫>0數值，就觸發強制達標
+  const needForcePv = manualTargetPv > 0;
+  const needForcePrice = manualMinPrice > 0;
   
-  const targetPv = needForcePv ? manualTargetPv : 0; // 不填則不強制PV
-  const minTotalPrice = needForcePrice ? manualMinPrice : 0; // 不填則不強定金額
+  const targetPv = manualTargetPv;
+  const minTotalPrice = manualMinPrice;
 
   console.log(`🎯 配置 - 目標PV: ${targetPv || '按實際'} | 保底金額: ${minTotalPrice || '按實際'}`);
 
   // ============== 1. 解構OCR返回數據（修正層級） ==============
   const { 
-    data: ocrProducts = [],    // 現在能正確拿到產品列表
-    name: buyerName = "",      // 姓名
-    payment = "",              // 付款方式
-    memberType = ""            // 入會類型
+    data: ocrProducts = [],
+    name: buyerName = "",
+    payment = "",
+    memberType = ""
   } = ocrResult;
 
   // ============== 2. 現金自動勾選（修復事件觸發） ==============
   const hasCash = payment.includes("現金") || payment.includes("現金");
   els.cashOption.checked = hasCash;
-  // 強制觸發change事件（修復不生效問題）
   const changeEvent = new Event('change', { bubbles: true, cancelable: true });
   els.cashOption.dispatchEvent(changeEvent);
   if (hasCash) {
@@ -908,7 +907,6 @@ function addOcrProducts(ocrResult) {
   }
 
   // ============== 5. 產品添加（核心修復：匹配字段） ==============
-  // 先計算當前選中產品的總PV和總金額
   let currentTotalPv = 0;
   let currentTotalPrice = 0;
   
@@ -918,7 +916,6 @@ function addOcrProducts(ocrResult) {
     
     if (!ocrName || recognizedQty <= 0) return;
 
-    // 修復：用p.name匹配（不是displayName）
     const product = products.find(p =>
       p.name === ocrName || p.name.includes(ocrName)
     );
@@ -934,7 +931,7 @@ function addOcrProducts(ocrResult) {
       finalQty = 4;
     }
 
-    // 覆蓋/添加產品（修復匹配字段）
+    // 覆蓋/添加產品
     const existsIndex = selectedProds.findIndex(p => p.name === product.name);
     if (existsIndex !== -1) {
       selectedProds[existsIndex].qty = finalQty;
@@ -943,17 +940,16 @@ function addOcrProducts(ocrResult) {
       addCount++;
     }
     
-    // 累加當前產品的PV和金額
     currentTotalPv += product.pv * finalQty;
     currentTotalPrice += product.price * finalQty;
   });
 
   // ======================================================
-  // 🔥 核心：手動填寫才強制補滿，不填則跳過補滿邏輯
+  // 🔥 核心修復：手動填寫必強制補滿，無條件帶入數值
   // ======================================================
   const SUPPLEMENT_CONFIG = {
-    pvSupplements: ["211", "300","299A"],          // PV不足 平均補這些產品
-    priceSupplements: ["211", "300","299A"]        // 金額不足 平均補這些產品
+    pvSupplements: ["211", "300","299A","211A"],
+    priceSupplements: ["211", "300","299A"]
   };
 
   /**
@@ -971,7 +967,7 @@ function addOcrProducts(ocrResult) {
       return;
     }
 
-    const perProductQty = Math.ceil(deficit / (validProducts.length * (type === 'pv' ? validProducts[0].pv : validProducts[0].price)));
+    const perProductQty = Math.ceil(deficit / (type === 'pv' ? validProducts[0].pv : validProducts[0].price));
     
     validProducts.forEach(product => {
       const index = selectedProds.findIndex(p => p.name === product.name);
@@ -992,20 +988,25 @@ function addOcrProducts(ocrResult) {
   }
 
   // --------------------------
-  // 1. 僅手動填寫目標PV時，才強制補滿
+  // 強制補滿PV（只要填寫就執行）
   // --------------------------
-  if (needForcePv && currentTotalPv < targetPv) {
-    const pvDeficit = targetPv - currentTotalPv;
-    averageSupplement(pvDeficit, SUPPLEMENT_CONFIG.pvSupplements, 'pv');
+  if (needForcePv) {
+    const finalPv = selectedProds.reduce((sum, p) => sum + p.pv * p.qty, 0);
+    if (finalPv < targetPv) {
+      const pvDeficit = targetPv - finalPv;
+      averageSupplement(pvDeficit, SUPPLEMENT_CONFIG.pvSupplements, 'pv');
+    }
   }
 
   // --------------------------
-  // 2. 僅手動填寫保底金額時，才強制補滿
+  // 強制補滿金額（只要填寫就執行）
   // --------------------------
-  let finalTotalPrice = selectedProds.reduce((sum, p) => sum + p.price * p.qty, 0);
-  if (needForcePrice && finalTotalPrice < minTotalPrice) {
-    const priceDeficit = minTotalPrice - finalTotalPrice;
-    averageSupplement(priceDeficit, SUPPLEMENT_CONFIG.priceSupplements, 'price');
+  if (needForcePrice) {
+    const finalPrice = selectedProds.reduce((sum, p) => sum + p.price * p.qty, 0);
+    if (finalPrice < minTotalPrice) {
+      const priceDeficit = minTotalPrice - finalPrice;
+      averageSupplement(priceDeficit, SUPPLEMENT_CONFIG.priceSupplements, 'price');
+    }
   }
 
   // ============== 保存並刷新界面 ==============
@@ -1025,7 +1026,7 @@ function addOcrProducts(ocrResult) {
   
   // 額外提示
   if(needForcePv || needForcePrice){
-    showToast(`📊 已強制達標：PV=${targetPv}｜金額=${minTotalPrice}`, "success");
+    showToast(`📊 已強制達標：目標PV=${targetPv}｜保底金額=${minTotalPrice}`, "success");
   } else {
     showToast(`📊 按圖片實際識別：${addCount} 個品項`, "success");
   }
