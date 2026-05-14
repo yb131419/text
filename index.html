@@ -824,47 +824,52 @@ function addOcrProducts(ocrProducts) {
   console.log("📝 圖片全部文字：", allText);
 
   // ======================
-  // 1. 修復：自動偵測「現金」→ 強制勾選（只要出現就勾）
+  // 1. 修復：自動偵測「現金/现金」→ 強制勾選 + 主動觸發change事件
   // ======================
-  els.cashOption.checked = allText.includes("現金") || allText.includes("cash");
+  const hasCash = allText.includes("現金") || allText.includes("cash") || allText.includes("现金");
+  els.cashOption.checked = hasCash;
+  // ✅ 关键修复：手动触发change事件，执行现金赠品逻辑
+  if(hasCash) els.cashOption.dispatchEvent(new Event('change'));
 
   // ======================
-  // 2. 修復：自動偵測「姓名」→ 加強正則（支援:：空格 全角空格）
+  // 2. 修復：自動偵測「姓名」→ 加強正則
   // ======================
-  const nameMatch = allText.match(/姓名[：:\s　]+([^，。\s\n]{2,8})/);
+  const nameMatch = allText.match(/姓名[：:\\s　]+([^，。\\s\\n]{2,8})/);
   if (nameMatch && nameMatch[1]) {
     els.buyerInput.value = nameMatch[1].trim();
   }
 
   // ======================
-  // 3. 修復：自動偵測「入會套組」→ 嚴格三選一互斥
+  // 3. 修復：入會套組 → 改用【產品編碼匹配】，不依賴OCR文本
+  // 解決：後端只返回編碼，無法識別「草本男」文字的問題
   // ======================
   let hasAddedPackage = false;
-  // 先清空現有的入會套組，避免重複
+  // 清空旧套组
   selectedProds = selectedProds.filter(p => 
     !p.name.includes("新入會(9號）") && 
     !p.name.includes("新入會(草本）男") && 
     !p.name.includes("新入會(草本）女")
   );
 
-  // 草本男（優先1）
-  if (!hasAddedPackage && (allText.includes("草本") && allText.includes("男") || allText.includes("草本男") || allText.includes("草本(男)"))) {
+  // 匹配规则：通过OCR识别的产品编码判断套组（核心修复）
+  const hasHerbalMale = ocrProducts.some(p => p.name == "211" || p.name == "101"); // 草本男：211+101
+  const hasHerbalFemale = ocrProducts.some(p => p.name == "211" || p.name == "707"); // 草本女：211+707
+  const hasNine = ocrProducts.some(p => p.name == "299" || p.name == "299A"); // 9号套组
+
+  // 三选一互斥逻辑
+  if (!hasAddedPackage && hasHerbalMale) {
     addSpecificProduct("新入會(草本）男", 1);
     hasAddedPackage = true;
-  }
-  // 草本女（優先2）
-  else if (!hasAddedPackage && (allText.includes("草本") && allText.includes("女") || allText.includes("草本女") || allText.includes("草本(女)"))) {
+  } else if (!hasAddedPackage && hasHerbalFemale) {
     addSpecificProduct("新入會(草本）女", 1);
     hasAddedPackage = true;
-  }
-  // 9號 / 命運九號（優先3）
-  else if (!hasAddedPackage && (allText.includes("9號") || allText.includes("命運九號"))) {
+  } else if (!hasAddedPackage && hasNine) {
     addSpecificProduct("新入會(9號）", 1);
     hasAddedPackage = true;
   }
 
   // ======================
-  // 4. 一般品項匹配（無修改）
+  // 4. 一般品項匹配
   // ======================
   ocrProducts.forEach(item => {
     const ocrName = (item.name || "").trim();
@@ -900,11 +905,13 @@ function addOcrProducts(ocrProducts) {
   renderTable();
   
   // ======================
-  // 5. 修復：現金贈品強制重新計算（保證100%執行）
+  // 5. 修復：AI添加套组后，自动触发配套产品逻辑
   // ======================
-  setTimeout(() => {
-    if (els.cashOption.checked) handleCashGift();
-  }, 100);
+  if(hasAddedPackage){
+    setTimeout(()=>{
+      checkHerbalNewMember("新入會(草本）男"); // 主动调用，添加配套品
+    }, 200);
+  }
 
   if (hasAddedPackage) {
     showToast(`✅ 已自動加入對應入會套組`, "success");
