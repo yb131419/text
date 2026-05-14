@@ -954,44 +954,51 @@ function addOcrProducts(ocrResult) {
   };
 
   /**
-   * 工具函數：精准補充數量，確保剛好達標
-   */
-  function preciseSupplement(deficit, productNames, type) {
-    if (deficit <= 0 || productNames.length === 0) return;
+ * 工具函數：精准補充數量，確保剛好達標
+ */
+function preciseSupplement(deficit, productNames, type) {
+  if (deficit <= 0 || productNames.length === 0) return;
 
-    // 獲取有效補充產品
-    const validProducts = productNames.map(name => 
-      products.find(p => p.name === name)
-    ).filter(Boolean);
-    if (validProducts.length === 0) return;
+  // 獲取有效補充產品
+  const validProducts = productNames.map(name => 
+    products.find(p => p.name === name)
+  ).filter(Boolean);
+  if (validProducts.length === 0) return;
 
-    let remainingDeficit = deficit;
-    // 循環補充，直到差額為0
-    while (remainingDeficit > 0) {
-      validProducts.forEach(product => {
-        if (remainingDeficit <= 0) return;
-        
-        const unitValue = type === 'pv' ? product.pv : product.price;
-        const addQty = 1; // 每次補1個，精准達標
-        remainingDeficit -= unitValue;
+  let remainingDeficit = deficit;
+  let addedThisRound = false;
 
-        // 添加產品
-        const index = selectedProds.findIndex(p => p.name === product.name);
-        if (index !== -1) {
-          selectedProds[index].qty += addQty;
-        } else {
-          selectedProds.push({ ...product, qty: addQty });
-          addCount++;
-        }
-      });
+  // 一次補滿，不循環瘋狂添加
+  while (remainingDeficit > 0) {
+    const product = validProducts[0]; // 只用第一個商品補滿
+    const unitValue = type === 'pv' ? product.pv : product.price;
+    if (unitValue <= 0) break;
+
+    // 計算需要補多少個
+    const needQty = Math.ceil(remainingDeficit / unitValue);
+    remainingDeficit -= unitValue * needQty;
+
+    // 添加產品
+    const index = selectedProds.findIndex(p => p.name === product.name);
+    if (index !== -1) {
+      selectedProds[index].qty += needQty;
+    } else {
+      selectedProds.push({ ...product, qty: needQty });
+      addCount++;
     }
+    addedThisRound = true;
+    break;
+  }
 
-    const supplementText = validProducts.map(p => p.name).join('、');
+  if (addedThisRound) {
+    const supplementText = validProducts[0].name;
     const msg = type === 'pv' 
-      ? `📈 PV不足${deficit}，自動補充：${supplementText}`
-      : `💵 金額不足${deficit}，自動補充：${supplementText}`;
+      ? `📈 PV 不足，自動補充：${supplementText}`
+      : `💵 金額不足，自動補充：${supplementText}`;
     showToast(msg, "warning");
   }
+}
+
 
   // 實時計算當前總值
   const getCurrentTotal = () => {
@@ -1068,10 +1075,12 @@ function handleCashGift(){
     return;
   }
   
-  // 實時計算總價
+  // 實時計算總價（排除贈品）
   let totalPrice = 0;
   selectedProds.forEach(item => {
-    totalPrice += item.price * item.qty;
+    if(!item.name.includes('贈品') && !item.name.includes('入*會')) {
+      totalPrice += item.price * item.qty;
+    }
   });
   
   const giftQty = Math.floor(totalPrice / 20000);
@@ -1082,7 +1091,7 @@ function handleCashGift(){
     return;
   }
 
-  // 🔥 核心修正：每3個贈品211(30)，扣除1個正常211
+  // 🔥 每 3 個贈品 扣 1 個 211
   const deduct211Qty = Math.floor(giftQty / 3);
   
   // 先移除舊贈品
@@ -1092,21 +1101,19 @@ function handleCashGift(){
 
   // 執行扣除正常211
   if(deduct211Qty > 0){
-    // 修正：匹配商品名稱為 211（不是211(30)）
     const normal211Index = selectedProds.findIndex(p => p.name === '211');
     if(normal211Index !== -1){
-      // 減少數量，最低為0
-      selectedProds[normal211Index].qty -= deduct211Qty;
+      selectedProds[normal211Index].qty = Math.max(0, selectedProds[normal211Index].qty - deduct211Qty);
       if(selectedProds[normal211Index].qty <= 0){
         selectedProds.splice(normal211Index, 1);
       }
-      showToast(`🔥 因贈品累計${giftQty}個，自動扣除${deduct211Qty}個 211`);
-      saveSelectedProds();
-      renderTable();
+      showToast(`🔥 現金滿額贈：自動調整 211 數量`);
     }
   }
 
-  showToast(`🎁 現金滿${giftQty*2}萬，贈送 211(30) x${giftQty}`);
+  showToast(`🎁 現金滿 ${giftQty*2} 萬，贈送 211(30) x${giftQty}`);
+  saveSelectedProds();
+  renderTable();
 }
 
 // 修復：商品限購規則
