@@ -809,24 +809,50 @@ function addOcrProducts(ocrProducts) {
   let addCount = 0;
   console.log("✅ OCR 識別全部數據：", ocrProducts);
 
+  // ============== 修复1：现金识别（遍历每一条OCR结果，精准匹配） ==============
+  let hasCash = false;
+  ocrProducts.forEach(item => {
+    const text = (item.name || item.rawText || "").toLowerCase().trim();
+    if (text.includes("現金") || text.includes("现金") || text.includes("cash")) {
+      hasCash = true;
+    }
+  });
+  els.cashOption.checked = hasCash;
+
+  // ============== 修复2：姓名识别（放宽正则+兜底遍历） ==============
+  let buyerName = "";
+  // 优化正则：兼容「姓名：XX」「姓名  XX」「姓名:XX」所有格式，无严格终止符
+  const nameRegex = /姓名[：:\s　]{0,3}([^]{2,8})/i;
+  
+  // 第一步：正则匹配拼接文本
   let allText = "";
   ocrProducts.forEach(item => {
     if (item.name) allText += item.name + " ";
     if (item.rawText) allText += item.rawText + " ";
   });
-  allText = allText.trim();
-  console.log("📝 圖片全部文字：", allText);
-
-  // 自动检测现金支付
-  const hasCash = allText.includes("現金") || allText.includes("cash") || allText.includes("现金");
-  els.cashOption.checked = hasCash;
-  if(hasCash) els.cashOption.dispatchEvent(new Event('change'));
-
-  // 自动识别购买者姓名
-  const nameMatch = allText.match(/姓名[：:\\s　]+([^，。\\s\\n]{2,8})/);
+  const nameMatch = allText.match(nameRegex);
   if (nameMatch && nameMatch[1]) {
-    els.buyerInput.value = nameMatch[1].trim();
+    buyerName = nameMatch[1].trim().replace(/[，。\s\n]/g, ""); // 清理多余符号
   }
+
+  // 第二步：兜底遍历（正则没匹配到，逐行找姓名）
+  if (!buyerName) {
+    ocrProducts.forEach(item => {
+      const text = (item.rawText || item.name || "").trim();
+      if (text.includes("姓名") && !buyerName) {
+        const tempName = text.replace(/姓名[：:\s　]{0,3}/i, "").trim();
+        if (tempName.length >= 2 && tempName.length <= 8) {
+          buyerName = tempName;
+        }
+      }
+    });
+  }
+
+  // 赋值姓名
+  if (buyerName) {
+    els.buyerInput.value = buyerName;
+  }
+  console.log("📝 識別到購買者：", buyerName, "｜識別到現金支付：", hasCash);
 
   // 修复：套组互斥匹配逻辑
   let hasAddedPackage = false;
@@ -842,25 +868,25 @@ function addOcrProducts(ocrProducts) {
   const hasHerbalFemale = ocrProducts.some(p => p.name == "211" || p.name == "707"); 
   const hasNine = ocrProducts.some(p => p.name == "299" || p.name == "299A"); 
 
-if (!hasAddedPackage && hasHerbalMale) {
-  addSpecificProduct("新入會(草本）男", 1);
-  // 🔥 追加：草本男配套产品
-  addSpecificProduct("入*會「 211 」", 2);
-  addSpecificProduct("入*會「 101 」", 2);
-  hasAddedPackage = true;
-  addedPackageName = "新入會(草本）男";
-} else if (!hasAddedPackage && hasHerbalFemale) {
-  addSpecificProduct("新入會(草本）女", 1);
-  // 🔥 追加：草本女配套产品
-  addSpecificProduct("入*會「 211 」", 2);
-  addSpecificProduct("入*會「 707 」", 2);
-  hasAddedPackage = true;
-  addedPackageName = "新入會(草本）女";
-} else if (!hasAddedPackage && hasNine) {
-  addSpecificProduct("新入會(9號）", 1);
-  hasAddedPackage = true;
-  addedPackageName = "新入會(9號）";
-}
+  if (!hasAddedPackage && hasHerbalMale) {
+    addSpecificProduct("新入會(草本）男", 1);
+    // 🔥 追加：草本男配套产品
+    addSpecificProduct("入*會「 211 」", 2);
+    addSpecificProduct("入*會「 101 」", 2);
+    hasAddedPackage = true;
+    addedPackageName = "新入會(草本）男";
+  } else if (!hasAddedPackage && hasHerbalFemale) {
+    addSpecificProduct("新入會(草本）女", 1);
+    // 🔥 追加：草本女配套产品
+    addSpecificProduct("入*會「 211 」", 2);
+    addSpecificProduct("入*會「 707 」", 2);
+    hasAddedPackage = true;
+    addedPackageName = "新入會(草本）女";
+  } else if (!hasAddedPackage && hasNine) {
+    addSpecificProduct("新入會(9號）", 1);
+    hasAddedPackage = true;
+    addedPackageName = "新入會(9號）";
+  }
 
   // 普通品项匹配
   ocrProducts.forEach(item => {
@@ -895,6 +921,13 @@ if (!hasAddedPackage && hasHerbalMale) {
   saveSelectedProds();
   renderTable();
   
+  // ============== 修复3：现金赠品触发（渲染完成后执行，确保计算准确） ==============
+  if(hasCash) {
+    setTimeout(() => {
+      handleCashGift();
+    }, 300);
+  }
+
   // 修复：根据实际套组触发配套逻辑
   if(hasAddedPackage && addedPackageName){
     setTimeout(()=>{
