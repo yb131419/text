@@ -840,33 +840,32 @@ function addOcrProducts(ocrProducts) {
   }
 
   // ======================
-  // 3. 修復：入會套組 → 改用【產品編碼匹配】，不依賴OCR文本
-  // 解決：後端只返回編碼，無法識別「草本男」文字的問題
-  // ======================
-  let hasAddedPackage = false;
-  // 清空旧套组
-  selectedProds = selectedProds.filter(p => 
-    !p.name.includes("新入會(9號）") && 
-    !p.name.includes("新入會(草本）男") && 
-    !p.name.includes("新入會(草本）女")
-  );
+  // 3. 入會套組 → 适配图片编码（核心补充）
+let hasAddedPackage = false;
+// 清空旧套组
+selectedProds = selectedProds.filter(p => 
+  !p.name.includes("新入會(9號）") && 
+  !p.name.includes("新入會(草本）男") && 
+  !p.name.includes("新入會(草本）女")
+);
 
-  // 匹配规则：通过OCR识别的产品编码判断套组（核心修复）
-  const hasHerbalMale = ocrProducts.some(p => p.name == "211" || p.name == "101"); // 草本男：211+101
-  const hasHerbalFemale = ocrProducts.some(p => p.name == "211" || p.name == "707"); // 草本女：211+707
-  const hasNine = ocrProducts.some(p => p.name == "299" || p.name == "299A"); // 9号套组
+// 匹配规则：适配图片里的草本男套组编码（211+300+299A+101）
+const herbalMaleCodes = ["211", "300", "299A", "101", "111", "168"];
+const hasHerbalMale = ocrProducts.some(p => herbalMaleCodes.includes(p.name)); 
+const hasHerbalFemale = ocrProducts.some(p => p.name == "211" || p.name == "707"); 
+const hasNine = ocrProducts.some(p => p.name == "299" || p.name == "299A"); 
 
-  // 三选一互斥逻辑
-  if (!hasAddedPackage && hasHerbalMale) {
-    addSpecificProduct("新入會(草本）男", 1);
-    hasAddedPackage = true;
-  } else if (!hasAddedPackage && hasHerbalFemale) {
-    addSpecificProduct("新入會(草本）女", 1);
-    hasAddedPackage = true;
-  } else if (!hasAddedPackage && hasNine) {
-    addSpecificProduct("新入會(9號）", 1);
-    hasAddedPackage = true;
-  }
+// 三选一互斥逻辑
+if (!hasAddedPackage && hasHerbalMale) {
+  addSpecificProduct("新入會(草本）男", 1);
+  hasAddedPackage = true;
+} else if (!hasAddedPackage && hasHerbalFemale) {
+  addSpecificProduct("新入會(草本）女", 1);
+  hasAddedPackage = true;
+} else if (!hasAddedPackage && hasNine) {
+  addSpecificProduct("新入會(9號）", 1);
+  hasAddedPackage = true;
+}
 
   // ======================
   // 4. 一般品項匹配
