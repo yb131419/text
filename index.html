@@ -736,88 +736,7 @@ function handleImageSelect(e) {
   });
 }
 
-// AI識別核心（修復JSON解析、數據兼容）
-async function startOcrRecognition() {
-  if (!userInfo || !userInfo.userId) {
-    showToast("❌ 用戶驗證失敗，請刷新重試", "error");
-    return;
-  }
-  if (!checkUserRemainingTimes()) {
-    showToast("❌ 剩餘次數不足", "error");
-    return;
-  }
-  if (!selectedImageBase64) {
-    showToast("❌ 請上傳有效的圖片", "error");
-    return;
-  }
 
-  els.ocrRecognitionBtn.disabled = true;
-  els.ocrRecognitionBtn.textContent = "識別中...";
-  showToast("🔍 AI正在識別品項，請稍候...", "success");
-  els.ocrOverlay.style.display = "flex";
-
-  const callbackName = `ocrCallback_${Date.now()}`;
-  window[callbackName] = function(rawResp) {
-    delete window[callbackName];
-    els.ocrOverlay.style.display = "none";
-    els.ocrRecognitionBtn.disabled = false;
-    els.ocrRecognitionBtn.textContent = "🤖AI識別";
-
-    try {
-      let cleanResp = rawResp;
-      if (typeof cleanResp === 'string') {
-        cleanResp = cleanResp.replace(/^```json\n/, '').replace(/\n```$/, '');
-        cleanResp = JSON.parse(cleanResp);
-      }
-      const resp = cleanResp;
-
-      if (resp.status === "error") {
-        showToast(`❌ 識別失敗：${resp.message}`, "error");
-        return;
-      }
-      if (resp.status === "exceeded") {
-        showToast("❌ 使用次數已用盡", "error");
-        authStatus.remainTimes = 0;
-        updateAuthStatusBar();
-        checkUserRemainingTimes();
-        return;
-      }
-      if (resp.status === "success" && resp.data?.length > 0) {
-        authStatus.remainTimes = resp.remainTimes;
-        updateAuthStatusBar();
-        addOcrProducts(resp.data);
-        showToast(`✅ 識別成功！自動添加 ${resp.data.length} 個品項`, "success");
-      } else {
-        showToast("⚠️ 未識別到任何品項", "warning");
-      }
-    } catch (e) {
-      console.error("JSON解析失敗：", e);
-      showToast("❌ 後端返回數據格式異常", "error");
-    }
-  };
-
-  $.ajax({
-    url: API_URL,
-    dataType: "jsonp",
-    jsonp: "callback",
-    jsonpCallback: callbackName,
-    timeout: 60000,
-    data: {
-      action: "ocrImage",
-      userId: userInfo.userId,
-      displayName: userInfo.displayName || "未知用戶",
-      imageUrl: selectedImageBase64,
-      callback: callbackName
-    },
-    error: function() {
-      delete window[callbackName];
-      els.ocrOverlay.style.display = "none";
-      els.ocrRecognitionBtn.disabled = false;
-      els.ocrRecognitionBtn.textContent = "🤖AI識別";
-      showToast(`❌ 網路錯誤，請重試`, "error");
-    }
-  });
-}
 
 // 修復：AI識別核心入口（修正傳參）
 async function startOcrRecognition() {
@@ -903,16 +822,16 @@ async function startOcrRecognition() {
   });
 }
 
-// 修復：AI識別自動匹配套組、現金、姓名【修復所有匹配問題 + 自定義PV/金額 + 平均補充產品】
+// 修復：AI識別自動匹配套組、現金、姓名【強制補滿220000PV】
 /**
  * @param {Object} ocrResult - OCR識別結果
  * @param {number} targetPv - 自定義目標PV（必填，比如你的220000）
  * @param {number} minTotalPrice - 自定義保底金額（必填，用戶自訂）
  */
-function addOcrProducts(ocrResult, targetPv, minTotalPrice) {
+function addOcrProducts(ocrResult, targetPv = TARGET_PV220, minTotalPrice = 0) {
   let addCount = 0;
   console.log("✅ OCR 識別完整數據：", ocrResult);
-  console.log(`🎯 自定義配置 - 目標PV: ${targetPv} | 保底金額: ${minTotalPrice}`);
+  console.log(`🎯 強制配置 - 目標PV: ${targetPv} | 保底金額: ${minTotalPrice}`);
 
   // ============== 1. 解構OCR返回數據（修正層級） ==============
   const { 
@@ -1014,28 +933,19 @@ function addOcrProducts(ocrResult, targetPv, minTotalPrice) {
   });
 
   // ======================================================
-  // 🔥 核心修改：自定義PV/金額 + 【平均補充產品】邏輯
+  // 🔥 核心：強制補滿220000PV + 平均補充產品
   // ======================================================
-  /**
-   * 配置：需要平均補充的產品（可自行增刪修改）
-   * pvSupplements：PV不足時 平均補充的產品
-   * priceSupplements：金額不足時 平均補充的產品
-   */
   const SUPPLEMENT_CONFIG = {
-    pvSupplements: ["211", "300","299A"],          // PV不足 平均補這個產品
-    priceSupplements: ["211", "300","299A"]        // 金額不足 平均補這個產品
+    pvSupplements: ["211", "300","299A"],          // PV不足 平均補這些產品
+    priceSupplements: ["211", "300","299A"]        // 金額不足 平均補這些產品
   };
 
   /**
    * 工具函數：平均分配補充數量到產品列表
-   * @param {number} deficit - 差值（需要補充的PV/金額）
-   * @param {string[]} productNames - 要補充的產品名稱數組
-   * @param {string} type - 補充類型（pv/price）
    */
   function averageSupplement(deficit, productNames, type) {
     if (deficit <= 0 || productNames.length === 0) return;
 
-    // 過濾出有效的產品
     const validProducts = productNames.map(name => 
       products.find(p => p.name === name)
     ).filter(Boolean);
@@ -1045,10 +955,8 @@ function addOcrProducts(ocrResult, targetPv, minTotalPrice) {
       return;
     }
 
-    // 平均計算每個產品需要補充的數量（向上取整）
     const perProductQty = Math.ceil(deficit / (validProducts.length * (type === 'pv' ? validProducts[0].pv : validProducts[0].price)));
     
-    // 批量添加/累加產品
     validProducts.forEach(product => {
       const index = selectedProds.findIndex(p => p.name === product.name);
       if (index !== -1) {
@@ -1060,17 +968,15 @@ function addOcrProducts(ocrResult, targetPv, minTotalPrice) {
       console.log(`➕ 平均補充【${product.name}】x${perProductQty}`);
     });
 
-    // 提示信息
     const supplementText = validProducts.map(p => `${p.name}×${perProductQty}`).join('、');
     const msg = type === 'pv' 
       ? `📈 PV不足${deficit}，自動平均補充：${supplementText}`
       : `💵 金額不足${deficit}，自動平均補充：${supplementText}`;
     showToast(msg, "warning");
-    console.log(msg);
   }
 
   // --------------------------
-  // 1. 自定義PV不足 → 平均補充
+  // 1. 強制補滿220000PV
   // --------------------------
   if (currentTotalPv < targetPv) {
     const pvDeficit = targetPv - currentTotalPv;
@@ -1078,7 +984,7 @@ function addOcrProducts(ocrResult, targetPv, minTotalPrice) {
   }
 
   // --------------------------
-  // 2. 自定義保底金額不足 → 平均補充
+  // 2. 保底金額（可自行修改數值）
   // --------------------------
   let finalTotalPrice = selectedProds.reduce((sum, p) => sum + p.price * p.qty, 0);
   if (finalTotalPrice < minTotalPrice) {
