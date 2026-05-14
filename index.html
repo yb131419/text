@@ -946,11 +946,15 @@ function addOcrProducts(ocrResult) {
       return;
     }
 
-    // 火山甘露固定數量
-    let finalQty = recognizedQty;
-    if (ocrName.includes("火山甘露")) {
-      finalQty = 4;
-    }
+// 火山甘露固定數量
+let finalQty = recognizedQty;
+if (ocrName.includes("火山甘露")) {
+  finalQty = 4;
+}
+// 🔥 新增：2711AB(1) 強制固定4盒（和火山甘露逻辑一致）
+if (ocrName.includes("2711AB(1)") || ocrName.includes("2711AB")) {
+  finalQty = 4;
+}
 
     // 覆蓋/添加產品
     const existsIndex = selectedProds.findIndex(p => p.name === product.name);
