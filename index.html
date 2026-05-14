@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8"/>
@@ -503,11 +503,16 @@ body{
       <label><input type="checkbox" id="cashOption" /> 💵 現金</label>
       <label><input type="checkbox" id="cardOption" /> 💳 刷卡</label>
     </div>
-    <div class="period-options">
-      <div class="period-box">一個月</div>
-      <div class="period-box">三個月</div>
-      <div class="period-box">六個月</div>
-    </div>
+<div class="period-options">
+  <div class="period-box">一個月</div>
+  <div class="period-box">三個月</div>
+  <div class="period-box">六個月</div>
+  <!-- 新增：手动填写强制达标数值 -->
+  <div style="margin-left: 10px; display: flex; gap: 5px; align-items: center;">
+    <input type="number" id="targetPvInput" placeholder="目標PV" style="width:80px; padding:4px; border-radius:4px; text-align:center;">
+    <input type="number" id="minPriceInput" placeholder="保底金額" style="width:80px; padding:4px; border-radius:4px; text-align:center;">
+  </div>
+</div>
   </h2>
   <div class="userInputs">  
     <div class="row">
@@ -636,7 +641,10 @@ function initElements() {
     uploadImageBtn: document.getElementById("uploadImageBtn"),
     ocrRecognitionBtn: document.getElementById("ocrRecognitionBtn"),
     ocrPreview: document.getElementById("ocrPreview"),
-    ocrOverlay: document.getElementById("ocrOverlay")
+    ocrOverlay: document.getElementById("ocrOverlay"),
+    // 加到 initElements 函数末尾
+targetPvInput: document.getElementById("targetPvInput"),
+minPriceInput: document.getElementById("minPriceInput")
   };
 }
 
@@ -822,16 +830,25 @@ async function startOcrRecognition() {
   });
 }
 
-// 修復：AI識別自動匹配套組、現金、姓名【強制補滿220000PV】
+// 修復：AI識別自動匹配套組、現金、姓名【手動填寫則強制達標】
 /**
  * @param {Object} ocrResult - OCR識別結果
- * @param {number} targetPv - 自定義目標PV（必填，比如你的220000）
- * @param {number} minTotalPrice - 自定義保底金額（必填，用戶自訂）
  */
-function addOcrProducts(ocrResult, targetPv = TARGET_PV220, minTotalPrice = 0) {
+function addOcrProducts(ocrResult) {
   let addCount = 0;
   console.log("✅ OCR 識別完整數據：", ocrResult);
-  console.log(`🎯 強制配置 - 目標PV: ${targetPv} | 保底金額: ${minTotalPrice}`);
+
+  // ============== 🔥 核心：讀取手動輸入值（填寫則強制達標，不填則按實際） ==============
+  const manualTargetPv = Number(els.targetPvInput.value.trim());
+  const manualMinPrice = Number(els.minPriceInput.value.trim());
+  // 判斷是否需要強制達標
+  const needForcePv = !isNaN(manualTargetPv) && manualTargetPv > 0;
+  const needForcePrice = !isNaN(manualMinPrice) && manualMinPrice > 0;
+  
+  const targetPv = needForcePv ? manualTargetPv : 0; // 不填則不強制PV
+  const minTotalPrice = needForcePrice ? manualMinPrice : 0; // 不填則不強定金額
+
+  console.log(`🎯 配置 - 目標PV: ${targetPv || '按實際'} | 保底金額: ${minTotalPrice || '按實際'}`);
 
   // ============== 1. 解構OCR返回數據（修正層級） ==============
   const { 
@@ -861,11 +878,10 @@ function addOcrProducts(ocrResult, targetPv = TARGET_PV220, minTotalPrice = 0) {
   let hasAddedPackage = false;
   let addedPackageName = "";
   
-  // 修復：清空舊套組（匹配正確的name字段）
   selectedProds = selectedProds.filter(p => 
-    !p.name.includes("新入會(9號）") && 
-    !p.name.includes("新入會(草本）男") && 
-    !p.name.includes("新入會(草本）女")
+  !p.name.includes("新入會(9號)") && 
+  !p.name.includes("新入會(草本)男") && 
+  !p.name.includes("新入會(草本)女")
   );
 
   // 草本男套組
@@ -933,7 +949,7 @@ function addOcrProducts(ocrResult, targetPv = TARGET_PV220, minTotalPrice = 0) {
   });
 
   // ======================================================
-  // 🔥 核心：強制補滿220000PV + 平均補充產品
+  // 🔥 核心：手動填寫才強制補滿，不填則跳過補滿邏輯
   // ======================================================
   const SUPPLEMENT_CONFIG = {
     pvSupplements: ["211", "300","299A"],          // PV不足 平均補這些產品
@@ -976,18 +992,18 @@ function addOcrProducts(ocrResult, targetPv = TARGET_PV220, minTotalPrice = 0) {
   }
 
   // --------------------------
-  // 1. 強制補滿220000PV
+  // 1. 僅手動填寫目標PV時，才強制補滿
   // --------------------------
-  if (currentTotalPv < targetPv) {
+  if (needForcePv && currentTotalPv < targetPv) {
     const pvDeficit = targetPv - currentTotalPv;
     averageSupplement(pvDeficit, SUPPLEMENT_CONFIG.pvSupplements, 'pv');
   }
 
   // --------------------------
-  // 2. 保底金額（可自行修改數值）
+  // 2. 僅手動填寫保底金額時，才強制補滿
   // --------------------------
   let finalTotalPrice = selectedProds.reduce((sum, p) => sum + p.price * p.qty, 0);
-  if (finalTotalPrice < minTotalPrice) {
+  if (needForcePrice && finalTotalPrice < minTotalPrice) {
     const priceDeficit = minTotalPrice - finalTotalPrice;
     averageSupplement(priceDeficit, SUPPLEMENT_CONFIG.priceSupplements, 'price');
   }
@@ -1007,11 +1023,13 @@ function addOcrProducts(ocrResult, targetPv = TARGET_PV220, minTotalPrice = 0) {
     showToast(`✅ 已自動加入 ${addedPackageName}`, "success");
   }
   
-  // 額外提示：實際添加數量
-  console.log(`📊 最終添加產品數量：${addCount}`);
-  showToast(`📊 實際匹配並添加 ${addCount} 個有效品項`, "success");
+  // 額外提示
+  if(needForcePv || needForcePrice){
+    showToast(`📊 已強制達標：PV=${targetPv}｜金額=${minTotalPrice}`, "success");
+  } else {
+    showToast(`📊 按圖片實際識別：${addCount} 個品項`, "success");
+  }
 }
-
 
 // 新人商品提示
 function checkHerbalNewMember(selectedValue){
