@@ -711,6 +711,10 @@ function handleImageSelect(e) {
     return;
   }
 
+  // 🔥 新增：上傳新圖片時清空目標PV/金額輸入框（讓識別結果重新填入）
+  els.targetPvInput.value = "";
+  els.minPriceInput.value = "";
+
   els.ocrRecognitionBtn.disabled = true;
   els.ocrRecognitionBtn.textContent = "上傳中...";
   showToast("🔼 圖片上傳中...", "success");
@@ -844,7 +848,20 @@ function addOcrProducts(ocrResult) {
   let addCount = 0;
   console.log("✅ OCR 識別完整數據：", ocrResult);
 
-  // ============== 🔥 核心修復：強制讀取手動輸入值（100%帶入） ==============
+  // ============== 🔥 新增：從OCR結果提取PV/金額並填入手動輸入框 ==============
+  // 提取圖片識別的PV和金額（沒有則留空）
+  const ocrTargetPv = ocrResult.targetPv || "";
+  const ocrMinPrice = ocrResult.targetPrice || "";
+  
+  // 填入對應輸入框（手動填寫過的話不覆蓋，保持手動值優先）
+  if (els.targetPvInput.value.trim() === "" && ocrTargetPv) {
+    els.targetPvInput.value = ocrTargetPv;
+  }
+  if (els.minPriceInput.value.trim() === "" && ocrMinPrice) {
+    els.minPriceInput.value = ocrMinPrice;
+  }
+
+  // ============== 🔥 核心：讀取輸入框值（手動>圖片識別>預設） ==============
   const manualTargetPv = parseFloat(els.targetPvInput.value) || 0;
   const manualMinPrice = parseFloat(els.minPriceInput.value) || 0;
   // 強制判定：只要填寫>0數值，就觸發強制達標
