@@ -1304,18 +1304,31 @@ function updateAuthStatusBar(){
   if(!authStatus||!userInfo)return;
   let statusHtml='';
   if(authStatus.isSuperAdmin){
-    statusHtml=`<span class="super-admin">👑 超級管理員</span><br>用戶名：<span class="super-admin-username">${userInfo.displayName}</span><br/>無限次使用`;
+    statusHtml=`
+      <span class="super-admin">👑 超級管理員</span>
+      <br>用戶名：<span class="super-admin-username">${userInfo.displayName}</span>
+      <br/>無限次使用
+      <br/>💖 感謝支持，系統持續優化更新
+    `;
   }else{
     const textClass = authStatus.remainTimes <=0 ? 'expired' : 'gold-user';
-    statusHtml=`<span class="gold-user">✨ 黃金用戶</span><br>用戶名：${userInfo.displayName}<br/>
-    剩餘次數：<span class="${textClass}">${authStatus.remainTimes}</span>
-    <div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-      <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
-      <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
-    </div>`;
+    statusHtml=`
+      <span class="gold-user">✨ 黃金用戶</span>
+      <br>用戶名：${userInfo.displayName}
+      <br/>剩餘次數：<span class="${textClass}">${authStatus.remainTimes}</span>
+      <br/>💡 點擊下方按鈕儲值解鎖更多次數
+      <div style="margin-top:8px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+        <button onclick="window.open('https://portaly.cc/yb131419/product/nOKeWIxw8bWZE9IS9DUB'); alert('付款後請截圖通知彥彬');" class="btn btn-primary btn-md">💎 儲值50次</button>
+        <button onclick="window.open('https://portaly.cc/yb131419/product/HkGnrsKBbPiNDv1mdHxD'); alert('付款後請截圖通知彥彬');" class="btn btn-purple btn-md">🌟 儲值100次</button>
+      </div>
+    `;
   }
-  els.authStatusBar.innerHTML=`<button class="close-status">點我隱藏</button>${statusHtml}`;
+  // 拼接关闭按钮 + 状态内容
+  els.authStatusBar.innerHTML = `<button class="close-status">點我隱藏</button>${statusHtml}`;
+  // 重新绑定关闭按钮事件
   initCloseStatus();
+  // 🔥 核心修复：强制显示授权状态栏（之前丢失了这行）
+  els.authStatusBar.style.display = 'block';
 }
 
 // 导出图片（修复文字截断）
