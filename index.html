@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
@@ -889,6 +888,7 @@ function renderSlots(){
 
 function loadAllData(){
   gasRequest("getAllData",{},function handleAllDataResponse(res){
+    // 只有请求成功才隐藏遮罩，失败/超时完全没处理！
     document.getElementById('loadingOverlay').style.display='none';
     if(res?.status==="success"){
       GLOBAL_DATA.dateList = res.dateList || [];
@@ -898,6 +898,7 @@ function loadAllData(){
       renderServices();
       renderDates();
     }else{
+      // 失败只弹提示，不隐藏遮罩 → 卡死
       showModal('error','初始化失敗',res?.message||'系統初始化失敗，請刷新頁面重試');
     }
   });
@@ -1028,6 +1029,13 @@ async function initLiff() {
     document.getElementById("denyOverlay").classList.remove("hidden");
   }
 }
+
+catch (e) {
+    console.log("非LINE環境，使用游客模式");
+    // 报错后必须手动调用 loadAllData()，否则不执行 → 卡死
+  } finally {
+    loadAllData();
+  }
 
 document.addEventListener('DOMContentLoaded',async function handleDOMContentLoaded(){
   initBirthdaySelect();
