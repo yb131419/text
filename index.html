@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>莫凡韓式皮膚管理 | 線上預約</title>
   <link rel="icon" href="data:,">
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" async defer></script> 
+   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" async defer></script> 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400,500,700,900&display=swap');
     *{box-sizing:border-box;margin:0;padding:0}
@@ -116,11 +115,13 @@
   background:#fafbfc;
   border:1px solid #333;
   text-align:center;
+  /* 文字加大 */
   font-size:14px;
   font-weight:500;
   cursor:pointer;
   transition:0.3s;
   min-height:80px;
+  /* 核心修复：垂直居中 + 自动换行 + 防止文字挤压 */
   display:flex;
   flex-direction:column;
   justify-content:center;
@@ -199,6 +200,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
+  /* 原代码：background: #fff; → 会覆盖图片，修改为下方代码 */
   background-color: #fff; 
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(255,77,136,0.2);
@@ -254,26 +256,6 @@
       100%{opacity:0.6;}
     }
 
-
-    /* 新增：管理员入口按钮 */
-.admin-entry-btn {
-  margin-top: 12px;
-  padding: 6px 16px;
-  border-radius: 20px;
-  background: linear-gradient(135deg,#ff4d88,#ff8da1);
-  color: #fff;
-  border: 1px solid #333;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: 0.3s;
-  box-shadow: 0 4px 10px rgba(255,77,136,0.2);
-}
-.admin-entry-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(255,77,136,0.3);
-}
-
     .form-group{margin-bottom:20px}
     label{font-weight:600;color:#333;display:block;margin-bottom:8px;}
     input,textarea,select{width:100%;height:54px;padding:0 20px;border-radius:16px;border:1px solid #333;background:#fafbfc;font-size:15px;font-family:'Noto Sans TC',sans-serif;}
@@ -298,21 +280,94 @@
     .modal-desc{margin-bottom:25px;color:#666;font-size:14px;}
     .modal-btn{width:100%;height:50px;border-radius:12px;border:1px solid #333;background:#ff4d88;color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
     .modal-btn:hover{background:#ff3377;}
+
+    /* ====================== 新增：管理员专属样式 ====================== */
+    .admin-float-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 9999999;
+      background: #ff4d88;
+      color: #fff;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255,77,136,0.3);
+      display: none;
+      transition: 0.3s;
+    }
+    .admin-float-btn:hover {
+      background: #ff3377;
+      transform: scale(1.05);
+    }
+    .admin-panel-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 99999999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+    }
+    .admin-panel-container {
+      background: #fff;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 1400px;
+      height: 90vh;
+      position: relative;
+      border: 3px solid #ff4d88;
+    }
+    .admin-close-btn {
+      position: absolute;
+      top: -18px;
+      right: -18px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #ff4d88;
+      color: #fff;
+      border: 3px solid #fff;
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      transition: 0.2s;
+    }
+    .admin-close-btn:hover {
+      background: #ff3377;
+      transform: scale(1.1);
+    }
+    .admin-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 18px;
+    }
 </style>
 </head>
 
 <body>
-<!-- 載入遮罩 -->
-<div id="loadingOverlay" class="overlay">
-  <div class="spinner"></div>
-  <div class="overlay-text">🌸 系統初始化中，請稍候...</div>
+<!-- 新增：管理员浮动按钮（默认隐藏） -->
+<button class="admin-float-btn" id="adminBtn">管理介面</button>
+<!-- 新增：管理员面板浮窗 -->
+<div class="admin-panel-overlay" id="adminPanel">
+  <div class="admin-panel-container">
+    <button class="admin-close-btn" id="adminClose">✕</button>
+    <iframe src="admin.html" class="admin-iframe" id="adminIframe"></iframe>
+  </div>
 </div>
 
-<!-- 權限拒絕遮罩 -->
-<div id="denyOverlay" class="overlay hidden">
-  <div style="font-size: 40px;">❌</div>
-  <div class="overlay-text">無管理員權限，無法訪問後台</div>
-  <button class="btn btn-primary" onclick="liff.logout()">返回重新登錄</button>
+<div id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div style="color:#ff4d88;font-size:16px;font-weight:500;">🌸 系統初始化中，請稍候...</div>
 </div>
 
 <div class="modal-overlay" id="modal">
@@ -404,6 +459,7 @@
 </main>
 
 <script>
+  
 const CONFIG = {
   SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwgKFHvVz6ZrPN4gkFGP4DMJ6Gwi8DFpLZ5JlMlC-TgL0NnSClqLZvHgtgvlKr1FljcoA/exec",
   LIFF_ID: "2007488640-PbB48ELN"
@@ -420,7 +476,8 @@ let allDateList = [];
 
 let currentPage=1, totalPage=1, currentServiceList=[], searchKeyword="";
 let currentCategory = "面部";
-const GLOBAL_DATA = {dateList:[], allServices:[], staffData:{}, staffServices:{} };
+// 新增：管理员列表字段
+const GLOBAL_DATA = {dateList:[], allServices:[], staffData:{}, staffServices:{}, adminList:[] };
 
 const CATEGORIES = {
   "面部":["液態飛梭","無痛清粉刺","無痛清粉刺+修護敏感項目","無痛清粉刺+靚白水光肌項目","進化黑矽晶重返年輕課程","黑臉娃娃","除疣","除斑","臉部深層保濕課程","臉部皮秒課程","臉部白藻針課程","臉部清粉刺","高階保養"],
@@ -431,12 +488,12 @@ const CATEGORIES = {
   "乳暈":["無痛粉嫩乳暈術"]
 };
 
+// 🔥 美容師自訂頭像（替換成你的圖片鏈接即可）
 function getStaffAvatar(staffName) {
   const avatarMap = {
     "小惠": "https://yb131419.github.io/MoFan/IMG_6059.jpg",
     "Tina": "https://yb131419.github.io/MoFan/IMG_6058.jpg",
     "Nini": "https://picsum.photos/seed/xiaoting/200/200",
-    "彥彬": "https://picsum.photos/seed/xiaoting/200/200",
     "auto": "https://picsum.photos/seed/default/200/200"
   };
   return avatarMap[staffName] || "https://picsum.photos/seed/default/200/200";
@@ -495,6 +552,7 @@ function formatPhoneNumber(phone) {
   return numbers;
 }
 
+// ====================== 【修復：精準台北時區計算（無瀏覽器誤差）】 ======================
 function getTaipeiDateString(date) {
   const formatter = new Intl.DateTimeFormat('zh-CN', {
     timeZone: 'Asia/Taipei',
@@ -516,12 +574,15 @@ function getCurrentTaipeiTime() {
   const taipeiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
   return taipeiTime;
 }
+// ========================================================================
 
+// 【核心修復：強制2小時預約緩衝】隱藏2小時內的時段，解決車程趕不到問題
 function isTimeSlotValid(slotTime, workStart, workEnd, serviceDuration, selectedDate) {
   try {
     if (!slotTime || !workStart || !workEnd || !serviceDuration) return false;
 
     const nowTaipei = getCurrentTaipeiTime();
+    // 🔥 強制2小時緩衝（車程專用）：預約時間必須晚於當前時間+120分鐘
     const minAvailableTime = new Date(nowTaipei.getTime() + 2 * 60 * 60 * 1000);
     
     const slotDateTime = new Date(`${selectedDate}T${slotTime}:00+08:00`);
@@ -529,7 +590,9 @@ function isTimeSlotValid(slotTime, workStart, workEnd, serviceDuration, selected
     const endWork = new Date(`${selectedDate}T${workEnd}:00+08:00`);
     const serviceEndTime = new Date(slotDateTime.getTime() + serviceDuration * 60000);
 
+    // 1. 服務全程在營業時間內
     const inBusinessHours = slotDateTime >= startWork && serviceEndTime <= endWork;
+    // 2. 預約時間 ≥ 當前時間+2小時（強制規則）
     const enoughBuffer = slotDateTime >= minAvailableTime;
 
     return inBusinessHours && enoughBuffer;
@@ -539,6 +602,7 @@ function isTimeSlotValid(slotTime, workStart, workEnd, serviceDuration, selected
   }
 }
 
+// 【修復：日期過濾】隱藏過期日期，只顯示可預約日期
 function getValidDatesByService(serviceName) {
   const today = getTodayTaipei();
   let validDates = (GLOBAL_DATA.dateList || []).filter(d => d && d >= today);
@@ -784,6 +848,7 @@ function renderStaff(date){
   
   s.innerHTML = '';
 
+  // ========== 新增：不指定美容師選項 ==========
   const autoEl = document.createElement('div');
   autoEl.className = 'staff-item';
   autoEl.innerHTML = `
@@ -801,6 +866,7 @@ function renderStaff(date){
     renderSlots();
   };
   s.appendChild(autoEl);
+  // ==========================================
 
   staffList.forEach(st=>{
     if(!st) return;
@@ -860,6 +926,7 @@ function renderSlots(){
     let slots = res.slots || [];
     g.innerHTML = '';
 
+    // 修復後的時段過濾：強制隱藏2小時內時段
     slots = slots.filter(item => {
       return item?.time && isTimeSlotValid(item.time, workStart, workEnd, serviceDuration, date);
     });
@@ -889,17 +956,17 @@ function renderSlots(){
 
 function loadAllData(){
   gasRequest("getAllData",{},function handleAllDataResponse(res){
-    // 只有请求成功才隐藏遮罩，失败/超时完全没处理！
     document.getElementById('loadingOverlay').style.display='none';
     if(res?.status==="success"){
       GLOBAL_DATA.dateList = res.dateList || [];
       GLOBAL_DATA.allServices = res.services || [];
       GLOBAL_DATA.staffData = res.staffData || {};
       GLOBAL_DATA.staffServices = res.staffServices || {};
+      GLOBAL_DATA.adminList = res.adminList || []; // 新增：加载管理员白名单
       renderServices();
       renderDates();
+      checkAdmin(); // 新增：校验管理员权限
     }else{
-      // 失败只弹提示，不隐藏遮罩 → 卡死
       showModal('error','初始化失敗',res?.message||'系統初始化失敗，請刷新頁面重試');
     }
   });
@@ -988,8 +1055,28 @@ function submit(){
   });
 }
 
+// 修复：延长超时 + 降级方案（LIFF加载失败也能正常使用预约系统）
+function waitForLiff(timeout = 10000) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      if (window.liff) {
+        resolve(true);
+      } else if (Date.now() - start > timeout) {
+        console.warn("LIFF SDK 加载超时，使用游客模式");
+        resolve(false); // 超时不报错，继续运行
+      } else {
+        setTimeout(check, 100);
+      }
+    };
+    check();
+  });
+}
+
+// 🔥 最终修复：LIFF永不报错，纯静默降级
 async function initLiff() {
   try {
+    // 等待SDK加载（最长5秒，超时直接放弃）
     const liffReady = await new Promise(resolve => {
       let time = 0;
       const check = () => {
@@ -1000,6 +1087,7 @@ async function initLiff() {
       check();
     });
 
+    // 只有在LINE内、SDK加载成功才登录
     if (liffReady && liff.isInClient()) {
       await liff.init({ liffId: CONFIG.LIFF_ID });
       if (!liff.isLoggedIn()) {
@@ -1009,37 +1097,55 @@ async function initLiff() {
       const profile = await liff.getProfile();
       userId = profile.userId;
       userName = profile.displayName;
-      document.getElementById("adminName").textContent = `管理員：${userName}`;
-
-      // 驗證管理員權限
-      if (!CONFIG.ADMIN_IDS.includes(userId)) {
-        document.getElementById("loadingOverlay").classList.add("hidden");
-        document.getElementById("denyOverlay").classList.remove("hidden");
-        return;
-      }
-
-      loadScheduleList();
-      loadRecordList();
-    } else {
-      // 非LINE環境直接拒絕，無登錄界面
-      document.getElementById("loadingOverlay").classList.add("hidden");
-      document.getElementById("denyOverlay").classList.remove("hidden");
+      document.getElementById('lineId').value = userId;
+      document.getElementById('lineName').value = userName;
     }
   } catch (e) {
-    document.getElementById("loadingOverlay").classList.add("hidden");
-    document.getElementById("denyOverlay").classList.remove("hidden");
+    // 静默失败，完全不报错
+    console.log("非LINE环境，使用游客模式");
+  } finally {
+    // 无论如何都加载系统
+    loadAllData();
   }
 }
 
-catch (e) {
-    console.log("非LINE環境，使用游客模式");
-    // 报错后必须手动调用 loadAllData()，否则不执行 → 卡死
-  } finally {
-    loadAllData();
+// ====================== 新增：管理员核心逻辑 ======================
+// 校验是否为管理员，显示按钮
+function checkAdmin() {
+  const adminBtn = document.getElementById('adminBtn');
+  if (userId && GLOBAL_DATA.adminList.includes(userId)) {
+    adminBtn.style.display = 'block';
   }
+}
+
+// 初始化管理员模块事件
+function initAdminModule() {
+  const adminBtn = document.getElementById('adminBtn');
+  const adminPanel = document.getElementById('adminPanel');
+  const adminClose = document.getElementById('adminClose');
+
+  // 打开管理面板
+  adminBtn.addEventListener('click', () => {
+    adminPanel.style.display = 'flex';
+  });
+
+  // 关闭管理面板
+  adminClose.addEventListener('click', () => {
+    adminPanel.style.display = 'none';
+  });
+
+  // 点击空白处关闭面板
+  adminPanel.addEventListener('click', (e) => {
+    if (e.target === adminPanel) {
+      adminPanel.style.display = 'none';
+    }
+  });
+}
+// =================================================================
 
 document.addEventListener('DOMContentLoaded',async function handleDOMContentLoaded(){
   initBirthdaySelect();
+  initAdminModule(); // 新增：初始化管理员模块
   
   const phoneInput = document.getElementById('phone');
   phoneInput.addEventListener('input', (e) => {
@@ -1071,22 +1177,15 @@ document.addEventListener('DOMContentLoaded',async function handleDOMContentLoad
     });
   });
   
-  document.getElementById('nextToDate').addEventListener('click',()=>{
-    renderStaff(document.getElementById('selectedDate').value);
-    goStep(2);
-  });
+document.getElementById('nextToDate').addEventListener('click',()=>{
+  renderStaff(document.getElementById('selectedDate').value);
+  goStep(2);
+});
   document.getElementById('nextToInfo').addEventListener('click',()=>goStep(3));
   document.getElementById('submitBtn').addEventListener('click',submit);
   
   await initLiff();
 });
-
-// 新增：打开管理员后台
-function openAdmin() {
-  // 跳转到admin.html（两个文件放在同一目录下即可）
-  window.location.href = "admin.html";
-}
-
 </script>
 </body>
 </html>
