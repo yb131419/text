@@ -301,9 +301,17 @@
 </head>
 
 <body>
-<div id="loadingOverlay">
-  <div class="loading-spinner"></div>
-  <div style="color:#ff4d88;font-size:16px;font-weight:500;">🌸 系統初始化中，請稍候...</div>
+<!-- 載入遮罩 -->
+<div id="loadingOverlay" class="overlay">
+  <div class="spinner"></div>
+  <div class="overlay-text">🌸 系統初始化中，請稍候...</div>
+</div>
+
+<!-- 權限拒絕遮罩 -->
+<div id="denyOverlay" class="overlay hidden">
+  <div style="font-size: 40px;">❌</div>
+  <div class="overlay-text">無管理員權限，無法訪問後台</div>
+  <button class="btn btn-primary" onclick="liff.logout()">返回重新登錄</button>
 </div>
 
 <div class="modal-overlay" id="modal">
@@ -998,13 +1006,25 @@ async function initLiff() {
       const profile = await liff.getProfile();
       userId = profile.userId;
       userName = profile.displayName;
-      document.getElementById('lineId').value = userId;
-      document.getElementById('lineName').value = userName;
+      document.getElementById("adminName").textContent = `管理員：${userName}`;
+
+      // 驗證管理員權限
+      if (!CONFIG.ADMIN_IDS.includes(userId)) {
+        document.getElementById("loadingOverlay").classList.add("hidden");
+        document.getElementById("denyOverlay").classList.remove("hidden");
+        return;
+      }
+
+      loadScheduleList();
+      loadRecordList();
+    } else {
+      // 非LINE環境直接拒絕，無登錄界面
+      document.getElementById("loadingOverlay").classList.add("hidden");
+      document.getElementById("denyOverlay").classList.remove("hidden");
     }
   } catch (e) {
-    console.log("非LINE環境，使用游客模式");
-  } finally {
-    loadAllData();
+    document.getElementById("loadingOverlay").classList.add("hidden");
+    document.getElementById("denyOverlay").classList.remove("hidden");
   }
 }
 
