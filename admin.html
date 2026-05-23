@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" async defer></script>
   <style>
-    /* 全局樣式 - 高質感基礎設定 */
+    /* 全局樣式 - 高質感基礎設定 (與主頁完全匹配) */
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400,500,700,900&display=swap');
     * {
       box-sizing: border-box;
@@ -362,8 +362,8 @@
     }
   </style>
 </head>
-<body>
 
+<body>
 <!-- 載入遮罩 -->
 <div id="loadingOverlay" class="overlay">
   <div class="spinner"></div>
@@ -418,7 +418,6 @@
       <span class="modal-close" onclick="closeModal()">✕</span>
     </div>
     <div id="detailContent" style="font-size: 14px; line-height: 2;">
-      <!-- 動態載入詳情 -->
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-primary" onclick="closeModal()">關閉</button>
@@ -506,18 +505,17 @@
 </div>
 
 <script>
-  // 配置項 - 與預約頁完全對接
+  // 配置項 - 與主預約頁完全一致
   const CONFIG = {
     SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwgKFHvVz6ZrPN4gkFGP4DMJ6Gwi8DFpLZ5JlMlC-TgL0NnSClqLZvHgtgvlKr1FljcoA/exec",
     LIFF_ID: "2007488640-BB9813It",
-    // 【管理員LINE ID】請在這裡添加你的管理員LINE用戶ID
-    ADMIN_IDS: ["U08ba53fab242fd3ae3e3ff0de0bb0275","Ub4aaa93e6ecee26d33ddd9154d688233", "Uca0f4b7e18234702ca0dbcd50349e800"],
     PAGE_SIZE: 10
   };
 
   // 全局變量
   let userId = "";
   let userName = "";
+  let adminList = []; // 從後端獲取管理員白名單
   let currentSchedulePage = 1;
   let totalSchedulePage = 1;
   let currentRecordPage = 1;
@@ -525,7 +523,7 @@
   let scheduleList = [];
   let recordList = [];
 
-  // ==================== 基礎工具函數 ====================
+  // ==================== 基礎工具函數 (與主頁完全匹配) ====================
   function gasRequest(action, params, callback) {
     const safeParams = params || {};
     let url = CONFIG.SCRIPT_URL + "?action=" + encodeURIComponent(action);
@@ -536,16 +534,19 @@
     const xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.timeout = 15000;
+    xhr.ontimeout = function() {
+      callback({status:"error",message:"請求超時，請稍後再試"});
+    };
     xhr.onload = function () {
       try {
         const res = JSON.parse(xhr.responseText || "{}");
-        callback(res);
+        callback(res || {status:"error",message:"數據格式異常"});
       } catch (e) {
-        callback({ status: "error", message: "系統異常" });
+        callback({ status: "error", message: "系統異常：" + e.message });
       }
     };
     xhr.onerror = function () {
-      callback({ status: "error", message: "網路異常" });
+      callback({ status: "error", message: "網路異常，請檢查連線" });
     };
     xhr.send();
   }
@@ -556,9 +557,10 @@
     document.getElementById("scheduleId").value = "";
   }
 
-  // ==================== LIFF權限驗證 ====================
+  // ==================== LIFF 初始化 + 權限驗證 ====================
   async function initLiff() {
     try {
+      // 等待 LIFF SDK 加載
       const liffReady = await new Promise(resolve => {
         let time = 0;
         const check = () => {
@@ -569,38 +571,54 @@
         check();
       });
 
+      // LINE 環境驗證
       if (liffReady && liff.isInClient()) {
         await liff.init({ liffId: CONFIG.LIFF_ID });
         if (!liff.isLoggedIn()) {
           liff.login();
           return;
         }
+        // 獲取 LINE 使用者信息
         const profile = await liff.getProfile();
         userId = profile.userId;
         userName = profile.displayName;
         document.getElementById("adminName").textContent = `管理員：${userName}`;
 
-        // 驗證管理員權限
-        if (!CONFIG.ADMIN_IDS.includes(userId)) {
-          document.getElementById("loadingOverlay").classList.add("hidden");
-          document.getElementById("denyOverlay").classList.remove("hidden");
-          return;
-        }
-
-        // 權限驗證通過，加載數據
-        loadScheduleList();
-        loadRecordList();
+        // 加載後端數據，獲取管理員白名單
+        loadAdminData();
       } else {
-        // 非LINE環境直接拒絕訪問
-        document.getElementById("loadingOverlay").classList.add("hidden");
-        document.getElementById("denyOverlay").classList.remove("hidden");
+        // 非 LINE 環境直接拒絕
+        showDenyPage();
       }
     } catch (e) {
-      document.getElementById("loadingOverlay").classList.add("hidden");
-      document.getElementById("denyOverlay").classList.remove("hidden");
+      console.error("LIFF初始化失敗：", e);
+      showDenyPage();
     }
-    } catch (e) {
-    // 报错只显示拒绝页，不隐藏加载遮罩 → 双层遮罩卡死
+  }
+
+  // 加載後端管理員白名單
+  function loadAdminData() {
+    gasRequest("getAllData", {}, (res) => {
+      if (res.status === "success") {
+        adminList = res.adminList || [];
+        // 驗證管理員權限
+        if (!adminList.includes(userId)) {
+          showDenyPage();
+          return;
+        }
+        // 權限驗證通過，加載業務數據
+        loadScheduleList();
+        loadRecordList();
+        document.getElementById("loadingOverlay").classList.add("hidden");
+      } else {
+        showModal('error', '加載失敗', res.message || '系統異常');
+        showDenyPage();
+      }
+    });
+  }
+
+  // 顯示權限拒絕頁面
+  function showDenyPage() {
     document.getElementById("loadingOverlay").classList.add("hidden");
     document.getElementById("denyOverlay").classList.remove("hidden");
   }
@@ -670,7 +688,6 @@
       size: CONFIG.PAGE_SIZE,
       date: filterDate
     }, (res) => {
-      document.getElementById("loadingOverlay").classList.add("hidden");
       if (res.status === "success") {
         scheduleList = res.list || [];
         totalSchedulePage = res.totalPage || 1;
