@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>莫凡韓式皮膚管理 | 管理後台</title>
+  <link rel="icon" href="data:,">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" async defer></script>
+  <style>
+    /* 全局樣式 - 高質感基礎設定 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400,500,700,900&display=swap');
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: linear-gradient(135deg,#fdf2f8 0%,#fef7fb 50%,#fce8f3 100%);
+      font-family: 'Noto Sans TC', sans-serif;
+      color: #333;
+      min-height: 100vh;
+      padding: 0 0 80px;
+      line-height: 1.6;
+    }
+
+    /* 載入/權限遮罩 */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.98);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      gap: 16px;
+    }
+    .overlay.hidden { display: none; }
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 5px solid #fce8f3;
+      border-top: 5px solid #ff4d88;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .overlay-text {
+      color: #ff4d88;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    /* 頂部導航欄 */
+    .header {
+      background: #fff;
+      box-shadow: 0 4px 20px rgba(255,133,162,0.15);
+      padding: 20px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      background: linear-gradient(90deg,#ff4d88,#ff8da1,#c77dff);
+      -webkit-background-clip: text;
+      color: transparent;
+      font-size: 1.5rem;
+      font-weight: 900;
+    }
+    .admin-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .admin-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+    }
+    .btn-logout {
+      padding: 8px 16px;
+      border-radius: 20px;
+      background: #ff4d88;
+      color: #fff;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn-logout:hover { background: #ff3377; }
+
+    /* 主容器 */
+    .container {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+    /* 標籤頁切換 */
+    .tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      background: #fff;
+      padding: 8px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(255,77,136,0.1);
+    }
+    .tab {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 12px;
+      background: #f8f9fa;
+      text-align: center;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.3s;
+      border: 1px solid #eee;
+    }
+    .tab.active {
+      background: linear-gradient(135deg,#ff4d88,#ff8da1);
+      color: #fff;
+      border-color: #ff4d88;
+    }
+
+    /* 模塊容器 */
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 卡片容器 - 高質感設計 */
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(255,77,136,0.1);
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid #f0f0f0;
+    }
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: #ff4d88;
+      border-radius: 2px;
+    }
+
+    /* 篩選/按鈕區域 */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .form-control {
+      flex: 1;
+      min-width: 140px;
+      height: 44px;
+      padding: 0 16px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      outline: none;
+      font-size: 14px;
+      transition: 0.3s;
+    }
+    .form-control:focus {
+      border-color: #ff8da1;
+      background: #fdf2f8;
+    }
+    .btn {
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.3s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg,#ff4d88,#ff8da1);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255,77,136,0.3);
+    }
+    .btn-warning { background: #ffa502; color: #fff; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+    .btn-sm { height: 36px; padding: 0 12px; font-size: 12px; }
+
+    /* 表格樣式 */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid #eee;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+    th {
+      background: #fdf2f8;
+      color: #ff4d88;
+      padding: 14px 12px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 14px;
+      position: sticky;
+      top: 0;
+    }
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 14px;
+    }
+    tr:hover {
+      background: #fef7fb;
+    }
+    .no-data {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+
+    /* 分頁控件 */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .page-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .page-btn.active {
+      background: #ff4d88;
+      color: #fff;
+      border-color: #ff4d88;
+    }
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .page-info {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* 模態框 */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.3s;
+    }
+    .modal.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal-content {
+      background: #fff;
+      width: 90%;
+      max-width: 500px;
+      border-radius: 20px;
+      padding: 30px 24px;
+      transform: scale(0.9);
+      transition: 0.3s;
+    }
+    .modal.active .modal-content {
+      transform: scale(1);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #333;
+    }
+    .modal-close {
+      font-size: 20px;
+      cursor: pointer;
+      color: #999;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    /* 響應式适配 - 手機端 */
+    @media (max-width: 768px) {
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .card { padding: 18px; }
+      .tabs { gap: 8px; }
+      .tab { padding: 10px 14px; font-size: 14px; }
+      th, td { padding: 12px 8px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 載入遮罩 -->
+<div id="loadingOverlay" class="overlay">
+  <div class="spinner"></div>
+  <div class="overlay-text">🌸 系統初始化中，請稍候...</div>
+</div>
+
+<!-- 權限拒絕遮罩 -->
+<div id="denyOverlay" class="overlay hidden">
+  <div style="font-size: 40px;">❌</div>
+  <div class="overlay-text">無管理員權限，無法訪問後台</div>
+  <button class="btn btn-primary" onclick="liff.logout()">返回重新登錄</button>
+</div>
+
+<!-- 模態框：新增/編輯班表 -->
+<div id="scheduleModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">新增班表</h3>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <form id="scheduleForm">
+      <input type="hidden" id="scheduleId">
+      <div class="form-group">
+        <label>排班日期 *</label>
+        <input type="date" id="scheduleDate" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>美容師 *</label>
+        <input type="text" id="staffName" class="form-control" placeholder="請輸入美容師姓名" required>
+      </div>
+      <div class="form-group">
+        <label>開始時間 *</label>
+        <input type="time" id="workStart" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>結束時間 *</label>
+        <input type="time" id="workEnd" class="form-control" required>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 模態框：預約詳情 -->
+<div id="detailModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">預約詳情</h3>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div id="detailContent" style="font-size: 14px; line-height: 2;">
+      <!-- 動態載入詳情 -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" onclick="closeModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- 頂部導航 -->
+<header class="header">
+  <div class="header-container">
+    <h1 class="logo">莫凡韓式皮膚管理 | 管理後台</h1>
+    <div class="admin-info">
+      <span class="admin-name" id="adminName">管理員</span>
+      <button class="btn-logout" id="logoutBtn">退出登錄</button>
+    </div>
+  </div>
+</header>
+
+<!-- 主內容區 -->
+<div class="container">
+  <!-- 標籤頁 -->
+  <div class="tabs">
+    <div class="tab active" data-tab="schedule">班表管理</div>
+    <div class="tab" data-tab="record">預約記錄</div>
+  </div>
+
+  <!-- 班表管理模塊 -->
+  <div class="section active" id="scheduleSection">
+    <div class="card">
+      <div class="card-title">美容師班表列表</div>
+      <div class="toolbar">
+        <input type="date" id="scheduleFilterDate" class="form-control" placeholder="篩選日期">
+        <button class="btn btn-primary" onclick="openAddSchedule()">➕ 新增班表</button>
+        <button class="btn" onclick="filterSchedule()">🔍 查詢</button>
+      </div>
+      <div class="table-container">
+        <table id="scheduleTable">
+          <thead>
+            <tr>
+              <th>排班日期</th>
+              <th>美容師</th>
+              <th>營業時間</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleBody">
+            <tr><td colspan="4" class="no-data">載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="schedulePagination"></div>
+    </div>
+  </div>
+
+  <!-- 預約記錄模塊 -->
+  <div class="section" id="recordSection">
+    <div class="card">
+      <div class="card-title">客戶預約記錄</div>
+      <div class="toolbar">
+        <input type="date" id="recordFilterDate" class="form-control" placeholder="預約日期">
+        <input type="text" id="recordFilterStaff" class="form-control" placeholder="美容師">
+        <input type="text" id="recordFilterService" class="form-control" placeholder="服務項目">
+        <button class="btn" onclick="filterRecord()">🔍 查詢</button>
+      </div>
+      <div class="table-container">
+        <table id="recordTable">
+          <thead>
+            <tr>
+              <th>預約日期</th>
+              <th>客戶姓名</th>
+              <th>服務項目</th>
+              <th>美容師</th>
+              <th>預約時段</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="recordBody">
+            <tr><td colspan="6" class="no-data">載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="recordPagination"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 配置項 - 與預約頁完全對接
+  const CONFIG = {
+    SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwgKFHvVz6ZrPN4gkFGP4DMJ6Gwi8DFpLZ5JlMlC-TgL0NnSClqLZvHgtgvlKr1FljcoA/exec",
+    LIFF_ID: "2009598216-MmBS77sp",
+    // 【管理員LINE ID】請在這裡添加你的管理員LINE用戶ID
+    ADMIN_IDS: ["Ub4aaa93e6ecee26d33ddd9154d688233", "Uca0f4b7e18234702ca0dbcd50349e800"],
+    PAGE_SIZE: 10
+  };
+
+  // 全局變量
+  let userId = "";
+  let userName = "";
+  let currentSchedulePage = 1;
+  let totalSchedulePage = 1;
+  let currentRecordPage = 1;
+  let totalRecordPage = 1;
+  let scheduleList = [];
+  let recordList = [];
+
+  // ==================== 基礎工具函數 ====================
+  function gasRequest(action, params, callback) {
+    const safeParams = params || {};
+    let url = CONFIG.SCRIPT_URL + "?action=" + encodeURIComponent(action);
+    for (let k in safeParams) {
+      const val = safeParams[k] || "";
+      url += "&" + encodeURIComponent(k) + "=" + encodeURIComponent(val);
+    }
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.timeout = 15000;
+    xhr.onload = function () {
+      try {
+        const res = JSON.parse(xhr.responseText || "{}");
+        callback(res);
+      } catch (e) {
+        callback({ status: "error", message: "系統異常" });
+      }
+    };
+    xhr.onerror = function () {
+      callback({ status: "error", message: "網路異常" });
+    };
+    xhr.send();
+  }
+
+  function closeModal() {
+    document.querySelectorAll(".modal").forEach(m => m.classList.remove("active"));
+    document.getElementById("scheduleForm").reset();
+    document.getElementById("scheduleId").value = "";
+  }
+
+  // ==================== LIFF權限驗證 ====================
+  async function initLiff() {
+    try {
+      const liffReady = await new Promise(resolve => {
+        let time = 0;
+        const check = () => {
+          if (window.liff) resolve(true);
+          else if (time++ > 50) resolve(false);
+          else setTimeout(check, 100);
+        };
+        check();
+      });
+
+      if (liffReady && liff.isInClient()) {
+        await liff.init({ liffId: CONFIG.LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+        const profile = await liff.getProfile();
+        userId = profile.userId;
+        userName = profile.displayName;
+        document.getElementById("adminName").textContent = `管理員：${userName}`;
+
+        // 驗證管理員權限
+        if (!CONFIG.ADMIN_IDS.includes(userId)) {
+          document.getElementById("loadingOverlay").classList.add("hidden");
+          document.getElementById("denyOverlay").classList.remove("hidden");
+          return;
+        }
+
+        // 權限驗證通過，加載數據
+        loadScheduleList();
+        loadRecordList();
+      } else {
+        // 非LINE環境直接拒絕訪問
+        document.getElementById("loadingOverlay").classList.add("hidden");
+        document.getElementById("denyOverlay").classList.remove("hidden");
+      }
+    } catch (e) {
+      document.getElementById("loadingOverlay").classList.add("hidden");
+      document.getElementById("denyOverlay").classList.remove("hidden");
+    }
+  }
+
+  // ==================== 標籤頁切換 ====================
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+      tab.classList.add("active");
+      const target = tab.dataset.tab;
+      document.getElementById(`${target}Section`).classList.add("active");
+    });
+  });
+
+  // ==================== 班表管理功能 ====================
+  function openAddSchedule() {
+    document.getElementById("modalTitle").textContent = "新增班表";
+    document.getElementById("scheduleDate").value = new Date().toISOString().split("T")[0];
+    document.getElementById("scheduleModal").classList.add("active");
+  }
+
+  function openEditSchedule(item) {
+    document.getElementById("modalTitle").textContent = "編輯班表";
+    document.getElementById("scheduleId").value = item.id;
+    document.getElementById("scheduleDate").value = item.date;
+    document.getElementById("staffName").value = item.name;
+    document.getElementById("workStart").value = item.start;
+    document.getElementById("workEnd").value = item.end;
+    document.getElementById("scheduleModal").classList.add("active");
+  }
+
+  // 儲存班表
+  document.getElementById("scheduleForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const data = {
+      id: document.getElementById("scheduleId").value,
+      date: document.getElementById("scheduleDate").value,
+      name: document.getElementById("staffName").value,
+      start: document.getElementById("workStart").value,
+      end: document.getElementById("workEnd").value
+    };
+    gasRequest("saveSchedule", data, (res) => {
+      if (res.status === "success") {
+        closeModal();
+        loadScheduleList();
+      } else {
+        alert(res.message || "儲存失敗");
+      }
+    });
+  });
+
+  // 刪除班表
+  function deleteSchedule(id) {
+    if (!confirm("確定刪除此班表？")) return;
+    gasRequest("deleteSchedule", { id }, (res) => {
+      if (res.status === "success") loadScheduleList();
+      else alert(res.message);
+    });
+  }
+
+  // 加載班表列表
+  function loadScheduleList() {
+    const filterDate = document.getElementById("scheduleFilterDate").value;
+    gasRequest("getScheduleList", {
+      page: currentSchedulePage,
+      size: CONFIG.PAGE_SIZE,
+      date: filterDate
+    }, (res) => {
+      document.getElementById("loadingOverlay").classList.add("hidden");
+      if (res.status === "success") {
+        scheduleList = res.list || [];
+        totalSchedulePage = res.totalPage || 1;
+        renderScheduleTable();
+        renderSchedulePagination();
+      } else {
+        document.getElementById("scheduleBody").innerHTML = `<tr><td colspan="4" class="no-data">${res.message}</td></tr>`;
+      }
+    });
+  }
+
+  // 渲染班表表格
+  function renderScheduleTable() {
+    const body = document.getElementById("scheduleBody");
+    if (scheduleList.length === 0) {
+      body.innerHTML = `<tr><td colspan="4" class="no-data">暫無班表數據</td></tr>`;
+      return;
+    }
+    let html = "";
+    scheduleList.forEach(item => {
+      html += `
+        <tr>
+          <td>${item.date}</td>
+          <td>${item.name}</td>
+          <td>${item.start} ~ ${item.end}</td>
+          <td>
+            <button class="btn btn-sm btn-warning" onclick="openEditSchedule(${JSON.stringify(item).replace(/"/g, '&quot;')})">編輯</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteSchedule('${item.id}')">刪除</button>
+          </td>
+        </tr>
+      `;
+    });
+    body.innerHTML = html;
+  }
+
+  // 渲染班表分頁
+  function renderSchedulePagination() {
+    const p = document.getElementById("schedulePagination");
+    if (totalSchedulePage <= 1) { p.innerHTML = ""; return; }
+    let html = `
+      <button class="page-btn" ${currentSchedulePage === 1 ? "disabled" : ""} onclick="changeSchedulePage(1)">«</button>
+      <button class="page-btn" ${currentSchedulePage === 1 ? "disabled" : ""} onclick="changeSchedulePage(${currentSchedulePage - 1})">‹</button>
+      <span class="page-info">${currentSchedulePage}/${totalSchedulePage}</span>
+      <button class="page-btn" ${currentSchedulePage === totalSchedulePage ? "disabled" : ""} onclick="changeSchedulePage(${currentSchedulePage + 1})">›</button>
+      <button class="page-btn" ${currentSchedulePage === totalSchedulePage ? "disabled" : ""} onclick="changeSchedulePage(${totalSchedulePage})">»</button>
+    `;
+    p.innerHTML = html;
+  }
+
+  function changeSchedulePage(page) {
+    if (page < 1 || page > totalSchedulePage) return;
+    currentSchedulePage = page;
+    loadScheduleList();
+  }
+
+  function filterSchedule() {
+    currentSchedulePage = 1;
+    loadScheduleList();
+  }
+
+  // ==================== 預約記錄功能 ====================
+  function viewRecordDetail(item) {
+    const content = document.getElementById("detailContent");
+    content.innerHTML = `
+      <p><strong>LINE名稱：</strong>${item.lineName || '未填寫'}</p>
+      <p><strong>客戶姓名：</strong>${item.name}</p>
+      <p><strong>聯絡電話：</strong>${item.phone}</p>
+      <p><strong>預約日期：</strong>${item.date}</p>
+      <p><strong>預約時段：</strong>${item.appointTime}</p>
+      <p><strong>服務項目：</strong>${item.service}</p>
+      <p><strong>美容師：</strong>${item.staff === 'auto' ? '系統自動分配' : item.staff}</p>
+      <p><strong>生日：</strong>${item.birthday || '未填寫'}</p>
+      <p><strong>備註：</strong>${item.extraInfo || '無'}</p>
+    `;
+    document.getElementById("detailModal").classList.add("active");
+  }
+
+  function deleteRecord(id) {
+    if (!confirm("確定刪除此預約記錄？")) return;
+    gasRequest("deleteRecord", { id }, (res) => {
+      if (res.status === "success") loadRecordList();
+      else alert(res.message);
+    });
+  }
+
+  // 加載預約記錄
+  function loadRecordList() {
+    const filter = {
+      page: currentRecordPage,
+      size: CONFIG.PAGE_SIZE,
+      date: document.getElementById("recordFilterDate").value,
+      staff: document.getElementById("recordFilterStaff").value,
+      service: document.getElementById("recordFilterService").value
+    };
+    gasRequest("getRecordList", filter, (res) => {
+      if (res.status === "success") {
+        recordList = res.list || [];
+        totalRecordPage = res.totalPage || 1;
+        renderRecordTable();
+        renderRecordPagination();
+      } else {
+        document.getElementById("recordBody").innerHTML = `<tr><td colspan="6" class="no-data">${res.message}</td></tr>`;
+      }
+    });
+  }
+
+  // 渲染預約表格
+  function renderRecordTable() {
+    const body = document.getElementById("recordBody");
+    if (recordList.length === 0) {
+      body.innerHTML = `<tr><td colspan="6" class="no-data">暫無預約記錄</td></tr>`;
+      return;
+    }
+    let html = "";
+    recordList.forEach(item => {
+      const staffName = item.staff === "auto" ? "自動分配" : item.staff;
+      html += `
+        <tr>
+          <td>${item.date}</td>
+          <td>${item.name}</td>
+          <td>${item.service}</td>
+          <td>${staffName}</td>
+          <td>${item.appointTime}</td>
+          <td>
+            <button class="btn btn-sm btn-primary" onclick="viewRecordDetail(${JSON.stringify(item).replace(/"/g, '&quot;')})">詳情</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${item.id}')">刪除</button>
+          </td>
+        </tr>
+      `;
+    });
+    body.innerHTML = html;
+  }
+
+  // 渲染預約分頁
+  function renderRecordPagination() {
+    const p = document.getElementById("recordPagination");
+    if (totalRecordPage <= 1) { p.innerHTML = ""; return; }
+    let html = `
+      <button class="page-btn" ${currentRecordPage === 1 ? "disabled" : ""} onclick="changeRecordPage(1)">«</button>
+      <button class="page-btn" ${currentRecordPage === 1 ? "disabled" : ""} onclick="changeRecordPage(${currentRecordPage - 1})">‹</button>
+      <span class="page-info">${currentRecordPage}/${totalRecordPage}</span>
+      <button class="page-btn" ${currentRecordPage === totalRecordPage ? "disabled" : ""} onclick="changeRecordPage(${currentRecordPage + 1})">›</button>
+      <button class="page-btn" ${currentRecordPage === totalRecordPage ? "disabled" : ""} onclick="changeRecordPage(${totalRecordPage})">»</button>
+    `;
+    p.innerHTML = html;
+  }
+
+  function changeRecordPage(page) {
+    if (page < 1 || page > totalRecordPage) return;
+    currentRecordPage = page;
+    loadRecordList();
+  }
+
+  function filterRecord() {
+    currentRecordPage = 1;
+    loadRecordList();
+  }
+
+  // 退出登錄
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    liff.logout();
+  });
+
+  // 初始化
+  document.addEventListener("DOMContentLoaded", initLiff);
+</script>
+</body>
+</html>
