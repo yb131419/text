@@ -319,6 +319,8 @@
   <div class="header">
     <h1 class="main-title">莫凡<br>韓式皮膚管理</h1>
     <p class="sub-title">專業美容 · 一對一精緻服務</p>
+    <!-- 管理员入口按钮（已添加） -->
+    <button class="admin-entry-btn" onclick="openAdmin()">管理後台</button>
   </div>
 
   <div class="step-bar">
@@ -1008,6 +1010,12 @@ async function initLiff() {
   }
 }
 
+// 修复：管理员后台跳转逻辑
+function openAdmin() {
+  // 跳转到同目录的admin.html，绝对路径/相对路径兼容
+  window.location.href = "./admin.html";
+}
+
 document.addEventListener('DOMContentLoaded',async function handleDOMContentLoaded(){
   initBirthdaySelect();
   
@@ -1050,12 +1058,6 @@ document.addEventListener('DOMContentLoaded',async function handleDOMContentLoad
   
   await initLiff();
 });
-
-// 新增：打开管理员后台
-function openAdmin() {
-  // 跳转到admin.html（两个文件放在同一目录下即可）
-  window.location.href = "admin.html";
-}
 
 </script>
 </body>
