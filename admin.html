@@ -599,6 +599,10 @@
       document.getElementById("loadingOverlay").classList.add("hidden");
       document.getElementById("denyOverlay").classList.remove("hidden");
     }
+    } catch (e) {
+    // 报错只显示拒绝页，不隐藏加载遮罩 → 双层遮罩卡死
+    document.getElementById("loadingOverlay").classList.add("hidden");
+    document.getElementById("denyOverlay").classList.remove("hidden");
   }
 
   // ==================== 標籤頁切換 ====================
