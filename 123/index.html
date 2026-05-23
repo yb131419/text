@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>莫凡韓式皮膚管理 | 線上預約</title>
+  <link rel="icon" href="data:,">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" async defer></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 管理員浮窗按鈕 -->
+<div class="admin-float" id="adminFloat">🔒 管理後台</div>
+
+<!-- 管理員後台面板 -->
+<div class="admin-panel" id="adminPanel">
+  <div class="admin-box">
+    <div class="admin-title">📊 莫凡美容 管理系統</div>
+    <div class="admin-tab">
+      <div class="admin-tab-btn active" data-admin="schedule">班表管理</div>
+      <div class="admin-tab-btn" data-admin="record">預約查詢</div>
+    </div>
+
+    <div class="admin-section active" id="adminSchedule">
+      <div class="admin-form">
+        <select id="adminStaff">
+          <option value="">選擇美容師</option>
+        </select>
+        <input type="date" id="adminDate">
+        <input type="time" id="adminStart" placeholder="開始時間">
+        <input type="time" id="adminEnd" placeholder="結束時間">
+        <button class="admin-btn" id="saveSchedule">儲存班表</button>
+      </div>
+      <div class="admin-list" id="scheduleList"></div>
+    </div>
+
+    <div class="admin-section" id="adminRecord">
+      <div class="admin-form">
+        <input type="date" id="recordDate">
+        <button class="admin-btn" id="queryRecord">查詢當日預約</button>
+      </div>
+      <div class="admin-list" id="recordList"></div>
+    </div>
+
+    <div class="admin-close" id="adminClose">關閉</div>
+  </div>
+</div>
+
+<div id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div style="color:#ff4d88;font-size:16px;font-weight:500;">🌸 系統初始化中，請稍候...</div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-icon">✅</div>
+    <h3 class="modal-title">預約成功</h3>
+    <p class="modal-desc">您的預約已提交，我們會盡快與您確認</p>
+    <button class="modal-btn" id="modalBtn">確認</button>
+  </div>
+</div>
+
+<main>
+  <div class="header">
+    <h1 class="main-title">莫凡<br>韓式皮膚管理</h1>
+    <p class="sub-title">專業美容 · 一對一精緻服務</p>
+  </div>
+
+  <div class="step-bar">
+    <div class="step active" data-step="1"><div class="step-num">1</div><div class="step-text">選擇服務</div></div>
+    <div class="step" data-step="2"><div class="step-num">2</div><div class="step-text">選擇日期</div></div>
+    <div class="step" data-step="3"><div class="step-num">3</div><div class="step-text">預約資訊</div></div>
+  </div>
+
+  <div class="section active" id="step1">
+    <div class="section-title">服務項目分類</div>
+    <div class="search-wrapper">
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="serviceSearch" placeholder="搜尋全部服務項目">
+        <span class="search-clear" id="searchClear">✕</span>
+      </div>
+    </div>
+    <div class="category-tabs">
+      <div class="tab active" data-cate="面部">面部<br>管理</div>
+      <div class="tab" data-cate="美甲">美甲<br>手足</div>
+      <div class="tab" data-cate="眉眼">眉<br>眼唇</div>
+      <div class="tab" data-cate="除毛">睫毛<br>除毛</div>
+      <div class="tab" data-cate="頭皮">頭皮<br>保養</div>
+      <div class="tab" data-cate="乳暈">無痛<br>粉嫩術</div>
+    </div>
+    <div class="service-grid" id="serviceGrid"><div class="loading"><div class="loading-icon"></div>載入服務中...</div></div>
+    <div class="pagination" id="pagination"></div>
+    <button class="btn-next" id="nextToDate" disabled>下一步：選擇預約日期</button>
+  </div>
+
+  <div class="section" id="step2">
+    <div class="section-title">選擇預約日期</div>
+    <div class="pagination" id="datePagination"></div>
+    <div class="week-slider" id="weekSlider"><div class="loading"><div class="loading-icon"></div>載入排班中...</div></div>
+    
+    <div class="section-title">選擇美容師</div>
+    <div class="staff-list" id="staffList"><div class="loading"><div class="loading-icon"></div>請先選擇日期</div></div>
+    <div class="section-title">選擇預約時段</div>
+    <div class="time-grid" id="timeGrid"><div class="loading"><div class="loading-icon"></div>請先選擇美容師</div></div>
+    <button class="btn-next" id="nextToInfo" disabled>下一步：填寫預約資訊</button>
+  </div>
+
+  <div class="section" id="step3">
+    <div class="section-title">預約資訊</div>
+    <div class="form-group">
+      <label>姓名 *</label>
+      <input type="text" id="name" required placeholder="請輸入您的姓名">
+    </div>
+    <div class="form-group">
+      <label>聯絡電話 * (格式：0912-345-678)</label>
+      <input type="tel" id="phone" required placeholder="請輸入手機號碼" maxlength="12">
+    </div>
+    <div class="form-group">
+      <label>生日（ 填寫會贈送『生日優惠』 ）</label>
+      <div class="birthday-row">
+        <select id="birthYear"><option value="">請選擇年</option></select>
+        <select id="birthMonth"><option value="">請選擇月</option></select>
+        <select id="birthDay"><option value="">請選擇日</option></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>備註</label>
+      <textarea id="extraInfo" placeholder="請輸入其他需要說明的事項（選填）"></textarea>
+    </div>
+    <button class="btn-next" id="submitBtn">確認提交預約</button>
+  </div>
+
+  <input type="hidden" id="selectedService">
+  <input type="hidden" id="selectedDate">
+  <input type="hidden" id="selectedStaff">
+  <input type="hidden" id="selectedTime">
+  <input type="hidden" id="lineId">
+  <input type="hidden" id="lineName">
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
