@@ -962,10 +962,13 @@ function loadAllData(){
       GLOBAL_DATA.allServices = res.services || [];
       GLOBAL_DATA.staffData = res.staffData || {};
       GLOBAL_DATA.staffServices = res.staffServices || {};
-      GLOBAL_DATA.adminList = res.adminList || []; // 新增：加载管理员白名单
+      GLOBAL_DATA.adminList = res.adminList || [];
+      
       renderServices();
       renderDates();
-      checkAdmin(); // 新增：校验管理员权限
+      
+      // 🔥 關鍵修復：數據加載完 再次檢查管理員
+      checkAdmin();
     }else{
       showModal('error','初始化失敗',res?.message||'系統初始化失敗，請刷新頁面重試');
     }
@@ -1073,10 +1076,8 @@ function waitForLiff(timeout = 10000) {
   });
 }
 
-// 🔥 最终修复：LIFF永不报错，纯静默降级
 async function initLiff() {
   try {
-    // 等待SDK加载（最长5秒，超时直接放弃）
     const liffReady = await new Promise(resolve => {
       let time = 0;
       const check = () => {
@@ -1087,7 +1088,6 @@ async function initLiff() {
       check();
     });
 
-    // 只有在LINE内、SDK加载成功才登录
     if (liffReady && liff.isInClient()) {
       await liff.init({ liffId: CONFIG.LIFF_ID });
       if (!liff.isLoggedIn()) {
@@ -1099,22 +1099,25 @@ async function initLiff() {
       userName = profile.displayName;
       document.getElementById('lineId').value = userId;
       document.getElementById('lineName').value = userName;
+      
+      // 🔥 修復：登入成功後 強制檢查管理員按鈕
+      checkAdmin();
     }
   } catch (e) {
-    // 静默失败，完全不报错
     console.log("非LINE环境，使用游客模式");
   } finally {
-    // 无论如何都加载系统
     loadAllData();
   }
 }
 
 // ====================== 新增：管理员核心逻辑 ======================
-// 校验是否为管理员，显示按钮
 function checkAdmin() {
   const adminBtn = document.getElementById('adminBtn');
-  if (userId && GLOBAL_DATA.adminList.includes(userId)) {
+  // 修復：正確判斷管理員（無論是否登入都能正確隱藏/顯示）
+  if (userId && GLOBAL_DATA.adminList && GLOBAL_DATA.adminList.includes(userId)) {
     adminBtn.style.display = 'block';
+  } else {
+    adminBtn.style.display = 'none';
   }
 }
 
