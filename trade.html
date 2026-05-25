@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -60,7 +60,7 @@
             const toggleCond = (i) => setCond((p) => p.map((v, idx) => idx === i ? (v === true ? null : true) : v));
             const failCond = (i) => setCond((p) => p.map((v, idx) => idx === i ? (v === false ? null : false) : v));
 
-            // 🔥 多空雙向進場條件（自動切換）
+            // 多空雙向進場條件（自動切換）
             const condDefs = isLong 
                 ? [ // 多單條件
                     { label: "收盤價 > EMA 5", sub: "K棒站上均線", color: "#22d3ee" },
@@ -205,14 +205,6 @@
                             </div>
 
                             <div style={{
-                                marginTop: 10, padding: "8px 12px",
-                                background: "rgba(251,146,60,0.07)",
-                                border: "1px solid rgba(251,146,60,0.15)",
-                                borderRadius: 8, fontSize: 11, color: "#fdba74",
-                            }}>
-                            </div>
-
-                            <div style={{
                                 marginTop: 10, padding: "10px 14px",
                                 background: "rgba(239,68,68,0.07)",
                                 border: "1px solid rgba(239,68,68,0.15)",
@@ -224,7 +216,7 @@
                             </div>
                         </Section>
 
-                        {/* 步驟3：交易計劃 */}
+                        {/* 步驟3：交易計畫 */}
                         <Section label="STEP 3" title="交易計畫" color="#ef4444">
                             {calcReady ? (
                                 <>
@@ -258,7 +250,7 @@
                                             { n: "1", text: `${isLong ? "多單進場" : "空單進場"}：$${fmt(ep)}`, color: "#f1f5f9" },
                                             { n: "2", text: `立刻設止損：$${fmt(stopPrice)}（ATR×1.5）`, color: "#22c55e" },
                                             { n: "3", text: `止盈第一目標：$${fmt(tp1)}（平50%倉）`, color: "#eab308" },
-                                            { n: "4", text: `盈利達1:1後，止損移至成本保本`, color: "#94a3b8" },
+                                            { n: "4", text: `獲利達1:1後，止損移至成本保本`, color: "#94a3b8" },
                                             { n: "5", text: `止盈第二目標：$${fmt(tp2)}（平剩餘倉）`, color: "#ef4444" },
                                         ].map((s) => (
                                             <div key={s.n} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -300,7 +292,7 @@
                         {/* 風險鐵律 */}
                         <div style={{ marginTop: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: "14px 16px" }}>
                             <div style={{ fontSize: 10, color: "#374151", letterSpacing: "0.1em", fontWeight: 700, marginBottom: 10 }}>⚠ 鐵律 — 永遠不能打破</div>
-                            {[["進場時間", "台灣時間 晚上 9:30 之後"],["連虧2筆", "強制休息 1 小時"],["連虧3筆", "當天停止交易，寫日誌"],["當日虧損 5%", "立刻停止，明天重來"],["重大數據日", "FOMC / CPI 當天降倉或不交易"]].map(([k, v]) => (
+                            {[["進場時間", "台灣時間 晚上 9:30 之後"],["連虧2筆", "強制休息 1 小時"],["連虧3筆", "當天停止交易，寫日誌"],["當日虧損 5%", "立刻停止，明日再來"],["重大數據日", "FOMC / CPI 當天降倉或不交易"]].map(([k, v]) => (
                                 <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
                                     <span style={{ fontSize: 11, color: "#374151" }}>{k}</span>
                                     <span style={{ fontSize: 11, color: "#6b7280" }}>{v}</span>
