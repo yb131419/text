@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMA 5 實戰交易模板 (多空版)</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // 工具函數
+        const fmt = (n, d = 2) => (isNaN(n) || !isFinite(n) || n === 0 ? "—" : Number(n).toFixed(d));
+        const num = (v) => parseFloat(v) || 0;
+
+        // 主應用組件
+        function App() {
+            const [cond, setCond] = useState([null, null, null]);
+            const [capital, setCapital] = useState("10000");
+            const [riskPct, setRiskPct] = useState("2");
+            const [entry, setEntry] = useState("");
+            const [atr, setAtr] = useState("");
+            const [pulse, setPulse] = useState(false);
+            const [direction, setDirection] = useState("long");
+
+            // 計算核心
+            const cap = num(capital), risk = num(riskPct) / 100;
+            const ep = num(entry), atrV = num(atr);
+            const maxLoss = cap * risk;
+            const stopDist = atrV * 1.5;
+            
+            // 多空邏輯
+            const isLong = direction === "long";
+            const stopPrice = ep > 0 && stopDist > 0 ? (isLong ? ep - stopDist : ep + stopDist) : 0;
+            const tp1 = ep > 0 && stopDist > 0 ? (isLong ? ep + stopDist * 2 : ep - stopDist * 2) : 0;
+            const tp2 = ep > 0 && stopDist > 0 ? (isLong ? ep + stopDist * 3 : ep - stopDist * 3) : 0;
+            const stopPct = ep > 0 && stopDist > 0 ? (stopDist / ep) * 100 : 0;
+            const posSize = ep > 0 && stopDist > 0 ? maxLoss / (stopDist / ep) : 0;
+
+            // 狀態判斷
+            const allPass = cond.every((c) => c === true);
+            const anyFail = cond.some((c) => c === false);
+            const calcReady = ep > 0 && atrV > 0;
+            const fullyReady = allPass && calcReady;
+
+            // 脈衝動畫
+            useEffect(() => {
+                if (fullyReady) { 
+                    setPulse(true); 
+                    setTimeout(() => setPulse(false), 600); 
+                }
+            }, [fullyReady]);
+
+            // 條件切換
+            const toggleCond = (i) => setCond((p) => p.map((v, idx) => idx === i ? (v === true ? null : true) : v));
+            const failCond = (i) => setCond((p) => p.map((v, idx) => idx === i ? (v === false ? null : false) : v));
+
+            // 條件定義
+            const condDefs = [
+                { label: "收盤價 > EMA 5", sub: "K棒站上均線", color: "#22d3ee" },
+                { label: "EMA 5 > EMA 20", sub: "短線在長線上方", color: "#a78bfa" },
+                { label: "RSI 45–70", sub: "動能健康非超買", color: "#fb923c" },
+            ];
+
+            // 狀態樣式
+            const statusColor = fullyReady ? "#ef4444" : allPass ? "#eab308" : anyFail ? "#22c55e" : "#475569";
+            const statusText = fullyReady ? "可以進場" : allPass ? "填入計算資料" : anyFail ? "條件不足" : "確認條件";
+
+            return (
+                <div style={{
+                    minHeight: "100vh",
+                    background: "linear-gradient(160deg, #0a0f1e 0%, #0f1829 50%, #0a0f1e 100%)",
+                    fontFamily: "'SF Pro Display','Helvetica Neue',Arial,sans-serif",
+                    color: "#e2e8f0",
+                    padding: "0 0 40px",
+                    position: "relative",
+                    overflow: "hidden",
+                }}>
+                    {/* 背景光暈 */}
+                    <div style={{
+                        position: "fixed", top: -200, left: "50%", transform: "translateX(-50%)",
+                        width: 600, height: 600, borderRadius: "50%",
+                        background: fullyReady
+                        ? "radial-gradient(circle, rgba(239,68,68,0.06) 0%, transparent 70%)"
+                        : "radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)",
+                        pointerEvents: "none", transition: "background 1s",
+                    }} />
+
+                    {/* 頭部 */}
+                    <div style={{
+                        padding: "20px 20px 16px",
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        borderBottom: "1px solid rgba(255,255,255,0.05)",
+                    }}>
+                        <div>
+                            <div style={{ fontSize: 10, color: "#4b5563", letterSpacing: "0.15em", fontWeight: 600 }}>
+                                MITRADE · NASDAQ 100
+                            </div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: "#f8fafc", letterSpacing: "-0.03em", marginTop: 2 }}>
+                                EMA 5 實戰模板 (多空版)
+                            </div>
+                        </div>
+                        {/* 狀態指示燈 */}
+                        <div style={{
+                            display: "flex", alignItems: "center", gap: 7,
+                            background: statusColor + "18",
+                            border: `1px solid ${statusColor}40`,
+                            borderRadius: 99, padding: "6px 14px",
+                            transition: "all 0.4s",
+                            transform: pulse ? "scale(1.06)" : "scale(1)",
+                        }}>
+                            <div style={{
+                                width: 7, height: 7, borderRadius: "50%", background: statusColor,
+                                boxShadow: fullyReady ? `0 0 8px ${statusColor}` : "none",
+                                animation: fullyReady ? "blink 1.2s infinite" : "none",
+                            }} />
+                            <span style={{ fontSize: 12, fontWeight: 700, color: statusColor }}>{statusText}</span>
+                        </div>
+                    </div>
+
+                    <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px" }}>
+                        {/* 步驟1：條件 */}
+                        <Section label="STEP 1" title="進場三條件" color="#6366f1">
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                {condDefs.map((c, i) => (
+                                    <div key={i} style={{
+                                        display: "flex", alignItems: "center", gap: 10,
+                                        background: cond[i] === true ? c.color + "12"
+                                        : cond[i] === false ? "rgba(34,197,94,0.08)"
+                                        : "rgba(255,255,255,0.02)",
+                                        border: `1px solid ${
+                                            cond[i] === true ? c.color + "40"
+                                            : cond[i] === false ? "#22c55e30"
+                                            : "rgba(255,255,255,0.06)"
+                                        }`,
+                                        borderRadius: 12, padding: "12px 14px",
+                                        transition: "all 0.25s",
+                                    }}>
+                                        <div style={{
+                                            width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+                                            background: cond[i] === true ? c.color : cond[i] === false ? "#22c55e" : "#1e293b",
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            fontSize: 11, fontWeight: 800,
+                                            color: cond[i] !== null ? "#0a0f1e" : "#475569",
+                                        }}>
+                                            {cond[i] === true ? "✓" : cond[i] === false ? "✗" : i + 1}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: cond[i] === true ? c.color : cond[i] === false ? "#22c55e" : "#cbd5e1" }}>
+                                                {c.label}
+                                            </div>
+                                            <div style={{ fontSize: 10, color: "#4b5563", marginTop: 1 }}>{c.sub}</div>
+                                        </div>
+                                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                                            <Btn active={cond[i] === true} color={c.color} onClick={() => toggleCond(i)}>符合</Btn>
+                                            <Btn active={cond[i] === false} color="#22c55e" onClick={() => failCond(i)}>不符</Btn>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ marginTop: 10, height: 3, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                                <div style={{
+                                    height: "100%", width: `${(cond.filter(c => c === true).length / 3) * 100}%`,
+                                    background: `linear-gradient(90deg, #6366f1, ${allPass ? "#ef4444" : "#6366f1"})`,
+                                    borderRadius: 99, transition: "width 0.4s ease",
+                                }} />
+                            </div>
+                            <div style={{ textAlign: "right", fontSize: 10, color: "#4b5563", marginTop: 4 }}>
+                                {cond.filter(c => c === true).length} / 3 符合
+                            </div>
+                        </Section>
+
+                        {/* 步驟2：計算器 */}
+                        <Section label="STEP 2" title="倉位計算機" color="#22d3ee">
+                            {/* 多空切換 紅多 綠空 */}
+                            <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                                <button onClick={() => setDirection("long")} style={{
+                                    flex:1, padding: "10px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700,
+                                    background: direction === "long" ? "#ef4444" : "rgba(255,255,255,0.05)",
+                                    color: direction === "long" ? "#000" : "#fff", cursor: "pointer"
+                                }}>📈 多單 (Buy)</button>
+                                <button onClick={() => setDirection("short")} style={{
+                                    flex:1, padding: "10px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700,
+                                    background: direction === "short" ? "#22c55e" : "rgba(255,255,255,0.05)",
+                                    color: direction === "short" ? "#000" : "#fff", cursor: "pointer"
+                                }}>📉 空單 (Sell)</button>
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                <InputBox label="帳戶資金" value={capital} onChange={setCapital} prefix="$" />
+                                <InputBox label="風險比例" value={riskPct} onChange={setRiskPct} suffix="%" />
+                                <InputBox label="進場價格" value={entry} onChange={setEntry} placeholder="e.g. 19500" />
+                                <InputBox label="ATR (14)" value={atr} onChange={setAtr} placeholder="e.g. 120" />
+                            </div>
+
+                            <div style={{
+                                marginTop: 10, padding: "8px 12px",
+                                background: "rgba(251,146,60,0.07)",
+                                border: "1px solid rgba(251,146,60,0.15)",
+                                borderRadius: 8, fontSize: 11, color: "#fdba74",
+                            }}>
+                                💡 ATR查法：Mitrade圖表 → 指標 → 搜尋 ATR → 週期14 → 填入右下角數字
+                            </div>
+
+                            <div style={{
+                                marginTop: 10, padding: "10px 14px",
+                                background: "rgba(239,68,68,0.07)",
+                                border: "1px solid rgba(239,68,68,0.15)",
+                                borderRadius: 8,
+                                display: "flex", justifyContent: "space-between", alignItems: "center",
+                            }}>
+                                <span style={{ fontSize: 12, color: "#94a3b8" }}>每筆最大虧損</span>
+                                <span style={{ fontSize: 16, fontWeight: 800, color: "#f87171" }}>${fmt(maxLoss)}</span>
+                            </div>
+                        </Section>
+
+                        {/* 步驟3：交易計劃 */}
+                        <Section label="STEP 3" title="交易計畫" color="#ef4444">
+                            {calcReady ? (
+                                <>
+                                    <div style={{
+                                        background: "rgba(255,255,255,0.02)",
+                                        border: "1px solid rgba(255,255,255,0.06)",
+                                        borderRadius: 12, padding: "4px 0",
+                                    }}>
+                                        <PriceLine label={`🟢 止盈 2 (1:3)`} value={`$${fmt(tp2)}`} sub={isLong ? `+${fmt(stopPct * 3, 1)}%` : `-${fmt(stopPct * 3, 1)}%`} color="#ef4444" />
+                                        <PriceLine label={`🟡 止盈 1 (1:2)`} value={`$${fmt(tp1)}`} sub={isLong ? `+${fmt(stopPct * 2, 1)}%` : `-${fmt(stopPct * 2, 1)}%`} color="#eab308" />
+                                        <PriceLine label="⚪ 進場價" value={`$${fmt(ep)}`} sub="進場點" color="#f1f5f9" highlight />
+                                        <PriceLine label="🔴 止損價" value={`$${fmt(stopPrice)}`} sub={isLong ? `-${fmt(stopPct, 1)}%` : `+${fmt(stopPct, 1)}%`} color="#22c55e" />
+                                    </div>
+
+                                    <div style={{ marginTop: 12 }}>
+                                        <div style={{ display: "flex", height: 24, borderRadius: 8, overflow: "hidden", gap: 2 }}>
+                                            <div style={{ flex: 1, background: "rgba(34,197,94,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>虧 ${fmt(maxLoss, 0)}</span>
+                                            </div>
+                                            <div style={{ flex: 2, background: "rgba(239,68,68,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>盈 ${fmt(maxLoss * 2, 0)} (1:2)</span>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                                            <span style={{ fontSize: 10, color: "#ef4444" }}>最佳 ${fmt(maxLoss * 3, 0)} (1:3)</span>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+                                        {[
+                                            { n: "1", text: `${isLong ? "多單進場" : "空單進場"}：$${fmt(ep)}`, color: "#f1f5f9" },
+                                            { n: "2", text: `立刻設止損：$${fmt(stopPrice)}（ATR×1.5）`, color: "#22c55e" },
+                                            { n: "3", text: `止盈第一目標：$${fmt(tp1)}（平50%倉）`, color: "#eab308" },
+                                            { n: "4", text: `盈利達1:1後，止損移至成本保本`, color: "#94a3b8" },
+                                            { n: "5", text: `止盈第二目標：$${fmt(tp2)}（平剩餘倉）`, color: "#ef4444" },
+                                        ].map((s) => (
+                                            <div key={s.n} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                                                <div style={{
+                                                    width: 18, height: 18, borderRadius: 6, flexShrink: 0,
+                                                    background: "rgba(255,255,255,0.05)",
+                                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                                    fontSize: 9, fontWeight: 800, color: "#475569",
+                                                }}>{s.n}</div>
+                                                <span style={{ fontSize: 12, color: s.color, lineHeight: 1.5 }}>{s.text}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ textAlign: "center", padding: "24px 0", fontSize: 13, color: "#374151" }}>
+                                    ← 請先在 STEP 2 填入進場價格與 ATR 值
+                                </div>
+                            )}
+                        </Section>
+
+                        {/* 最終信號 紅多綠空 */}
+                        <div style={{
+                            marginTop: 4, borderRadius: 16, padding: "20px", textAlign: "center",
+                            background: fullyReady ? (isLong ? "linear-gradient(135deg, rgba(239,68,68,0.12), rgba(220,38,38,0.06))" : "linear-gradient(135deg, rgba(34,197,94,0.12), rgba(16,185,129,0.06))") : anyFail ? "linear-gradient(135deg, rgba(34,197,94,0.1), rgba(220,38,38,0.05))" : "rgba(255,255,255,0.02)",
+                            border: `1.5px solid ${fullyReady ? (isLong ? "#ef444450" : "#22c55e50") : anyFail ? "#22c55e30" : "rgba(255,255,255,0.05)"}`,
+                        }}>
+                            <div style={{ fontSize: 40, marginBottom: 8 }}>
+                                {fullyReady ? "🟢" : anyFail ? "🔴" : "⚪"}
+                            </div>
+                            <div style={{ fontSize: 22, fontWeight: 900, color: fullyReady ? (isLong ? "#ef4444" : "#22c55e") : anyFail ? "#22c55e" : "#475569" }}>
+                                {fullyReady ? `三項全通過 → 執行${isLong ? "多單" : "空單"}` : anyFail ? "條件不足 → 禁止進場" : "完成以上步驟後顯示結果"}
+                            </div>
+                            <div style={{ fontSize: 12, color: "#4b5563", marginTop: 6 }}>
+                                {fullyReady ? "進場後立刻設定止損單，不設止損不進場" : "EMA 5 策略 · 盈虧比 1:2 · 長期正期望值"}
+                            </div>
+                        </div>
+
+                        {/* 風險鐵律 */}
+                        <div style={{ marginTop: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: "14px 16px" }}>
+                            <div style={{ fontSize: 10, color: "#374151", letterSpacing: "0.1em", fontWeight: 700, marginBottom: 10 }}>⚠ 鐵律 — 永遠不能打破</div>
+                            {[["進場時間", "台灣時間 晚上 9:30 之後"],["連虧2筆", "強制休息 1 小時"],["連虧3筆", "當天停止交易，寫日誌"],["當日虧損 5%", "立刻停止，明天重來"],["重大數據日", "FOMC / CPI 當天降倉或不交易"]].map(([k, v]) => (
+                                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                                    <span style={{ fontSize: 11, color: "#374151" }}>{k}</span>
+                                    <span style={{ fontSize: 11, color: "#6b7280" }}>{v}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <p style={{ fontSize: 10, color: "#1f2937", textAlign: "center", marginTop: 16, lineHeight: 1.5 }}>
+                            此工具為輔助用途，不構成投資建議。CFD差價合約具高風險，虧損可超過本金。
+                        </p>
+                    </div>
+
+                    <style>{`
+                        @keyframes blink { 0%,100%{opacity:1;}50%{opacity:0.3;} }
+                        input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;}
+                        input[type=number]{-moz-appearance:textfield;}
+                        *{box-sizing:border-box;}
+                    `}</style>
+                </div>
+            );
+        }
+
+        // 子組件
+        function Section({ label, title, color, children }){
+            return (
+                <div style={{ marginTop: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color, background: color+"18", border: `1px solid ${color}30`, borderRadius: 6, padding: "2px 8px" }}>{label}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#cbd5e1" }}>{title}</span>
+                        <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }} />
+                    </div>
+                    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px" }}>
+                        {children}
+                    </div>
+                </div>
+            )
+        }
+
+        function Btn({ active, color, onClick, children }){
+            return (
+                <button onClick={onClick} style={{
+                    padding: "5px 10px", borderRadius: 7,
+                    border: active ? `1.5px solid ${color}` : "1.5px solid rgba(255,255,255,0.08)",
+                    background: active ? color+"20" : "transparent",
+                    color: active ? color : "#374151",
+                    fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
+                }}>{children}</button>
+            )
+        }
+
+        function InputBox({ label, value, onChange, prefix, suffix, placeholder }){
+            return (
+                <div>
+                    <div style={{ fontSize: 10, color: "#4b5563", marginBottom: 5, fontWeight: 600 }}>{label}</div>
+                    <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, padding: "0 10px" }}>
+                        {prefix && <span style={{ fontSize: 12, color: "#374151" }}>{prefix}</span>}
+                        <input type="number" value={value} onChange={(e)=>onChange(e.target.value)} placeholder={placeholder||"0"} style={{
+                            flex:1, background:"transparent", border:"none", outline:"none", color:"#f1f5f9", fontSize:15, fontWeight:700, padding:"11px 0", width:"100%"
+                        }}/>
+                        {suffix && <span style={{ fontSize: 12, color: "#374151" }}>{suffix}</span>}
+                    </div>
+                </div>
+            )
+        }
+
+        function PriceLine({ label, value, sub, color, highlight }){
+            return (
+                <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px",
+                    background: highlight ? "rgba(255,255,255,0.04)" : "transparent",
+                    borderLeft: highlight ? `3px solid ${color}` : "3px solid transparent",
+                }}>
+                    <span style={{ fontSize: 12, color: "#6b7280" }}>{label}</span>
+                    <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color }}>{value}</div>
+                        <div style={{ fontSize: 10, color: "#374151" }}>{sub}</div>
+                    </div>
+                </div>
+            )
+        }
+
+        // 渲染頁面
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
