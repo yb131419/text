@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMA 5 實戰交易模板 (多空版)</title>
+    <title>EMA 5 实战交易模板 (多空版)</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -14,11 +14,11 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // 工具函數
+        // 工具函数
         const fmt = (n, d = 2) => (isNaN(n) || !isFinite(n) || n === 0 ? "—" : Number(n).toFixed(d));
         const num = (v) => parseFloat(v) || 0;
 
-        // 主應用組件
+        // 主应用组件
         function App() {
             const [cond, setCond] = useState([null, null, null]);
             const [capital, setCapital] = useState("10000");
@@ -28,13 +28,13 @@
             const [pulse, setPulse] = useState(false);
             const [direction, setDirection] = useState("long");
 
-            // 計算核心
+            // 计算核心
             const cap = num(capital), risk = num(riskPct) / 100;
             const ep = num(entry), atrV = num(atr);
             const maxLoss = cap * risk;
             const stopDist = atrV * 1.5;
             
-            // 多空邏輯
+            // 多空逻辑
             const isLong = direction === "long";
             const stopPrice = ep > 0 && stopDist > 0 ? (isLong ? ep - stopDist : ep + stopDist) : 0;
             const tp1 = ep > 0 && stopDist > 0 ? (isLong ? ep + stopDist * 2 : ep - stopDist * 2) : 0;
@@ -42,13 +42,13 @@
             const stopPct = ep > 0 && stopDist > 0 ? (stopDist / ep) * 100 : 0;
             const posSize = ep > 0 && stopDist > 0 ? maxLoss / (stopDist / ep) : 0;
 
-            // 狀態判斷
+            // 状态判断
             const allPass = cond.every((c) => c === true);
             const anyFail = cond.some((c) => c === false);
             const calcReady = ep > 0 && atrV > 0;
             const fullyReady = allPass && calcReady;
 
-            // 脈衝動畫
+            // 脉冲动画
             useEffect(() => {
                 if (fullyReady) { 
                     setPulse(true); 
@@ -56,18 +56,24 @@
                 }
             }, [fullyReady]);
 
-            // 條件切換
+            // 条件切换
             const toggleCond = (i) => setCond((p) => p.map((v, idx) => idx === i ? (v === true ? null : true) : v));
             const failCond = (i) => setCond((p) => p.map((v, idx) => idx === i ? (v === false ? null : false) : v));
 
-            // 條件定義
-            const condDefs = [
-                { label: "收盤價 > EMA 5", sub: "K棒站上均線", color: "#22d3ee" },
-                { label: "EMA 5 > EMA 20", sub: "短線在長線上方", color: "#a78bfa" },
-                { label: "RSI 45–70", sub: "動能健康非超買", color: "#fb923c" },
-            ];
+            // 🔥 多空双向进场条件（自动切换）
+            const condDefs = isLong 
+                ? [ // 多单条件
+                    { label: "收盤價 > EMA 5", sub: "K棒站上均線", color: "#22d3ee" },
+                    { label: "EMA 5 > EMA 20", sub: "短線在長線上方", color: "#a78bfa" },
+                    { label: "RSI 45–70", sub: "動能健康非超買", color: "#fb923c" },
+                ]
+                : [ // 空单条件
+                    { label: "收盤價 < EMA 5", sub: "K棒跌破均線", color: "#22d3ee" },
+                    { label: "EMA 5 < EMA 20", sub: "短線在長線下方", color: "#a78bfa" },
+                    { label: "RSI 30–55", sub: "動能健康非超賣", color: "#fb923c" },
+                ];
 
-            // 狀態樣式
+            // 状态样式
             const statusColor = fullyReady ? "#ef4444" : allPass ? "#eab308" : anyFail ? "#22c55e" : "#475569";
             const statusText = fullyReady ? "可以進場" : allPass ? "填入計算資料" : anyFail ? "條件不足" : "確認條件";
 
@@ -81,7 +87,7 @@
                     position: "relative",
                     overflow: "hidden",
                 }}>
-                    {/* 背景光暈 */}
+                    {/* 背景光晕 */}
                     <div style={{
                         position: "fixed", top: -200, left: "50%", transform: "translateX(-50%)",
                         width: 600, height: 600, borderRadius: "50%",
@@ -91,7 +97,7 @@
                         pointerEvents: "none", transition: "background 1s",
                     }} />
 
-                    {/* 頭部 */}
+                    {/* 头部 */}
                     <div style={{
                         padding: "20px 20px 16px",
                         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -105,7 +111,7 @@
                                 EMA 5 實戰模板 (多空版)
                             </div>
                         </div>
-                        {/* 狀態指示燈 */}
+                        {/* 状态指示灯 */}
                         <div style={{
                             display: "flex", alignItems: "center", gap: 7,
                             background: statusColor + "18",
@@ -124,8 +130,8 @@
                     </div>
 
                     <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px" }}>
-                        {/* 步驟1：條件 */}
-                        <Section label="STEP 1" title="進場三條件" color="#6366f1">
+                        {/* 步骤1：条件（自动适配多空） */}
+                        <Section label="STEP 1" title={`${isLong ? "多單" : "空單"}進場三條件`} color="#6366f1">
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                 {condDefs.map((c, i) => (
                                     <div key={i} style={{
@@ -175,9 +181,9 @@
                             </div>
                         </Section>
 
-                        {/* 步驟2：計算器 */}
+                        {/* 步骤2：计算器 */}
                         <Section label="STEP 2" title="倉位計算機" color="#22d3ee">
-                            {/* 多空切換 紅多 綠空 */}
+                            {/* 多空切换 红多 绿空 */}
                             <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
                                 <button onClick={() => setDirection("long")} style={{
                                     flex:1, padding: "10px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700,
@@ -204,6 +210,7 @@
                                 border: "1px solid rgba(251,146,60,0.15)",
                                 borderRadius: 8, fontSize: 11, color: "#fdba74",
                             }}>
+                                💡 ATR查法：Mitrade圖表 → 指標 → 搜尋 ATR → 週期14 → 填入右下角數字
                             </div>
 
                             <div style={{
@@ -218,7 +225,7 @@
                             </div>
                         </Section>
 
-                        {/* 步驟3：交易計劃 */}
+                        {/* 步骤3：交易计划 */}
                         <Section label="STEP 3" title="交易計畫" color="#ef4444">
                             {calcReady ? (
                                 <>
@@ -274,7 +281,7 @@
                             )}
                         </Section>
 
-                        {/* 最終信號 紅多綠空 */}
+                        {/* 最终信号 红多绿空 */}
                         <div style={{
                             marginTop: 4, borderRadius: 16, padding: "20px", textAlign: "center",
                             background: fullyReady ? (isLong ? "linear-gradient(135deg, rgba(239,68,68,0.12), rgba(220,38,38,0.06))" : "linear-gradient(135deg, rgba(34,197,94,0.12), rgba(16,185,129,0.06))") : anyFail ? "linear-gradient(135deg, rgba(34,197,94,0.1), rgba(220,38,38,0.05))" : "rgba(255,255,255,0.02)",
@@ -291,7 +298,7 @@
                             </div>
                         </div>
 
-                        {/* 風險鐵律 */}
+                        {/* 风险铁律 */}
                         <div style={{ marginTop: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: "14px 16px" }}>
                             <div style={{ fontSize: 10, color: "#374151", letterSpacing: "0.1em", fontWeight: 700, marginBottom: 10 }}>⚠ 鐵律 — 永遠不能打破</div>
                             {[["進場時間", "台灣時間 晚上 9:30 之後"],["連虧2筆", "強制休息 1 小時"],["連虧3筆", "當天停止交易，寫日誌"],["當日虧損 5%", "立刻停止，明天重來"],["重大數據日", "FOMC / CPI 當天降倉或不交易"]].map(([k, v]) => (
@@ -317,7 +324,7 @@
             );
         }
 
-        // 子組件
+        // 子组件
         function Section({ label, title, color, children }){
             return (
                 <div style={{ marginTop: 16 }}>
@@ -376,7 +383,7 @@
             )
         }
 
-        // 渲染頁面
+        // 渲染页面
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
