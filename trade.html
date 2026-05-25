@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMA 5 王者策略 · YouTube 原版</title>
+    <title>EMA 5 王者策略 · 6支YouTube精華</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -20,7 +20,8 @@
 
         // 主應用組件
         function App() {
-            const [cond, setCond] = useState([null, null, null, null]);
+            // 🔥 刪除成交量 → 只剩下 3 個條件
+            const [cond, setCond] = useState([null, null, null]);
             const [capital, setCapital] = useState("10000");
             const [riskPct, setRiskPct] = useState("2");
             const [entry, setEntry] = useState("");
@@ -61,42 +62,40 @@
             const failCond = (i) => setCond((p) => p.map((v, idx) => idx === i ? (v === false ? null : false) : v));
 
             // ==============================
-            // 🔥 完全依照 YouTube 2支影片設計
-            // 多空 4 條件（100%貼合影片）
+            // 🔥 6支YouTube精華：無成交量
+            // 多空 3 條件（100%貼合影片）
             // ==============================
             const condDefs = isLong 
                 ? [ // 多單（影片原版）
                     { label: "K線收盤 > EMA 5", sub: "價格站上短均", color: "#22d3ee" },
                     { label: "EMA 5 > EMA 20", sub: "趨勢完全向上", color: "#a78bfa" },
-                    { label: "成交量放大", sub: "量能推升漲勢", color: "#fb923c" },
                     { label: "RSI 50~70", sub: "動能健康不超買", color: "#f472b6" },
                 ]
                 : [ // 空單（影片原版）
                     { label: "K線收盤 < EMA 5", sub: "價格跌破短均", color: "#22d3ee" },
                     { label: "EMA 5 < EMA 20", sub: "趨勢完全向下", color: "#a78bfa" },
-                    { label: "成交量放大", sub: "量能帶動跌勢", color: "#fb923c" },
                     { label: "RSI 30~50", sub: "動能健康不超賣", color: "#f472b6" },
                 ];
 
             // ==============================
-            // 🔥 K線建議（直接照影片講法）
+            // 🔥 K線操作建議（6支影片總整理）
             // ==============================
             const getKlineAdvice = () => {
                 if (!fullyReady) return {
-                    text: "等待 K線 + 均線 + 量能 + RSI 同時觸發",
+                    text: "等待 K線 + 雙均線 + RSI 同時觸發",
                     color: "#94a3b8", icon: "⏳"
                 };
                 if (isLong) {
                     return {
-                        text: "📈 多方：K棒站上 EMA5 + 放量 → 回踩不破順勢做多",
+                        text: "📈 多方：K棒站上 EMA5 → 回踩不破順勢做多",
                         color: "#ef4444", icon: "📈"
                     };
                 } else {
                     return {
-                        text: "📉 空方：K棒跌破 EMA5 + 放量 → 反彈不過順勢做空",
+                        text: "📉 空方：K棒跌破 EMA5 → 反彈不過順勢做空",
                         color: "#22c55e", icon: "📉"
                     };
-                }
+                };
             };
             const advice = getKlineAdvice();
 
@@ -130,10 +129,10 @@
                     }}>
                         <div>
                             <div style={{ fontSize: 10, color: "#4b5563", letterSpacing: "0.15em", fontWeight: 600 }}>
-                                MITRADE · YouTube 策略
+                                MITRADE · 6支YouTube精華
                             </div>
                             <div style={{ fontSize: 20, fontWeight: 800, color: "#f8fafc", letterSpacing: "-0.03em", marginTop: 2 }}>
-                                EMA 5 王者交易系統
+                                EMA 5 純淨交易系統
                             </div>
                         </div>
                         {/* 狀態指示燈 */}
@@ -156,7 +155,7 @@
 
                     <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px" }}>
 
-                        {/* 🔥 K線方向建議（影片原版） */}
+                        {/* 🔥 K線方向建議 */}
                         <div style={{
                             marginTop: 16,
                             background: `rgba(255,255,255,0.02)`,
@@ -170,8 +169,8 @@
                             </div>
                         </div>
 
-                        {/* STEP 1 進場 4 條件（完全照影片） */}
-                        <Section label="STEP 1" title={`${isLong ? "多單" : "空單"}進場 4 條件`} color="#6366f1">
+                        {/* STEP 1 進場 3 條件（無成交量） */}
+                        <Section label="STEP 1" title={`${isLong ? "多單" : "空單"}進場 3 條件`} color="#6366f1">
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                 {condDefs.map((c, i) => (
                                     <div key={i} style={{
@@ -211,13 +210,13 @@
                             </div>
                             <div style={{ marginTop: 10, height: 3, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
                                 <div style={{
-                                    height: "100%", width: `${(cond.filter(c => c === true).length / 4) * 100}%`,
+                                    height: "100%", width: `${(cond.filter(c => c === true).length / 3) * 100}%`,
                                     background: `linear-gradient(90deg, #6366f1, ${allPass ? "#ef4444" : "#6366f1"})`,
                                     borderRadius: 99, transition: "width 0.4s ease",
                                 }} />
                             </div>
                             <div style={{ textAlign: "right", fontSize: 10, color: "#4b5563", marginTop: 4 }}>
-                                {cond.filter(c => c === true).length} / 4 條件符合
+                                {cond.filter(c => c === true).length} / 3 條件符合
                             </div>
                         </Section>
 
@@ -255,7 +254,7 @@
                             </div>
                         </Section>
 
-                        {/* STEP 3 交易計畫（影片止盈止損） */}
+                        {/* STEP 3 交易計畫 */}
                         <Section label="STEP 3" title="交易計畫" color="#ef4444">
                             {calcReady ? (
                                 <>
@@ -316,10 +315,10 @@
                                 {fullyReady ? "🟢" : anyFail ? "🔴" : "⚪"}
                             </div>
                             <div style={{ fontSize: 22, fontWeight: 900, color: fullyReady ? (isLong ? "#ef4444" : "#22c55e") : anyFail ? "#22c55e" : "#475569" }}>
-                                {fullyReady ? `4 項全通過 → 執行${isLong ? "多單" : "空單"}` : anyFail ? "條件不足 → 禁止進場" : "完成步驟顯示結果"}
+                                {fullyReady ? `3 項全通過 → 執行${isLong ? "多單" : "空單"}` : anyFail ? "條件不足 → 禁止進場" : "完成步驟顯示結果"}
                             </div>
                             <div style={{ fontSize: 12, color: "#4b5563", marginTop: 6 }}>
-                                {fullyReady ? "進場後立刻設定止損單，不設止損不進場" : "EMA 5 高勝率策略 · 量價共振 · 雙影片驗證"}
+                                {fullyReady ? "進場後立刻設定止損單，不設止損不進場" : "EMA 5 高勝率策略 · 純均線RSI"}
                             </div>
                         </div>
 
