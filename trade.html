@@ -3,183 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMA5 王者策略 · 100%无漏洞版</title>
+    <title>EMA5 王者策略 · 趨勢/盤整 分類版</title>
     <style>
-        * {margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif;}
-        body {background:linear-gradient(160deg, #0a0f1e 0%, #0f1829 100%); color:#e2e8f0; min-height:100vh; padding:20px;}
-        .card {background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:16px; padding:16px; margin:12px 0;}
+        * {margin:0; padding:0; box-sizing:border-box; font-family:Arial, "微軟正黑體", sans-serif;}
+        body {
+            background:linear-gradient(160deg, #0a0f1e 0%, #0f1829 100%); 
+            color:#e2e8f0; 
+            min-height:100vh; 
+            padding:20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .card {
+            background:rgba(255,255,255,0.03); 
+            border:1px solid rgba(255,255,255,0.05); 
+            border-radius:16px; 
+            padding:16px; 
+            margin:12px 0;
+            text-align: left;
+        }
         .btn {padding:10px; border-radius:8px; border:none; cursor:pointer; font-weight:bold; margin:4px;}
         .btn-primary {background:#6366f1; color:white;}
         .btn-long {background:#ef4444; color:white;}
         .btn-short {background:#22c55e; color:white;}
-        .btn-active {background:#4f46e5;}
-        input {width:100%; padding:10px; margin:8px 0; background:rgba(255,255,255,0.05); border:1px solid #444; border-radius:8px; color:white; font-size:16px;}
-        .grid {display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-        .title {font-size:18px; font-weight:bold; margin-bottom:12px; color:white;}
-        .label {font-size:12px; color:#94a3b8; margin-bottom:4px;}
-        .value {font-size:16px; font-weight:bold; color:white;}
-        .signal {padding:20px; text-align:center; border-radius:16px; margin:20px 0;}
+        .input-box {text-align: center;}
+        input {
+            width:100%; 
+            padding:10px; 
+            margin:8px 0; 
+            background:rgba(255,255,255,0.05); 
+            border:1px solid #444; 
+            border-radius:8px; 
+            color:white; 
+            font-size:16px;
+            text-align: center;
+        }
+        .grid {
+            display:grid; 
+            grid-template-columns:1fr 1fr; 
+            gap:10px;
+            text-align: center;
+        }
+        .title {
+            font-size:18px; 
+            font-weight:bold; 
+            margin-bottom:12px; 
+            color:white;
+            text-align: center;
+        }
+        .label {font-size:12px; color:#94a3b8; margin-bottom:4px; text-align: center;}
+        .value {font-size:16px; font-weight:bold; color:white; text-align: center;}
+        .signal {
+            padding:20px; 
+            text-align:center; 
+            border-radius:16px; 
+            margin:20px 0;
+        }
         .signal-green {background:rgba(34,197,94,0.1); border:1px solid #22c55e;}
         .signal-gray {background:rgba(100,116,139,0.1); border:1px solid #64748b;}
-        .tab {display:flex; gap:4px; margin:10px 0;}
-        .tab-btn {flex:1; padding:6px; border:none; border-radius:6px; background:#222; color:white; font-size:12px;}
+        .tab {display:flex; gap:4px; margin:10px 0; flex-wrap: wrap;}
+        .tab-btn {flex:1; padding:8px; border:none; border-radius:6px; background:#222; color:white; font-size:12px; white-space: nowrap;}
         .tab-active {background:#6366f1;}
-        .rule {font-size:12px; line-height:1.6; color:#cbd5e1; margin:4px 0;}
+        .rule {font-size:12px; line-height:1.8; color:#cbd5e1; margin:6px 0; text-align: left; padding:0 8px;}
     </style>
 </head>
 <body>
+<div class="container">
     <div style="text-align:center; margin-bottom:20px;">
-        <h2>EMA5 多级别交易系统 🚀</h2>
-        <p>100%无漏洞 · 纯原生 · 实盘可用</p>
+        <h2>EMA5 多級別交易系統 🚀</h2>
+        <p>趨勢單 / 盤整單 分類規則 · 100%無漏洞</p>
     </div>
 
     <div class="card">
-        <div class="title">周期选择（大周期定趋势）</div>
-        <div>
-            <button class="btn btn-primary" id="tf30m">30分K (趋势)</button>
-            <button class="btn btn-primary" id="tf5m">5分K (信号)</button>
-            <button class="btn btn-primary" id="tf1m">1分K (入场)</button>
+        <div class="title">週期選擇（大週期判定行情）</div>
+        <div style="text-align: center;">
+            <button class="btn btn-primary" id="tf30m">30分K (判定)</button>
+            <button class="btn btn-primary" id="tf5m">5分K (訊號)</button>
+            <button class="btn btn-primary" id="tf1m">1分K (入場)</button>
         </div>
     </div>
 
     <div class="card">
-        <div class="title">交易参数</div>
+        <div class="title">交易參數</div>
         <div class="grid">
-            <div>
-                <div class="label">账户资金($)</div>
-                <input type="number" id="capital" value="10000">
-            </div>
-            <div>
-                <div class="label">风险比例(%)</div>
-                <input type="number" id="risk" value="2">
-            </div>
-            <div>
-                <div class="label">入场价格</div>
-                <input type="number" id="entry" placeholder="输入入场价">
-            </div>
-            <div>
-                <div class="label">ATR(14)</div>
-                <input type="number" id="atr" placeholder="输入ATR">
-            </div>
-            <div>
-                <div class="label">杠杆倍数</div>
-                <input type="number" id="leverage" value="1">
-            </div>
+            <div class="input-box"><div class="label">帳戶資金($)</div><input type="number" id="capital" value="10000"></div>
+            <div class="input-box"><div class="label">風險比例(%)</div><input type="number" id="risk" value="2"></div>
+            <div class="input-box"><div class="label">入場價格</div><input type="number" id="entry" placeholder="輸入入場價"></div>
+            <div class="input-box"><div class="label">ATR(14)</div><input type="number" id="atr" placeholder="輸入ATR"></div>
+            <div class="input-box"><div class="label">槓桿倍數</div><input type="number" id="leverage" value="1"></div>
         </div>
-        <div style="margin-top:10px;">
-            <button class="btn btn-long" id="long">📈 多单</button>
-            <button class="btn btn-short" id="short">📉 空单</button>
+        <div style="margin-top:10px; text-align: center;">
+            <button class="btn btn-long" id="long">📈 多單</button>
+            <button class="btn btn-short" id="short">📉 空單</button>
         </div>
     </div>
 
     <div class="card">
-        <div class="title">自动计算 · 交易计划</div>
+        <div class="title">自動計算 · 交易計畫</div>
         <div class="grid">
-            <div><p class="label">止损价格</p><p class="value" id="stop">—</p></div>
+            <div><p class="label">止損價格</p><p class="value" id="stop">—</p></div>
             <div><p class="label">止盈1(1:1)</p><p class="value" id="tp1">—</p></div>
             <div><p class="label">止盈2(1:3)</p><p class="value" id="tp2">—</p></div>
-            <div><p class="label">仓位大小</p><p class="value" id="size">—</p></div>
+            <div><p class="label">倉位大小</p><p class="value" id="size">—</p></div>
         </div>
     </div>
 
     <div class="card">
-        <div class="title">实盘心法 · 量化规则</div>
+        <div class="title">實盤心法 · 分類規則</div>
         <div class="tab">
-            <button class="tab-btn tab-active" data-tab="1">趋势</button>
-            <button class="tab-btn" data-tab="2">信号</button>
-            <button class="tab-btn" data-tab="3">风控</button>
-            <button class="tab-btn" data-tab="4">执行</button>
+            <button class="tab-btn tab-active" data-tab="1">趨勢單</button>
+            <button class="tab-btn" data-tab="2">盤整單</button>
+            <button class="tab-btn" data-tab="3">入場確認</button>
+            <button class="tab-btn" data-tab="4">風控</button>
+            <button class="tab-btn" data-tab="5">執行</button>
         </div>
         <div id="tabContent">
             <div class="rule">✅ 30分K EMA5>EMA20 → 只做多；反之只做空</div>
-            <div class="rule">✅ 均线间距<1% → 震荡市，停止交易</div>
+            <div class="rule">✅ 均線發散 = 趨勢行情，順勢做突破</div>
         </div>
     </div>
 
     <div class="signal signal-gray" id="signal">
-        <h2>⚪ 等待有效信号</h2>
-        <p>填写参数后自动判定</p>
+        <h2>⚪ 等待有效訊號</h2>
+        <p>填寫參數後自動判定</p>
     </div>
+</div>
 
-    <script>
-        // 全局变量
-        let direction = "long";
-        let tf = "5m";
-        const tabs = {
-            1: "✅ 30分K EMA5>EMA20 → 只做多；反之只做空<br>✅ 均线间距<1% → 震荡市，停止交易",
-            2: "✅ 5分K收实体K线 → 触发信号<br>✅ 影线>2倍实体 → 放弃信号<br>✅ 信号仅生效1根K线",
-            3: "✅ 单笔风险≤2%，单日≤5%<br>✅ 连亏2笔→风险1%，3笔→停手<br>✅ 入场即挂止损，无例外",
-            4: "✅ 50%仓位1:1止盈+移损至成本<br>✅ 剩余50%仓位1:3止盈<br>✅ 不逆趋势、不抢反弹"
-        };
+<script>
+    let direction = "long";
+    let tf = "5m";
+    // 🔥 核心：趨勢單 / 盤整單 完整分類規則
+    const tabs = {
+        1: `
+            <div class="rule">🔹【趨勢單 · 適用行情】</div>
+            <div class="rule">✅ 30分K EMA5與EMA20 明顯發散</div>
+            <div class="rule">✅ EMA5>EMA20 → 只做多；EMA5<EMA20 → 只做空</div>
+            <div class="rule">✅ 小級別絕對服從大級別，嚴禁逆趨勢</div>
+            <div class="rule">🔹【趨勢單 · 核心邏輯】順勢突破，讓利潤奔跑</div>
+        `,
+        2: `
+            <div class="rule">🔹【盤整單 · 適用行情】</div>
+            <div class="rule">✅ 30分K EMA5與EMA20 間距<1% → 震盪盤整</div>
+            <div class="rule">✅ 價格在區間內震盪，無明顯方向</div>
+            <div class="rule">✅ 僅做區間高拋低吸，不追漲殺跌</div>
+            <div class="rule">🔹【盤整單 · 核心邏輯】區間交易，見好就收</div>
+        `,
+        3: `
+            <div class="rule">🔹【通用入場前確認】</div>
+            <div class="rule">✅ 趨勢單：收盤突破關鍵價 + 量能放大，無量不做</div>
+            <div class="rule">✅ 盤整單：觸及區間上軌/下軌 + K線反轉信號</div>
+            <div class="rule">✅ 假突破過濾：突破後3根K線拉回 → 直接放棄</div>
+            <div class="rule">✅ 必須觸及EMA5才入場，不隨意追單</div>
+        `,
+        4: `
+            <div class="rule">🔹【趨勢單風控】</div>
+            <div class="rule">✅ 單筆風險2%，止損ATR×1.5，風報比≥3.0</div>
+            <div class="rule">🔹【盤整單風控】</div>
+            <div class="rule">✅ 單筆風險1%，止損ATR×1.0，風報比≥1.5</div>
+            <div class="rule">✅ 連虧2筆降風險，連虧3筆當日停手</div>
+        `,
+        5: `
+            <div class="rule">🔹【趨勢單執行】</div>
+            <div class="rule">✅ 50%倉位1:1止盈+移損至成本，剩餘1:3止盈</div>
+            <div class="rule">🔹【盤整單執行】</div>
+            <div class="rule">✅ 全倉1:1止盈，不貪婪，到價立即出場</div>
+            <div class="rule">✅ 不抄底、不猜頂，嚴守規則不情緒化</div>
+        `
+    };
 
-        // DOM元素
-        const el = (id) => document.getElementById(id);
-        const calc = () => {
-            const capital = parseFloat(el("capital").value) || 0;
-            const risk = parseFloat(el("risk").value) / 100 || 0;
-            const entry = parseFloat(el("entry").value) || 0;
-            const atr = parseFloat(el("atr").value) || 0;
-            const leverage = parseFloat(el("leverage").value) || 1;
-            
-            if(!entry || !atr) {
-                el("stop").innerText = "—";
-                el("tp1").innerText = "—";
-                el("tp2").innerText = "—";
-                el("size").innerText = "—";
-                el("signal").className = "signal signal-gray";
-                el("signal").innerHTML = `<h2>⚪ 等待有效信号</h2><p>填写入场价+ATR</p>`;
-                return;
-            }
-
-            // 100%修正计算逻辑
-            const stopDist = atr * 1.5;
-            const stop = direction === "long" ? entry - stopDist : entry + stopDist;
-            const tp1 = direction === "long" ? entry + stopDist : entry - stopDist;
-            const tp2 = direction === "long" ? entry + stopDist * 3 : entry - stopDist * 3;
-            
-            // 仓位计算（修正版）
-            const maxLoss = capital * risk;
-            const lossPerShare = Math.abs(entry - stop);
-            let size = maxLoss / lossPerShare;
-            size = Math.min(size, capital * 0.5); // 仓位上限50%
-            size = size.toFixed(2);
-
-            // 渲染
-            el("stop").innerText = stop.toFixed(2);
-            el("tp1").innerText = tp1.toFixed(2);
-            el("tp2").innerText = tp2.toFixed(2);
-            el("size").innerText = size + " 单位";
-
-            // 信号判定（100%客观）
-            el("signal").className = "signal signal-green";
-            el("signal").innerHTML = `<h2>🟢 可入场交易</h2><p>${direction==="long"?"多单":"空单"} · 风险报酬比≥3.0</p>`;
-        };
-
-        // 事件监听
-        el("long").onclick = () => {direction="long"; calc();};
-        el("short").onclick = () => {direction="short"; calc();};
-        el("capital").oninput = calc;
-        el("risk").oninput = calc;
-        el("entry").oninput = calc;
-        el("atr").oninput = calc;
-        el("leverage").oninput = calc;
-
-        // 标签页
-        document.querySelectorAll(".tab-btn").forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("tab-active"));
-                btn.classList.add("tab-active");
-                el("tabContent").innerHTML = tabs[btn.dataset.tab];
-            };
-        });
-
-        // 周期
-        el("tf30m").onclick = () => {tf="30m";};
-        el("tf5m").onclick = () => {tf="5m";};
-        el("tf1m").onclick = () => {tf="1m";};
+    // DOM計算
+    const el = (id) => document.getElementById(id);
+    const calc = () => {
+        const capital = parseFloat(el("capital").value) || 0;
+        const risk = parseFloat(el("risk").value) / 100 || 0;
+        const entry = parseFloat(el("entry").value) || 0;
+        const atr = parseFloat(el("atr").value) || 0;
         
-        // 初始化
-        calc();
-    </script>
+        if(!entry || !atr) {
+            el("stop").innerText=el("tp1").innerText=el("tp2").innerText=el("size").innerText="—";
+            el("signal").className="signal signal-gray";
+            el("signal").innerHTML=`<h2>⚪ 等待有效訊號</h2><p>填寫入場價+ATR</p>`;
+            return;
+        }
+
+        const stopDist = atr * 1.5;
+        const stop = direction==="long" ? entry-stopDist : entry+stopDist;
+        const tp1 = direction==="long" ? entry+stopDist : entry-stopDist;
+        const tp2 = direction==="long" ? entry+stopDist*3 : entry-stopDist*3;
+        
+        const maxLoss = capital * risk;
+        const lossPerShare = Math.abs(entry-stop);
+        let size = (maxLoss/lossPerShare).toFixed(2);
+        size = Math.min(size, capital*0.5);
+
+        el("stop").innerText = stop.toFixed(2);
+        el("tp1").innerText = tp1.toFixed(2);
+        el("tp2").innerText = tp2.toFixed(2);
+        el("size").innerText = size + " 單位";
+
+        el("signal").className="signal signal-green";
+        el("signal").innerHTML=`<h2>🟢 可入場交易</h2><p>${direction==="long"?"多單":"空單"}</p>`;
+    };
+
+    // 事件綁定
+    el("long").onclick=()=>{direction="long";calc();};
+    el("short").onclick=()=>{direction="short";calc();};
+    el("capital").oninput=calc;
+    el("risk").oninput=calc;
+    el("entry").oninput=calc;
+    el("atr").oninput=calc;
+    el("leverage").oninput=calc;
+
+    // 分頁切換
+    document.querySelectorAll(".tab-btn").forEach(btn=>{
+        btn.onclick=()=>{
+            document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("tab-active"));
+            btn.classList.add("tab-active");
+            el("tabContent").innerHTML = tabs[btn.dataset.tab];
+        }
+    });
+
+    // 週期切換
+    el("tf30m").onclick=()=>{tf="30m";};
+    el("tf5m").onclick=()=>{tf="5m";};
+    el("tf1m").onclick=()=>{tf="1m";};
+    
+    calc();
+</script>
 </body>
 </html>
