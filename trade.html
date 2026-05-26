@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMA 5 王者策略 · 多級別K線 + 風險報酬優化</title>
+    <title>EMA 5 王者策略 · 多級別K線 + 分頁心法</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -22,6 +22,8 @@
         function App() {
             // 多時間級別
             const [tf, setTf] = useState("5m");
+            // 分頁心法切換
+            const [tab, setTab] = useState(0);
             // 核心條件
             const [cond, setCond] = useState([null, null, null]);
             const [capital, setCapital] = useState("10000");
@@ -31,7 +33,7 @@
             const [pulse, setPulse] = useState(false);
             const [direction, setDirection] = useState("long");
 
-            // 計算核心（優化版）
+            // 計算核心
             const cap = num(capital), risk = num(riskPct) / 100;
             const ep = num(entry), atrV = num(atr);
             const maxLoss = cap * risk;
@@ -43,9 +45,7 @@
             const tp1 = ep > 0 && stopDist > 0 ? (isLong ? ep + stopDist * 2 : ep - stopDist * 2) : 0;
             const tp2 = ep > 0 && stopDist > 0 ? (isLong ? ep + stopDist * 3 : ep - stopDist * 3) : 0;
 
-            // ==============================================
-            // 🔥 專業風險報酬比計算（100% 可視化、無BUG）
-            // ==============================================
+            // 專業風險報酬比計算
             const realRisk = ep > 0 && stopPrice > 0 ? Math.abs(ep - stopPrice) : 0;
             const realReward1 = ep > 0 && tp1 > 0 ? Math.abs(tp1 - ep) : 0;
             const realReward2 = ep > 0 && tp2 > 0 ? Math.abs(tp2 - ep) : 0;
@@ -81,12 +81,12 @@
 
             // 時間級別標籤
             const tfLabel = {
-                "1m": "1分K · 超短線搶單",
+                "1m": "1分K · 精準入場",
                 "5m": "5分K · 主戰場（推薦）",
-                "30m": "30分K · 趨勢波段"
+                "30m": "30分K · 趨勢定調"
             };
 
-            // 多時間級別 + EMA5/20 + RSI
+            // 多時間級別條件
             const condDefs = isLong 
                 ? [
                     { label: `${tf} K線收盤 > EMA 5`, sub: "價格站上短均線", color: "#22d3ee" },
@@ -99,25 +99,60 @@
                     { label: "RSI 30~50 健康動能", sub: "不超賣、不反彈，弱勢整理", color: "#f472b6" },
                 ];
 
-            // K線操作建議 + 心法（加長版）
+            // K線建議
             const getKlineAdvice = () => {
-                if (!fullyReady) return {
-                    text: "等待 30分K趨勢 + 5分K進場 + 1分K點位 同時觸發，不猜方向、不搶先機",
-                    color: "#94a3b8", icon: "⏳"
-                };
-                if (isLong) {
-                    return {
-                        text: "📈 多方心法：順勢不吃回調，只做突破確認。K棒站上EMA5 + 均線多頭排列，回踩不破就是最好進場點，不貪圖最低點。",
-                        color: "#ef4444", icon: "📈"
-                    };
-                } else {
-                    return {
-                        text: "📉 空方心法：順勢不搶反彈，只做跌破確認。K棒跌破EMA5 + 均線空頭排列，反彈不過就是最好進場點，不預測最高點。",
-                        color: "#22c55e", icon: "📉"
-                    };
-                }
+                if (!fullyReady) return { text: "30分定方向 + 5分出信號 + 1分找點位，多級別共振才進場", color: "#94a3b8", icon: "⏳" };
+                return isLong ? { text: "順勢多單：回踩EMA5不破進場，不追高、不猜底", color: "#ef4444", icon: "📈" }
+                : { text: "順勢空單：反彈EMA5不過進場，不搶反、不猜頂", color: "#22c55e", icon: "📉" };
             };
             const advice = getKlineAdvice();
+
+            // 分頁標題
+            const tabs = ["30分K 趨勢", "5分K 信號", "1分K 精準", "風控鐵律", "執行心法"];
+            
+            // 分頁心法精華
+            const tabContents = [
+                // 30分K
+                <div style={{ fontSize:12, lineHeight:1.7, color:"#e2e8f0" }}>
+                ✅ <b>核心價值：定大方向，不做逆勢單</b><br/>
+                🔹 EMA5 > EMA20 → 只做多<br/>
+                🔹 EMA5 < EMA20 → 只做空<br/>
+                🔹 震盪市（均線糾結）→ 全品種休息<br/>
+                🔹 30分K確認趨勢，再看小級別
+                </div>,
+                // 5分K
+                <div style={{ fontSize:12, lineHeight:1.7, color:"#e2e8f0" }}>
+                ✅ <b>核心價值：主戰場，找高勝率信號</b><br/>
+                🔹 必須滿足3個條件才觸發信號<br/>
+                🔹 收盤價站上/跌破EMA5為確認<br/>
+                🔹 RSI健康區間，拒絕超買超賣<br/>
+                🔹 5分K信號 = 唯一進場許可
+                </div>,
+                // 1分K
+                <div style={{ fontSize:12, lineHeight:1.7, color:"#e2e8f0" }}>
+                ✅ <b>核心價值：精準點位，降低止損成本</b><br/>
+                🔹 不判斷趨勢，只做輔助點位<br/>
+                🔹 5分信號出現 → 1分回踩EMA5進場<br/>
+                🔹 假突破：1分K快速回落 → 放棄<br/>
+                🔹 止損參考1分K，虧損縮小30%+
+                </div>,
+                // 風控鐵律
+                <div style={{ fontSize:12, lineHeight:1.7, color:"#e2e8f0" }}>
+                ✅ <b>保命核心：紀律 > 技術</b><br/>
+                🔹 單筆風險 ≤ 2%，當日 ≤ 5%<br/>
+                🔹 連虧2筆休息，3筆停交易<br/>
+                🔹 重大數據日：降倉或不交易<br/>
+                🔹 無止損不進場，這是鐵律
+                </div>,
+                // 執行心法
+                <div style={{ fontSize:12, lineHeight:1.7, color:"#e2e8f0" }}>
+                ✅ <b>交易核心：簡單、重複、執行</b><br/>
+                🔹 順勢為王，不對抗盤勢<br/>
+                🔹 不滿倉、不頻繁交易<br/>
+                🔹 獲利1:1移動止損至成本<br/>
+                🔹 不貪婪、不恐懼，按計畫執行
+                </div>
+            ];
 
             // 狀態
             const statusColor = fullyReady ? "#ef4444" : allPass ? "#eab308" : anyFail ? "#22c55e" : "#475569";
@@ -135,104 +170,48 @@
                     <div style={{
                         position: "fixed", top: -200, left: "50%", transform: "translateX(-50%)",
                         width: 600, height: 600, borderRadius: "50%",
-                        background: fullyReady
-                        ? "radial-gradient(circle, rgba(239,68,68,0.08) 0%, transparent 70%)"
-                        : "radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)",
+                        background: fullyReady ? "radial-gradient(circle, rgba(239,68,68,0.08) 0%, transparent 70%)" : "radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)",
                         pointerEvents: "none", transition: "background 1s",
                     }} />
 
                     {/* 頭部 */}
-                    <div style={{
-                        padding: "20px 20px 16px",
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        borderBottom: "1px solid rgba(255,255,255,0.05)",
-                    }}>
+                    <div style={{ padding: "20px 20px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                         <div>
-                            <div style={{ fontSize: 10, color: "#4b5563", letterSpacing: "0.15em", fontWeight: 600 }}>
-                                EMA 5 多級別交易系統
-                            </div>
-                            <div style={{ fontSize: 20, fontWeight: 800, color: "#f8fafc", letterSpacing: "-0.03em", marginTop: 2 }}>
-                                風險報酬比優化版
-                            </div>
+                            <div style={{ fontSize: 10, color: "#4b5563", letterSpacing: "0.15em", fontWeight: 600 }}>EMA 5 多級別交易系統</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: "#f8fafc", letterSpacing: "-0.03em", marginTop: 2 }}>分頁心法 · 精華版</div>
                         </div>
                         {/* 狀態指示燈 */}
-                        <div style={{
-                            display: "flex", alignItems: "center", gap: 7,
-                            background: statusColor + "18",
-                            border: `1px solid ${statusColor}40`,
-                            borderRadius: 99, padding: "6px 14px",
-                            transition: "all 0.4s",
-                            transform: pulse ? "scale(1.06)" : "scale(1)",
-                        }}>
-                            <div style={{
-                                width: 7, height: 7, borderRadius: "50%", background: statusColor,
-                                boxShadow: fullyReady ? `0 0 8px ${statusColor}` : "none",
-                                animation: fullyReady ? "blink 1.2s infinite" : "none",
-                            }} />
+                        <div style={{ display: "flex", alignItems: "center", gap: 7, background: statusColor + "18", border: `1px solid ${statusColor}40`, borderRadius: 99, padding: "6px 14px", transition: "all 0.4s", transform: pulse ? "scale(1.06)" : "scale(1)" }}>
+                            <div style={{ width: 7, height: 7, borderRadius: "50%", background: statusColor, boxShadow: fullyReady ? `0 0 8px ${statusColor}` : "none", animation: fullyReady ? "blink 1.2s infinite" : "none" }} />
                             <span style={{ fontSize: 12, fontWeight: 700, color: statusColor }}>{statusText}</span>
                         </div>
                     </div>
 
                     <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px" }}>
-
                         {/* 時間級別切換 */}
                         <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
                             {["1m", "5m", "30m"].map(t => (
-                                <button key={t} onClick={() => setTf(t)} style={{
-                                    flex:1, padding: "10px", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 700,
-                                    background: tf === t ? "#6366f1" : "rgba(255,255,255,0.05)",
-                                    color: tf === t ? "#fff" : "#64748b", cursor: "pointer"
-                                }}>{t === "1m" ? "1分K" : t === "5m" ? "5分K" : "30分K"}</button>
+                                <button key={t} onClick={() => setTf(t)} style={{ flex:1, padding: "10px", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 700, background: tf === t ? "#6366f1" : "rgba(255,255,255,0.05)", color: tf === t ? "#fff" : "#64748b", cursor: "pointer" }}>{t === "1m" ? "1分K" : t === "5m" ? "5分K" : "30分K"}</button>
                             ))}
                         </div>
-                        <div style={{ textAlign: "center", fontSize: 12, color: "#64748b", marginTop: 6 }}>
-                            {tfLabel[tf]}
-                        </div>
+                        <div style={{ textAlign: "center", fontSize: 12, color: "#64748b", marginTop: 6 }}>{tfLabel[tf]}</div>
 
-                        {/* K線方向建議 + 心法 */}
-                        <div style={{
-                            marginTop: 16,
-                            background: `rgba(255,255,255,0.02)`,
-                            border: `1px solid ${advice.color}40`,
-                            borderRadius: 14, padding: "14px",
-                            display: "flex", alignItems: "center", gap: 10
-                        }}>
+                        {/* K線方向建議 */}
+                        <div style={{ marginTop: 16, background: `rgba(255,255,255,0.02)`, border: `1px solid ${advice.color}40`, borderRadius: 14, padding: "14px", display: "flex", alignItems: "center", gap: 10 }}>
                             <div style={{ fontSize: 28 }}>{advice.icon}</div>
-                            <div style={{ fontSize: 13, color: advice.color, fontWeight: 600, lineHeight: 1.5 }}>
-                                {advice.text}
-                            </div>
+                            <div style={{ fontSize: 13, color: advice.color, fontWeight: 600, lineHeight: 1.5 }}>{advice.text}</div>
                         </div>
 
-                        {/* STEP 1 進場 3 條件 */}
+                        {/* STEP 1 進場條件 */}
                         <Section label="STEP 1" title={`${isLong ? "多單" : "空單"}進場 3 條件`} color="#6366f1">
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                 {condDefs.map((c, i) => (
-                                    <div key={i} style={{
-                                        display: "flex", alignItems: "center", gap: 10,
-                                        background: cond[i] === true ? c.color + "12"
-                                        : cond[i] === false ? "rgba(34,197,94,0.08)"
-                                        : "rgba(255,255,255,0.02)",
-                                        border: `1px solid ${
-                                            cond[i] === true ? c.color + "40"
-                                            : cond[i] === false ? "#22c55e30"
-                                            : "rgba(255,255,255,0.06)"
-                                        }`,
-                                        borderRadius: 12, padding: "12px 14px",
-                                        transition: "all 0.25s",
-                                    }}>
-                                        <div style={{
-                                            width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-                                            background: cond[i] === true ? c.color : cond[i] === false ? "#22c55e" : "#1e293b",
-                                            display: "flex", alignItems: "center", justifyContent: "center",
-                                            fontSize: 11, fontWeight: 800,
-                                            color: cond[i] !== null ? "#0a0f1e" : "#475569",
-                                        }}>
+                                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, background: cond[i] === true ? c.color + "12" : cond[i] === false ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.02)", border: `1px solid ${cond[i] === true ? c.color + "40" : cond[i] === false ? "#22c55e30" : "rgba(255,255,255,0.06)"}`, borderRadius: 12, padding: "12px 14px", transition: "all 0.25s" }}>
+                                        <div style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, background: cond[i] === true ? c.color : cond[i] === false ? "#22c55e" : "#1e293b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: cond[i] !== null ? "#0a0f1e" : "#475569" }}>
                                             {cond[i] === true ? "✓" : cond[i] === false ? "✗" : i + 1}
                                         </div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontSize: 13, fontWeight: 700, color: cond[i] === true ? c.color : cond[i] === false ? "#22c55e" : "#cbd5e1" }}>
-                                                {c.label}
-                                            </div>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: cond[i] === true ? c.color : cond[i] === false ? "#22c55e" : "#cbd5e1" }}>{c.label}</div>
                                             <div style={{ fontSize: 10, color: "#4b5563", marginTop: 1 }}>{c.sub}</div>
                                         </div>
                                         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -243,39 +222,23 @@
                                 ))}
                             </div>
                             <div style={{ marginTop: 10, height: 3, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                                <div style={{
-                                    height: "100%", width: `${(cond.filter(c => c === true).length / 3) * 100}%`,
-                                    background: `linear-gradient(90deg, #6366f1, ${allPass ? "#ef4444" : "#6366f1"})`,
-                                    borderRadius: 99, transition: "width 0.4s ease",
-                                }} />
+                                <div style={{ height: "100%", width: `${(cond.filter(c => c === true).length / 3) * 100}%`, background: `linear-gradient(90deg, #6366f1, ${allPass ? "#ef4444" : "#6366f1"})`, borderRadius: 99, transition: "width 0.4s ease" }} />
                             </div>
-                            <div style={{ textAlign: "right", fontSize: 10, color: "#4b5563", marginTop: 4 }}>
-                                {cond.filter(c => c === true).length} / 3 條件符合
-                            </div>
+                            <div style={{ textAlign: "right", fontSize: 10, color: "#4b5563", marginTop: 4 }}>{cond.filter(c => c === true).length} / 3 條件符合</div>
                         </Section>
 
                         {/* STEP 2 倉位計算機 */}
                         <Section label="STEP 2" title="倉位計算機 · 風險控管" color="#22d3ee">
                             <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-                                <button onClick={() => setDirection("long")} style={{
-                                    flex:1, padding: "10px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700,
-                                    background: direction === "long" ? "#ef4444" : "rgba(255,255,255,0.05)",
-                                    color: direction === "long" ? "#000" : "#fff", cursor: "pointer"
-                                }}>📈 多單 (Buy)</button>
-                                <button onClick={() => setDirection("short")} style={{
-                                    flex:1, padding: "10px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700,
-                                    background: direction === "short" ? "#22c55e" : "rgba(255,255,255,0.05)",
-                                    color: direction === "short" ? "#000" : "#fff", cursor: "pointer"
-                                }}>📉 空單 (Sell)</button>
+                                <button onClick={() => setDirection("long")} style={{ flex:1, padding: "10px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700, background: direction === "long" ? "#ef4444" : "rgba(255,255,255,0.05)", color: direction === "long" ? "#000" : "#fff", cursor: "pointer" }}>📈 多單 (Buy)</button>
+                                <button onClick={() => setDirection("short")} style={{ flex:1, padding: "10px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700, background: direction === "short" ? "#22c55e" : "rgba(255,255,255,0.05)", color: direction === "short" ? "#000" : "#fff", cursor: "pointer" }}>📉 空單 (Sell)</button>
                             </div>
-
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                                 <InputBox label="帳戶資金" value={capital} onChange={setCapital} prefix="$" />
                                 <InputBox label="風險比例" value={riskPct} onChange={setRiskPct} suffix="%" />
                                 <InputBox label="進場價格" value={entry} onChange={setEntry} placeholder="e.g. 19500" />
                                 <InputBox label="ATR (14)" value={atr} onChange={setAtr} placeholder="e.g. 120" />
                             </div>
-
                             <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                                 <div style={{ padding: "10px 12px", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 8 }}>
                                     <div style={{ fontSize: 10, color: "#94a3b8" }}>最大虧損</div>
@@ -289,11 +252,10 @@
                             </div>
                         </Section>
 
-                        {/* STEP 3 交易計畫 + 風險報酬比 */}
+                        {/* STEP 3 交易計畫 + 風險報酬 */}
                         <Section label="STEP 3" title="交易計畫 · 風險報酬比(RR)" color="#ef4444">
                             {calcReady ? (
                                 <>
-                                    {/* 進出場價格 */}
                                     <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "4px 0" }}>
                                         <PriceLine label={`🟢 止盈 2`} value={`$${fmt(tp2)}`} sub={`RR 1:${fmt(rr2,1)}`} color="#ef4444" />
                                         <PriceLine label={`🟡 止盈 1`} value={`$${fmt(tp1)}`} sub={`RR 1:${fmt(rr1,1)}`} color="#eab308" />
@@ -301,71 +263,46 @@
                                         <PriceLine label="🔴 止損價" value={`$${fmt(stopPrice)}`} sub={`${fmt(stopPct,1)}%`} color="#22c55e" />
                                     </div>
 
-                                    {/* 🔥 風險報酬比可視化 */}
+                                    {/* 風險報酬分析 */}
                                     <div style={{ marginTop:12,padding:"12px",background:"rgba(255,255,255,0.03)",borderRadius:12 }}>
                                         <div style={{fontSize:12,fontWeight:700,marginBottom:8}}>📊 風險報酬分析</div>
-                                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
-                                            <span>風險</span><span>${fmt(realRisk)}</span>
-                                        </div>
-                                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
-                                            <span>報酬 1</span><span>${fmt(realReward1)} (1:{fmt(rr1,1)})</span>
-                                        </div>
-                                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
-                                            <span>報酬 2</span><span>${fmt(realReward2)} (1:{fmt(rr2,1)})</span>
-                                        </div>
+                                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}><span>風險</span><span>${fmt(realRisk)}</span></div>
+                                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}><span>報酬 1</span><span>${fmt(realReward1)} (1:{fmt(rr1,1)})</span></div>
+                                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}><span>報酬 2</span><span>${fmt(realReward2)} (1:{fmt(rr2,1)})</span></div>
                                         <div style={{height:8,background:"rgba(255,255,255,0.05)",borderRadius:99,overflow:"hidden",marginTop:8}}>
                                             <div style={{width:`${Math.min(rr2*30,100)}%`,height:"100%",background:rrColor,borderRadius:99}} />
                                         </div>
-                                        <div style={{fontSize:11,color:rrColor,marginTop:8,fontWeight:700,textAlign:"center"}}>
-                                            {rrQuality}
-                                        </div>
+                                        <div style={{fontSize:11,color:rrColor,marginTop:8,fontWeight:700,textAlign:"center"}}>{rrQuality}</div>
                                     </div>
 
-                                    {/* 交易心法 */}
-                                    <div style={{ marginTop: 12, background: "rgba(255,255,255,0.02)", borderRadius: 12, padding: "12px 14px" }}>
-                                        <div style={{ fontSize: 11, color: "#cbd5e1", fontWeight: 700, marginBottom: 8 }}>🧠 交易執行心法</div>
-                                        <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.6 }}>
-                                            1. 順勢為王，只做主流方向，不對抗盤勢<br/>
-                                            2. 不滿倉、不頻繁交易，只做高勝率訊號<br/>
-                                            3. 進場先設止損，沒有止損不進場<br/>
-                                            4. 獲利1:1移動止損至成本，鎖定利潤<br/>
-                                            5. 不貪婪、不恐懼，嚴格按照計畫執行
+                                    {/* 🔥 分頁心法精華 */}
+                                    <div style={{ marginTop:12 }}>
+                                        <div style={{ display:"flex", gap:"6px", marginBottom:"10px" }}>
+                                            {tabs.map((item, index) => (
+                                                <button key={index} onClick={() => setTab(index)} style={{ 
+                                                    flex:1, padding:"8px 6px", fontSize:11, fontWeight:700, borderRadius:8, border:"none",
+                                                    background: tab === index ? "#6366f1" : "rgba(255,255,255,0.04)",
+                                                    color: tab === index ? "#fff" : "#64748b", cursor:"pointer"
+                                                }}>{item}</button>
+                                            ))}
+                                        </div>
+                                        <div style={{ padding:"12px", background:"rgba(255,255,255,0.02)", borderRadius:10, minHeight:"100px" }}>
+                                            {tabContents[tab]}
                                         </div>
                                     </div>
                                 </>
                             ) : (
-                                <div style={{ textAlign: "center", padding: "24px 0", fontSize: 13, color: "#374151" }}>
-                                    ← 請先填入進場價格與 ATR
-                                </div>
+                                <div style={{ textAlign: "center", padding: "24px 0", fontSize: 13, color: "#374151" }}>← 請先填入進場價格與 ATR</div>
                             )}
                         </Section>
 
                         {/* 最終信號 */}
-                        <div style={{
-                            marginTop: 20, borderRadius: 16, padding: "20px", textAlign: "center",
-                            background: fullyReady ? (isLong ? "linear-gradient(135deg, rgba(239,68,68,0.12), rgba(220,38,38,0.06))" : "linear-gradient(135deg, rgba(34,197,94,0.12), rgba(16,185,129,0.06))") : anyFail ? "linear-gradient(135deg, rgba(34,197,94,0.1), rgba(220,38,38,0.05))" : "rgba(255,255,255,0.02)",
-                            border: `1.5px solid ${fullyReady ? (isLong ? "#ef444450" : "#22c55e50") : anyFail ? "#22c55e30" : "rgba(255,255,255,0.05)"}`,
-                        }}>
-                            <div style={{ fontSize: 40, marginBottom: 8 }}>
-                                {fullyReady ? "🟢" : anyFail ? "🔴" : "⚪"}
-                            </div>
+                        <div style={{ marginTop: 20, borderRadius: 16, padding: "20px", textAlign: "center", background: fullyReady ? (isLong ? "linear-gradient(135deg, rgba(239,68,68,0.12), rgba(220,38,38,0.06))" : "linear-gradient(135deg, rgba(34,197,94,0.12), rgba(16,185,129,0.06))") : anyFail ? "linear-gradient(135deg, rgba(34,197,94,0.1), rgba(220,38,38,0.05))" : "rgba(255,255,255,0.02)", border: `1.5px solid ${fullyReady ? (isLong ? "#ef444450" : "#22c55e50") : anyFail ? "#22c55e30" : "rgba(255,255,255,0.05)"}` }}>
+                            <div style={{ fontSize: 40, marginBottom: 8 }}>{fullyReady ? "🟢" : anyFail ? "🔴" : "⚪"}</div>
                             <div style={{ fontSize: 22, fontWeight: 900, color: fullyReady ? (isLong ? "#ef4444" : "#22c55e") : anyFail ? "#22c55e" : "#475569" }}>
                                 {fullyReady ? `3 項全通過 → 執行${isLong ? "多單" : "空單"}` : anyFail ? "條件不足 → 禁止進場" : "完成步驟顯示結果"}
                             </div>
-                            <div style={{ fontSize: 12, color: "#4b5569", marginTop: 6 }}>
-                                風險報酬比優化 · 多時間級別共振 · 嚴格風控
-                            </div>
-                        </div>
-
-                        {/* 風險鐵律 */}
-                        <div style={{ marginTop: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: "14px 16px" }}>
-                            <div style={{ fontSize: 10, color: "#374151", letterSpacing: "0.1em", fontWeight: 700, marginBottom: 10 }}>⚠ 鐵律 — 永遠不能打破</div>
-                            {[["進場時間", "台灣時間 晚上 9:30 之後"],["連虧2筆", "強制休息 1 小時"],["連虧3筆", "當天停止交易，寫日誌"],["當日虧損 5%", "立刻停止，明日再來"],["重大數據日", "FOMC / CPI 當天降倉或不交易"]].map(([k, v]) => (
-                                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                                    <span style={{ fontSize: 11, color: "#374151" }}>{k}</span>
-                                    <span style={{ fontSize: 11, color: "#6b7280" }}>{v}</span>
-                                </div>
-                            ))}
+                            <div style={{ fontSize: 12, color: "#4b5569", marginTop: 6 }}>多級別共振 · 風報優化 · 心法護航</div>
                         </div>
 
                         <p style={{ fontSize: 10, color: "#1f2937", textAlign: "center", marginTop: 16, lineHeight: 1.5 }}>
@@ -398,41 +335,26 @@
                 </div>
             )
         }
-
         function Btn({ active, color, onClick, children }){
             return (
-                <button onClick={onClick} style={{
-                    padding: "5px 10px", borderRadius: 7,
-                    border: active ? `1.5px solid ${color}` : "1.5px solid rgba(255,255,255,0.08)",
-                    background: active ? color+"20" : "transparent",
-                    color: active ? color : "#374151",
-                    fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
-                }}>{children}</button>
+                <button onClick={onClick} style={{ padding: "5px 10px", borderRadius: 7, border: active ? `1.5px solid ${color}` : "1.5px solid rgba(255,255,255,0.08)", background: active ? color+"20" : "transparent", color: active ? color : "#374151", fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}>{children}</button>
             )
         }
-
         function InputBox({ label, value, onChange, prefix, suffix, placeholder }){
             return (
                 <div>
                     <div style={{ fontSize: 10, color: "#4b5563", marginBottom: 5, fontWeight: 600 }}>{label}</div>
                     <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, padding: "0 10px" }}>
                         {prefix && <span style={{ fontSize: 12, color: "#374151" }}>{prefix}</span>}
-                        <input type="number" value={value} onChange={(e)=>onChange(e.target.value)} placeholder={placeholder||"0"} style={{
-                            flex:1, background:"transparent", border:"none", outline:"none", color:"#f1f5f9", fontSize:15, fontWeight:700, padding:"11px 0", width:"100%"
-                        }}/>
+                        <input type="number" value={value} onChange={(e)=>onChange(e.target.value)} placeholder={placeholder||"0"} style={{ flex:1, background:"transparent", border:"none", outline:"none", color:"#f1f5f9", fontSize:15, fontWeight:700, padding:"11px 0", width:"100%" }}/>
                         {suffix && <span style={{ fontSize: 12, color: "#374151" }}>{suffix}</span>}
                     </div>
                 </div>
             )
         }
-
         function PriceLine({ label, value, sub, color, highlight }){
             return (
-                <div style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px",
-                    background: highlight ? "rgba(255,255,255,0.04)" : "transparent",
-                    borderLeft: highlight ? `3px solid ${color}` : "3px solid transparent",
-                }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: highlight ? "rgba(255,255,255,0.04)" : "transparent", borderLeft: highlight ? `3px solid ${color}` : "3px solid transparent" }}>
                     <span style={{ fontSize: 12, color: "#6b7280" }}>{label}</span>
                     <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: 15, fontWeight: 800, color }}>{value}</div>
