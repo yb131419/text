@@ -76,7 +76,8 @@
         <img id="previewImg" src="" alt="chart preview" class="w-full rounded-lg object-contain max-h-52" />
       </div>
       <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
-      <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3 disabled:opacity-40" disabled>
+      <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
+      <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">
         開始判盤解析
       </button>
       <div id="aiResult" class="bg-darker rounded-xl p-4 space-y-4 border border-gray-600 hidden"></div>
@@ -187,6 +188,19 @@
       saveData("loseStreak", state.loseStreak);
       saveData("apiKey", state.apiKey);
       saveData("proxyUrl", state.proxyUrl);
+    };
+
+    // 顯示調試信息
+    const showDebug = (message) => {
+      const debugEl = document.getElementById('aiDebug');
+      debugEl.textContent = message;
+      debugEl.classList.remove('hidden');
+      console.log("DEBUG:", message);
+    };
+
+    // 隱藏調試信息
+    const hideDebug = () => {
+      document.getElementById('aiDebug').classList.add('hidden');
     };
 
     // 渲染風險警告
@@ -401,6 +415,7 @@
           <div class="text-xs text-gray-500">
             API Key 只存在你的瀏覽器本地，不會上傳到任何伺服器
           </div>
+          ${state.apiKey ? '<div class="text-xs text-green">✅ API Key 已設置</div>' : '<div class="text-xs text-yellow">⚠️ 請先輸入API Key才能使用AI功能</div>'}
         </div>
 
         <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
@@ -665,17 +680,21 @@
 
     // AI分析函數
     const runAiAnalyze = async () => {
+      showDebug("點擊解析按鈕，開始執行...");
+      
       if (!state.aiBase64) {
-        state.aiError = "請先上傳截圖";
+        state.aiError = "❌ 請先上傳截圖";
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
+        hideDebug();
         return;
       }
       
       if (!state.apiKey) {
-        state.aiError = "請先在設定頁面輸入你的OpenAI API Key";
+        state.aiError = "❌ 請先在設定頁面輸入你的OpenAI API Key";
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
+        hideDebug();
         return;
       }
       
@@ -683,10 +702,12 @@
       state.aiError = "";
       state.aiResult = null;
       
-      document.getElementById('analyzeButton').textContent = "AI分析中...";
+      document.getElementById('analyzeButton').textContent = "⏳ AI分析中...";
       document.getElementById('analyzeButton').disabled = true;
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
+
+      showDebug(`準備發送請求到: ${state.proxyUrl}`);
 
       const sniperPrompt = `
 你是專業NQ 1/5/15分K EMA5/EMA20+ADX+RSI趨勢判盤員，只回傳標準JSON格式，絕對不要加任何額外文字、解釋或markdown標籤。
@@ -709,11 +730,13 @@ c1_3: RSI介於45~65 true/false
 `;
       
       try {
+        showDebug("發送API請求中...");
+        
         const res = await fetch(state.proxyUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${state.apiKey}`,
+            "Authorization": `Bearer ${state.apiKey}`,
           },
           body: JSON.stringify({
             model: "gpt-4o-mini",
@@ -731,16 +754,21 @@ c1_3: RSI介於45~65 true/false
           }),
         });
         
+        showDebug(`收到回應，狀態碼: ${res.status} ${res.statusText}`);
+        
         if (!res.ok) {
-          if (res.status === 401) throw new Error("API Key 無效，請檢查是否正確");
-          if (res.status === 403) throw new Error("API Key 沒有權限，請檢查額度和地區");
-          if (res.status === 429) throw new Error("請求過於頻繁，請稍後再試");
-          if (res.status === 0) throw new Error("CORS 跨域錯誤，請使用代理伺服器");
+          if (res.status === 401) throw new Error("401 未授權：API Key 無效，請檢查是否正確");
+          if (res.status === 403) throw new Error("403 禁止訪問：API Key 沒有權限，請檢查額度和地區");
+          if (res.status === 429) throw new Error("429 請求過多：請求過於頻繁，請稍後再試");
+          if (res.status === 0) throw new Error("0 網絡錯誤：CORS 跨域錯誤，請使用代理伺服器");
           throw new Error(`API錯誤: ${res.status} ${res.statusText}`);
         }
         
         const data = await res.json();
+        showDebug("API回應解析成功");
+        
         let rawContent = data.choices[0].message.content.trim();
+        showDebug(`原始回應長度: ${rawContent.length} 字元`);
         
         // 四重防護清除所有可能的雜訊
         rawContent = rawContent
@@ -748,14 +776,19 @@ c1_3: RSI介於45~65 true/false
           .replace(/\s*```$/g, "")
           .trim();
         
+        showDebug(`清理後回應: ${rawContent.substring(0, 100)}...`);
+        
         // 嘗試解析，失敗則尋找JSON區塊
         let parseRes;
         try {
           parseRes = JSON.parse(rawContent);
+          showDebug("JSON解析成功");
         } catch (e) {
+          showDebug(`第一次解析失敗: ${e.message}，嘗試提取JSON區塊...`);
           const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             parseRes = JSON.parse(jsonMatch[0]);
+            showDebug("提取JSON區塊成功");
           } else {
             throw new Error("無法從AI回應中提取有效數據");
           }
@@ -767,11 +800,15 @@ c1_3: RSI介於45~65 true/false
         state.tf1 = parseRes.c1;
         saveState();
         
+        showDebug("✅ AI分析完成，結果已更新");
+        setTimeout(hideDebug, 2000);
+        
       } catch (err) {
         console.error("AI解析錯誤:", err);
-        state.aiError = `錯誤: ${err.message}\n\n如果出現CORS錯誤，請在設定頁面使用代理伺服器`;
+        state.aiError = `❌ 錯誤: ${err.message}\n\n如果出現CORS錯誤，請在設定頁面使用代理伺服器`;
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
+        showDebug(`錯誤詳情: ${err.stack}`);
       } finally {
         state.aiLoading = false;
         document.getElementById('analyzeButton').textContent = "開始判盤解析";
@@ -782,6 +819,8 @@ c1_3: RSI介於45~65 true/false
 
     // 初始化事件
     const initEvents = () => {
+      console.log("系統初始化中...");
+      
       // 底部導航
       document.querySelectorAll('.tab-button').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -801,15 +840,18 @@ c1_3: RSI介於45~65 true/false
 
       // AI按鈕
       document.getElementById('aiButton').addEventListener('click', () => {
+        console.log("打開AI模態框");
         document.getElementById('aiModal').classList.remove('hidden');
       });
 
       document.getElementById('closeAiModal').addEventListener('click', () => {
+        console.log("關閉AI模態框");
         document.getElementById('aiModal').classList.add('hidden');
       });
 
       // 上傳按鈕
       document.getElementById('uploadButton').addEventListener('click', () => {
+        console.log("點擊上傳按鈕");
         document.getElementById('fileInput').click();
       });
 
@@ -818,10 +860,13 @@ c1_3: RSI介於45~65 true/false
         const file = e.target.files[0];
         if (!file) return;
         
+        console.log("選擇文件:", file.name, file.size, file.type);
+        
         state.aiError = "";
         state.aiResult = null;
         document.getElementById('aiError').classList.add('hidden');
         document.getElementById('aiResult').classList.add('hidden');
+        hideDebug();
         
         const previewImg = document.getElementById('previewImg');
         previewImg.src = URL.createObjectURL(file);
@@ -831,15 +876,21 @@ c1_3: RSI介於45~65 true/false
         const reader = new FileReader();
         reader.onload = (ev) => {
           state.aiBase64 = ev.target.result;
+          console.log("圖片轉換為Base64完成，長度:", state.aiBase64.length);
         };
         reader.readAsDataURL(file);
       });
 
       // 分析按鈕
-      document.getElementById('analyzeButton').addEventListener('click', runAiAnalyze);
+      document.getElementById('analyzeButton').addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        runAiAnalyze();
+      });
 
       // 重置AI按鈕
       document.getElementById('resetAiButton').addEventListener('click', () => {
+        console.log("重置AI面板");
         state.aiImage = null;
         state.aiBase64 = "";
         state.aiResult = null;
@@ -848,15 +899,20 @@ c1_3: RSI介於45~65 true/false
         document.getElementById('imagePreview').classList.add('hidden');
         document.getElementById('aiError').classList.add('hidden');
         document.getElementById('aiResult').classList.add('hidden');
-        document.getElementById('analyzeButton').disabled = true;
+        document.getElementById('aiDebug').classList.add('hidden');
+        document.getElementById('analyzeButton').disabled = false;
         document.getElementById('fileInput').value = "";
       });
+
+      console.log("事件綁定完成");
     };
 
     // 頁面加載完成後初始化
     document.addEventListener('DOMContentLoaded', () => {
+      console.log("頁面加載完成");
       initEvents();
       render();
+      console.log("系統初始化完成");
     });
   </script>
 </body>
