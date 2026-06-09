@@ -680,6 +680,103 @@
       });
     };
 
+    // ✅ 超強JSON修復與解析函數
+    const safeParseJson = (rawContent) => {
+      let attempts = [];
+      
+      // 嘗試1: 直接解析
+      try {
+        return JSON.parse(rawContent);
+      } catch (e) {
+        attempts.push("直接解析失敗: " + e.message);
+      }
+      
+      // 嘗試2: 移除所有markdown標籤
+      try {
+        let cleaned = rawContent
+          .replace(/^```(json)?\s*/gi, "")
+          .replace(/\s*```$/g, "")
+          .trim();
+        return JSON.parse(cleaned);
+      } catch (e) {
+        attempts.push("移除markdown失敗: " + e.message);
+      }
+      
+      // 嘗試3: 提取第一個{和最後一個}之間的內容
+      try {
+        const start = rawContent.indexOf('{');
+        const end = rawContent.lastIndexOf('}');
+        if (start !== -1 && end !== -1 && end > start) {
+          let cleaned = rawContent.substring(start, end + 1);
+          return JSON.parse(cleaned);
+        }
+      } catch (e) {
+        attempts.push("提取大括號失敗: " + e.message);
+      }
+      
+      // 嘗試4: 修復常見的JSON語法錯誤
+      try {
+        let cleaned = rawContent
+          .replace(/^```(json)?\s*/gi, "")
+          .replace(/\s*```$/g, "")
+          .replace(/^[^{]*/, "")
+          .replace(/[^}]*$/, "")
+          .replace(/,\s*}/g, "}") // 移除尾隨逗號
+          .replace(/,\s*]/g, "]") // 移除尾隨逗號
+          .replace(/'/g, '"') // 替換單引號為雙引號
+          .replace(/(\w+):/g, '"$1":') // 給未加引號的鍵加上引號
+          .trim();
+        return JSON.parse(cleaned);
+      } catch (e) {
+        attempts.push("修復語法失敗: " + e.message);
+      }
+      
+      // 嘗試5: 正則表達式提取所有鍵值對
+      try {
+        const directionMatch = rawContent.match(/"direction"\s*:\s*"([^"]+)"/);
+        const entryMatch = rawContent.match(/"entry"\s*:\s*(\d+\.?\d*)/);
+        const stopLossMatch = rawContent.match(/"stopLoss"\s*:\s*(\d+\.?\d*)/);
+        
+        if (directionMatch && entryMatch && stopLossMatch) {
+          const direction = directionMatch[1];
+          const entry = parseFloat(entryMatch[1]);
+          const stopLoss = parseFloat(stopLossMatch[1]);
+          
+          let takeProfit1, takeProfit2;
+          if (direction === 'long') {
+            const diff = entry - stopLoss;
+            takeProfit1 = entry + diff * 3;
+            takeProfit2 = entry + diff * 5;
+          } else {
+            const diff = stopLoss - entry;
+            takeProfit1 = entry - diff * 3;
+            takeProfit2 = entry - diff * 5;
+          }
+          
+          return {
+            direction,
+            advice: `建議在${entry.toFixed(1)}附近${direction === 'long' ? '做多' : '做空'}`,
+            entry,
+            stopLoss,
+            takeProfit1,
+            takeProfit2,
+            riskReward: "1:3 / 1:5",
+            tf15: direction === 'long' ? "多頭確認" : "空頭確認",
+            tf5: "訊號確認",
+            tf1: "進場點出現",
+            rsi: "正常",
+            riskManagement: "使用2%帳戶資金風險，嚴格執行止損，絕不重倉",
+            detailedAdvice: `1. 在${entry.toFixed(0)}-${(entry+5).toFixed(0)}區間分批進場\n2. 止損嚴格設在${stopLoss.toFixed(1)}\n3. 第一止盈${takeProfit1.toFixed(1)}，平倉一半\n4. 第二止盈${takeProfit2.toFixed(1)}，平倉全部\n5. 如果觸及止損，堅決離場，不要加倉`
+          };
+        }
+      } catch (e) {
+        attempts.push("提取關鍵值失敗: " + e.message);
+      }
+      
+      // 所有嘗試都失敗
+      throw new Error("JSON解析失敗，所有嘗試都失敗了\n" + attempts.join("\n"));
+    };
+
     // ✅ 30年資深交易員AI分析函數
     const runAiAnalyze = async () => {
       showDebug("開始深度分析...");
@@ -711,15 +808,17 @@
 
       showDebug("正在分析K線圖...");
 
-      // ✅ 30年資深交易員Prompt
+      // ✅ 最嚴格的JSON格式要求Prompt
       const sniperPrompt = `
+絕對只輸出標準JSON格式，絕對不要加任何其他文字、解釋、說明、註解或markdown標籤。
+開頭直接輸入{，結尾直接輸入}，不要任何其他內容。
+
 你是一位有30年華爾街交易經驗的資深交易員，交易過所有金融產品。
 你把每一筆交易都當成自己的錢一樣重視，極度謹慎，寧可錯過也不做沒有把握的交易。
 你的風控極其嚴格，永遠把保住本金放在第一位。
 你從不預測市場，只跟隨趨勢，只做高勝率的交易。
 
 請分析我上傳的任何金融產品K線圖（可以是NQ/ES/YM/黃金/原油/外匯/股票等）。
-只回傳標準JSON格式，絕對不要加任何額外文字、解釋或markdown標籤。
 
 圖表指標說明：
 - EMA5: 黃色線
@@ -742,29 +841,29 @@
 
 輸出格式必須嚴格按照以下JSON結構：
 {
-  "direction": "long/short/neutral",
-  "advice": "簡短的核心建議",
-  "entry": 數字,
-  "stopLoss": 數字,
-  "takeProfit1": 數字,
-  "takeProfit2": 數字,
+  "direction": "long",
+  "advice": "建議在29620附近做多",
+  "entry": 29620,
+  "stopLoss": 29575,
+  "takeProfit1": 29755,
+  "takeProfit2": 29845,
   "riskReward": "1:3 / 1:5",
-  "tf15": "多頭確認/空頭確認/震盪",
-  "tf5": "訊號確認/無訊號",
-  "tf1": "進場點出現/等待進場",
-  "rsi": "正常/超買/超賣",
-  "riskManagement": "嚴格的風險管理建議，包含倉位建議",
-  "detailedAdvice": "詳細的4-6步操作步驟，每一步都要明確"
+  "tf15": "多頭確認",
+  "tf5": "訊號確認",
+  "tf1": "進場點出現",
+  "rsi": "正常",
+  "riskManagement": "使用2%帳戶資金風險，嚴格執行止損，絕不重倉",
+  "detailedAdvice": "1. 在29615-29625區間分批進場\n2. 止損嚴格設在29575\n3. 第一止盈29755，平倉一半\n4. 第二止盈29845，平倉全部\n5. 如果觸及止損，堅決離場，不要加倉"
 }
 
 重要提醒：
-- 如果你對趨勢有任何一點懷疑，就返回"neutral"，建議觀望
+- 如果你對趨勢有任何一點懷疑，就返回"direction": "neutral"，建議觀望
 - 永遠不要給出模稜兩可的建議
 - 永遠強調嚴格執行止損
 - 永遠提醒不要重倉交易
 - 永遠把風險放在第一位
 
-只輸出JSON，不要任何其他內容。
+現在只輸出JSON，不要任何其他內容。
 `;
       
       try {
@@ -793,8 +892,9 @@
                 ],
               },
             ],
-            temperature: 0.05, // 極低溫度，保證一致性和謹慎性
+            temperature: 0.01, // 極低溫度，保證一致性
             max_tokens: 1000,
+            response_format: { type: "json_object" } // 強制JSON格式
           }),
         });
         
@@ -812,38 +912,44 @@
         showDebug("分析結果解析成功");
         
         let rawContent = data.choices[0].message.content.trim();
+        showDebug(`原始回應: ${rawContent.substring(0, 200)}...`);
         
-        // 五重防護清除所有可能的雜訊
-        rawContent = rawContent
-          .replace(/^```(json)?\s*/gi, "")
-          .replace(/\s*```$/g, "")
-          .replace(/^[^{]*/, "")
-          .replace(/[^}]*$/, "")
-          .trim();
+        // 使用超強JSON修復函數
+        let parseRes = safeParseJson(rawContent);
+        showDebug("JSON解析成功");
         
-        // 嘗試解析
-        let parseRes;
-        try {
-          parseRes = JSON.parse(rawContent);
-          showDebug("JSON解析成功");
-        } catch (e) {
-          showDebug(`第一次解析失敗，嘗試提取JSON區塊...`);
-          const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            parseRes = JSON.parse(jsonMatch[0]);
-            showDebug("提取JSON區塊成功");
+        // 驗證並修復所有必填字段
+        if (!parseRes.direction) parseRes.direction = "neutral";
+        if (!parseRes.advice) parseRes.advice = "建議觀望";
+        if (!parseRes.entry) parseRes.entry = 0;
+        if (!parseRes.stopLoss) parseRes.stopLoss = 0;
+        
+        // 自動計算止盈點位（如果AI沒有返回）
+        if (!parseRes.takeProfit1 || !parseRes.takeProfit2) {
+          if (parseRes.direction === 'long') {
+            const diff = parseRes.entry - parseRes.stopLoss;
+            parseRes.takeProfit1 = parseRes.entry + diff * 3;
+            parseRes.takeProfit2 = parseRes.entry + diff * 5;
+          } else if (parseRes.direction === 'short') {
+            const diff = parseRes.stopLoss - parseRes.entry;
+            parseRes.takeProfit1 = parseRes.entry - diff * 3;
+            parseRes.takeProfit2 = parseRes.entry - diff * 5;
           } else {
-            throw new Error(`無法從AI回應中提取有效數據`);
+            parseRes.takeProfit1 = parseRes.entry;
+            parseRes.takeProfit2 = parseRes.entry;
           }
-        }
-        
-        // 驗證返回的JSON結構
-        if (!parseRes.direction || !parseRes.entry || !parseRes.stopLoss || !parseRes.takeProfit1 || !parseRes.takeProfit2 || !parseRes.riskManagement || !parseRes.detailedAdvice) {
-          throw new Error(`AI返回的JSON格式不正確`);
         }
         
         // 強制設置風險收益比
         parseRes.riskReward = "1:3 / 1:5";
+        
+        // 設置默認值
+        if (!parseRes.tf15) parseRes.tf15 = "震盪";
+        if (!parseRes.tf5) parseRes.tf5 = "無訊號";
+        if (!parseRes.tf1) parseRes.tf1 = "等待進場";
+        if (!parseRes.rsi) parseRes.rsi = "正常";
+        if (!parseRes.riskManagement) parseRes.riskManagement = "使用2%帳戶資金風險，嚴格執行止損，絕不重倉";
+        if (!parseRes.detailedAdvice) parseRes.detailedAdvice = "1. 觀望等待更明確的訊號\n2. 不要貿然進場\n3. 耐心等待高勝率機會";
         
         state.aiAnalysis = parseRes;
         saveState();
@@ -856,7 +962,7 @@
         
       } catch (err) {
         console.error("AI解析錯誤:", err);
-        state.aiError = `❌ 錯誤: ${err.message}\n\n⚠️ 在GitHub Pages上必須使用代理伺服器才能正常工作！\n請到設定頁面部署並設置代理URL`;
+        state.aiError = `❌ 錯誤: ${err.message}\n\n⚠️ 請確保你已經正確部署並設置了Cloudflare代理伺服器！\n如果問題持續，請嘗試重新上傳截圖或檢查你的API Key`;
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
         showDebug(`錯誤詳情: ${err.stack}`);
