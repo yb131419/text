@@ -50,7 +50,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useRef } = React;
+    const { useState, useRef, useEffect } = React;
 
     // 工具函式
     const num = (v) => parseFloat(v) || 0;
@@ -61,7 +61,9 @@
     const saveData = (key, data) => {
       try {
         localStorage.setItem(`sniper_${key}`, JSON.stringify(data));
-      } catch (e) {}
+      } catch (e) {
+        console.error("保存失敗:", e);
+      }
     };
 
     const loadData = (key, defaultValue) => {
@@ -69,20 +71,23 @@
         const data = localStorage.getItem(`sniper_${key}`);
         return data ? JSON.parse(data) : defaultValue;
       } catch (e) {
+        console.error("讀取失敗:", e);
         return defaultValue;
       }
     };
 
     function App() {
       const [tab, setTab] = useState("home");
-      const [capital, setCapital] = useState(loadData("capital", "10000"));
-      const [entry, setEntry] = useState(loadData("entry", "19500"));
-      const [atr, setAtr] = useState(loadData("atr", "120"));
-      const [position, setPosition] = useState(loadData("position", null));
-      const [trades, setTrades] = useState(loadData("trades", []));
-      const [todayLoss, setTodayLoss] = useState(loadData("todayLoss", 0));
-      const [winRate, setWinRate] = useState(loadData("winRate", 0));
-      const [loseStreak, setLoseStreak] = useState(loadData("loseStreak", 0));
+      const [capital, setCapital] = useState(() => loadData("capital", "10000"));
+      const [entry, setEntry] = useState(() => loadData("entry", "19500"));
+      const [atr, setAtr] = useState(() => loadData("atr", "120"));
+      const [position, setPosition] = useState(() => loadData("position", null));
+      const [trades, setTrades] = useState(() => loadData("trades", []));
+      const [todayLoss, setTodayLoss] = useState(() => loadData("todayLoss", 0));
+      const [winRate, setWinRate] = useState(() => loadData("winRate", 0));
+      const [loseStreak, setLoseStreak] = useState(() => loadData("loseStreak", 0));
+      const [apiKey, setApiKey] = useState(() => loadData("apiKey", ""));
+      const [proxyUrl, setProxyUrl] = useState(() => loadData("proxyUrl", "https://api.openai.com/v1/chat/completions"));
 
       // K線條件狀態
       const [tf15, setTf15] = useState([false, false, false]);
@@ -118,20 +123,18 @@
       const [aiLoading, setAiLoading] = useState(false);
       const [aiResult, setAiResult] = useState(null);
       const [aiError, setAiError] = useState("");
-      const [apiKey, setApiKey] = useState(loadData("apiKey", ""));
 
-      // 持久化保存
-      useState(() => {
-        saveData("capital", capital);
-        saveData("entry", entry);
-        saveData("atr", atr);
-        saveData("position", position);
-        saveData("trades", trades);
-        saveData("todayLoss", todayLoss);
-        saveData("winRate", winRate);
-        saveData("loseStreak", loseStreak);
-        saveData("apiKey", apiKey);
-      }, [capital, entry, atr, position, trades, todayLoss, winRate, loseStreak, apiKey]);
+      // ✅ 正確的持久化保存（使用useEffect）
+      useEffect(() => { saveData("capital", capital); }, [capital]);
+      useEffect(() => { saveData("entry", entry); }, [entry]);
+      useEffect(() => { saveData("atr", atr); }, [atr]);
+      useEffect(() => { saveData("position", position); }, [position]);
+      useEffect(() => { saveData("trades", trades); }, [trades]);
+      useEffect(() => { saveData("todayLoss", todayLoss); }, [todayLoss]);
+      useEffect(() => { saveData("winRate", winRate); }, [winRate]);
+      useEffect(() => { saveData("loseStreak", loseStreak); }, [loseStreak]);
+      useEffect(() => { saveData("apiKey", apiKey); }, [apiKey]);
+      useEffect(() => { saveData("proxyUrl", proxyUrl); }, [proxyUrl]);
 
       // 圖片轉Base64
       const handleFileChange = (e) => {
@@ -169,7 +172,7 @@ c1_3: RSI介於45~65 true/false
 只輸出JSON，不要任何其他內容。
 `;
 
-      // ✅ 修復版 AI分析函數
+      // ✅ 最終穩定版 AI分析函數
       const runAiAnalyze = async () => {
         if (!aiBase64) return setAiError("請先上傳截圖");
         if (!apiKey) return setAiError("請先在設定頁面輸入你的OpenAI API Key");
@@ -177,7 +180,7 @@ c1_3: RSI介於45~65 true/false
         setAiLoading(true);
         setAiError("");
         try {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          const res = await fetch(proxyUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -195,16 +198,22 @@ c1_3: RSI介於45~65 true/false
                 },
               ],
               temperature: 0.1,
-              response_format: { type: "json_object" }, // 強制OpenAI返回JSON
+              response_format: { type: "json_object" },
             }),
           });
           
-          if (!res.ok) throw new Error(`API錯誤: ${res.status} ${res.statusText}`);
+          if (!res.ok) {
+            if (res.status === 401) throw new Error("API Key 無效，請檢查是否正確");
+            if (res.status === 403) throw new Error("API Key 沒有權限，請檢查額度和地區");
+            if (res.status === 429) throw new Error("請求過於頻繁，請稍後再試");
+            if (res.status === 0) throw new Error("CORS 跨域錯誤，請使用下方代理伺服器");
+            throw new Error(`API錯誤: ${res.status} ${res.statusText}`);
+          }
           
           const data = await res.json();
           let rawContent = data.choices[0].message.content.trim();
           
-          // 三重防護清除所有可能的雜訊
+          // 四重防護清除所有可能的雜訊
           rawContent = rawContent
             .replace(/^```(json)?\s*/gi, "")
             .replace(/\s*```$/g, "")
@@ -215,7 +224,6 @@ c1_3: RSI介於45~65 true/false
           try {
             parseRes = JSON.parse(rawContent);
           } catch (e) {
-            // 自動提取文本中所有 { ... } 結構
             const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               parseRes = JSON.parse(jsonMatch[0]);
@@ -230,7 +238,7 @@ c1_3: RSI介於45~65 true/false
           setTf1(parseRes.c1);
         } catch (err) {
           console.error("AI解析錯誤:", err);
-          setAiError(`解析失敗: ${err.message}\n請重新截圖確保指標清晰`);
+          setAiError(`錯誤: ${err.message}\n\n如果出現CORS錯誤，請在設定頁面使用代理伺服器`);
         } finally {
           setAiLoading(false);
         }
@@ -549,6 +557,27 @@ c1_3: RSI介於45~65 true/false
               </div>
 
               <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+                <div className="font-bold text-sm">代理伺服器設定（解決CORS錯誤）</div>
+                <input 
+                  value={proxyUrl}
+                  onChange={(e) => setProxyUrl(e.target.value)}
+                  placeholder="https://your-worker.your-name.workers.dev"
+                  className="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm"
+                />
+                <div className="text-xs text-gray-500">
+                  預設：https://api.openai.com/v1/chat/completions<br/>
+                  如果出現CORS錯誤，請使用下方一鍵部署的代理
+                </div>
+                <a 
+                  href="https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/worker-openai-proxy"
+                  target="_blank"
+                  className="block text-xs text-indigo-400 underline"
+                >
+                  👉 一鍵部署免費Cloudflare代理（30秒完成）
+                </a>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-4 space-y-3">
                 <div className="font-bold text-sm">風險參數</div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -606,7 +635,7 @@ c1_3: RSI介於45~65 true/false
                   </div>
                 )}
                 {/* 錯誤提示 */}
-                {aiError && <div className="text-red text-sm mb-3 p-2 bg-red/10 rounded">{aiError}</div>}
+                {aiError && <div className="text-red text-sm mb-3 p-2 bg-red/10 rounded whitespace-pre-line">{aiError}</div>}
                 {/* 分析按鈕 */}
                 <button
                   onClick={runAiAnalyze}
@@ -617,32 +646,32 @@ c1_3: RSI介於45~65 true/false
                 </button>
                 {/* AI解析結果 */}
                 {aiResult && (
-                  <div className="bg-black/30 rounded-xl p-3 space-y-3">
+                  <div className="bg-black/40 rounded-xl p-4 space-y-4 border border-gray-700">
                     <div>
-                      <div className="text-sm font-bold text-gray-300 mb-1">15分K條件</div>
-                      <div className="text-xs space-y-1">
+                      <div className="text-sm font-bold text-gray-200 mb-2">15分K條件</div>
+                      <div className="text-xs space-y-1 text-gray-300">
                         <div>EMA5>EMA20 {aiResult.c15[0] ? "✅" : "❌"}</div>
                         <div>ADX>25 {aiResult.c15[1] ? "✅" : "❌"}</div>
                         <div>高點墊高 {aiResult.c15[2] ? "✅" : "❌"}</div>
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-gray-300 mb-1">5分K條件</div>
-                      <div className="text-xs space-y-1">
+                      <div className="text-sm font-bold text-gray-200 mb-2">5分K條件</div>
+                      <div className="text-xs space-y-1 text-gray-300">
                         <div>EMA多頭排列 {aiResult.c5[0] ? "✅" : "❌"}</div>
                         <div>RSI45-70 {aiResult.c5[1] ? "✅" : "❌"}</div>
                         <div>站上EMA5 {aiResult.c5[2] ? "✅" : "❌"}</div>
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-gray-300 mb-1">1分K狙擊條件</div>
-                      <div className="text-xs space-y-1">
+                      <div className="text-sm font-bold text-gray-200 mb-2">1分K狙擊條件</div>
+                      <div className="text-xs space-y-1 text-gray-300">
                         <div>收盤站上EMA5 {aiResult.c1[0] ? "✅" : "❌"}</div>
                         <div>量能放大 {aiResult.c1[1] ? "✅" : "❌"}</div>
                         <div>RSI45-65 {aiResult.c1[2] ? "✅" : "❌"}</div>
                       </div>
                     </div>
-                    <div className="border-t border-gray-700 pt-2 mt-2">
+                    <div className="border-t border-gray-700 pt-3 mt-3">
                       <div className="text-sm font-bold text-indigo-300">AI建議：{aiResult.advice}</div>
                     </div>
                   </div>
