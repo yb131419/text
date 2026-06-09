@@ -80,7 +80,14 @@
       <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">
         開始判盤解析
       </button>
+      <button id="testApiButton" class="w-full py-2 rounded-lg bg-gray-700 font-bold mb-3 text-sm">
+        🧪 測試API連接
+      </button>
       <div id="aiResult" class="bg-darker rounded-xl p-4 space-y-4 border border-gray-600 hidden"></div>
+      <div id="aiRawResult" class="bg-black rounded-xl p-4 border border-gray-600 hidden">
+        <div class="text-sm font-bold text-white mb-2">原始API回應</div>
+        <pre id="rawResultText" class="text-xs text-gray-300 whitespace-pre-wrap break-all"></pre>
+      </div>
       <button id="resetAiButton" class="w-full mt-3 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">
         重新上傳圖片
       </button>
@@ -201,6 +208,14 @@
     // 隱藏調試信息
     const hideDebug = () => {
       document.getElementById('aiDebug').classList.add('hidden');
+    };
+
+    // 顯示原始結果
+    const showRawResult = (content) => {
+      const rawResultEl = document.getElementById('aiRawResult');
+      const rawResultText = document.getElementById('rawResultText');
+      rawResultText.textContent = content;
+      rawResultEl.classList.remove('hidden');
     };
 
     // 渲染風險警告
@@ -419,21 +434,23 @@
         </div>
 
         <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-          <div class="font-bold text-sm">代理伺服器設定（解決CORS錯誤）</div>
+          <div class="font-bold text-sm">代理伺服器設定（必須！）</div>
           <input 
             id="proxyUrlInput"
             value="${state.proxyUrl}"
             placeholder="https://your-worker.your-name.workers.dev"
             class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm"
           />
+          <div class="text-xs text-red-500 font-bold">
+            ⚠️ 在GitHub Pages上必須使用代理伺服器才能正常工作！
+          </div>
           <div class="text-xs text-gray-500">
-            預設：https://api.openai.com/v1/chat/completions<br/>
-            如果出現CORS錯誤，請使用下方一鍵部署的代理
+            直接連接OpenAI API會被Safari的CORS安全策略攔截
           </div>
           <a 
             href="https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/worker-openai-proxy"
             target="_blank"
-            class="block text-xs text-indigo-400 underline"
+            class="block text-xs text-indigo-400 underline mt-2"
           >
             👉 一鍵部署免費Cloudflare代理（30秒完成）
           </a>
@@ -678,6 +695,49 @@
       });
     };
 
+    // 測試API連接
+    const testApiConnection = async () => {
+      showDebug("測試API連接中...");
+      
+      if (!state.apiKey) {
+        showDebug("❌ 請先輸入API Key");
+        return;
+      }
+      
+      try {
+        const res = await fetch(state.proxyUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${state.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "user",
+                content: "說一句簡單的話"
+              }
+            ],
+            temperature: 0.1,
+            max_tokens: 100,
+          }),
+        });
+        
+        if (!res.ok) {
+          throw new Error(`API測試失敗: ${res.status} ${res.statusText}`);
+        }
+        
+        const data = await res.json();
+        showDebug(`✅ API連接成功！\n回應: ${data.choices[0].message.content}`);
+        setTimeout(hideDebug, 3000);
+        
+      } catch (err) {
+        console.error("API測試錯誤:", err);
+        showDebug(`❌ API連接失敗\n錯誤: ${err.message}\n\n⚠️ 請確保你已經部署了代理伺服器並正確設置了代理URL`);
+      }
+    };
+
     // AI分析函數
     const runAiAnalyze = async () => {
       showDebug("點擊解析按鈕，開始執行...");
@@ -706,12 +766,18 @@
       document.getElementById('analyzeButton').disabled = true;
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
+      document.getElementById('aiRawResult').classList.add('hidden');
 
       showDebug(`準備發送請求到: ${state.proxyUrl}`);
 
+      // 增強版Prompt
       const sniperPrompt = `
-你是專業NQ 1/5/15分K EMA5/EMA20+ADX+RSI趨勢判盤員，只回傳標準JSON格式，絕對不要加任何額外文字、解釋或markdown標籤。
+你是專業NQ 1/5/15分K EMA5/EMA20+ADX+RSI趨勢判盤員。
+絕對不要加任何額外文字、解釋或markdown標籤。
+只回傳標準JSON格式，不要任何其他內容。
+
 圖表是Mitrade NQ走勢圖，指標：EMA5黃、EMA20藍、ADX14、RSI14、成交量。
+
 規則：
 15分K三條件：
 c15_1: EMA5在EMA20上方 true/false
@@ -726,6 +792,10 @@ c1_1: 收盤站上EMA5 true/false
 c1_2: 量能大於前兩根均值 true/false
 c1_3: RSI介於45~65 true/false
 最後給advice：文字建議等待/進場/觀望
+
+輸出格式範例：
+{"c15":[true,true,true],"c5":[true,true,false],"c1":[false,false,false],"advice":"等待5分K站上EMA5"}
+
 只輸出JSON，不要任何其他內容。
 `;
       
@@ -745,12 +815,18 @@ c1_3: RSI介於45~65 true/false
                 role: "user",
                 content: [
                   { type: "text", text: sniperPrompt },
-                  { type: "image_url", image_url: { url: state.aiBase64 } },
+                  { 
+                    type: "image_url", 
+                    image_url: { 
+                      url: state.aiBase64,
+                      detail: "low" // 使用低分辨率模式，更快更穩定
+                    } 
+                  },
                 ],
               },
             ],
             temperature: 0.1,
-            response_format: { type: "json_object" },
+            max_tokens: 300,
           }),
         });
         
@@ -768,15 +844,20 @@ c1_3: RSI介於45~65 true/false
         showDebug("API回應解析成功");
         
         let rawContent = data.choices[0].message.content.trim();
-        showDebug(`原始回應長度: ${rawContent.length} 字元`);
+        showDebug(`原始回應: ${rawContent}`);
         
-        // 四重防護清除所有可能的雜訊
+        // 顯示原始結果
+        showRawResult(rawContent);
+        
+        // 五重防護清除所有可能的雜訊
         rawContent = rawContent
           .replace(/^```(json)?\s*/gi, "")
           .replace(/\s*```$/g, "")
+          .replace(/^[^{]*/, "") // 移除開頭所有非{字符
+          .replace(/[^}]*$/, "") // 移除結尾所有非}字符
           .trim();
         
-        showDebug(`清理後回應: ${rawContent.substring(0, 100)}...`);
+        showDebug(`清理後回應: ${rawContent}`);
         
         // 嘗試解析，失敗則尋找JSON區塊
         let parseRes;
@@ -790,8 +871,13 @@ c1_3: RSI介於45~65 true/false
             parseRes = JSON.parse(jsonMatch[0]);
             showDebug("提取JSON區塊成功");
           } else {
-            throw new Error("無法從AI回應中提取有效數據");
+            throw new Error(`無法從AI回應中提取有效數據\n原始回應: ${rawContent}`);
           }
+        }
+        
+        // 驗證返回的JSON結構
+        if (!parseRes.c15 || !parseRes.c5 || !parseRes.c1 || !parseRes.advice) {
+          throw new Error(`AI返回的JSON格式不正確\n返回內容: ${JSON.stringify(parseRes)}`);
         }
         
         state.aiResult = parseRes;
@@ -805,7 +891,7 @@ c1_3: RSI介於45~65 true/false
         
       } catch (err) {
         console.error("AI解析錯誤:", err);
-        state.aiError = `❌ 錯誤: ${err.message}\n\n如果出現CORS錯誤，請在設定頁面使用代理伺服器`;
+        state.aiError = `❌ 錯誤: ${err.message}\n\n⚠️ 在GitHub Pages上必須使用代理伺服器才能正常工作！\n請到設定頁面部署並設置代理URL`;
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
         showDebug(`錯誤詳情: ${err.stack}`);
@@ -813,7 +899,7 @@ c1_3: RSI介於45~65 true/false
         state.aiLoading = false;
         document.getElementById('analyzeButton').textContent = "開始判盤解析";
         document.getElementById('analyzeButton').disabled = false;
-        render();
+        render(); // 確保無論成功失敗都更新UI
       }
     };
 
@@ -866,6 +952,7 @@ c1_3: RSI介於45~65 true/false
         state.aiResult = null;
         document.getElementById('aiError').classList.add('hidden');
         document.getElementById('aiResult').classList.add('hidden');
+        document.getElementById('aiRawResult').classList.add('hidden');
         hideDebug();
         
         const previewImg = document.getElementById('previewImg');
@@ -888,6 +975,13 @@ c1_3: RSI介於45~65 true/false
         runAiAnalyze();
       });
 
+      // 測試API按鈕
+      document.getElementById('testApiButton').addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        testApiConnection();
+      });
+
       // 重置AI按鈕
       document.getElementById('resetAiButton').addEventListener('click', () => {
         console.log("重置AI面板");
@@ -899,6 +993,7 @@ c1_3: RSI介於45~65 true/false
         document.getElementById('imagePreview').classList.add('hidden');
         document.getElementById('aiError').classList.add('hidden');
         document.getElementById('aiResult').classList.add('hidden');
+        document.getElementById('aiRawResult').classList.add('hidden');
         document.getElementById('aiDebug').classList.add('hidden');
         document.getElementById('analyzeButton').disabled = false;
         document.getElementById('fileInput').value = "";
