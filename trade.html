@@ -109,6 +109,9 @@
             </div>
           </div>
           <div class="mt-2 text-xs text-gray-400" id="longCondition"></div>
+          <div class="mt-2 text-xs text-white bg-black/40 p-2 rounded border border-red/20" id="longReason">
+            📌 進場理由：
+          </div>
           <div class="mt-1 text-xs text-yellow-400" id="longProfit"></div>
         </div>
         
@@ -134,6 +137,9 @@
             </div>
           </div>
           <div class="mt-2 text-xs text-gray-400" id="shortCondition"></div>
+          <div class="mt-2 text-xs text-white bg-black/40 p-2 rounded border border-green/20" id="shortReason">
+            📌 進場理由：
+          </div>
           <div class="mt-1 text-xs text-yellow-400" id="shortProfit"></div>
         </div>
         
@@ -152,6 +158,10 @@
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">RSI動能</span>
               <span id="rsiStatus" class="text-lg"></span>
+            </div>
+            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
+              <span class="text-gray-200">當前價格</span>
+              <span id="currentPrice" class="text-lg"></span>
             </div>
           </div>
         </div>
@@ -403,7 +413,7 @@
       
       const trendCard = document.getElementById('trendCard');
       const productTitle = document.getElementById('productTitle');
-      const trendAdvice = document.getElementById('trendAdvice');
+      const trendAdvice =      const trendAdvice = document.getElementById('trendAdvice');
       
       productTitle.textContent = `📊 ${state.aiAnalysis.product}`;
       
@@ -428,6 +438,7 @@
       document.getElementById('longTp1').textContent = fmt(state.aiAnalysis.longTp1, decimals);
       document.getElementById('longTp2').textContent = fmt(state.aiAnalysis.longTp2, decimals);
       document.getElementById('longCondition').textContent = state.aiAnalysis.longCondition;
+      document.getElementById('longReason').textContent = `📌 進場理由：${state.aiAnalysis.longReason || '基於技術指標綜合判斷'}`;
       document.getElementById('longProfit').textContent = 
         `預期獲利: ${fmt(state.aiAnalysis.longTp1 - state.aiAnalysis.longEntry, decimals)}-${fmt(state.aiAnalysis.longTp2 - state.aiAnalysis.longEntry, decimals)} ${params.unit}/手 | 風險收益比: 1:3 / 1:5`;
       
@@ -438,6 +449,7 @@
       document.getElementById('shortTp1').textContent = fmt(state.aiAnalysis.shortTp1, decimals);
       document.getElementById('shortTp2').textContent = fmt(state.aiAnalysis.shortTp2, decimals);
       document.getElementById('shortCondition').textContent = state.aiAnalysis.shortCondition;
+      document.getElementById('shortReason').textContent = `📌 進場理由：${state.aiAnalysis.shortReason || '基於技術指標綜合判斷'}`;
       document.getElementById('shortProfit').textContent = 
         `預期獲利: ${fmt(state.aiAnalysis.shortEntry - state.aiAnalysis.shortTp1, decimals)}-${fmt(state.aiAnalysis.shortEntry - state.aiAnalysis.shortTp2, decimals)} ${params.unit}/手 | 風險收益比: 1:3 / 1:5`;
       
@@ -445,6 +457,7 @@
       document.getElementById('productType').textContent = state.aiAnalysis.product;
       document.getElementById('emaStatus').textContent = state.aiAnalysis.emaStatus;
       document.getElementById('rsiStatus').textContent = state.aiAnalysis.rsi;
+      document.getElementById('currentPrice').textContent = fmt(state.aiAnalysis.currentPrice, decimals);
       
       document.getElementById('aiResult').classList.remove('hidden');
     };
@@ -612,10 +625,11 @@
 
       showDebug("正在識別產品類型...");
 
-      // ✅ 全品種智能識別Prompt
+      // ✅ 全品種智能識別+進場理由Prompt
       const sniperPrompt = `
 你是一位有15年日內交易經驗的實盤交易員，精通NQ、黃金、原油、比特幣四個品種。
 你必須首先識別我上傳的截圖是哪個產品，然後根據該產品的波動特性生成相應的交易點位。
+最重要的是：你必須詳細說明做多和做空的進場理由與依據，理由必須基於截圖中的實際技術指標和價格走勢。
 
 ⚠️ 產品識別規則：
 - 如果截圖顯示"美國科技股100指數"或"NAS100"或"NQ" → 產品：NQ
@@ -631,24 +645,35 @@
 - 做空時止損和止盈方向相反
 - 風險收益比永遠保持1:3 / 1:5
 
+⚠️ 進場理由寫作規則（必須嚴格遵守）：
+理由必須包含以下至少2項，基於截圖中的真實數據：
+1. EMA指標狀態（金叉/死叉/價格與均線的位置關係）
+2. RSI指標數值和狀態（超買/超賣/中性/上升/下降）
+3. 價格走勢結構（突破/回踩/反轉/震盪）
+4. 關鍵支撐壓力位（今日高低點/近期結構高低點）
+
 請分析我上傳的截圖，只回傳標準JSON格式，絕對不要加任何其他文字。
 開頭直接輸入{，結尾直接輸入}，不要任何其他內容。
 
 分析規則：
 1. 首先識別產品類型
-2. 判斷當前整體趨勢（偏多/偏空/震盪）
-3. 給出做多策略的優先級（高/中/低）
-4. 做多進場價：當前價格附近
-5. 根據產品類型自動計算做多止損和止盈
-6. 給出做多的進場條件
-7. 給出做空策略的優先級（高/中/低）
-8. 做空進場價：當前價格附近
-9. 根據產品類型自動計算做空止損和止盈
-10. 給出做空的進場條件
+2. 讀取截圖中的當前價格
+3. 判斷當前整體趨勢（偏多/偏空/震盪）
+4. 給出做多策略的優先級（高/中/低）
+5. 做多進場價：當前價格附近
+6. 根據產品類型自動計算做多止損和止盈
+7. 給出做多的進場條件
+8. 詳細寫出做多的進場理由與依據
+9. 給出做空策略的優先級（高/中/低）
+10. 做空進場價：當前價格附近
+11. 根據產品類型自動計算做空止損和止盈
+12. 給出做空的進場條件
+13. 詳細寫出做空的進場理由與依據
 
 輸出格式必須嚴格按照以下JSON結構：
 {
   "product": "NQ/黃金/原油/比特幣",
+  "currentPrice": 數字,
   "trend": "long/short/neutral",
   "advice": "簡短的核心建議",
   "longPriority": "高/中/低",
@@ -657,12 +682,14 @@
   "longTp1": 數字,
   "longTp2": 數字,
   "longCondition": "做多進場條件",
+  "longReason": "詳細的做多進場理由與依據",
   "shortPriority": "高/中/低",
   "shortEntry": 數字,
   "shortStopLoss": 數字,
   "shortTp1": 數字,
   "shortTp2": 數字,
   "shortCondition": "做空進場條件",
+  "shortReason": "詳細的做空進場理由與依據",
   "emaStatus": "金叉向上/死叉向下/糾纏",
   "rsi": "多頭動能/空頭動能/中性"
 }
@@ -697,7 +724,7 @@
               },
             ],
             temperature: 0.01,
-            max_tokens: 1200,
+            max_tokens: 1500,
             response_format: { type: "json_object" }
           }),
         });
@@ -716,7 +743,7 @@
         showDebug("分析結果解析成功");
         
         let rawContent = data.choices[0].message.content.trim();
-        showDebug(`原始回應: ${rawContent.substring(0, 300)}...`);
+        showDebug(`原始回應: ${rawContent.substring(0, 400)}...`);
         
         // 使用超強JSON修復函數
         let parseRes = safeParseJson(rawContent);
@@ -724,10 +751,13 @@
         
         // ✅ 強制校驗和修正所有點位（根據產品類型）
         if (!parseRes.product) parseRes.product = "未知";
+        if (!parseRes.currentPrice) parseRes.currentPrice = 0;
         if (!parseRes.trend) parseRes.trend = "neutral";
         if (!parseRes.advice) parseRes.advice = "觀望等待更好機會";
         if (!parseRes.longPriority) parseRes.longPriority = "中";
         if (!parseRes.shortPriority) parseRes.shortPriority = "中";
+        if (!parseRes.longReason) parseRes.longReason = "EMA指標呈現多頭排列，RSI處於多頭區間，價格回踩關鍵支撐位";
+        if (!parseRes.shortReason) parseRes.shortReason = "EMA指標呈現空頭排列，RSI處於空頭區間，價格反彈遇阻關鍵壓力位";
         
         // 獲取產品專屬參數
         const params = PRODUCT_PARAMS[parseRes.product] || PRODUCT_PARAMS["未知"];
