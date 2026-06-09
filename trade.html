@@ -150,7 +150,7 @@
 
       // GPT-4o Vision 專用判盤Prompt
       const sniperPrompt = `
-你是專業NQ 1/5/15分K EMA5/EMA20+ADX+RSI趨勢判盤員，只回傳JSON格式，不要額外文字。
+你是專業NQ 1/5/15分K EMA5/EMA20+ADX+RSI趨勢判盤員，只回傳標準JSON格式，絕對不要加任何額外文字、解釋或markdown標籤。
 圖表是Mitrade NQ走勢圖，指標：EMA5黃、EMA20藍、ADX14、RSI14、成交量。
 規則：
 15分K三條件：
@@ -166,16 +166,10 @@ c1_1: 收盤站上EMA5 true/false
 c1_2: 量能大於前兩根均值 true/false
 c1_3: RSI介於45~65 true/false
 最後給advice：文字建議等待/進場/觀望
-輸出範例JSON：
-{
-  "c15":[true,true,true],
-  "c5":[true,true,false],
-  "c1":[false,false,false],
-  "advice":"等待5分K站上EMA5"
-}
+只輸出JSON，不要任何其他內容。
 `;
 
-      // 呼叫AI分析
+      // ✅ 修復版 AI分析函數
       const runAiAnalyze = async () => {
         if (!aiBase64) return setAiError("請先上傳截圖");
         if (!apiKey) return setAiError("請先在設定頁面輸入你的OpenAI API Key");
@@ -201,22 +195,42 @@ c1_3: RSI介於45~65 true/false
                 },
               ],
               temperature: 0.1,
+              response_format: { type: "json_object" }, // 強制OpenAI返回JSON
             }),
           });
           
-          if (!res.ok) throw new Error(`API錯誤: ${res.status}`);
+          if (!res.ok) throw new Error(`API錯誤: ${res.status} ${res.statusText}`);
           
           const data = await res.json();
-          const rawJson = data.choices[0].message.content.trim();
-          const parseRes = JSON.parse(rawJson);
-          setAiResult(parseRes);
+          let rawContent = data.choices[0].message.content.trim();
           
-          // 自動回填畫面K線開關
+          // 三重防護清除所有可能的雜訊
+          rawContent = rawContent
+            .replace(/^```(json)?\s*/gi, "")
+            .replace(/\s*```$/g, "")
+            .trim();
+          
+          // 嘗試解析，失敗則尋找JSON區塊
+          let parseRes;
+          try {
+            parseRes = JSON.parse(rawContent);
+          } catch (e) {
+            // 自動提取文本中所有 { ... } 結構
+            const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              parseRes = JSON.parse(jsonMatch[0]);
+            } else {
+              throw new Error("無法從AI回應中提取有效數據");
+            }
+          }
+          
+          setAiResult(parseRes);
           setTf15(parseRes.c15);
           setTf5(parseRes.c5);
           setTf1(parseRes.c1);
         } catch (err) {
-          setAiError(err.message || "AI分析失敗，檢查圖片或API金鑰");
+          console.error("AI解析錯誤:", err);
+          setAiError(`解析失敗: ${err.message}\n請重新截圖確保指標清晰`);
         } finally {
           setAiLoading(false);
         }
