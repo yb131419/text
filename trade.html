@@ -124,7 +124,7 @@
       const [aiResult, setAiResult] = useState(null);
       const [aiError, setAiError] = useState("");
 
-      // ✅ 正確的持久化保存（使用useEffect）
+      // 正確的持久化保存
       useEffect(() => { saveData("capital", capital); }, [capital]);
       useEffect(() => { saveData("entry", entry); }, [entry]);
       useEffect(() => { saveData("atr", atr); }, [atr]);
@@ -172,7 +172,7 @@ c1_3: RSI介於45~65 true/false
 只輸出JSON，不要任何其他內容。
 `;
 
-      // ✅ 最終穩定版 AI分析函數
+      // 最終穩定版 AI分析函數
       const runAiAnalyze = async () => {
         if (!aiBase64) return setAiError("請先上傳截圖");
         if (!apiKey) return setAiError("請先在設定頁面輸入你的OpenAI API Key");
@@ -615,11 +615,11 @@ c1_3: RSI介於45~65 true/false
 
           {/* AI看盤彈窗模態框 */}
           {aiModalOpen && (
-            <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
-              <div className="bg-darker w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center">
+              <div className="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold">🤖 AI截圖判盤</h3>
-                  <button onClick={() => setAiModalOpen(false)} className="text-gray-400 text-xl">✕</button>
+                  <h3 className="text-lg font-bold text-white">🤖 AI截圖判盤</h3>
+                  <button onClick={() => setAiModalOpen(false)} className="text-gray-300 text-xl">✕</button>
                 </div>
                 <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
                 <button
@@ -635,7 +635,7 @@ c1_3: RSI介於45~65 true/false
                   </div>
                 )}
                 {/* 錯誤提示 */}
-                {aiError && <div className="text-red text-sm mb-3 p-2 bg-red/10 rounded whitespace-pre-line">{aiError}</div>}
+                {aiError && <div className="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line">{aiError}</div>}
                 {/* 分析按鈕 */}
                 <button
                   onClick={runAiAnalyze}
@@ -644,39 +644,69 @@ c1_3: RSI介於45~65 true/false
                 >
                   {aiLoading ? "AI分析中..." : "開始判盤解析"}
                 </button>
-                {/* AI解析結果 */}
+                {/* ✅ 完全修復黑色顯示問題 */}
                 {aiResult && (
-                  <div className="bg-black/40 rounded-xl p-4 space-y-4 border border-gray-700">
+                  <div className="bg-darker rounded-xl p-4 space-y-4 border border-gray-600">
                     <div>
-                      <div className="text-sm font-bold text-gray-200 mb-2">15分K條件</div>
-                      <div className="text-xs space-y-1 text-gray-300">
-                        <div>EMA5>EMA20 {aiResult.c15[0] ? "✅" : "❌"}</div>
-                        <div>ADX>25 {aiResult.c15[1] ? "✅" : "❌"}</div>
-                        <div>高點墊高 {aiResult.c15[2] ? "✅" : "❌"}</div>
+                      <div className="text-sm font-bold text-white mb-2">15分K條件</div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                          <span className="text-gray-200">EMA5>EMA20</span>
+                          <span className="text-lg">{aiResult.c15[0] ? "✅" : "❌"}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                          <span className="text-gray-200">ADX>25</span>
+                          <span className="text-lg">{aiResult.c15[1] ? "✅" : "❌"}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                          <span className="text-gray-200">高點墊高</span>
+                          <span className="text-lg">{aiResult.c15[2] ? "✅" : "❌"}</span>
+                        </div>
                       </div>
                     </div>
+                    
                     <div>
-                      <div className="text-sm font-bold text-gray-200 mb-2">5分K條件</div>
-                      <div className="text-xs space-y-1 text-gray-300">
-                        <div>EMA多頭排列 {aiResult.c5[0] ? "✅" : "❌"}</div>
-                        <div>RSI45-70 {aiResult.c5[1] ? "✅" : "❌"}</div>
-                        <div>站上EMA5 {aiResult.c5[2] ? "✅" : "❌"}</div>
+                      <div className="text-sm font-bold text-white mb-2">5分K條件</div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                          <span className="text-gray-200">EMA多頭排列</span>
+                          <span className="text-lg">{aiResult.c5[0] ? "✅" : "❌"}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                          <span className="text-gray-200">RSI45-70</span>
+                          <span className="text-lg">{aiResult.c5[1] ? "✅" : "❌"}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                          <span className="text-gray-200">站上EMA5</span>
+                          <span className="text-lg">{aiResult.c5[2] ? "✅" : "❌"}</span>
+                        </div>
                       </div>
                     </div>
+                    
                     <div>
-                      <div className="text-sm font-bold text-gray-200 mb-2">1分K狙擊條件</div>
-                      <div className="text-xs space-y-1 text-gray-300">
-                        <div>收盤站上EMA5 {aiResult.c1[0] ? "✅" : "❌"}</div>
-                        <div>量能放大 {aiResult.c1[1] ? "✅" : "❌"}</div>
-                        <div>RSI45-65 {aiResult.c1[2] ? "✅" : "❌"}</div>
+                      <div className="text-sm font-bold text-white mb-2">1分K狙擊條件</div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                          <span className="text-gray-200">收盤站上EMA5</span>
+                          <span className="text-lg">{aiResult.c1[0] ? "✅" : "❌"}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                          <span className="text-gray-200">量能放大</span>
+                          <span className="text-lg">{aiResult.c1[1] ? "✅" : "❌"}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                          <span className="text-gray-200">RSI45-65</span>
+                          <span className="text-lg">{aiResult.c1[2] ? "✅" : "❌"}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="border-t border-gray-700 pt-3 mt-3">
+                    
+                    <div className="border-t border-gray-600 pt-3 mt-3">
                       <div className="text-sm font-bold text-indigo-300">AI建議：{aiResult.advice}</div>
                     </div>
                   </div>
                 )}
-                <button onClick={resetAiPanel} className="w-full mt-3 py-2 border border-gray-700 rounded-lg text-gray-400 text-sm">
+                <button onClick={resetAiPanel} className="w-full mt-3 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">
                   重新上傳圖片
                 </button>
               </div>
