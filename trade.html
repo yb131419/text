@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NQ 全圖型智能狙擊系統</title>
+  <title>NQ 實盤交易輔助系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
@@ -49,8 +49,8 @@
 
   <!-- 頂部標題 -->
   <div class="bg-darker border-b border-border p-4 text-center">
-    <div class="text-xs text-gray-500 tracking-widest mb-1">NQ 全圖型智能狙擊系統</div>
-    <div class="text-xl font-bold">⚡ 精準多空進出點位</div>
+    <div class="text-xs text-gray-500 tracking-widest mb-1">NQ 實盤交易輔助系統</div>
+    <div class="text-xl font-bold">⚡ 雙向精確進出點位</div>
   </div>
 
   <!-- 主內容區 -->
@@ -65,13 +65,13 @@
   <div id="aiModal" class="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center hidden">
     <div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-white">📊 AI專業技術分析</h3>
+        <h3 class="text-lg font-bold text-white">📊 實盤智能分析</h3>
         <button id="closeAiModal" class="text-gray-300 text-xl">✕</button>
       </div>
       <input id="fileInput" type="file" accept="image/*" hidden />
       <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
-        上傳任何Mitrade截圖
-        <div class="text-xs mt-1 text-gray-400">✅ 支持分時圖 ✅ 支持K線圖(1/5/15分)</div>
+        上傳當前K線/分時截圖
+        <div class="text-xs mt-1 text-gray-400">✅ 實盤專用 多空雙向點位</div>
       </button>
       <div id="imagePreview" class="mb-3 hidden">
         <img id="previewImg" src="" alt="chart preview" class="w-full rounded-lg object-contain max-h-52" />
@@ -79,50 +79,78 @@
       <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
       <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
       <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">
-        開始AI智能分析
+        生成實盤交易點位
       </button>
       
-      <!-- AI智能分析結果區域 -->
+      <!-- 雙向實盤點位區域 -->
       <div id="aiResult" class="space-y-4 hidden">
-        <!-- 趨勢判斷卡片 -->
+        <!-- 當前趨勢判斷 -->
         <div id="trendCard" class="rounded-xl p-4 border">
           <div class="text-lg font-bold text-center mb-2" id="trendTitle"></div>
           <div class="text-center text-sm text-gray-300" id="trendAdvice"></div>
         </div>
         
-        <!-- 精確點位卡片 (升級版：止損止盈更醒目) -->
-        <div class="bg-darker rounded-xl p-4 border border-gray-600">
-          <div class="text-sm font-bold text-white mb-3">🎯 精確進出點位</div>
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div class="bg-black/30 p-3 rounded text-center border border-indigo/30">
-              <div class="text-gray-400 text-xs mb-1">進場價</div>
-              <div class="text-xl font-bold text-indigo" id="entryPrice"></div>
+        <!-- 🟢 做多點位卡片 -->
+        <div class="bg-darker rounded-xl p-4 border border-green/30">
+          <div class="text-sm font-bold text-green mb-3">🟢 做多策略 (優先級: <span id="longPriority"></span>)</div>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="bg-black/30 p-2 rounded text-center">
+              <div class="text-gray-400 text-xs">進場價</div>
+              <div class="text-lg font-bold text-green" id="longEntry"></div>
             </div>
-            <div class="bg-black/30 p-3 rounded text-center border border-red/50">
-              <div class="text-gray-400 text-xs mb-1">⛔ 絕對止損</div>
-              <div class="text-xl font-bold text-red" id="stopLoss"></div>
+            <div class="bg-black/30 p-2 rounded text-center border border-red/50">
+              <div class="text-gray-400 text-xs">⛔ 止損</div>
+              <div class="text-lg font-bold text-red" id="longStopLoss"></div>
             </div>
-            <div class="bg-black/30 p-3 rounded text-center border border-yellow/50">
-              <div class="text-gray-400 text-xs mb-1">✅ 止盈1 (3R)</div>
-              <div class="text-xl font-bold text-yellow" id="takeProfit1"></div>
+            <div class="bg-black/30 p-2 rounded text-center">
+              <div class="text-gray-400 text-xs">✅ 止盈1</div>
+              <div class="text-lg font-bold text-yellow" id="longTp1"></div>
             </div>
-            <div class="bg-black/30 p-3 rounded text-center border border-green/50">
-              <div class="text-gray-400 text-xs mb-1">✅ 止盈2 (5R)</div>
-              <div class="text-xl font-bold text-green" id="takeProfit2"></div>
+            <div class="bg-black/30 p-2 rounded text-center">
+              <div class="text-gray-400 text-xs">✅ 止盈2</div>
+              <div class="text-lg font-bold text-green" id="longTp2"></div>
             </div>
           </div>
-          <div class="mt-3 text-center text-sm">
-            <span class="text-gray-400">風險收益比：</span>
-            <span class="font-bold" id="riskReward"></span>
+          <div class="mt-2 text-xs text-gray-400" id="longCondition">
+            進場條件：價格回調到進場價附近且出現止跌訊號
           </div>
-          <div class="mt-2 text-center text-xs text-red-400 font-bold" id="stopLossNote">
-            ⚠️ 觸及止損立即離場，絕不扛單
+          <button id="longButton" class="w-full mt-3 py-2 rounded-lg bg-green font-bold text-white">
+            一鍵做多
+          </button>
+        </div>
+        
+        <!-- 🔴 做空點位卡片 -->
+        <div class="bg-darker rounded-xl p-4 border border-red/30">
+          <div class="text-sm font-bold text-red mb-3">🔴 做空策略 (優先級: <span id="shortPriority"></span>)</div>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="bg-black/30 p-2 rounded text-center">
+              <div class="text-gray-400 text-xs">進場價</div>
+              <div class="text-lg font-bold text-red" id="shortEntry"></div>
+            </div>
+            <div class="bg-black/30 p-2 rounded text-center border border-red/50">
+              <div class="text-gray-400 text-xs">⛔ 止損</div>
+              <div class="text-lg font-bold text-red" id="shortStopLoss"></div>
+            </div>
+            <div class="bg-black/30 p-2 rounded text-center">
+              <div class="text-gray-400 text-xs">✅ 止盈1</div>
+              <div class="text-lg font-bold text-yellow" id="shortTp1"></div>
+            </div>
+            <div class="bg-black/30 p-2 rounded text-center">
+              <div class="text-gray-400 text-xs">✅ 止盈2</div>
+              <div class="text-lg font-bold text-green" id="shortTp2"></div>
+            </div>
           </div>
+          <div class="mt-2 text-xs text-gray-400" id="shortCondition">
+            進場條件：價格反彈到進場價附近且出現止漲訊號
+          </div>
+          <button id="shortButton" class="w-full mt-3 py-2 rounded-lg bg-red font-bold text-white">
+            一鍵做空
+          </button>
         </div>
         
         <!-- 技術分析卡片 -->
         <div class="bg-darker rounded-xl p-4 border border-gray-600">
-          <div class="text-sm font-bold text-white mb-3">📈 技術分析結果</div>
+          <div class="text-sm font-bold text-white mb-3">📈 技術分析</div>
           <div class="space-y-2">
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">圖表類型</span>
@@ -136,27 +164,24 @@
               <span class="text-gray-200">RSI動能</span>
               <span id="rsiStatus" class="text-lg"></span>
             </div>
-            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">進場模式</span>
-              <span id="entryMode" class="text-lg"></span>
-            </div>
           </div>
         </div>
         
-        <!-- 操作建議卡片 -->
+        <!-- 風險管理卡片 -->
         <div class="bg-darker rounded-xl p-4 border border-gray-600">
-          <div class="text-sm font-bold text-white mb-2">💡 詳細操作步驟</div>
-          <div class="text-sm text-gray-300 whitespace-pre-line" id="detailedAdvice"></div>
+          <div class="text-sm font-bold text-white mb-2">🛡️ 實盤風險管理</div>
+          <div class="text-sm text-gray-300 whitespace-pre-line" id="riskManagement">
+1. 每筆交易最大風險：2%帳戶資金
+2. 觸及止損立即離場，絕不扛單
+3. 止盈1平倉一半，移動止損到進場價
+4. 不要同時持有多空雙向倉位
+5. 連輸3筆，今日停止交易
+          </div>
         </div>
-        
-        <!-- 一鍵執行按鈕 -->
-        <button id="executeTradeButton" class="w-full py-3 rounded-lg font-bold text-lg">
-          一鍵執行交易
-        </button>
       </div>
       
       <button id="resetAiButton" class="w-full mt-3 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">
-        重新上傳圖片
+        重新上傳截圖
       </button>
     </div>
   </div>
@@ -310,41 +335,31 @@
           </div>
         </div>
 
-        <!-- AI最新分析 -->
+        <!-- 最新實盤點位 -->
         ${state.aiAnalysis ? `
           <div class="bg-card border border-border rounded-2xl p-4">
-            <div class="text-xs font-bold text-gray-400 mb-2">🤖 AI最新分析</div>
+            <div class="text-xs font-bold text-gray-400 mb-2">🤖 最新實盤點位</div>
             <div class="text-center mb-3">
-              <div class="text-2xl font-bold ${state.aiAnalysis.direction === 'long' ? 'text-green' : state.aiAnalysis.direction === 'short' ? 'text-red' : 'text-yellow'}">
-                ${state.aiAnalysis.direction === 'long' ? '🟢 做多' : state.aiAnalysis.direction === 'short' ? '🔴 做空' : '🟡 觀望'}
+              <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-green' : state.aiAnalysis.trend === 'short' ? 'text-red' : 'text-yellow'}">
+                ${state.aiAnalysis.trend === 'long' ? '🟢 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🔴 偏空趨勢' : '🟡 震盪趨勢'}
               </div>
               <div class="text-sm text-gray-300">${state.aiAnalysis.advice}</div>
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
-              <div class="bg-black/20 p-2 rounded text-center">
-                建議進場 <span class="font-bold">${fmt(state.aiAnalysis.entry)}</span>
+              <div class="bg-green/10 p-2 rounded text-center border border-green/30">
+                做多進場 <span class="font-bold text-green">${fmt(state.aiAnalysis.longEntry)}</span>
               </div>
-              <div class="bg-black/20 p-2 rounded text-center">
-                絕對止損 <span class="font-bold text-red">${fmt(state.aiAnalysis.stopLoss)}</span>
+              <div class="bg-red/10 p-2 rounded text-center border border-red/30">
+                做空進場 <span class="font-bold text-red">${fmt(state.aiAnalysis.shortEntry)}</span>
               </div>
             </div>
           </div>
         ` : `
           <div class="bg-card border border-border rounded-2xl p-4 text-center">
-            <div class="text-gray-400 mb-2">還沒有分析</div>
-            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳任何截圖</div>
+            <div class="text-gray-400 mb-2">還沒有實盤點位</div>
+            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳當前截圖</div>
           </div>
         `}
-
-        ${!state.position && state.aiAnalysis && state.aiAnalysis.direction !== 'neutral' ? `
-          <button 
-            id="executeTradeButton" 
-            class="w-full py-4 rounded-xl text-lg font-bold ${state.aiAnalysis.direction === 'long' ? 'bg-green' : 'bg-red'} text-white ${locked ? 'opacity-40 cursor-not-allowed' : ''}"
-            ${locked ? 'disabled' : ''}
-          >
-            [ 一鍵${state.aiAnalysis.direction === 'long' ? '做多' : '做空'} ]
-          </button>
-        ` : ''}
 
         <!-- 持倉管理 -->
         ${state.position ? `
@@ -489,47 +504,61 @@
       const trendTitle = document.getElementById('trendTitle');
       const trendAdvice = document.getElementById('trendAdvice');
       
-      if (state.aiAnalysis.direction === 'long') {
+      if (state.aiAnalysis.trend === 'long') {
         trendCard.className = "rounded-xl p-4 border bg-green/10 border-green/30";
         trendTitle.className = "text-lg font-bold text-center mb-2 text-green";
-        trendTitle.textContent = "🟢 確認多頭信號 建議做多";
-      } else if (state.aiAnalysis.direction === 'short') {
+        trendTitle.textContent = "🟢 當前趨勢：偏多";
+      } else if (state.aiAnalysis.trend === 'short') {
         trendCard.className = "rounded-xl p-4 border bg-red/10 border-red/30";
         trendTitle.className = "text-lg font-bold text-center mb-2 text-red";
-        trendTitle.textContent = "🔴 確認空頭信號 建議做空";
+        trendTitle.textContent = "🔴 當前趨勢：偏空";
       } else {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
         trendTitle.className = "text-lg font-bold text-center mb-2 text-yellow";
-        trendTitle.textContent = "🟡 震盪整理 建議觀望";
+        trendTitle.textContent = "🟡 當前趨勢：震盪";
       }
       
       trendAdvice.textContent = state.aiAnalysis.advice;
       
-      document.getElementById('entryPrice').textContent = fmt(state.aiAnalysis.entry);
-      document.getElementById('stopLoss').textContent = fmt(state.aiAnalysis.stopLoss);
-      document.getElementById('takeProfit1').textContent = fmt(state.aiAnalysis.takeProfit1);
-      document.getElementById('takeProfit2').textContent = fmt(state.aiAnalysis.takeProfit2);
-      document.getElementById('riskReward').textContent = state.aiAnalysis.riskReward;
-      document.getElementById('stopLossNote').textContent = `⚠️ ${state.aiAnalysis.stopLossNote || '觸及止損立即離場，絕不扛單'}`;
+      // 做多點位
+      document.getElementById('longPriority').textContent = state.aiAnalysis.longPriority;
+      document.getElementById('longEntry').textContent = fmt(state.aiAnalysis.longEntry);
+      document.getElementById('longStopLoss').textContent = fmt(state.aiAnalysis.longStopLoss);
+      document.getElementById('longTp1').textContent = fmt(state.aiAnalysis.longTp1);
+      document.getElementById('longTp2').textContent = fmt(state.aiAnalysis.longTp2);
+      document.getElementById('longCondition').textContent = state.aiAnalysis.longCondition;
       
+      // 做空點位
+      document.getElementById('shortPriority').textContent = state.aiAnalysis.shortPriority;
+      document.getElementById('shortEntry').textContent = fmt(state.aiAnalysis.shortEntry);
+      document.getElementById('shortStopLoss').textContent = fmt(state.aiAnalysis.shortStopLoss);
+      document.getElementById('shortTp1').textContent = fmt(state.aiAnalysis.shortTp1);
+      document.getElementById('shortTp2').textContent = fmt(state.aiAnalysis.shortTp2);
+      document.getElementById('shortCondition').textContent = state.aiAnalysis.shortCondition;
+      
+      // 技術分析
       document.getElementById('chartType').textContent = state.aiAnalysis.chartType;
       document.getElementById('emaStatus').textContent = state.aiAnalysis.emaStatus;
       document.getElementById('rsiStatus').textContent = state.aiAnalysis.rsi;
-      document.getElementById('entryMode').textContent = state.aiAnalysis.entryMode;
       
-      document.getElementById('detailedAdvice').textContent = state.aiAnalysis.detailedAdvice;
+      // 風險管理
+      document.getElementById('riskManagement').textContent = state.aiAnalysis.riskManagement || `1. 每筆交易最大風險：2%帳戶資金
+2. 觸及止損立即離場，絕不扛單
+3. 止盈1平倉一半，移動止損到進場價
+4. 不要同時持有多空雙向倉位
+5. 連輸3筆，今日停止交易`;
       
-      const executeButton = document.getElementById('executeTradeButton');
-      if (state.aiAnalysis.direction === 'long') {
-        executeButton.className = "w-full py-3 rounded-lg font-bold text-lg bg-green text-white";
-        executeButton.textContent = "一鍵做多";
-      } else if (state.aiAnalysis.direction === 'short') {
-        executeButton.className = "w-full py-3 rounded-lg font-bold text-lg bg-red text-white";
-        executeButton.textContent = "一鍵做空";
+      // 一鍵執行按鈕狀態
+      const { locked } = getComputed();
+      document.getElementById('longButton').disabled = locked;
+      document.getElementById('shortButton').disabled = locked;
+      
+      if (locked) {
+        document.getElementById('longButton').classList.add('opacity-50', 'cursor-not-allowed');
+        document.getElementById('shortButton').classList.add('opacity-50', 'cursor-not-allowed');
       } else {
-        executeButton.className = "w-full py-3 rounded-lg font-bold text-lg bg-gray-600 text-white opacity-50 cursor-not-allowed";
-        executeButton.textContent = "觀望 等待更好機會";
-        executeButton.disabled = true;
+        document.getElementById('longButton').classList.remove('opacity-50', 'cursor-not-allowed');
+        document.getElementById('shortButton').classList.remove('opacity-50', 'cursor-not-allowed');
       }
       
       document.getElementById('aiResult').classList.remove('hidden');
@@ -564,23 +593,6 @@
     const bindHomeEvents = () => {
       document.getElementById('capitalInput')?.addEventListener('input', (e) => {
         state.capital = e.target.value;
-        saveState();
-        render();
-      });
-
-      document.getElementById('executeTradeButton')?.addEventListener('click', () => {
-        const { locked } = getComputed();
-        if (!state.aiAnalysis || locked) return;
-        
-        state.position = { 
-          direction: state.aiAnalysis.direction,
-          entry: state.aiAnalysis.entry, 
-          stopLoss: state.aiAnalysis.stopLoss, 
-          takeProfit1: state.aiAnalysis.takeProfit1, 
-          takeProfit2: state.aiAnalysis.takeProfit2, 
-          now: state.aiAnalysis.entry,
-          time: new Date().toISOString()
-        };
         saveState();
         render();
       });
@@ -728,58 +740,16 @@
         attempts.push("修復語法失敗: " + e.message);
       }
       
-      // 嘗試5: 正則表達式提取所有鍵值對
-      try {
-        const directionMatch = rawContent.match(/"direction"\s*:\s*"([^"]+)"/);
-        const entryMatch = rawContent.match(/"entry"\s*:\s*(\d+\.?\d*)/);
-        const stopLossMatch = rawContent.match(/"stopLoss"\s*:\s*(\d+\.?\d*)/);
-        
-        if (directionMatch && entryMatch && stopLossMatch) {
-          const direction = directionMatch[1];
-          const entry = parseFloat(entryMatch[1]);
-          const stopLoss = parseFloat(stopLossMatch[1]);
-          
-          let takeProfit1, takeProfit2;
-          if (direction === 'long') {
-            const diff = entry - stopLoss;
-            takeProfit1 = entry + diff * 3;
-            takeProfit2 = entry + diff * 5;
-          } else {
-            const diff = stopLoss - entry;
-            takeProfit1 = entry - diff * 3;
-            takeProfit2 = entry - diff * 5;
-          }
-          
-          return {
-            direction,
-            advice: `建議在${entry.toFixed(1)}附近${direction === 'long' ? '做多' : '做空'}`,
-            entry,
-            stopLoss,
-            takeProfit1,
-            takeProfit2,
-            riskReward: "1:3 / 1:5",
-            chartType: "K線圖",
-            emaStatus: direction === 'long' ? "金叉向上" : "死叉向下",
-            rsi: "正常",
-            entryMode: "突破進場",
-            stopLossNote: "觸及止損立即離場，絕不扛單",
-            detailedAdvice: `1. 在${entry.toFixed(0)}-${(entry+5).toFixed(0)}區間分批進場\n2. 止損嚴格設在${stopLoss.toFixed(1)}\n3. 第一止盈${takeProfit1.toFixed(1)}，平倉一半\n4. 第二止盈${takeProfit2.toFixed(1)}，平倉全部\n5. 如果觸及止損，堅決離場，不要加倉`
-          };
-        }
-      } catch (e) {
-        attempts.push("提取關鍵值失敗: " + e.message);
-      }
-      
       // 所有嘗試都失敗
       throw new Error("JSON解析失敗，所有嘗試都失敗了\n" + attempts.join("\n"));
     };
 
-    // ✅ 全圖型支持AI分析函數 (分時圖+K線圖)
+    // ✅ 實盤雙向點位AI分析函數
     const runAiAnalyze = async () => {
-      showDebug("開始深度分析...");
+      showDebug("開始生成實盤點位...");
       
       if (!state.aiBase64) {
-        state.aiError = "❌ 請先上傳截圖";
+        state.aiError = "❌ 請先上傳當前K線/分時截圖";
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
         hideDebug();
@@ -798,108 +768,80 @@
       state.aiError = "";
       state.aiAnalysis = null;
       
-      document.getElementById('analyzeButton').textContent = "⏳ AI分析中...";
+      document.getElementById('analyzeButton').textContent = "⏳ 生成實盤點位中...";
       document.getElementById('analyzeButton').disabled = true;
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
 
-      showDebug("正在分析K線圖/分時圖...");
+      showDebug("正在分析當前走勢...");
 
-      // ✅ 全圖型支持Prompt (分時圖+K線圖)
+      // ✅ 實盤雙向點位Prompt
       const sniperPrompt = `
-你是一位專門交易NQ納斯達克100指數的職業交易員，有10年的日內交易經驗。
-你精通分時圖和K線圖分析，擅長捕捉趨勢中的高勝率進場點。
-你的交易風格是：不追求完美，只做高概率的交易，嚴格執行止損。
+你是一位有15年日內交易經驗的實盤交易員，專門交易NQ納斯達克100指數。
+你只給出明確、精確、可執行的交易點位，絕不模稜兩可。
+你必須同時給出做多和做空兩個方向的完整交易計劃，包括進場價、止損價、止盈1、止盈2。
+所有點位必須符合當前價格，貼近實際交易。
 
 請分析我上傳的Mitrade截圖，可以是分時圖，也可以是K線圖(1/5/15分)。
 只回傳標準JSON格式，絕對不要加任何其他文字、解釋或markdown標籤。
 開頭直接輸入{，結尾直接輸入}，不要任何其他內容。
 
-首先判斷圖表類型：
-- 如果是分時圖：只有價格走勢和均線
-- 如果是K線圖：有蠟燭圖、EMA5(黃)、EMA20(紫)、RSI(14)指標
-
-✅ 做多信號（滿足任意2個即可）：
-【K線圖專用】
-1. EMA5向上穿過EMA20（金叉）
-2. 價格站上EMA20且EMA5在EMA20上方
-3. RSI從低於50向上穿過50
-4. 價格突破最近的高點且回踩不破
-5. 出現連續3根陽線
-
-【分時圖專用】
-1. 價格突破今日高點
-2. 價格回踩均線不破
-3. 出現V型反轉且放量上漲
-4. 價格在均線上方運行且逐步墊高
-5. 低點不斷抬高，高點不斷創新高
-
-✅ 做空信號（滿足任意2個即可）：
-【K線圖專用】
-1. EMA5向下穿過EMA20（死叉）
-2. 價格跌破EMA20且EMA5在EMA20下方
-3. RSI從高於50向下穿過50
-4. 價格跌破最近的低點且反彈不過
-5. 出現連續3根陰線
-
-【分時圖專用】
-1. 價格跌破今日低點
-2. 價格反彈不過均線
-3. 出現倒V型反轉且放量下跌
-4. 價格在均線下方運行且逐步走低
-5. 高點不斷降低，低點不斷創新低
-
-❌ 觀望信號：
-- 所有信號都不明確
-- EMA5和EMA20糾纏在一起(K線圖)
-- 價格在均線上下來回穿越(分時圖)
-- RSI在45-55之間橫盤(K線圖)
-- 價格在窄幅區間震盪
-
-⚠️ 止損規則（極度重要！）：
-- 做多止損：設在最近的結構低點下方5點，或今日低點下方5點
-- 做空止損：設在最近的結構高點上方5點，或今日高點上方5點
-- 止損必須明確，絕對不能模糊
-- 必須在stopLossNote字段說明止損依據
-
-⚠️ 進場和止盈規則：
-- 進場價：當前價格附近±5點
-- 止盈1 = 進場價 ± 3×止損距離（平倉一半）
-- 止盈2 = 進場價 ± 5×止損距離（平倉全部）
-- 風險收益比固定為1:3 / 1:5
+分析規則：
+1. 首先判斷當前整體趨勢（偏多/偏空/震盪）
+2. 給出做多策略的優先級（高/中/低）
+3. 給出做多的精確進場價、止損價、止盈1、止盈2
+4. 給出做多的進場條件（價格到什麼位置才能進場）
+5. 給出做空策略的優先級（高/中/低）
+6. 給出做空的精確進場價、止損價、止盈1、止盈2
+7. 給出做空的進場條件（價格到什麼位置才能進場）
+8. 止損距離設置為當前價格的0.1%-0.15%
+9. 止盈1 = 進場價 ± 3×止損距離
+10. 止盈2 = 進場價 ± 5×止損距離
+11. 順趨勢方向的優先級為"高"，逆趨勢方向的優先級為"低"
+12. 震盪行情兩個方向優先級都為"中"
 
 輸出格式必須嚴格按照以下JSON結構：
 {
-  "direction": "long/short/neutral",
+  "trend": "long/short/neutral",
   "advice": "簡短的核心建議",
-  "entry": 數字,
-  "stopLoss": 數字,
-  "takeProfit1": 數字,
-  "takeProfit2": 數字,
-  "riskReward": "1:3 / 1:5",
+  "longPriority": "高/中/低",
+  "longEntry": 數字,
+  "longStopLoss": 數字,
+  "longTp1": 數字,
+  "longTp2": 數字,
+  "longCondition": "做多進場條件，例如：價格回調到29670附近且出現止跌訊號",
+  "shortPriority": "高/中/低",
+  "shortEntry": 數字,
+  "shortStopLoss": 數字,
+  "shortTp1": 數字,
+  "shortTp2": 數字,
+  "shortCondition": "做空進場條件，例如：價格反彈到29720附近且出現止漲訊號",
   "chartType": "分時圖/K線圖",
   "emaStatus": "金叉向上/死叉向下/糾纏/無(分時圖)",
   "rsi": "多頭動能/空頭動能/中性/無(分時圖)",
-  "entryMode": "突破進場/回調進場/觀望",
-  "stopLossNote": "止損依據，例如：止損設在今日低點29610下方5點",
-  "detailedAdvice": "詳細的4-5步操作步驟"
+  "riskManagement": "5條風險管理規則"
 }
 
 範例輸出：
 {
-  "direction": "long",
-  "advice": "建議在29670附近做多",
-  "entry": 29670,
-  "stopLoss": 29640,
-  "takeProfit1": 29760,
-  "takeProfit2": 29820,
-  "riskReward": "1:3 / 1:5",
+  "trend": "long",
+  "advice": "順勢做多為主，謹慎做空",
+  "longPriority": "高",
+  "longEntry": 29670,
+  "longStopLoss": 29640,
+  "longTp1": 29760,
+  "longTp2": 29820,
+  "longCondition": "價格回調到29665-29675區間且出現止跌訊號",
+  "shortPriority": "低",
+  "shortEntry": 29780,
+  "shortStopLoss": 29810,
+  "shortTp1": 29690,
+  "shortTp2": 29630,
+  "shortCondition": "價格反彈到29775-29785區間且出現止漲訊號",
   "chartType": "K線圖",
   "emaStatus": "金叉向上",
   "rsi": "多頭動能",
-  "entryMode": "突破進場",
-  "stopLossNote": "止損設在最近結構低點29645下方5點",
-  "detailedAdvice": "1. 在29665-29675區間分批進場\\n2. 止損嚴格設在29640\\n3. 第一止盈29760，平倉一半\\n4. 第二止盈29820，平倉全部\\n5. 如果觸及止損，堅決離場，不要加倉"
+  "riskManagement": "1. 每筆交易最大風險：2%帳戶資金\\n2. 觸及止損立即離場，絕不扛單\\n3. 止盈1平倉一半，移動止損到進場價\\n4. 不要同時持有多空雙向倉位\\n5. 連輸3筆，今日停止交易"
 }
 
 現在只輸出JSON，不要任何其他內容。
@@ -931,8 +873,8 @@
                 ],
               },
             ],
-            temperature: 0.1,
-            max_tokens: 1000,
+            temperature: 0.05,
+            max_tokens: 1200,
             response_format: { type: "json_object" }
           }),
         });
@@ -951,44 +893,43 @@
         showDebug("分析結果解析成功");
         
         let rawContent = data.choices[0].message.content.trim();
-        showDebug(`原始回應: ${rawContent.substring(0, 250)}...`);
+        showDebug(`原始回應: ${rawContent.substring(0, 300)}...`);
         
         // 使用超強JSON修復函數
         let parseRes = safeParseJson(rawContent);
         showDebug("JSON解析成功");
         
         // 驗證並修復所有必填字段
-        if (!parseRes.direction) parseRes.direction = "neutral";
-        if (!parseRes.advice) parseRes.advice = "建議觀望";
-        if (!parseRes.entry) parseRes.entry = 0;
-        if (!parseRes.stopLoss) parseRes.stopLoss = 0;
-        if (!parseRes.stopLossNote) parseRes.stopLossNote = "觸及止損立即離場，絕不扛單";
+        if (!parseRes.trend) parseRes.trend = "neutral";
+        if (!parseRes.advice) parseRes.advice = "觀望等待更好機會";
+        if (!parseRes.longPriority) parseRes.longPriority = "中";
+        if (!parseRes.shortPriority) parseRes.shortPriority = "中";
         
-        // 自動計算止盈點位（如果AI沒有返回）
-        if (!parseRes.takeProfit1 || !parseRes.takeProfit2) {
-          if (parseRes.direction === 'long') {
-            const diff = parseRes.entry - parseRes.stopLoss;
-            parseRes.takeProfit1 = parseRes.entry + diff * 3;
-            parseRes.takeProfit2 = parseRes.entry + diff * 5;
-          } else if (parseRes.direction === 'short') {
-            const diff = parseRes.stopLoss - parseRes.entry;
-            parseRes.takeProfit1 = parseRes.entry - diff * 3;
-            parseRes.takeProfit2 = parseRes.entry - diff * 5;
-          } else {
-            parseRes.takeProfit1 = parseRes.entry;
-            parseRes.takeProfit2 = parseRes.entry;
-          }
+        // 自動計算缺失的點位
+        if (!parseRes.longEntry) parseRes.longEntry = 0;
+        if (!parseRes.longStopLoss) parseRes.longStopLoss = 0;
+        if (!parseRes.shortEntry) parseRes.shortEntry = 0;
+        if (!parseRes.shortStopLoss) parseRes.shortStopLoss = 0;
+        
+        // 自動計算止盈點位
+        if (!parseRes.longTp1 || !parseRes.longTp2) {
+          const diff = parseRes.longEntry - parseRes.longStopLoss;
+          parseRes.longTp1 = parseRes.longEntry + diff * 3;
+          parseRes.longTp2 = parseRes.longEntry + diff * 5;
         }
         
-        // 強制設置風險收益比
-        parseRes.riskReward = "1:3 / 1:5";
+        if (!parseRes.shortTp1 || !parseRes.shortTp2) {
+          const diff = parseRes.shortStopLoss - parseRes.shortEntry;
+          parseRes.shortTp1 = parseRes.shortEntry - diff * 3;
+          parseRes.shortTp2 = parseRes.shortEntry - diff * 5;
+        }
         
         // 設置默認值
+        if (!parseRes.longCondition) parseRes.longCondition = "價格回調到進場價附近且出現止跌訊號";
+        if (!parseRes.shortCondition) parseRes.shortCondition = "價格反彈到進場價附近且出現止漲訊號";
         if (!parseRes.chartType) parseRes.chartType = "K線圖";
         if (!parseRes.emaStatus) parseRes.emaStatus = "無";
         if (!parseRes.rsi) parseRes.rsi = "無";
-        if (!parseRes.entryMode) parseRes.entryMode = "觀望";
-        if (!parseRes.detailedAdvice) parseRes.detailedAdvice = "1. 觀望等待更明確的訊號\n2. 不要貿然進場\n3. 耐心等待高勝率機會";
         
         state.aiAnalysis = parseRes;
         saveState();
@@ -996,7 +937,7 @@
         // 渲染AI結果
         renderAiResult();
         
-        showDebug("✅ 分析完成，結果已更新");
+        showDebug("✅ 實盤點位生成完成");
         setTimeout(hideDebug, 2000);
         
       } catch (err) {
@@ -1007,7 +948,7 @@
         showDebug(`錯誤詳情: ${err.stack}`);
       } finally {
         state.aiLoading = false;
-        document.getElementById('analyzeButton').textContent = "開始AI智能分析";
+        document.getElementById('analyzeButton').textContent = "生成實盤交易點位";
         document.getElementById('analyzeButton').disabled = false;
         render(); // 更新首頁顯示
       }
@@ -1084,17 +1025,37 @@
         runAiAnalyze();
       });
 
-      // 一鍵執行交易按鈕
-      document.getElementById('executeTradeButton')?.addEventListener('click', () => {
-        if (!state.aiAnalysis || state.aiAnalysis.direction === 'neutral') return;
+      // 一鍵做多按鈕
+      document.getElementById('longButton')?.addEventListener('click', () => {
+        const { locked } = getComputed();
+        if (!state.aiAnalysis || locked) return;
         
         state.position = { 
-          direction: state.aiAnalysis.direction,
-          entry: state.aiAnalysis.entry, 
-          stopLoss: state.aiAnalysis.stopLoss, 
-          takeProfit1: state.aiAnalysis.takeProfit1, 
-          takeProfit2: state.aiAnalysis.takeProfit2, 
-          now: state.aiAnalysis.entry,
+          direction: 'long',
+          entry: state.aiAnalysis.longEntry, 
+          stopLoss: state.aiAnalysis.longStopLoss, 
+          takeProfit1: state.aiAnalysis.longTp1, 
+          takeProfit2: state.aiAnalysis.longTp2, 
+          now: state.aiAnalysis.longEntry,
+          time: new Date().toISOString()
+        };
+        saveState();
+        document.getElementById('aiModal').classList.add('hidden');
+        render();
+      });
+
+      // 一鍵做空按鈕
+      document.getElementById('shortButton')?.addEventListener('click', () => {
+        const { locked } = getComputed();
+        if (!state.aiAnalysis || locked) return;
+        
+        state.position = { 
+          direction: 'short',
+          entry: state.aiAnalysis.shortEntry, 
+          stopLoss: state.aiAnalysis.shortStopLoss, 
+          takeProfit1: state.aiAnalysis.shortTp1, 
+          takeProfit2: state.aiAnalysis.shortTp2, 
+          now: state.aiAnalysis.shortEntry,
           time: new Date().toISOString()
         };
         saveState();
