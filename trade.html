@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>30年資深交易員 智能狙擊系統</title>
+  <title>NQ 專業波段狙擊系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
@@ -49,8 +49,8 @@
 
   <!-- 頂部標題 -->
   <div class="bg-darker border-b border-border p-4 text-center">
-    <div class="text-xs text-gray-500 tracking-widest mb-1">30年資深交易員 智能系統</div>
-    <div class="text-xl font-bold">⚡ 全品種精準狙擊</div>
+    <div class="text-xs text-gray-500 tracking-widest mb-1">NQ 專業波段狙擊系統</div>
+    <div class="text-xl font-bold">⚡ 精準多空進出點位</div>
   </div>
 
   <!-- 主內容區 -->
@@ -65,13 +65,13 @@
   <div id="aiModal" class="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center hidden">
     <div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-white">🧙‍♂️ 30年資深交易員分析</h3>
+        <h3 class="text-lg font-bold text-white">📊 AI專業技術分析</h3>
         <button id="closeAiModal" class="text-gray-300 text-xl">✕</button>
       </div>
       <input id="fileInput" type="file" accept="image/*" hidden />
       <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
-        上傳任何金融產品K線截圖
-        <div class="text-xs mt-1 text-gray-400">支持NQ/ES/YM/黃金/原油/外匯/股票</div>
+        上傳Mitrade K線截圖
+        <div class="text-xs mt-1 text-gray-400">支持1分/5分/15分K線</div>
       </button>
       <div id="imagePreview" class="mb-3 hidden">
         <img id="previewImg" src="" alt="chart preview" class="w-full rounded-lg object-contain max-h-52" />
@@ -79,7 +79,7 @@
       <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
       <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
       <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">
-        開始深度分析
+        開始AI智能分析
       </button>
       
       <!-- AI智能分析結果區域 -->
@@ -92,7 +92,7 @@
         
         <!-- 精確點位卡片 -->
         <div class="bg-darker rounded-xl p-4 border border-gray-600">
-          <div class="text-sm font-bold text-white mb-3">📊 精確進出點位</div>
+          <div class="text-sm font-bold text-white mb-3">🎯 精確進出點位</div>
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div class="bg-black/30 p-2 rounded text-center">
               <div class="text-gray-400 text-xs">進場價</div>
@@ -119,31 +119,25 @@
         
         <!-- 技術分析卡片 -->
         <div class="bg-darker rounded-xl p-4 border border-gray-600">
-          <div class="text-sm font-bold text-white mb-3">📈 多周期技術分析</div>
+          <div class="text-sm font-bold text-white mb-3">📈 技術指標狀態</div>
           <div class="space-y-2">
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">大周期趨勢</span>
-              <span id="tf15Result" class="text-lg"></span>
+              <span class="text-gray-200">EMA5/EMA20</span>
+              <span id="emaStatus" class="text-lg"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">中周期訊號</span>
-              <span id="tf5Result" class="text-lg"></span>
-            </div>
-            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">短周期進場點</span>
-              <span id="tf1Result" class="text-lg"></span>
-            </div>
-            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">RSI動能</span>
+              <span class="text-gray-200">RSI(14)</span>
               <span id="rsiStatus" class="text-lg"></span>
             </div>
+            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
+              <span class="text-gray-200">趨勢強度</span>
+              <span id="trendStrength" class="text-lg"></span>
+            </div>
+            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
+              <span class="text-gray-200">進場模式</span>
+              <span id="entryMode" class="text-lg"></span>
+            </div>
           </div>
-        </div>
-        
-        <!-- 風險管理卡片 -->
-        <div class="bg-darker rounded-xl p-4 border border-gray-600">
-          <div class="text-sm font-bold text-white mb-2">🛡️ 嚴格風險管理</div>
-          <div class="text-sm text-gray-300 whitespace-pre-line" id="riskManagement"></div>
         </div>
         
         <!-- 操作建議卡片 -->
@@ -316,7 +310,7 @@
         <!-- AI最新分析 -->
         ${state.aiAnalysis ? `
           <div class="bg-card border border-border rounded-2xl p-4">
-            <div class="text-xs font-bold text-gray-400 mb-2">🧙‍♂️ 30年資深交易員最新分析</div>
+            <div class="text-xs font-bold text-gray-400 mb-2">🤖 AI最新分析</div>
             <div class="text-center mb-3">
               <div class="text-2xl font-bold ${state.aiAnalysis.direction === 'long' ? 'text-green' : state.aiAnalysis.direction === 'short' ? 'text-red' : 'text-yellow'}">
                 ${state.aiAnalysis.direction === 'long' ? '🟢 做多' : state.aiAnalysis.direction === 'short' ? '🔴 做空' : '🟡 觀望'}
@@ -335,7 +329,7 @@
         ` : `
           <div class="bg-card border border-border rounded-2xl p-4 text-center">
             <div class="text-gray-400 mb-2">還沒有分析</div>
-            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳任何金融產品K線截圖</div>
+            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳K線截圖</div>
           </div>
         `}
 
@@ -495,15 +489,15 @@
       if (state.aiAnalysis.direction === 'long') {
         trendCard.className = "rounded-xl p-4 border bg-green/10 border-green/30";
         trendTitle.className = "text-lg font-bold text-center mb-2 text-green";
-        trendTitle.textContent = "🟢 確認多頭趨勢 建議做多";
+        trendTitle.textContent = "🟢 確認多頭信號 建議做多";
       } else if (state.aiAnalysis.direction === 'short') {
         trendCard.className = "rounded-xl p-4 border bg-red/10 border-red/30";
         trendTitle.className = "text-lg font-bold text-center mb-2 text-red";
-        trendTitle.textContent = "🔴 確認空頭趨勢 建議做空";
+        trendTitle.textContent = "🔴 確認空頭信號 建議做空";
       } else {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
         trendTitle.className = "text-lg font-bold text-center mb-2 text-yellow";
-        trendTitle.textContent = "🟡 震盪不明 建議觀望";
+        trendTitle.textContent = "🟡 震盪整理 建議觀望";
       }
       
       trendAdvice.textContent = state.aiAnalysis.advice;
@@ -514,12 +508,11 @@
       document.getElementById('takeProfit2').textContent = fmt(state.aiAnalysis.takeProfit2);
       document.getElementById('riskReward').textContent = state.aiAnalysis.riskReward;
       
-      document.getElementById('tf15Result').textContent = state.aiAnalysis.tf15;
-      document.getElementById('tf5Result').textContent = state.aiAnalysis.tf5;
-      document.getElementById('tf1Result').textContent = state.aiAnalysis.tf1;
+      document.getElementById('emaStatus').textContent = state.aiAnalysis.emaStatus;
       document.getElementById('rsiStatus').textContent = state.aiAnalysis.rsi;
+      document.getElementById('trendStrength').textContent = state.aiAnalysis.trendStrength;
+      document.getElementById('entryMode').textContent = state.aiAnalysis.entryMode;
       
-      document.getElementById('riskManagement').textContent = state.aiAnalysis.riskManagement;
       document.getElementById('detailedAdvice').textContent = state.aiAnalysis.detailedAdvice;
       
       const executeButton = document.getElementById('executeTradeButton');
@@ -531,7 +524,7 @@
         executeButton.textContent = "一鍵做空";
       } else {
         executeButton.className = "w-full py-3 rounded-lg font-bold text-lg bg-gray-600 text-white opacity-50 cursor-not-allowed";
-        executeButton.textContent = "觀望 絕對不要交易";
+        executeButton.textContent = "觀望 等待更好機會";
         executeButton.disabled = true;
       }
       
@@ -721,10 +714,10 @@
           .replace(/\s*```$/g, "")
           .replace(/^[^{]*/, "")
           .replace(/[^}]*$/, "")
-          .replace(/,\s*}/g, "}") // 移除尾隨逗號
-          .replace(/,\s*]/g, "]") // 移除尾隨逗號
-          .replace(/'/g, '"') // 替換單引號為雙引號
-          .replace(/(\w+):/g, '"$1":') // 給未加引號的鍵加上引號
+          .replace(/,\s*}/g, "}")
+          .replace(/,\s*]/g, "]")
+          .replace(/'/g, '"')
+          .replace(/(\w+):/g, '"$1":')
           .trim();
         return JSON.parse(cleaned);
       } catch (e) {
@@ -761,11 +754,10 @@
             takeProfit1,
             takeProfit2,
             riskReward: "1:3 / 1:5",
-            tf15: direction === 'long' ? "多頭確認" : "空頭確認",
-            tf5: "訊號確認",
-            tf1: "進場點出現",
+            emaStatus: direction === 'long' ? "金叉向上" : "死叉向下",
             rsi: "正常",
-            riskManagement: "使用2%帳戶資金風險，嚴格執行止損，絕不重倉",
+            trendStrength: "中等",
+            entryMode: "突破進場",
             detailedAdvice: `1. 在${entry.toFixed(0)}-${(entry+5).toFixed(0)}區間分批進場\n2. 止損嚴格設在${stopLoss.toFixed(1)}\n3. 第一止盈${takeProfit1.toFixed(1)}，平倉一半\n4. 第二止盈${takeProfit2.toFixed(1)}，平倉全部\n5. 如果觸及止損，堅決離場，不要加倉`
           };
         }
@@ -777,7 +769,7 @@
       throw new Error("JSON解析失敗，所有嘗試都失敗了\n" + attempts.join("\n"));
     };
 
-    // ✅ 30年資深交易員AI分析函數
+    // ✅ NQ專業多空策略AI分析函數
     const runAiAnalyze = async () => {
       showDebug("開始深度分析...");
       
@@ -801,24 +793,21 @@
       state.aiError = "";
       state.aiAnalysis = null;
       
-      document.getElementById('analyzeButton').textContent = "⏳ 30年資深交易員分析中...";
+      document.getElementById('analyzeButton').textContent = "⏳ AI分析中...";
       document.getElementById('analyzeButton').disabled = true;
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
 
       showDebug("正在分析K線圖...");
 
-      // ✅ 最嚴格的JSON格式要求Prompt
+      // ✅ NQ專業多空策略Prompt
       const sniperPrompt = `
-絕對只輸出標準JSON格式，絕對不要加任何其他文字、解釋、說明、註解或markdown標籤。
+你是一位專門交易NQ納斯達克100指數的職業交易員，有10年的日內交易經驗。
+你精通EMA和RSI組合策略，擅長捕捉趨勢中的高勝率進場點。
+你的交易風格是：不追求完美，只做高概率的交易，嚴格執行止損。
+
+請分析我上傳的Mitrade K線圖，只回傳標準JSON格式，絕對不要加任何其他文字、解釋或markdown標籤。
 開頭直接輸入{，結尾直接輸入}，不要任何其他內容。
-
-你是一位有30年華爾街交易經驗的資深交易員，交易過所有金融產品。
-你把每一筆交易都當成自己的錢一樣重視，極度謹慎，寧可錯過也不做沒有把握的交易。
-你的風控極其嚴格，永遠把保住本金放在第一位。
-你從不預測市場，只跟隨趨勢，只做高勝率的交易。
-
-請分析我上傳的任何金融產品K線圖（可以是NQ/ES/YM/黃金/原油/外匯/股票等）。
 
 圖表指標說明：
 - EMA5: 黃色線
@@ -826,20 +815,50 @@
 - RSI(14): 下方紫色RSI指標
 - 圖表頂部顯示當前價格
 
-分析規則：
-1. 首先判斷大周期整體趨勢，只有大周期明確才考慮交易
-2. 然後判斷中周期是否確認大周期趨勢
-3. 最後尋找短周期的精確進場點
-4. 只有三個周期都指向同一方向時才給出交易建議
-5. 任何一個周期不確認，就建議觀望
-6. 止損距離設置為當前價格的0.15%，根據波動性微調
-7. 止盈1 = 進場價 ± 3×止損距離（平倉一半，移動止損到進場價）
-8. 止盈2 = 進場價 ± 5×止損距離（平倉全部）
-9. 風險收益比固定為1:3 / 1:5
-10. 必須給出嚴格的風險管理建議
-11. 必須給出詳細的分步操作建議
+✅ 做多信號（滿足任意2個即可）：
+1. EMA5向上穿過EMA20（金叉）
+2. 價格站上EMA20且EMA5在EMA20上方
+3. RSI從低於50向上穿過50
+4. 價格突破最近的高點且回踩不破
+5. 出現連續3根陽線
+
+✅ 做空信號（滿足任意2個即可）：
+1. EMA5向下穿過EMA20（死叉）
+2. 價格跌破EMA20且EMA5在EMA20下方
+3. RSI從高於50向下穿過50
+4. 價格跌破最近的低點且反彈不過
+5. 出現連續3根陰線
+
+❌ 觀望信號：
+- 所有信號都不明確
+- EMA5和EMA20糾纏在一起
+- RSI在45-55之間橫盤
+- 價格在窄幅區間震盪
+
+⚠️ 進場規則：
+- 突破進場：價格突破關鍵位時進場
+- 回調進場：趨勢確認後，回調到EMA5附近進場
+- 止損設置：最近的結構低點下方（做多）或高點上方（做空）
+- 止盈1 = 進場價 ± 3×止損距離（平倉一半）
+- 止盈2 = 進場價 ± 5×止損距離（平倉全部）
 
 輸出格式必須嚴格按照以下JSON結構：
+{
+  "direction": "long/short/neutral",
+  "advice": "簡短的核心建議",
+  "entry": 數字,
+  "stopLoss": 數字,
+  "takeProfit1": 數字,
+  "takeProfit2": 數字,
+  "riskReward": "1:3 / 1:5",
+  "emaStatus": "金叉向上/死叉向下/糾纏",
+  "rsi": "多頭動能/空頭動能/中性",
+  "trendStrength": "強/中/弱",
+  "entryMode": "突破進場/回調進場/觀望",
+  "detailedAdvice": "詳細的4-5步操作步驟"
+}
+
+範例輸出：
 {
   "direction": "long",
   "advice": "建議在29620附近做多",
@@ -848,20 +867,12 @@
   "takeProfit1": 29755,
   "takeProfit2": 29845,
   "riskReward": "1:3 / 1:5",
-  "tf15": "多頭確認",
-  "tf5": "訊號確認",
-  "tf1": "進場點出現",
-  "rsi": "正常",
-  "riskManagement": "使用2%帳戶資金風險，嚴格執行止損，絕不重倉",
-  "detailedAdvice": "1. 在29615-29625區間分批進場\n2. 止損嚴格設在29575\n3. 第一止盈29755，平倉一半\n4. 第二止盈29845，平倉全部\n5. 如果觸及止損，堅決離場，不要加倉"
+  "emaStatus": "金叉向上",
+  "rsi": "多頭動能",
+  "trendStrength": "強",
+  "entryMode": "突破進場",
+  "detailedAdvice": "1. 在29615-29625區間分批進場\\n2. 止損嚴格設在29575\\n3. 第一止盈29755，平倉一半\\n4. 第二止盈29845，平倉全部\\n5. 如果觸及止損，堅決離場，不要加倉"
 }
-
-重要提醒：
-- 如果你對趨勢有任何一點懷疑，就返回"direction": "neutral"，建議觀望
-- 永遠不要給出模稜兩可的建議
-- 永遠強調嚴格執行止損
-- 永遠提醒不要重倉交易
-- 永遠把風險放在第一位
 
 現在只輸出JSON，不要任何其他內容。
 `;
@@ -892,9 +903,9 @@
                 ],
               },
             ],
-            temperature: 0.01, // 極低溫度，保證一致性
-            max_tokens: 1000,
-            response_format: { type: "json_object" } // 強制JSON格式
+            temperature: 0.1,
+            max_tokens: 800,
+            response_format: { type: "json_object" }
           }),
         });
         
@@ -944,11 +955,10 @@
         parseRes.riskReward = "1:3 / 1:5";
         
         // 設置默認值
-        if (!parseRes.tf15) parseRes.tf15 = "震盪";
-        if (!parseRes.tf5) parseRes.tf5 = "無訊號";
-        if (!parseRes.tf1) parseRes.tf1 = "等待進場";
-        if (!parseRes.rsi) parseRes.rsi = "正常";
-        if (!parseRes.riskManagement) parseRes.riskManagement = "使用2%帳戶資金風險，嚴格執行止損，絕不重倉";
+        if (!parseRes.emaStatus) parseRes.emaStatus = "糾纏";
+        if (!parseRes.rsi) parseRes.rsi = "中性";
+        if (!parseRes.trendStrength) parseRes.trendStrength = "弱";
+        if (!parseRes.entryMode) parseRes.entryMode = "觀望";
         if (!parseRes.detailedAdvice) parseRes.detailedAdvice = "1. 觀望等待更明確的訊號\n2. 不要貿然進場\n3. 耐心等待高勝率機會";
         
         state.aiAnalysis = parseRes;
@@ -968,7 +978,7 @@
         showDebug(`錯誤詳情: ${err.stack}`);
       } finally {
         state.aiLoading = false;
-        document.getElementById('analyzeButton').textContent = "開始深度分析";
+        document.getElementById('analyzeButton').textContent = "開始AI智能分析";
         document.getElementById('analyzeButton').disabled = false;
         render(); // 更新首頁顯示
       }
