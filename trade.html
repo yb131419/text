@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NQ 實盤交易輔助系統 V2.0</title>
+  <title>NQ AI 智能偵測系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
@@ -44,12 +44,9 @@
   </style>
 </head>
 <body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative">
-  <!-- 頂部風險警告 -->
-  <div id="riskWarning" class="hidden px-4 py-2 text-center text-sm font-bold border-b"></div>
-
   <!-- 頂部標題 -->
   <div class="bg-darker border-b border-border p-4 text-center">
-    <div class="text-xs text-gray-500 tracking-widest mb-1">NQ 實盤交易輔助系統 V2.0</div>
+    <div class="text-xs text-gray-500 tracking-widest mb-1">NQ AI 智能偵測系統</div>
     <div class="text-xl font-bold">⚡ 百點級精準進出點位</div>
   </div>
 
@@ -65,7 +62,7 @@
   <div id="aiModal" class="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center hidden">
     <div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-white">📊 實盤智能分析</h3>
+        <h3 class="text-lg font-bold text-white">📊 AI 智能偵測</h3>
         <button id="closeAiModal" class="text-gray-300 text-xl">✕</button>
       </div>
       <input id="fileInput" type="file" accept="image/*" hidden />
@@ -112,12 +109,7 @@
             </div>
           </div>
           <div class="mt-2 text-xs text-gray-400" id="longCondition"></div>
-          <div class="mt-1 text-xs text-yellow-400" id="longProfit">
-            預期獲利: 90-150點/手 | 風險收益比: 1:3 / 1:5
-          </div>
-          <button id="longButton" class="w-full mt-3 py-2 rounded-lg bg-red font-bold text-white">
-            一鍵做多
-          </button>
+          <div class="mt-1 text-xs text-yellow-400" id="longProfit"></div>
         </div>
         
         <!-- 🟢 做空策略卡片 (綠跌) -->
@@ -142,12 +134,7 @@
             </div>
           </div>
           <div class="mt-2 text-xs text-gray-400" id="shortCondition"></div>
-          <div class="mt-1 text-xs text-yellow-400" id="shortProfit">
-            預期獲利: 90-150點/手 | 風險收益比: 1:3 / 1:5
-          </div>
-          <button id="shortButton" class="w-full mt-3 py-2 rounded-lg bg-green font-bold text-white">
-            一鍵做空
-          </button>
+          <div class="mt-1 text-xs text-yellow-400" id="shortProfit"></div>
         </div>
         
         <!-- 技術分析卡片 -->
@@ -168,12 +155,6 @@
             </div>
           </div>
         </div>
-        
-        <!-- 風險管理卡片 -->
-        <div class="bg-darker rounded-xl p-4 border border-gray-600">
-          <div class="text-sm font-bold text-white mb-2">🛡️ 實盤風險管理</div>
-          <div class="text-sm text-gray-300 whitespace-pre-line" id="riskManagement"></div>
-        </div>
       </div>
       
       <button id="resetAiButton" class="w-full mt-3 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">
@@ -186,10 +167,10 @@
   <div class="fixed bottom-0 left-0 right-0 bg-darker border-t border-border pb-3 pt-2 z-30">
     <div class="max-w-sm mx-auto grid grid-cols-4 text-xs text-center">
       <button data-tab="home" class="tab-button pt-1 pb-1 rounded-lg text-indigo">
-        <div class="text-lg mb-1">🏠</div>首頁
+        <div class="text-lg mb-1">🏠</div>最新
       </button>
       <button data-tab="log" class="tab-button pt-1 pb-1 rounded-lg text-gray-400">
-        <div class="text-lg mb-1">📓</div>日誌
+        <div class="text-lg mb-1">📓</div>歷史
       </button>
       <button data-tab="stats" class="tab-button pt-1 pb-1 rounded-lg text-gray-400">
         <div class="text-lg mb-1">📈</div>統計
@@ -228,44 +209,22 @@
     // 全局狀態
     let state = {
       tab: "home",
-      capital: loadData("capital", "10000"),
-      position: loadData("position", null),
-      trades: loadData("trades", []),
-      todayLoss: loadData("todayLoss", 0),
-      winRate: loadData("winRate", 0),
-      loseStreak: loadData("loseStreak", 0),
       apiKey: loadData("apiKey", ""),
       proxyUrl: loadData("proxyUrl", "https://api.openai.com/v1/chat/completions"),
-      aiAnalysis: null,
+      aiAnalysis: loadData("aiAnalysis", null),
+      aiHistory: loadData("aiHistory", []),
       aiImage: null,
       aiBase64: "",
       aiLoading: false,
       aiError: ""
     };
 
-    // 計算屬性
-    const getComputed = () => {
-      const cap = num(state.capital);
-      const risk = cap * 0.02;
-      
-      const warn1 = state.loseStreak >= 2;
-      const warn2 = state.loseStreak >= 3;
-      const warn3 = state.todayLoss >= cap * 0.05;
-      const locked = warn2 || warn3;
-
-      return { cap, risk, warn1, warn2, warn3, locked };
-    };
-
     // 保存狀態
     const saveState = () => {
-      saveData("capital", state.capital);
-      saveData("position", state.position);
-      saveData("trades", state.trades);
-      saveData("todayLoss", state.todayLoss);
-      saveData("winRate", state.winRate);
-      saveData("loseStreak", state.loseStreak);
       saveData("apiKey", state.apiKey);
       saveData("proxyUrl", state.proxyUrl);
+      saveData("aiAnalysis", state.aiAnalysis);
+      saveData("aiHistory", state.aiHistory);
     };
 
     // 顯示調試信息
@@ -281,65 +240,21 @@
       document.getElementById('aiDebug').classList.add('hidden');
     };
 
-    // 渲染風險警告
-    const renderRiskWarning = () => {
-      const { warn1, warn2, warn3 } = getComputed();
-      const el = document.getElementById('riskWarning');
-      
-      if (!warn1 && !warn2 && !warn3) {
-        el.classList.add('hidden');
-        return;
-      }
-
-      el.classList.remove('hidden');
-      
-      if (warn3) {
-        el.className = "px-4 py-2 text-center text-sm font-bold bg-red/20 text-red border-red/30 border-b";
-        el.textContent = "🛑 當日虧損已達 5%｜系統強制鎖定｜絕對不能再交易";
-      } else if (warn2) {
-        el.className = "px-4 py-2 text-center text-sm font-bold bg-red/20 text-red border-b";
-        el.textContent = "🔴 連輸3筆｜今天絕對停止交易｜明天再來";
-      } else {
-        el.className = "px-4 py-2 text-center text-sm font-bold bg-yellow/20 text-yellow border-b";
-        el.textContent = "🟠 連輸2筆｜強制休息60分鐘｜冷靜後再交易";
-      }
-    };
-
-    // 渲染首頁
+    // 渲染首頁 (最新AI偵測結果)
     const renderHome = () => {
-      const { cap, locked } = getComputed();
-      
       return `
-        <!-- 即時戰情 -->
-        <div class="bg-card border border-border rounded-2xl p-4">
-          <div class="text-xs font-bold text-gray-400 mb-2">🏠 帳戶狀態</div>
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div class="bg-black/20 rounded-lg p-2">
-              今日盈虧 <span class="font-bold ${state.todayLoss > 0 ? 'text-green' : 'text-red'}">
-                ${state.todayLoss > 0 ? '-$' : '+$'}${fmt(Math.abs(state.todayLoss), 0)}
-              </span>
-            </div>
-            <div class="bg-black/20 rounded-lg p-2">
-              歷史勝率 <span class="font-bold">${state.winRate}%</span>
-            </div>
-            <div class="bg-black/20 rounded-lg p-2">
-              連續虧損 <span class="font-bold">${state.loseStreak} 筆</span>
-            </div>
-            <div class="bg-black/20 rounded-lg p-2">
-              剩餘風險額度 <span class="text-red">${fmt(100 - (state.todayLoss/cap*100), 0)}%</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 最新實盤點位 -->
         ${state.aiAnalysis ? `
           <div class="bg-card border border-border rounded-2xl p-4">
-            <div class="text-xs font-bold text-gray-400 mb-2">🤖 最新百點級點位</div>
+            <div class="flex justify-between items-center mb-3">
+              <div class="text-xs font-bold text-gray-400">🤖 最新AI偵測結果</div>
+              <button id="resetCurrentButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置</button>
+            </div>
             <div class="text-center mb-3">
               <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : state.aiAnalysis.trend === 'short' ? 'text-green' : 'text-yellow'}">
                 ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🟢 偏空趨勢' : '🟡 震盪趨勢'}
               </div>
               <div class="text-sm text-gray-300">${state.aiAnalysis.advice}</div>
+              <div class="text-xs text-gray-500 mt-1">偵測時間: ${state.aiAnalysis.time}</div>
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div class="bg-red/10 p-2 rounded text-center border border-red/30">
@@ -349,96 +264,66 @@
                 做空進場 <span class="font-bold text-green">${fmt(state.aiAnalysis.shortEntry)}</span>
               </div>
             </div>
+            <div class="mt-3 text-xs text-gray-400">
+              <div>做多止損: ${fmt(state.aiAnalysis.longStopLoss)} | 止盈: ${fmt(state.aiAnalysis.longTp1)}/${fmt(state.aiAnalysis.longTp2)}</div>
+              <div>做空止損: ${fmt(state.aiAnalysis.shortStopLoss)} | 止盈: ${fmt(state.aiAnalysis.shortTp1)}/${fmt(state.aiAnalysis.shortTp2)}</div>
+            </div>
           </div>
         ` : `
           <div class="bg-card border border-border rounded-2xl p-4 text-center">
-            <div class="text-gray-400 mb-2">還沒有實盤點位</div>
+            <div class="text-gray-400 mb-2">還沒有偵測結果</div>
             <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳當前截圖</div>
           </div>
         `}
-
-        <!-- 持倉管理 -->
-        ${state.position ? `
-          <div class="bg-card border border-gray-700 rounded-2xl p-4">
-            <div class="text-center font-bold mb-2">持倉中</div>
-            <div class="text-center text-2xl font-bold ${state.position.direction === 'long' ? 'text-red' : 'text-green'}">
-              ${state.position.direction === 'long' ? '多頭倉位' : '空頭倉位'}
-            </div>
-            <div class="text-center text-xs text-gray-400 mt-1">
-              進場價: ${fmt(state.position.entry)}
-            </div>
-            <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-center">
-              <div class="text-green">⛔ STOP ${fmt(state.position.stopLoss)}</div>
-              <div class="text-yellow">✅ TP1 ${fmt(state.position.takeProfit1)}</div>
-              <div class="text-red">✅ TP2 ${fmt(state.position.takeProfit2)}</div>
-            </div>
-            <div class="mt-3 grid grid-cols-2 gap-2">
-              <button data-close="tp1" class="close-position-button bg-yellow/20 text-yellow py-2 rounded-lg font-bold text-sm">止盈1 (平半)</button>
-              <button data-close="tp2" class="close-position-button bg-red/20 text-red py-2 rounded-lg font-bold text-sm">止盈2 (全平)</button>
-              <button data-close="stop" class="close-position-button bg-green/20 text-green py-2 rounded-lg font-bold text-sm">堅決止損</button>
-              <button data-close="now" class="close-position-button bg-gray-500/20 text-gray-300 py-2 rounded-lg font-bold text-sm">立即平倉</button>
-            </div>
-          </div>
-        ` : ''}
-
-        <!-- 帳戶設定 -->
-        <div class="bg-card border border-border rounded-2xl p-4 space-y-3">
-          <div class="font-bold text-sm">🧮 帳戶設定</div>
-          <div class="grid grid-cols-1 gap-2">
-            <input 
-              id="capitalInput" 
-              value="${state.capital}" 
-              class="bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" 
-              placeholder="帳戶總資金" 
-            />
-          </div>
-          <div class="text-xs text-gray-400">
-            每筆最大風險: 2% 帳戶資金 | 風險收益比: 1:3 / 1:5
-          </div>
-        </div>
       `;
     };
 
-    // 渲染日誌頁
+    // 渲染歷史頁 (AI偵測記錄)
     const renderLog = () => {
       return `
         <div class="flex justify-between items-center mb-2">
-          <div class="text-lg font-bold">📓 交易日誌</div>
-          <button id="resetDailyButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置今日</button>
+          <div class="text-lg font-bold">📓 AI偵測歷史</div>
+          <button id="resetAllHistoryButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置全部</button>
         </div>
-        ${state.trades.length === 0 
-          ? '<div class="text-center text-gray-500 py-10">還沒有交易記錄</div>' 
-          : state.trades.map(t => `
+        ${state.aiHistory.length === 0 
+          ? '<div class="text-center text-gray-500 py-10">還沒有偵測記錄</div>' 
+          : state.aiHistory.map((record, index) => `
             <div class="bg-card border border-border rounded-xl p-3 text-sm mb-3">
-              <div class="flex justify-between">
-                <span>${t.date}</span>
-                <span class="font-bold ${t.direction === 'long' ? 'text-red' : 'text-green'}">${t.direction === 'long' ? '做多' : '做空'}</span>
+              <div class="flex justify-between mb-1">
+                <span class="text-gray-400">${record.time}</span>
+                <span class="font-bold ${record.trend === 'long' ? 'text-red' : record.trend === 'short' ? 'text-green' : 'text-yellow'}">
+                  ${record.trend === 'long' ? '偏多' : record.trend === 'short' ? '偏空' : '震盪'}
+                </span>
               </div>
-              <div class="text-gray-400 text-xs">進場 ${fmt(t.entry)} | 出場 ${fmt(t.exit)}</div>
-              <div class="font-bold mt-1 ${t.result.startsWith('+') ? 'text-red' : 'text-green'}">
-                ${t.result} ($${t.profit})
+              <div class="text-gray-300">${record.advice}</div>
+              <div class="grid grid-cols-2 gap-2 text-xs mt-2">
+                <div>做多: ${fmt(record.longEntry)}</div>
+                <div>做空: ${fmt(record.shortEntry)}</div>
               </div>
             </div>
           `).join('')}
       `;
     };
 
-    // 渲染統計頁
+    // 渲染統計頁 (AI偵測統計)
     const renderStats = () => {
-      const totalProfit = state.trades.reduce((sum, t) => sum + parseFloat(t.profit || 0), 0);
+      const total = state.aiHistory.length;
+      const longCount = state.aiHistory.filter(r => r.trend === 'long').length;
+      const shortCount = state.aiHistory.filter(r => r.trend === 'short').length;
+      const neutralCount = state.aiHistory.filter(r => r.trend === 'neutral').length;
       
       return `
-        <div class="text-lg font-bold mb-2">📈 交易統計</div>
+        <div class="flex justify-between items-center mb-2">
+          <div class="text-lg font-bold">📈 AI偵測統計</div>
+          <button id="resetStatsButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置統計</button>
+        </div>
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm">
-          <div class="flex justify-between"><span>總交易次數</span><span>${state.trades.length}</span></div>
-          <div class="flex justify-between"><span>歷史勝率</span><span>${state.winRate}%</span></div>
-          <div class="flex justify-between"><span>平均獲利</span><span>120點/筆</span></div>
-          <div class="flex justify-between"><span>平均虧損</span><span>30點/筆</span></div>
-          <div class="flex justify-between"><span>期望收益</span><span>+3.2R/筆</span></div>
-          <div class="flex justify-between font-bold ${totalProfit > 0 ? 'text-red' : 'text-green'}">
-            <span>累計淨收益</span>
-            <span>${totalProfit > 0 ? '+' : ''}${fmt(totalProfit, 1)} USD</span>
-          </div>
+          <div class="flex justify-between"><span>總偵測次數</span><span>${total}</span></div>
+          <div class="flex justify-between"><span>偏多趨勢</span><span class="text-red">${longCount} 次</span></div>
+          <div class="flex justify-between"><span>偏空趨勢</span><span class="text-green">${shortCount} 次</span></div>
+          <div class="flex justify-between"><span>震盪趨勢</span><span class="text-yellow">${neutralCount} 次</span></div>
+          <div class="flex justify-between"><span>平均做多進場</span><span class="text-red">${total > 0 ? fmt(state.aiHistory.reduce((sum, r) => sum + r.longEntry, 0) / total) : '—'}</span></div>
+          <div class="flex justify-between"><span>平均做空進場</span><span class="text-green">${total > 0 ? fmt(state.aiHistory.reduce((sum, r) => sum + r.shortEntry, 0) / total) : '—'}</span></div>
         </div>
       `;
     };
@@ -486,7 +371,7 @@
           </a>
         </div>
 
-        <button id="clearDataButton" class="w-full py-2 border border-red/30 text-red rounded-lg text-sm">
+        <button id="clearAllDataButton" class="w-full py-2 border border-red/30 text-red rounded-lg text-sm">
           清除所有數據
         </button>
       `;
@@ -541,27 +426,6 @@
       document.getElementById('emaStatus').textContent = state.aiAnalysis.emaStatus;
       document.getElementById('rsiStatus').textContent = state.aiAnalysis.rsi;
       
-      // 風險管理
-      document.getElementById('riskManagement').textContent = state.aiAnalysis.riskManagement || `1. 每筆交易最大風險：2%帳戶資金
-2. 止損30點，預留5點滑點
-3. 止盈1平倉一半，移動止損到進場價
-4. 單邊倉位最大不超過0.5手
-5. 不要同時持有多空雙向倉位
-6. 連輸3筆，今日停止交易`;
-      
-      // 一鍵執行按鈕狀態
-      const { locked } = getComputed();
-      document.getElementById('longButton').disabled = locked;
-      document.getElementById('shortButton').disabled = locked;
-      
-      if (locked) {
-        document.getElementById('longButton').classList.add('opacity-50', 'cursor-not-allowed');
-        document.getElementById('shortButton').classList.add('opacity-50', 'cursor-not-allowed');
-      } else {
-        document.getElementById('longButton').classList.remove('opacity-50', 'cursor-not-allowed');
-        document.getElementById('shortButton').classList.remove('opacity-50', 'cursor-not-allowed');
-      }
-      
       document.getElementById('aiResult').classList.remove('hidden');
     };
 
@@ -580,93 +444,45 @@
           break;
         case 'stats':
           content.innerHTML = renderStats();
+          bindStatsEvents();
           break;
         case 'settings':
           content.innerHTML = renderSettings();
           bindSettingsEvents();
           break;
       }
-
-      renderRiskWarning();
     };
 
     // 綁定首頁事件
     const bindHomeEvents = () => {
-      document.getElementById('capitalInput')?.addEventListener('input', (e) => {
-        state.capital = e.target.value;
-        saveState();
-        render();
-      });
-
-      document.querySelectorAll('.close-position-button').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const type = e.target.dataset.close;
-          if (!state.position) return;
-          
-          let exitPrice, profit;
-          if (type === "tp1") {
-            exitPrice = state.position.takeProfit1;
-            profit = state.position.direction === 'long' 
-              ? state.position.takeProfit1 - state.position.entry 
-              : state.position.entry - state.position.takeProfit1;
-          } else if (type === "tp2") {
-            exitPrice = state.position.takeProfit2;
-            profit = state.position.direction === 'long' 
-              ? state.position.takeProfit2 - state.position.entry 
-              : state.position.entry - state.position.takeProfit2;
-          } else if (type === "stop") {
-            exitPrice = state.position.stopLoss;
-            profit = state.position.direction === 'long' 
-              ? state.position.stopLoss - state.position.entry 
-              : state.position.entry - state.position.stopLoss;
-          } else {
-            exitPrice = state.position.now;
-            profit = state.position.direction === 'long' 
-              ? state.position.now - state.position.entry 
-              : state.position.entry - state.position.now;
-          }
-          
-          const isWin = profit > 0;
-          const result = isWin ? (type === "tp1" ? "+1.5R" : "+5R") : "-1R";
-          
-          const newTrade = {
-            id: Date.now(),
-            date: new Date().toLocaleDateString(),
-            direction: state.position.direction,
-            entry: state.position.entry,
-            exit: exitPrice,
-            result,
-            profit: profit.toFixed(2)
-          };
-          
-          state.trades = [newTrade, ...state.trades];
-          
-          // 更新統計
-          const wins = state.trades.filter(t => t.result.startsWith("+")).length;
-          const total = state.trades.length;
-          state.winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
-          
-          if (isWin) {
-            state.loseStreak = 0;
-          } else {
-            state.loseStreak = state.loseStreak + 1;
-            state.todayLoss = state.todayLoss + Math.abs(profit);
-          }
-          
-          state.position = null;
+      document.getElementById('resetCurrentButton')?.addEventListener('click', () => {
+        if (confirm("確定要重置當前AI偵測結果嗎？")) {
+          state.aiAnalysis = null;
           saveState();
           render();
-        });
+        }
       });
     };
 
-    // 綁定日誌頁事件
+    // 綁定歷史頁事件
     const bindLogEvents = () => {
-      document.getElementById('resetDailyButton')?.addEventListener('click', () => {
-        state.todayLoss = 0;
-        state.loseStreak = 0;
-        saveState();
-        render();
+      document.getElementById('resetAllHistoryButton')?.addEventListener('click', () => {
+        if (confirm("確定要重置所有AI偵測歷史嗎？")) {
+          state.aiHistory = [];
+          saveState();
+          render();
+        }
+      });
+    };
+
+    // 綁定統計頁事件
+    const bindStatsEvents = () => {
+      document.getElementById('resetStatsButton')?.addEventListener('click', () => {
+        if (confirm("確定要重置AI偵測統計嗎？")) {
+          state.aiHistory = [];
+          saveState();
+          render();
+        }
       });
     };
 
@@ -682,8 +498,8 @@
         saveState();
       });
 
-      document.getElementById('clearDataButton')?.addEventListener('click', () => {
-        if (confirm("確定要清除所有數據嗎？")) {
+      document.getElementById('clearAllDataButton')?.addEventListener('click', () => {
+        if (confirm("確定要清除所有數據嗎？這將刪除所有設定和歷史記錄")) {
           localStorage.clear();
           window.location.reload();
         }
@@ -830,8 +646,7 @@
   "shortCondition": "做空進場條件，例如：價格反彈到29720-29730區間且出現止漲訊號",
   "chartType": "分時圖/K線圖",
   "emaStatus": "金叉向上/死叉向下/糾纏/無(分時圖)",
-  "rsi": "多頭動能/空頭動能/中性/無(分時圖)",
-  "riskManagement": "6條風險管理規則"
+  "rsi": "多頭動能/空頭動能/中性/無(分時圖)"
 }
 
 範例輸出（當前價格29674）：
@@ -852,8 +667,7 @@
   "shortCondition": "價格反彈到29725-29735區間且出現止漲訊號",
   "chartType": "K線圖",
   "emaStatus": "金叉向上",
-  "rsi": "多頭動能",
-  "riskManagement": "1. 每筆交易最大風險：2%帳戶資金\\n2. 止損30點，預留5點滑點\\n3. 止盈1平倉一半，移動止損到進場價\\n4. 單邊倉位最大不超過0.5手\\n5. 不要同時持有多空雙向倉位\\n6. 連輸3筆，今日停止交易"
+  "rsi": "多頭動能"
 }
 
 現在只輸出JSON，不要任何其他內容。
@@ -938,7 +752,20 @@
         if (!parseRes.emaStatus) parseRes.emaStatus = "無";
         if (!parseRes.rsi) parseRes.rsi = "無";
         
+        // 添加偵測時間
+        parseRes.time = new Date().toLocaleString();
+        
+        // 保存當前分析結果
         state.aiAnalysis = parseRes;
+        
+        // 添加到歷史記錄
+        state.aiHistory.unshift(parseRes);
+        
+        // 限制歷史記錄最多保存50條
+        if (state.aiHistory.length > 50) {
+          state.aiHistory = state.aiHistory.slice(0, 50);
+        }
+        
         saveState();
         
         // 渲染AI結果
@@ -1030,44 +857,6 @@
         e.preventDefault();
         e.stopPropagation();
         runAiAnalyze();
-      });
-
-      // 一鍵做多按鈕
-      document.getElementById('longButton')?.addEventListener('click', () => {
-        const { locked } = getComputed();
-        if (!state.aiAnalysis || locked) return;
-        
-        state.position = { 
-          direction: 'long',
-          entry: state.aiAnalysis.longEntry, 
-          stopLoss: state.aiAnalysis.longStopLoss, 
-          takeProfit1: state.aiAnalysis.longTp1, 
-          takeProfit2: state.aiAnalysis.longTp2, 
-          now: state.aiAnalysis.longEntry,
-          time: new Date().toISOString()
-        };
-        saveState();
-        document.getElementById('aiModal').classList.add('hidden');
-        render();
-      });
-
-      // 一鍵做空按鈕
-      document.getElementById('shortButton')?.addEventListener('click', () => {
-        const { locked } = getComputed();
-        if (!state.aiAnalysis || locked) return;
-        
-        state.position = { 
-          direction: 'short',
-          entry: state.aiAnalysis.shortEntry, 
-          stopLoss: state.aiAnalysis.shortStopLoss, 
-          takeProfit1: state.aiAnalysis.shortTp1, 
-          takeProfit2: state.aiAnalysis.shortTp2, 
-          now: state.aiAnalysis.shortEntry,
-          time: new Date().toISOString()
-        };
-        saveState();
-        document.getElementById('aiModal').classList.add('hidden');
-        render();
       });
 
       // 重置AI按鈕
