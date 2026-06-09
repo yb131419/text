@@ -70,7 +70,7 @@
       </div>
       <input id="fileInput" type="file" accept="image/*" hidden />
       <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
-        點擊上傳Mitrade K線截圖（如你提供的範例）
+        點擊上傳Mitrade K線截圖
       </button>
       <div id="imagePreview" class="mb-3 hidden">
         <img id="previewImg" src="" alt="chart preview" class="w-full rounded-lg object-contain max-h-52" />
@@ -80,11 +80,8 @@
       <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">
         開始AI智能分析
       </button>
-      <button id="testApiButton" class="w-full py-2 rounded-lg bg-gray-700 font-bold mb-3 text-sm">
-        🧪 測試API連接
-      </button>
       
-      <!-- ✅ 全新AI智能分析結果區域 -->
+      <!-- AI智能分析結果區域 -->
       <div id="aiResult" class="space-y-4 hidden">
         <!-- 趨勢判斷卡片 -->
         <div id="trendCard" class="rounded-xl p-4 border">
@@ -152,11 +149,6 @@
         <button id="executeTradeButton" class="w-full py-3 rounded-lg font-bold text-lg">
           一鍵執行交易
         </button>
-      </div>
-      
-      <div id="aiRawResult" class="bg-black rounded-xl p-4 border border-gray-600 hidden">
-        <div class="text-sm font-bold text-white mb-2">原始API回應</div>
-        <pre id="rawResultText" class="text-xs text-gray-300 whitespace-pre-wrap break-all"></pre>
       </div>
       
       <button id="resetAiButton" class="w-full mt-3 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">
@@ -262,14 +254,6 @@
     // 隱藏調試信息
     const hideDebug = () => {
       document.getElementById('aiDebug').classList.add('hidden');
-    };
-
-    // 顯示原始結果
-    const showRawResult = (content) => {
-      const rawResultEl = document.getElementById('aiRawResult');
-      const rawResultText = document.getElementById('rawResultText');
-      rawResultText.textContent = content;
-      rawResultEl.classList.remove('hidden');
     };
 
     // 渲染風險警告
@@ -394,7 +378,7 @@
             />
           </div>
           <div class="text-xs text-gray-400">
-            每筆最大風險: 2% 帳戶資金
+            每筆最大風險: 2% 帳戶資金 | 風險收益比: 1:3
           </div>
         </div>
       `;
@@ -433,7 +417,7 @@
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm">
           <div class="flex justify-between"><span>總交易</span><span>${state.trades.length}</span></div>
           <div class="flex justify-between"><span>勝率</span><span>${state.winRate}%</span></div>
-          <div class="flex justify-between"><span>平均獲利</span><span>2.3R</span></div>
+          <div class="flex justify-between"><span>平均獲利</span><span>3.2R</span></div>
           <div class="flex justify-between"><span>平均虧損</span><span>1R</span></div>
           <div class="flex justify-between font-bold ${totalProfit > 0 ? 'text-green' : 'text-red'}">
             <span>淨收益</span>
@@ -624,7 +608,7 @@
           }
           
           const isWin = profit > 0;
-          const result = isWin ? "+2R" : "-1R";
+          const result = isWin ? "+3R" : "-1R";
           
           const newTrade = {
             id: Date.now(),
@@ -687,50 +671,7 @@
       });
     };
 
-    // 測試API連接
-    const testApiConnection = async () => {
-      showDebug("測試API連接中...");
-      
-      if (!state.apiKey) {
-        showDebug("❌ 請先輸入API Key");
-        return;
-      }
-      
-      try {
-        const res = await fetch(state.proxyUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${state.apiKey}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "user",
-                content: "說一句簡單的話"
-              }
-            ],
-            temperature: 0.1,
-            max_tokens: 100,
-          }),
-        });
-        
-        if (!res.ok) {
-          throw new Error(`API測試失敗: ${res.status} ${res.statusText}`);
-        }
-        
-        const data = await res.json();
-        showDebug(`✅ API連接成功！\n回應: ${data.choices[0].message.content}`);
-        setTimeout(hideDebug, 3000);
-        
-      } catch (err) {
-        console.error("API測試錯誤:", err);
-        showDebug(`❌ API連接失敗\n錯誤: ${err.message}\n\n⚠️ 請確保你已經部署了代理伺服器並正確設置了代理URL`);
-      }
-    };
-
-    // ✅ 全新雙向交易AI分析函數
+    // 雙向交易AI分析函數
     const runAiAnalyze = async () => {
       showDebug("點擊解析按鈕，開始執行...");
       
@@ -758,14 +699,13 @@
       document.getElementById('analyzeButton').disabled = true;
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
-      document.getElementById('aiRawResult').classList.add('hidden');
 
       showDebug(`準備發送請求到: ${state.proxyUrl}`);
 
-      // ✅ 全新雙向交易Prompt
+      // 雙向交易Prompt (風險收益比1:3)
       const sniperPrompt = `
 你是專業NQ納斯達克100指數雙向交易分析師。
-請分析我上傳的Mitrade K線圖（如範例所示），只回傳標準JSON格式，絕對不要加任何額外文字、解釋或markdown標籤。
+請分析我上傳的Mitrade K線圖，只回傳標準JSON格式，絕對不要加任何額外文字、解釋或markdown標籤。
 
 圖表指標說明：
 - EMA5: 黃色線
@@ -779,8 +719,9 @@
 3. 判斷1分K精確進場點是否出現
 4. 分析RSI是否在合理區間（40-60為中性，>70超買，<30超賣）
 5. 計算精確的進場價、止損價、止盈1、止盈2
-6. 計算風險收益比
-7. 給出詳細的操作建議
+6. 風險收益比固定為1:3（止損1單位，止盈1為3單位）
+7. 止盈2為止損的4.5單位
+8. 給出詳細的操作建議
 
 輸出格式必須嚴格按照以下JSON結構：
 {
@@ -790,7 +731,7 @@
   "stopLoss": 數字,
   "takeProfit1": 數字,
   "takeProfit2": 數字,
-  "riskReward": "1:2",
+  "riskReward": "1:3",
   "tf15": "多頭確認/空頭確認/震盪",
   "tf5": "訊號確認/無訊號",
   "tf1": "進場點出現/等待進場",
@@ -804,14 +745,14 @@
   "advice": "建議在29620附近做多",
   "entry": 29620,
   "stopLoss": 29590,
-  "takeProfit1": 29680,
-  "takeProfit2": 29710,
-  "riskReward": "1:2",
+  "takeProfit1": 29710,
+  "takeProfit2": 29755,
+  "riskReward": "1:3",
   "tf15": "多頭確認",
   "tf5": "訊號確認",
   "tf1": "進場點出現",
   "rsi": "正常",
-  "detailedAdvice": "1. 在29615-29625區間分批進場\\n2. 止損設在29590\\n3. 第一止盈29680，平倉一半\\n4. 第二止盈29710，平倉剩餘\\n5. 如果跌破29590，堅決止損"
+  "detailedAdvice": "1. 在29615-29625區間分批進場\\n2. 止損設在29590\\n3. 第一止盈29710，平倉一半\\n4. 第二止盈29755，平倉剩餘\\n5. 如果跌破29590，堅決止損"
 }
 
 只輸出JSON，不要任何其他內容。
@@ -862,10 +803,7 @@
         showDebug("API回應解析成功");
         
         let rawContent = data.choices[0].message.content.trim();
-        showDebug(`原始回應: ${rawContent}`);
-        
-        // 顯示原始結果
-        showRawResult(rawContent);
+        showDebug(`原始回應長度: ${rawContent.length} 字元`);
         
         // 五重防護清除所有可能的雜訊
         rawContent = rawContent
@@ -875,7 +813,7 @@
           .replace(/[^}]*$/, "")
           .trim();
         
-        showDebug(`清理後回應: ${rawContent}`);
+        showDebug(`清理後回應: ${rawContent.substring(0, 150)}...`);
         
         // 嘗試解析
         let parseRes;
@@ -889,14 +827,17 @@
             parseRes = JSON.parse(jsonMatch[0]);
             showDebug("提取JSON區塊成功");
           } else {
-            throw new Error(`無法從AI回應中提取有效數據\n原始回應: ${rawContent}`);
+            throw new Error(`無法從AI回應中提取有效數據`);
           }
         }
         
         // 驗證返回的JSON結構
         if (!parseRes.direction || !parseRes.entry || !parseRes.stopLoss || !parseRes.takeProfit1 || !parseRes.takeProfit2) {
-          throw new Error(`AI返回的JSON格式不正確\n返回內容: ${JSON.stringify(parseRes)}`);
+          throw new Error(`AI返回的JSON格式不正確`);
         }
+        
+        // 強制設置風險收益比為1:3
+        parseRes.riskReward = "1:3";
         
         state.aiAnalysis = parseRes;
         saveState();
@@ -970,7 +911,6 @@
         state.aiAnalysis = null;
         document.getElementById('aiError').classList.add('hidden');
         document.getElementById('aiResult').classList.add('hidden');
-        document.getElementById('aiRawResult').classList.add('hidden');
         hideDebug();
         
         const previewImg = document.getElementById('previewImg');
@@ -991,13 +931,6 @@
         e.preventDefault();
         e.stopPropagation();
         runAiAnalyze();
-      });
-
-      // 測試API按鈕
-      document.getElementById('testApiButton').addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        testApiConnection();
       });
 
       // 一鍵執行交易按鈕
@@ -1029,7 +962,6 @@
         document.getElementById('imagePreview').classList.add('hidden');
         document.getElementById('aiError').classList.add('hidden');
         document.getElementById('aiResult').classList.add('hidden');
-        document.getElementById('aiRawResult').classList.add('hidden');
         document.getElementById('aiDebug').classList.add('hidden');
         document.getElementById('analyzeButton').disabled = false;
         document.getElementById('fileInput').value = "";
