@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NQ AI 智能偵測系統</title>
+  <title>全品種AI智能偵測系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
@@ -46,8 +46,8 @@
 <body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative">
   <!-- 頂部標題 -->
   <div class="bg-darker border-b border-border p-4 text-center">
-    <div class="text-xs text-gray-500 tracking-widest mb-1">NQ AI 智能偵測系統</div>
-    <div class="text-xl font-bold">⚡ 百點級精準進出點位</div>
+    <div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
+    <div class="text-xl font-bold">⚡ 產品專屬精準進出點位</div>
   </div>
 
   <!-- 主內容區 -->
@@ -67,8 +67,8 @@
       </div>
       <input id="fileInput" type="file" accept="image/*" hidden />
       <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
-        上傳當前K線/分時截圖
-        <div class="text-xs mt-1 text-gray-400">✅ 紅漲綠跌 ✅ 百點級獲利空間</div>
+        上傳任何產品K線截圖
+        <div class="text-xs mt-1 text-gray-400">✅ NQ ✅ 黃金 ✅ 原油 ✅ 比特幣</div>
       </button>
       <div id="imagePreview" class="mb-3 hidden">
         <img id="previewImg" src="" alt="chart preview" class="w-full rounded-lg object-contain max-h-52" />
@@ -76,14 +76,14 @@
       <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
       <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
       <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">
-        生成百點級交易點位
+        生成產品專屬交易點位
       </button>
       
       <!-- 雙向實盤點位區域 -->
       <div id="aiResult" class="space-y-4 hidden">
-        <!-- 當前趨勢判斷 -->
+        <!-- 產品與趨勢判斷 -->
         <div id="trendCard" class="rounded-xl p-4 border">
-          <div class="text-lg font-bold text-center mb-2" id="trendTitle"></div>
+          <div class="text-lg font-bold text-center mb-2" id="productTitle"></div>
           <div class="text-center text-sm text-gray-300" id="trendAdvice"></div>
         </div>
         
@@ -142,8 +142,8 @@
           <div class="text-sm font-bold text-white mb-3">📈 技術分析</div>
           <div class="space-y-2">
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">圖表類型</span>
-              <span id="chartType" class="text-lg"></span>
+              <span class="text-gray-200">產品類型</span>
+              <span id="productType" class="text-lg"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">EMA狀態</span>
@@ -184,8 +184,17 @@
   <script>
     // 工具函式
     const num = (v) => parseFloat(v) || 0;
-    const fmt = (n, d = 1) =>
+    const fmt = (n, d = 2) =>
       !n || isNaN(n) || !isFinite(n) ? "—" : Number(n).toFixed(d);
+
+    // 產品參數配置 (15分鐘周期標準波動)
+    const PRODUCT_PARAMS = {
+      "NQ": { stopLoss: 30, tp1: 90, tp2: 150, unit: "點", decimals: 1 },
+      "黃金": { stopLoss: 5, tp1: 15, tp2: 25, unit: "美元", decimals: 2 },
+      "原油": { stopLoss: 0.5, tp1: 1.5, tp2: 2.5, unit: "美元", decimals: 2 },
+      "比特幣": { stopLoss: 300, tp1: 900, tp2: 1500, unit: "美元", decimals: 2 },
+      "未知": { stopLoss: 30, tp1: 90, tp2: 150, unit: "點", decimals: 1 }
+    };
 
     // 本地存儲持久化
     const saveData = (key, data) => {
@@ -250,6 +259,7 @@
               <button id="resetCurrentButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置</button>
             </div>
             <div class="text-center mb-3">
+              <div class="text-lg font-bold text-indigo">${state.aiAnalysis.product}</div>
               <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : state.aiAnalysis.trend === 'short' ? 'text-green' : 'text-yellow'}">
                 ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🟢 偏空趨勢' : '🟡 震盪趨勢'}
               </div>
@@ -258,21 +268,17 @@
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div class="bg-red/10 p-2 rounded text-center border border-red/30">
-                做多進場 <span class="font-bold text-red">${fmt(state.aiAnalysis.longEntry)}</span>
+                做多進場 <span class="font-bold text-red">${fmt(state.aiAnalysis.longEntry, PRODUCT_PARAMS[state.aiAnalysis.product]?.decimals || 1)}</span>
               </div>
               <div class="bg-green/10 p-2 rounded text-center border border-green/30">
-                做空進場 <span class="font-bold text-green">${fmt(state.aiAnalysis.shortEntry)}</span>
+                做空進場 <span class="font-bold text-green">${fmt(state.aiAnalysis.shortEntry, PRODUCT_PARAMS[state.aiAnalysis.product]?.decimals || 1)}</span>
               </div>
-            </div>
-            <div class="mt-3 text-xs text-gray-400">
-              <div>做多止損: ${fmt(state.aiAnalysis.longStopLoss)} | 止盈: ${fmt(state.aiAnalysis.longTp1)}/${fmt(state.aiAnalysis.longTp2)}</div>
-              <div>做空止損: ${fmt(state.aiAnalysis.shortStopLoss)} | 止盈: ${fmt(state.aiAnalysis.shortTp1)}/${fmt(state.aiAnalysis.shortTp2)}</div>
             </div>
           </div>
         ` : `
           <div class="bg-card border border-border rounded-2xl p-4 text-center">
             <div class="text-gray-400 mb-2">還沒有偵測結果</div>
-            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳當前截圖</div>
+            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳任何產品截圖</div>
           </div>
         `}
       `;
@@ -290,15 +296,17 @@
           : state.aiHistory.map((record, index) => `
             <div class="bg-card border border-border rounded-xl p-3 text-sm mb-3">
               <div class="flex justify-between mb-1">
+                <span class="text-indigo font-bold">${record.product}</span>
                 <span class="text-gray-400">${record.time}</span>
+              </div>
+              <div class="flex justify-between mb-1">
                 <span class="font-bold ${record.trend === 'long' ? 'text-red' : record.trend === 'short' ? 'text-green' : 'text-yellow'}">
                   ${record.trend === 'long' ? '偏多' : record.trend === 'short' ? '偏空' : '震盪'}
                 </span>
               </div>
-              <div class="text-gray-300">${record.advice}</div>
               <div class="grid grid-cols-2 gap-2 text-xs mt-2">
-                <div>做多: ${fmt(record.longEntry)}</div>
-                <div>做空: ${fmt(record.shortEntry)}</div>
+                <div>做多: ${fmt(record.longEntry, PRODUCT_PARAMS[record.product]?.decimals || 1)}</div>
+                <div>做空: ${fmt(record.shortEntry, PRODUCT_PARAMS[record.product]?.decimals || 1)}</div>
               </div>
             </div>
           `).join('')}
@@ -308,9 +316,10 @@
     // 渲染統計頁 (AI偵測統計)
     const renderStats = () => {
       const total = state.aiHistory.length;
-      const longCount = state.aiHistory.filter(r => r.trend === 'long').length;
-      const shortCount = state.aiHistory.filter(r => r.trend === 'short').length;
-      const neutralCount = state.aiHistory.filter(r => r.trend === 'neutral').length;
+      const productCounts = {};
+      state.aiHistory.forEach(r => {
+        productCounts[r.product] = (productCounts[r.product] || 0) + 1;
+      });
       
       return `
         <div class="flex justify-between items-center mb-2">
@@ -319,11 +328,9 @@
         </div>
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm">
           <div class="flex justify-between"><span>總偵測次數</span><span>${total}</span></div>
-          <div class="flex justify-between"><span>偏多趨勢</span><span class="text-red">${longCount} 次</span></div>
-          <div class="flex justify-between"><span>偏空趨勢</span><span class="text-green">${shortCount} 次</span></div>
-          <div class="flex justify-between"><span>震盪趨勢</span><span class="text-yellow">${neutralCount} 次</span></div>
-          <div class="flex justify-between"><span>平均做多進場</span><span class="text-red">${total > 0 ? fmt(state.aiHistory.reduce((sum, r) => sum + r.longEntry, 0) / total) : '—'}</span></div>
-          <div class="flex justify-between"><span>平均做空進場</span><span class="text-green">${total > 0 ? fmt(state.aiHistory.reduce((sum, r) => sum + r.shortEntry, 0) / total) : '—'}</span></div>
+          ${Object.entries(productCounts).map(([product, count]) => `
+            <div class="flex justify-between"><span>${product}</span><span>${count} 次</span></div>
+          `).join('')}
         </div>
       `;
     };
@@ -371,6 +378,16 @@
           </a>
         </div>
 
+        <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
+          <div class="font-bold text-sm">產品參數配置 (15分鐘周期)</div>
+          <div class="text-xs text-gray-400 space-y-1">
+            <div>🔹 NQ: 止損30點 | 止盈90/150點</div>
+            <div>🔹 黃金: 止損5美元 | 止盈15/25美元</div>
+            <div>🔹 原油: 止損0.5美元 | 止盈1.5/2.5美元</div>
+            <div>🔹 比特幣: 止損300美元 | 止盈900/1500美元</div>
+          </div>
+        </div>
+
         <button id="clearAllDataButton" class="w-full py-2 border border-red/30 text-red rounded-lg text-sm">
           清除所有數據
         </button>
@@ -381,48 +398,51 @@
     const renderAiResult = () => {
       if (!state.aiAnalysis) return;
       
+      const params = PRODUCT_PARAMS[state.aiAnalysis.product] || PRODUCT_PARAMS["未知"];
+      const decimals = params.decimals;
+      
       const trendCard = document.getElementById('trendCard');
-      const trendTitle = document.getElementById('trendTitle');
+      const productTitle = document.getElementById('productTitle');
       const trendAdvice = document.getElementById('trendAdvice');
+      
+      productTitle.textContent = `📊 ${state.aiAnalysis.product}`;
       
       if (state.aiAnalysis.trend === 'long') {
         trendCard.className = "rounded-xl p-4 border bg-red/10 border-red/30";
-        trendTitle.className = "text-lg font-bold text-center mb-2 text-red";
-        trendTitle.textContent = "🔴 當前趨勢：偏多";
+        trendAdvice.className = "text-center text-sm text-gray-300";
+        trendAdvice.textContent = `當前趨勢：偏多 | ${state.aiAnalysis.advice}`;
       } else if (state.aiAnalysis.trend === 'short') {
         trendCard.className = "rounded-xl p-4 border bg-green/10 border-green/30";
-        trendTitle.className = "text-lg font-bold text-center mb-2 text-green";
-        trendTitle.textContent = "🟢 當前趨勢：偏空";
+        trendAdvice.className = "text-center text-sm text-gray-300";
+        trendAdvice.textContent = `當前趨勢：偏空 | ${state.aiAnalysis.advice}`;
       } else {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
-        trendTitle.className = "text-lg font-bold text-center mb-2 text-yellow";
-        trendTitle.textContent = "🟡 當前趨勢：震盪";
+        trendAdvice.className = "text-center text-sm text-gray-300";
+        trendAdvice.textContent = `當前趨勢：震盪 | ${state.aiAnalysis.advice}`;
       }
-      
-      trendAdvice.textContent = state.aiAnalysis.advice;
       
       // 做多點位
       document.getElementById('longPriority').textContent = state.aiAnalysis.longPriority;
-      document.getElementById('longEntry').textContent = fmt(state.aiAnalysis.longEntry);
-      document.getElementById('longStopLoss').textContent = fmt(state.aiAnalysis.longStopLoss);
-      document.getElementById('longTp1').textContent = fmt(state.aiAnalysis.longTp1);
-      document.getElementById('longTp2').textContent = fmt(state.aiAnalysis.longTp2);
+      document.getElementById('longEntry').textContent = fmt(state.aiAnalysis.longEntry, decimals);
+      document.getElementById('longStopLoss').textContent = fmt(state.aiAnalysis.longStopLoss, decimals);
+      document.getElementById('longTp1').textContent = fmt(state.aiAnalysis.longTp1, decimals);
+      document.getElementById('longTp2').textContent = fmt(state.aiAnalysis.longTp2, decimals);
       document.getElementById('longCondition').textContent = state.aiAnalysis.longCondition;
       document.getElementById('longProfit').textContent = 
-        `預期獲利: ${Math.round(state.aiAnalysis.longTp1 - state.aiAnalysis.longEntry)}-${Math.round(state.aiAnalysis.longTp2 - state.aiAnalysis.longEntry)}點/手 | 風險收益比: 1:3 / 1:5`;
+        `預期獲利: ${fmt(state.aiAnalysis.longTp1 - state.aiAnalysis.longEntry, decimals)}-${fmt(state.aiAnalysis.longTp2 - state.aiAnalysis.longEntry, decimals)} ${params.unit}/手 | 風險收益比: 1:3 / 1:5`;
       
       // 做空點位
       document.getElementById('shortPriority').textContent = state.aiAnalysis.shortPriority;
-      document.getElementById('shortEntry').textContent = fmt(state.aiAnalysis.shortEntry);
-      document.getElementById('shortStopLoss').textContent = fmt(state.aiAnalysis.shortStopLoss);
-      document.getElementById('shortTp1').textContent = fmt(state.aiAnalysis.shortTp1);
-      document.getElementById('shortTp2').textContent = fmt(state.aiAnalysis.shortTp2);
+      document.getElementById('shortEntry').textContent = fmt(state.aiAnalysis.shortEntry, decimals);
+      document.getElementById('shortStopLoss').textContent = fmt(state.aiAnalysis.shortStopLoss, decimals);
+      document.getElementById('shortTp1').textContent = fmt(state.aiAnalysis.shortTp1, decimals);
+      document.getElementById('shortTp2').textContent = fmt(state.aiAnalysis.shortTp2, decimals);
       document.getElementById('shortCondition').textContent = state.aiAnalysis.shortCondition;
       document.getElementById('shortProfit').textContent = 
-        `預期獲利: ${Math.round(state.aiAnalysis.shortEntry - state.aiAnalysis.shortTp1)}-${Math.round(state.aiAnalysis.shortEntry - state.aiAnalysis.shortTp2)}點/手 | 風險收益比: 1:3 / 1:5`;
+        `預期獲利: ${fmt(state.aiAnalysis.shortEntry - state.aiAnalysis.shortTp1, decimals)}-${fmt(state.aiAnalysis.shortEntry - state.aiAnalysis.shortTp2, decimals)} ${params.unit}/手 | 風險收益比: 1:3 / 1:5`;
       
       // 技術分析
-      document.getElementById('chartType').textContent = state.aiAnalysis.chartType;
+      document.getElementById('productType').textContent = state.aiAnalysis.product;
       document.getElementById('emaStatus').textContent = state.aiAnalysis.emaStatus;
       document.getElementById('rsiStatus').textContent = state.aiAnalysis.rsi;
       
@@ -561,12 +581,12 @@
       throw new Error("JSON解析失敗，所有嘗試都失敗了\n" + attempts.join("\n"));
     };
 
-    // ✅ 百點級實盤雙向點位AI分析函數
+    // ✅ 全品種智能點位AI分析函數
     const runAiAnalyze = async () => {
-      showDebug("開始生成百點級交易點位...");
+      showDebug("開始識別產品並生成專屬點位...");
       
       if (!state.aiBase64) {
-        state.aiError = "❌ 請先上傳當前K線/分時截圖";
+        state.aiError = "❌ 請先上傳K線/分時截圖";
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
         hideDebug();
@@ -585,51 +605,50 @@
       state.aiError = "";
       state.aiAnalysis = null;
       
-      document.getElementById('analyzeButton').textContent = "⏳ 生成百點級點位中...";
+      document.getElementById('analyzeButton').textContent = "⏳ 生成專屬點位中...";
       document.getElementById('analyzeButton').disabled = true;
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
 
-      showDebug("正在分析當前走勢...");
+      showDebug("正在識別產品類型...");
 
-      // ✅ 百點級實盤專用Prompt
+      // ✅ 全品種智能識別Prompt
       const sniperPrompt = `
-你是一位有15年日內交易經驗的實盤交易員，專門交易NQ納斯達克100指數。
-你只給出明確、精確、可執行的交易點位，絕不模稜兩可。
-你必須同時給出做多和做空兩個方向的完整交易計劃，包括進場價、止損價、止盈1、止盈2。
-所有點位必須符合當前價格，貼近實際交易。
+你是一位有15年日內交易經驗的實盤交易員，精通NQ、黃金、原油、比特幣四個品種。
+你必須首先識別我上傳的截圖是哪個產品，然後根據該產品的波動特性生成相應的交易點位。
 
-⚠️ 絕對重要的規則：
-1. 止損距離固定為30點，預留5點滑點
-2. 止盈1 = 進場價 ± 90點（3倍風險）
-3. 止盈2 = 進場價 ± 150點（5倍風險）
-4. 每筆交易必須有至少90點的獲利空間才值得進場
-5. 絕對不允許出現止盈小於止損的情況
-6. 絕對不允許出現幾十點的小空間交易
+⚠️ 產品識別規則：
+- 如果截圖顯示"美國科技股100指數"或"NAS100"或"NQ" → 產品：NQ
+- 如果截圖顯示"黃金"或"XAU/USD" → 產品：黃金
+- 如果截圖顯示"布倫特原油"或"UKOIL" → 產品：原油
+- 如果截圖顯示"比特幣"或"BTC/USD" → 產品：比特幣
 
-請分析我上傳的Mitrade截圖，可以是分時圖，也可以是K線圖(1/5/15分)。
-只回傳標準JSON格式，絕對不要加任何其他文字、解釋或markdown標籤。
+⚠️ 產品參數規則（嚴格執行）：
+- NQ: 止損30點，止盈1=進場+90點，止盈2=進場+150點
+- 黃金: 止損5美元，止盈1=進場+15美元，止盈2=進場+25美元
+- 原油: 止損0.5美元，止盈1=進場+1.5美元，止盈2=進場+2.5美元
+- 比特幣: 止損300美元，止盈1=進場+900美元，止盈2=進場+1500美元
+- 做空時止損和止盈方向相反
+- 風險收益比永遠保持1:3 / 1:5
+
+請分析我上傳的截圖，只回傳標準JSON格式，絕對不要加任何其他文字。
 開頭直接輸入{，結尾直接輸入}，不要任何其他內容。
 
 分析規則：
-1. 首先判斷當前整體趨勢（偏多/偏空/震盪）
-2. 給出做多策略的優先級（高/中/低）
-3. 做多進場價：當前價格附近±10點
-4. 做多止損價：進場價 - 30點
-5. 做多止盈1：進場價 + 90點
-6. 做多止盈2：進場價 + 150點
-7. 給出做多的進場條件
-8. 給出做空策略的優先級（高/中/低）
-9. 做空進場價：當前價格附近±10點
-10. 做空止損價：進場價 + 30點
-11. 做空止盈1：進場價 - 90點
-12. 做空止盈2：進場價 - 150點
-13. 給出做空的進場條件
-14. 順趨勢方向的優先級為"高"，逆趨勢方向的優先級為"低"
-15. 震盪行情兩個方向優先級都為"中"
+1. 首先識別產品類型
+2. 判斷當前整體趨勢（偏多/偏空/震盪）
+3. 給出做多策略的優先級（高/中/低）
+4. 做多進場價：當前價格附近
+5. 根據產品類型自動計算做多止損和止盈
+6. 給出做多的進場條件
+7. 給出做空策略的優先級（高/中/低）
+8. 做空進場價：當前價格附近
+9. 根據產品類型自動計算做空止損和止盈
+10. 給出做空的進場條件
 
 輸出格式必須嚴格按照以下JSON結構：
 {
+  "product": "NQ/黃金/原油/比特幣",
   "trend": "long/short/neutral",
   "advice": "簡短的核心建議",
   "longPriority": "高/中/低",
@@ -637,37 +656,15 @@
   "longStopLoss": 數字,
   "longTp1": 數字,
   "longTp2": 數字,
-  "longCondition": "做多進場條件，例如：價格回調到29670-29680區間且出現止跌訊號",
+  "longCondition": "做多進場條件",
   "shortPriority": "高/中/低",
   "shortEntry": 數字,
   "shortStopLoss": 數字,
   "shortTp1": 數字,
   "shortTp2": 數字,
-  "shortCondition": "做空進場條件，例如：價格反彈到29720-29730區間且出現止漲訊號",
-  "chartType": "分時圖/K線圖",
-  "emaStatus": "金叉向上/死叉向下/糾纏/無(分時圖)",
-  "rsi": "多頭動能/空頭動能/中性/無(分時圖)"
-}
-
-範例輸出（當前價格29674）：
-{
-  "trend": "long",
-  "advice": "順勢做多為主，謹慎做空",
-  "longPriority": "高",
-  "longEntry": 29670,
-  "longStopLoss": 29640,
-  "longTp1": 29760,
-  "longTp2": 29820,
-  "longCondition": "價格回調到29665-29675區間且出現止跌訊號",
-  "shortPriority": "低",
-  "shortEntry": 29730,
-  "shortStopLoss": 29760,
-  "shortTp1": 29640,
-  "shortTp2": 29580,
-  "shortCondition": "價格反彈到29725-29735區間且出現止漲訊號",
-  "chartType": "K線圖",
-  "emaStatus": "金叉向上",
-  "rsi": "多頭動能"
+  "shortCondition": "做空進場條件",
+  "emaStatus": "金叉向上/死叉向下/糾纏",
+  "rsi": "多頭動能/空頭動能/中性"
 }
 
 現在只輸出JSON，不要任何其他內容。
@@ -725,30 +722,33 @@
         let parseRes = safeParseJson(rawContent);
         showDebug("JSON解析成功");
         
-        // ✅ 強制校驗和修正所有點位（確保百點級空間）
+        // ✅ 強制校驗和修正所有點位（根據產品類型）
+        if (!parseRes.product) parseRes.product = "未知";
         if (!parseRes.trend) parseRes.trend = "neutral";
         if (!parseRes.advice) parseRes.advice = "觀望等待更好機會";
         if (!parseRes.longPriority) parseRes.longPriority = "中";
         if (!parseRes.shortPriority) parseRes.shortPriority = "中";
         
+        // 獲取產品專屬參數
+        const params = PRODUCT_PARAMS[parseRes.product] || PRODUCT_PARAMS["未知"];
+        
         // 強制修正做多點位
         if (parseRes.longEntry && parseRes.longEntry > 0) {
-          parseRes.longStopLoss = Math.round(parseRes.longEntry - 30);
-          parseRes.longTp1 = Math.round(parseRes.longEntry + 90);
-          parseRes.longTp2 = Math.round(parseRes.longEntry + 150);
+          parseRes.longStopLoss = Number((parseRes.longEntry - params.stopLoss).toFixed(params.decimals));
+          parseRes.longTp1 = Number((parseRes.longEntry + params.tp1).toFixed(params.decimals));
+          parseRes.longTp2 = Number((parseRes.longEntry + params.tp2).toFixed(params.decimals));
         }
         
         // 強制修正做空點位
         if (parseRes.shortEntry && parseRes.shortEntry > 0) {
-          parseRes.shortStopLoss = Math.round(parseRes.shortEntry + 30);
-          parseRes.shortTp1 = Math.round(parseRes.shortEntry - 90);
-          parseRes.shortTp2 = Math.round(parseRes.shortEntry - 150);
+          parseRes.shortStopLoss = Number((parseRes.shortEntry + params.stopLoss).toFixed(params.decimals));
+          parseRes.shortTp1 = Number((parseRes.shortEntry - params.tp1).toFixed(params.decimals));
+          parseRes.shortTp2 = Number((parseRes.shortEntry - params.tp2).toFixed(params.decimals));
         }
         
         // 設置默認值
-        if (!parseRes.longCondition) parseRes.longCondition = "價格回調到進場價附近±5點且出現止跌訊號";
-        if (!parseRes.shortCondition) parseRes.shortCondition = "價格反彈到進場價附近±5點且出現止漲訊號";
-        if (!parseRes.chartType) parseRes.chartType = "K線圖";
+        if (!parseRes.longCondition) parseRes.longCondition = "價格回調到進場價附近且出現止跌訊號";
+        if (!parseRes.shortCondition) parseRes.shortCondition = "價格反彈到進場價附近且出現止漲訊號";
         if (!parseRes.emaStatus) parseRes.emaStatus = "無";
         if (!parseRes.rsi) parseRes.rsi = "無";
         
@@ -771,7 +771,7 @@
         // 渲染AI結果
         renderAiResult();
         
-        showDebug("✅ 百點級交易點位生成完成");
+        showDebug(`✅ ${parseRes.product} 專屬交易點位生成完成`);
         setTimeout(hideDebug, 2000);
         
       } catch (err) {
@@ -782,7 +782,7 @@
         showDebug(`錯誤詳情: ${err.stack}`);
       } finally {
         state.aiLoading = false;
-        document.getElementById('analyzeButton').textContent = "生成百點級交易點位";
+        document.getElementById('analyzeButton').textContent = "生成產品專屬交易點位";
         document.getElementById('analyzeButton').disabled = false;
         render(); // 更新首頁顯示
       }
