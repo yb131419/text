@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NQ 專業波段狙擊系統</title>
+  <title>NQ 全圖型智能狙擊系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
@@ -49,7 +49,7 @@
 
   <!-- 頂部標題 -->
   <div class="bg-darker border-b border-border p-4 text-center">
-    <div class="text-xs text-gray-500 tracking-widest mb-1">NQ 專業波段狙擊系統</div>
+    <div class="text-xs text-gray-500 tracking-widest mb-1">NQ 全圖型智能狙擊系統</div>
     <div class="text-xl font-bold">⚡ 精準多空進出點位</div>
   </div>
 
@@ -70,8 +70,8 @@
       </div>
       <input id="fileInput" type="file" accept="image/*" hidden />
       <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
-        上傳Mitrade K線截圖
-        <div class="text-xs mt-1 text-gray-400">支持1分/5分/15分K線</div>
+        上傳任何Mitrade截圖
+        <div class="text-xs mt-1 text-gray-400">✅ 支持分時圖 ✅ 支持K線圖(1/5/15分)</div>
       </button>
       <div id="imagePreview" class="mb-3 hidden">
         <img id="previewImg" src="" alt="chart preview" class="w-full rounded-lg object-contain max-h-52" />
@@ -90,48 +90,51 @@
           <div class="text-center text-sm text-gray-300" id="trendAdvice"></div>
         </div>
         
-        <!-- 精確點位卡片 -->
+        <!-- 精確點位卡片 (升級版：止損止盈更醒目) -->
         <div class="bg-darker rounded-xl p-4 border border-gray-600">
           <div class="text-sm font-bold text-white mb-3">🎯 精確進出點位</div>
           <div class="grid grid-cols-2 gap-3 text-sm">
-            <div class="bg-black/30 p-2 rounded text-center">
-              <div class="text-gray-400 text-xs">進場價</div>
-              <div class="text-lg font-bold" id="entryPrice"></div>
+            <div class="bg-black/30 p-3 rounded text-center border border-indigo/30">
+              <div class="text-gray-400 text-xs mb-1">進場價</div>
+              <div class="text-xl font-bold text-indigo" id="entryPrice"></div>
             </div>
-            <div class="bg-black/30 p-2 rounded text-center">
-              <div class="text-gray-400 text-xs">止損價</div>
-              <div class="text-lg font-bold text-red" id="stopLoss"></div>
+            <div class="bg-black/30 p-3 rounded text-center border border-red/50">
+              <div class="text-gray-400 text-xs mb-1">⛔ 絕對止損</div>
+              <div class="text-xl font-bold text-red" id="stopLoss"></div>
             </div>
-            <div class="bg-black/30 p-2 rounded text-center">
-              <div class="text-gray-400 text-xs">止盈1 (3R)</div>
-              <div class="text-lg font-bold text-yellow" id="takeProfit1"></div>
+            <div class="bg-black/30 p-3 rounded text-center border border-yellow/50">
+              <div class="text-gray-400 text-xs mb-1">✅ 止盈1 (3R)</div>
+              <div class="text-xl font-bold text-yellow" id="takeProfit1"></div>
             </div>
-            <div class="bg-black/30 p-2 rounded text-center">
-              <div class="text-gray-400 text-xs">止盈2 (5R)</div>
-              <div class="text-lg font-bold text-green" id="takeProfit2"></div>
+            <div class="bg-black/30 p-3 rounded text-center border border-green/50">
+              <div class="text-gray-400 text-xs mb-1">✅ 止盈2 (5R)</div>
+              <div class="text-xl font-bold text-green" id="takeProfit2"></div>
             </div>
           </div>
           <div class="mt-3 text-center text-sm">
             <span class="text-gray-400">風險收益比：</span>
             <span class="font-bold" id="riskReward"></span>
           </div>
+          <div class="mt-2 text-center text-xs text-red-400 font-bold" id="stopLossNote">
+            ⚠️ 觸及止損立即離場，絕不扛單
+          </div>
         </div>
         
         <!-- 技術分析卡片 -->
         <div class="bg-darker rounded-xl p-4 border border-gray-600">
-          <div class="text-sm font-bold text-white mb-3">📈 技術指標狀態</div>
+          <div class="text-sm font-bold text-white mb-3">📈 技術分析結果</div>
           <div class="space-y-2">
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">EMA5/EMA20</span>
+              <span class="text-gray-200">圖表類型</span>
+              <span id="chartType" class="text-lg"></span>
+            </div>
+            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
+              <span class="text-gray-200">EMA狀態</span>
               <span id="emaStatus" class="text-lg"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">RSI(14)</span>
+              <span class="text-gray-200">RSI動能</span>
               <span id="rsiStatus" class="text-lg"></span>
-            </div>
-            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">趨勢強度</span>
-              <span id="trendStrength" class="text-lg"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">進場模式</span>
@@ -322,14 +325,14 @@
                 建議進場 <span class="font-bold">${fmt(state.aiAnalysis.entry)}</span>
               </div>
               <div class="bg-black/20 p-2 rounded text-center">
-                嚴格止損 <span class="font-bold text-red">${fmt(state.aiAnalysis.stopLoss)}</span>
+                絕對止損 <span class="font-bold text-red">${fmt(state.aiAnalysis.stopLoss)}</span>
               </div>
             </div>
           </div>
         ` : `
           <div class="bg-card border border-border rounded-2xl p-4 text-center">
             <div class="text-gray-400 mb-2">還沒有分析</div>
-            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳K線截圖</div>
+            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳任何截圖</div>
           </div>
         `}
 
@@ -354,9 +357,9 @@
               進場價: ${fmt(state.position.entry)}
             </div>
             <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-center">
-              <div class="text-red">STOP ${fmt(state.position.stopLoss)}</div>
-              <div class="text-yellow">TP1 ${fmt(state.position.takeProfit1)}</div>
-              <div class="text-green">TP2 ${fmt(state.position.takeProfit2)}</div>
+              <div class="text-red">⛔ STOP ${fmt(state.position.stopLoss)}</div>
+              <div class="text-yellow">✅ TP1 ${fmt(state.position.takeProfit1)}</div>
+              <div class="text-green">✅ TP2 ${fmt(state.position.takeProfit2)}</div>
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2">
               <button data-close="tp1" class="close-position-button bg-yellow/20 text-yellow py-2 rounded-lg font-bold text-sm">止盈1 (平半)</button>
@@ -383,6 +386,9 @@
           </div>
         </div>
       `;
+    };
+
+    //
     };
 
     // 渲染日誌頁
@@ -507,10 +513,11 @@
       document.getElementById('takeProfit1').textContent = fmt(state.aiAnalysis.takeProfit1);
       document.getElementById('takeProfit2').textContent = fmt(state.aiAnalysis.takeProfit2);
       document.getElementById('riskReward').textContent = state.aiAnalysis.riskReward;
+      document.getElementById('stopLossNote').textContent = `⚠️ ${state.aiAnalysis.stopLossNote || '觸及止損立即離場，絕不扛單'}`;
       
+      document.getElementById('chartType').textContent = state.aiAnalysis.chartType;
       document.getElementById('emaStatus').textContent = state.aiAnalysis.emaStatus;
       document.getElementById('rsiStatus').textContent = state.aiAnalysis.rsi;
-      document.getElementById('trendStrength').textContent = state.aiAnalysis.trendStrength;
       document.getElementById('entryMode').textContent = state.aiAnalysis.entryMode;
       
       document.getElementById('detailedAdvice').textContent = state.aiAnalysis.detailedAdvice;
@@ -754,10 +761,11 @@
             takeProfit1,
             takeProfit2,
             riskReward: "1:3 / 1:5",
+            chartType: "K線圖",
             emaStatus: direction === 'long' ? "金叉向上" : "死叉向下",
             rsi: "正常",
-            trendStrength: "中等",
             entryMode: "突破進場",
+            stopLossNote: "觸及止損立即離場，絕不扛單",
             detailedAdvice: `1. 在${entry.toFixed(0)}-${(entry+5).toFixed(0)}區間分批進場\n2. 止損嚴格設在${stopLoss.toFixed(1)}\n3. 第一止盈${takeProfit1.toFixed(1)}，平倉一半\n4. 第二止盈${takeProfit2.toFixed(1)}，平倉全部\n5. 如果觸及止損，堅決離場，不要加倉`
           };
         }
@@ -769,12 +777,12 @@
       throw new Error("JSON解析失敗，所有嘗試都失敗了\n" + attempts.join("\n"));
     };
 
-    // ✅ NQ專業多空策略AI分析函數
+    // ✅ 全圖型支持AI分析函數 (分時圖+K線圖)
     const runAiAnalyze = async () => {
       showDebug("開始深度分析...");
       
       if (!state.aiBase64) {
-        state.aiError = "❌ 請先上傳K線截圖";
+        state.aiError = "❌ 請先上傳截圖";
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
         hideDebug();
@@ -798,49 +806,70 @@
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
 
-      showDebug("正在分析K線圖...");
+      showDebug("正在分析K線圖/分時圖...");
 
-      // ✅ NQ專業多空策略Prompt
+      // ✅ 全圖型支持Prompt (分時圖+K線圖)
       const sniperPrompt = `
 你是一位專門交易NQ納斯達克100指數的職業交易員，有10年的日內交易經驗。
-你精通EMA和RSI組合策略，擅長捕捉趨勢中的高勝率進場點。
+你精通分時圖和K線圖分析，擅長捕捉趨勢中的高勝率進場點。
 你的交易風格是：不追求完美，只做高概率的交易，嚴格執行止損。
 
-請分析我上傳的Mitrade K線圖，只回傳標準JSON格式，絕對不要加任何其他文字、解釋或markdown標籤。
+請分析我上傳的Mitrade截圖，可以是分時圖，也可以是K線圖(1/5/15分)。
+只回傳標準JSON格式，絕對不要加任何其他文字、解釋或markdown標籤。
 開頭直接輸入{，結尾直接輸入}，不要任何其他內容。
 
-圖表指標說明：
-- EMA5: 黃色線
-- EMA20: 紫色/粉紅色線
-- RSI(14): 下方紫色RSI指標
-- 圖表頂部顯示當前價格
+首先判斷圖表類型：
+- 如果是分時圖：只有價格走勢和均線
+- 如果是K線圖：有蠟燭圖、EMA5(黃)、EMA20(紫)、RSI(14)指標
 
 ✅ 做多信號（滿足任意2個即可）：
+【K線圖專用】
 1. EMA5向上穿過EMA20（金叉）
 2. 價格站上EMA20且EMA5在EMA20上方
 3. RSI從低於50向上穿過50
 4. 價格突破最近的高點且回踩不破
 5. 出現連續3根陽線
 
+【分時圖專用】
+1. 價格突破今日高點
+2. 價格回踩均線不破
+3. 出現V型反轉且放量上漲
+4. 價格在均線上方運行且逐步墊高
+5. 低點不斷抬高，高點不斷創新高
+
 ✅ 做空信號（滿足任意2個即可）：
+【K線圖專用】
 1. EMA5向下穿過EMA20（死叉）
 2. 價格跌破EMA20且EMA5在EMA20下方
 3. RSI從高於50向下穿過50
 4. 價格跌破最近的低點且反彈不過
 5. 出現連續3根陰線
 
+【分時圖專用】
+1. 價格跌破今日低點
+2. 價格反彈不過均線
+3. 出現倒V型反轉且放量下跌
+4. 價格在均線下方運行且逐步走低
+5. 高點不斷降低，低點不斷創新低
+
 ❌ 觀望信號：
 - 所有信號都不明確
-- EMA5和EMA20糾纏在一起
-- RSI在45-55之間橫盤
+- EMA5和EMA20糾纏在一起(K線圖)
+- 價格在均線上下來回穿越(分時圖)
+- RSI在45-55之間橫盤(K線圖)
 - 價格在窄幅區間震盪
 
-⚠️ 進場規則：
-- 突破進場：價格突破關鍵位時進場
-- 回調進場：趨勢確認後，回調到EMA5附近進場
-- 止損設置：最近的結構低點下方（做多）或高點上方（做空）
+⚠️ 止損規則（極度重要！）：
+- 做多止損：設在最近的結構低點下方5點，或今日低點下方5點
+- 做空止損：設在最近的結構高點上方5點，或今日高點上方5點
+- 止損必須明確，絕對不能模糊
+- 必須在stopLossNote字段說明止損依據
+
+⚠️ 進場和止盈規則：
+- 進場價：當前價格附近±5點
 - 止盈1 = 進場價 ± 3×止損距離（平倉一半）
 - 止盈2 = 進場價 ± 5×止損距離（平倉全部）
+- 風險收益比固定為1:3 / 1:5
 
 輸出格式必須嚴格按照以下JSON結構：
 {
@@ -851,27 +880,29 @@
   "takeProfit1": 數字,
   "takeProfit2": 數字,
   "riskReward": "1:3 / 1:5",
-  "emaStatus": "金叉向上/死叉向下/糾纏",
-  "rsi": "多頭動能/空頭動能/中性",
-  "trendStrength": "強/中/弱",
+  "chartType": "分時圖/K線圖",
+  "emaStatus": "金叉向上/死叉向下/糾纏/無(分時圖)",
+  "rsi": "多頭動能/空頭動能/中性/無(分時圖)",
   "entryMode": "突破進場/回調進場/觀望",
+  "stopLossNote": "止損依據，例如：止損設在今日低點29610下方5點",
   "detailedAdvice": "詳細的4-5步操作步驟"
 }
 
 範例輸出：
 {
   "direction": "long",
-  "advice": "建議在29620附近做多",
-  "entry": 29620,
-  "stopLoss": 29575,
-  "takeProfit1": 29755,
-  "takeProfit2": 29845,
+  "advice": "建議在29670附近做多",
+  "entry": 29670,
+  "stopLoss": 29640,
+  "takeProfit1": 29760,
+  "takeProfit2": 29820,
   "riskReward": "1:3 / 1:5",
+  "chartType": "K線圖",
   "emaStatus": "金叉向上",
   "rsi": "多頭動能",
-  "trendStrength": "強",
   "entryMode": "突破進場",
-  "detailedAdvice": "1. 在29615-29625區間分批進場\\n2. 止損嚴格設在29575\\n3. 第一止盈29755，平倉一半\\n4. 第二止盈29845，平倉全部\\n5. 如果觸及止損，堅決離場，不要加倉"
+  "stopLossNote": "止損設在最近結構低點29645下方5點",
+  "detailedAdvice": "1. 在29665-29675區間分批進場\\n2. 止損嚴格設在29640\\n3. 第一止盈29760，平倉一半\\n4. 第二止盈29820，平倉全部\\n5. 如果觸及止損，堅決離場，不要加倉"
 }
 
 現在只輸出JSON，不要任何其他內容。
@@ -904,7 +935,7 @@
               },
             ],
             temperature: 0.1,
-            max_tokens: 800,
+            max_tokens: 1000,
             response_format: { type: "json_object" }
           }),
         });
@@ -923,7 +954,7 @@
         showDebug("分析結果解析成功");
         
         let rawContent = data.choices[0].message.content.trim();
-        showDebug(`原始回應: ${rawContent.substring(0, 200)}...`);
+        showDebug(`原始回應: ${rawContent.substring(0, 250)}...`);
         
         // 使用超強JSON修復函數
         let parseRes = safeParseJson(rawContent);
@@ -934,6 +965,7 @@
         if (!parseRes.advice) parseRes.advice = "建議觀望";
         if (!parseRes.entry) parseRes.entry = 0;
         if (!parseRes.stopLoss) parseRes.stopLoss = 0;
+        if (!parseRes.stopLossNote) parseRes.stopLossNote = "觸及止損立即離場，絕不扛單";
         
         // 自動計算止盈點位（如果AI沒有返回）
         if (!parseRes.takeProfit1 || !parseRes.takeProfit2) {
@@ -955,9 +987,9 @@
         parseRes.riskReward = "1:3 / 1:5";
         
         // 設置默認值
-        if (!parseRes.emaStatus) parseRes.emaStatus = "糾纏";
-        if (!parseRes.rsi) parseRes.rsi = "中性";
-        if (!parseRes.trendStrength) parseRes.trendStrength = "弱";
+        if (!parseRes.chartType) parseRes.chartType = "K線圖";
+        if (!parseRes.emaStatus) parseRes.emaStatus = "無";
+        if (!parseRes.rsi) parseRes.rsi = "無";
         if (!parseRes.entryMode) parseRes.entryMode = "觀望";
         if (!parseRes.detailedAdvice) parseRes.detailedAdvice = "1. 觀望等待更明確的訊號\n2. 不要貿然進場\n3. 耐心等待高勝率機會";
         
