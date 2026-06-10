@@ -13,8 +13,8 @@
           colors: {
             dark: '#07080f',
             darker: '#0d1018',
-            card: '#111520',
-            border: '#1a1e2e',
+            card: 'rgba(17, 21, 32, 0.7)',
+            border: 'rgba(26, 30, 46, 0.5)',
             green: '#1db954',
             red: '#e03e3e',
             blue: '#38bdf8',
@@ -25,6 +25,11 @@
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
           },
+          boxShadow: {
+            'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+            'card': '0 4px 15px rgba(0, 0, 0, 0.2)',
+            'button': '0 4px 12px rgba(99, 102, 241, 0.3)',
+          }
         },
       }
     }
@@ -41,51 +46,69 @@
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
       }
+      .glass {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      .card-hover {
+        transition: all 0.3s ease;
+      }
+      .card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+      }
     }
   </style>
 </head>
 <body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative">
-  <div class="bg-darker border-b border-border p-4 text-center">
+  <!-- 背景漸變 -->
+  <div class="fixed inset-0 bg-gradient-to-br from-dark via-darker to-black/90 -z-10"></div>
+
+  <!-- 頂部標題 -->
+  <div class="bg-card glass border-b border-border p-4 text-center shadow-card">
     <div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
-    <div class="text-xl font-bold">⚡ 真實交易員波段進出點位</div>
+    <div class="text-xl font-bold bg-gradient-to-r from-indigo to-purple bg-clip-text text-transparent">⚡ 真實交易員波段進出點位</div>
   </div>
 
+  <!-- 主內容區 -->
   <div id="content" class="max-w-sm mx-auto p-4 space-y-4"></div>
 
-  <button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-indigo shadow-lg flex items-center justify-center text-2xl z-40">
+  <!-- 浮動AI看盤按鈕 -->
+  <button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-gradient-to-r from-indigo to-purple shadow-button flex items-center justify-center text-2xl z-40 transition-all hover:scale-105 hover:shadow-lg">
     🤖
   </button>
 
-  <div id="aiModal" class="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center hidden">
-    <div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
+  <!-- AI看盤彈窗模態框 -->
+  <div id="aiModal" class="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center hidden">
+    <div class="bg-card glass w-full sm:max-w-sm rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide shadow-glass border border-border">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-white">📊 AI 智能偵測</h3>
-        <button id="closeAiModal" class="text-gray-300 text-xl">✕</button>
+        <h3 class="text-lg font-bold bg-gradient-to-r from-indigo to-purple bg-clip-text text-transparent">📊 AI 智能偵測</h3>
+        <button id="closeAiModal" class="text-gray-300 text-xl hover:text-white transition-colors">✕</button>
       </div>
       <input id="fileInput" type="file" accept="image/*" hidden />
-      <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
+      <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3 transition-all hover:border-indigo/70 hover:bg-indigo/5">
         上傳任何產品K線截圖
         <div class="text-xs mt-1 text-gray-400">✅ 期貨 ✅ 外匯 ✅ 加密貨幣 ✅ 台股 ✅ 美股</div>
       </button>
       <div id="imagePreview" class="mb-3 hidden">
-        <img id="previewImg" src="" alt="chart preview" class="w-full rounded-lg object-contain max-h-52" />
+        <img id="previewImg" src="" alt="chart preview" class="w-full rounded-lg object-contain max-h-52 shadow-card" />
       </div>
       <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
       <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
-      <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">
+      <button id="analyzeButton" class="w-full py-3 rounded-lg bg-gradient-to-r from-indigo to-purple font-bold mb-3 shadow-button transition-all hover:shadow-lg hover:scale-[1.02]">
         生成真實波段交易點位
       </button>
       
+      <!-- 實盤點位區域 -->
       <div id="aiResult" class="space-y-4 hidden">
-        <div id="trendCard" class="rounded-xl p-4 border">
-          <div class="text-lg font-bold text-center mb-2" id="productTitle"></div>
-          <div class="text-center text-sm text-gray-300" id="trendAdvice"></div>
-          <div class="text-center text-xs text-gray-400 mt-1" id="productTypeLabel"></div>
-        </div>
+        <!-- 產品與趨勢判斷 -->
+        <div id="trendCard" class="rounded-xl p-4 border shadow-card card-hover"></div>
         
+        <!-- 策略卡片容器 -->
         <div id="strategyContainer"></div>
         
-        <div class="bg-darker rounded-xl p-4 border border-gray-600">
+        <!-- 技術分析卡片 -->
+        <div class="bg-darker/80 rounded-xl p-4 border border-gray-600/50 shadow-card card-hover">
           <div class="text-sm font-bold text-white mb-3">📈 技術指標詳情</div>
           <div class="space-y-2">
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
@@ -108,24 +131,25 @@
         </div>
       </div>
       
-      <button id="resetAiButton" class="w-full mt-3 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">
+      <button id="resetAiButton" class="w-full mt-3 py-2 border border-gray-600/50 rounded-lg text-gray-300 text-sm transition-all hover:border-gray-500 hover:bg-gray-800/30">
         重新上傳截圖
       </button>
     </div>
   </div>
 
-  <div class="fixed bottom-0 left-0 right-0 bg-darker border-t border-border pb-3 pt-2 z-30">
+  <!-- 底部導航 -->
+  <div class="fixed bottom-0 left-0 right-0 bg-card glass border-t border-border pb-3 pt-2 z-30 shadow-card">
     <div class="max-w-sm mx-auto grid grid-cols-4 text-xs text-center">
-      <button data-tab="home" class="tab-button pt-1 pb-1 rounded-lg text-indigo">
+      <button data-tab="home" class="tab-button pt-1 pb-1 rounded-lg text-indigo transition-all hover:bg-indigo/10">
         <div class="text-lg mb-1">🏠</div>最新
       </button>
-      <button data-tab="log" class="tab-button pt-1 pb-1 rounded-lg text-gray-400">
+      <button data-tab="log" class="tab-button pt-1 pb-1 rounded-lg text-gray-400 transition-all hover:bg-gray-800/30">
         <div class="text-lg mb-1">📓</div>歷史
       </button>
-      <button data-tab="stats" class="tab-button pt-1 pb-1 rounded-lg text-gray-400">
+      <button data-tab="stats" class="tab-button pt-1 pb-1 rounded-lg text-gray-400 transition-all hover:bg-gray-800/30">
         <div class="text-lg mb-1">📈</div>統計
       </button>
-      <button data-tab="settings" class="tab-button pt-1 pb-1 rounded-lg text-gray-400">
+      <button data-tab="settings" class="tab-button pt-1 pb-1 rounded-lg text-gray-400 transition-all hover:bg-gray-800/30">
         <div class="text-lg mb-1">⚙️</div>設定
       </button>
     </div>
@@ -141,10 +165,10 @@
     // ✅ 真實交易員勝率標準 (基於職業波段交易員數據)
     const getWinRate = (priority) => {
       switch(priority) {
-        case "高": return "70%";  // 高優先級策略勝率65%-75%
-        case "中": return "60%";  // 中優先級策略勝率55%-65%
-        case "低": return "50%";  // 低優先級策略勝率45%-55%
-        default: return "55%";
+        case "高": return 70;
+        case "中": return 60;
+        case "低": return 50;
+        default: return 55;
       }
     };
 
@@ -235,119 +259,137 @@
       }
     };
 
+    // ✅ 渲染策略卡片（按勝率排序）
+    const renderStrategyCards = (analysis) => {
+      const decimals = analysis.decimals || 2;
+      const isStock = analysis.productType === PRODUCT_TYPES.STOCK;
+      
+      // 計算勝率
+      const longWinRate = getWinRate(analysis.longPriority);
+      const shortWinRate = getWinRate(analysis.shortPriority);
+      
+      // 按勝率排序
+      const strategies = [];
+      
+      // 做多策略
+      strategies.push({
+        type: 'long',
+        winRate: longWinRate,
+        priority: analysis.longPriority,
+        entry: analysis.longEntry,
+        stopLoss: analysis.longStopLoss,
+        tp1: analysis.longTp1,
+        tp2: analysis.longTp2,
+        tpShort: analysis.longTpShort,
+        tpMedium: analysis.longTpMedium,
+        tpLong: analysis.longTpLong,
+        reason: analysis.longReason
+      });
+      
+      // 做空策略
+      strategies.push({
+        type: 'short',
+        winRate: shortWinRate,
+        priority: analysis.shortPriority,
+        entry: analysis.shortEntry,
+        stopLoss: analysis.shortStopLoss,
+        tp1: analysis.shortTp1,
+        tp2: analysis.shortTp2,
+        tpShort: analysis.shortTpShort,
+        tpMedium: analysis.shortTpMedium,
+        tpLong: analysis.shortTpLong,
+        reason: analysis.shortReason
+      });
+      
+      // 勝率高的放前面
+      strategies.sort((a, b) => b.winRate - a.winRate);
+      
+      return strategies.map(strategy => {
+        const isLong = strategy.type === 'long';
+        const colorClass = isLong ? 'red' : 'green';
+        const icon = isLong ? '🔴' : '🟢';
+        const direction = isLong ? '做多' : '做空';
+        
+        return `
+          <div class="bg-darker/80 rounded-xl p-4 border border-${colorClass}/30 shadow-card card-hover mb-3">
+            <div class="text-sm font-bold text-${colorClass} mb-3">${icon} ${direction}進場策略 (優先級: ${strategy.priority} | 勝率: ${strategy.winRate}%)</div>
+            <div class="grid ${isStock ? 'grid-cols-4' : 'grid-cols-2'} gap-2 text-sm">
+              <div class="bg-black/30 p-2 rounded text-center border border-${colorClass}/50">
+                <div class="text-gray-400 text-xs">進場價</div>
+                <div class="text-xl font-bold text-${colorClass}">${fmt(strategy.entry, decimals)}</div>
+              </div>
+              <div class="bg-black/30 p-2 rounded text-center border border-${isLong ? 'green' : 'red'}/50">
+                <div class="text-gray-400 text-xs">⛔ 止損</div>
+                <div class="text-xl font-bold text-white">${fmt(strategy.stopLoss, decimals)}</div>
+                <div class="text-xs text-red">${calculateLoss(strategy.entry, strategy.stopLoss, isLong strategy.stopLoss, isLong, decimals)}</div>
+              </div>
+              ${isStock ? `
+                <div class="bg-black/30 p-2 rounded text-center">
+                  <div class="text-gray-400 text-xs">✅ 短期 (2.5R)</div>
+                  <div class="text-xl font-bold text-yellow">${fmt(strategy.tpShort, decimals)}</div>
+                  <div class="text-xs text-green">${calculateProfit(strategy.entry, strategy.tpShort, isLong, decimals)}</div>
+                </div>
+                <div class="bg-black/30 p-2 rounded text-center">
+                  <div class="text-gray-400 text-xs">✅ 中期 (4R)</div>
+                  <div class="text-xl font-bold text-blue">${fmt(strategy.tpMedium, decimals)}</div>
+                  <div class="text-xs text-green">${calculateProfit(strategy.entry, strategy.tpMedium, isLong, decimals)}</div>
+                </div>
+                <div class="bg-black/30 p-2 rounded text-center col-span-2">
+                  <div class="text-gray-400 text-xs">✅ 長期 (6R)</div>
+                  <div class="text-xl font-bold text-purple">${fmt(strategy.tpLong, decimals)}</div>
+                  <div class="text-xs text-green">${calculateProfit(strategy.entry, strategy.tpLong, isLong, decimals)}</div>
+                </div>
+              ` : `
+                <div class="bg-black/30 p-2 rounded text-center">
+                  <div class="text-gray-400 text-xs">✅ 目標1 (3R)</div>
+                  <div class="text-xl font-bold text-yellow">${fmt(strategy.tp1, decimals)}</div>
+                  <div class="text-xs text-green">${calculateProfit(strategy.entry, strategy.tp1, isLong, decimals)}</div>
+                </div>
+                <div class="bg-black/30 p-2 rounded text-center">
+                  <div class="text-gray-400 text-xs">✅ 目標2 (5R)</div>
+                  <div class="text-xl font-bold text-${colorClass}">${fmt(strategy.tp2, decimals)}</div>
+                  <div class="text-xs text-green">${calculateProfit(strategy.entry, strategy.tp2, isLong, decimals)}</div>
+                </div>
+              `}
+            </div>
+            <div class="mt-2 text-xs text-white bg-black/40 p-2 rounded border border-${colorClass}/20">
+              📌 進場理由：${strategy.reason || '基於技術指標綜合判斷'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
     const renderHome = () => {
       return `
         ${state.aiAnalysis ? `
-          <div class="bg-card border border-border rounded-2xl p-4">
+          <div class="bg-card glass border border-border rounded-2xl p-4 shadow-glass card-hover">
             <div class="flex justify-between items-center mb-3">
               <div class="text-xs font-bold text-gray-400">🤖 最新AI偵測結果</div>
-              <button id="resetCurrentButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置</button>
+              <button id="resetCurrentButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded transition-all hover:border-gray-500 hover:bg-gray-800/30">重置</button>
             </div>
             <div class="text-center mb-4">
               <div class="text-lg font-bold text-indigo">${state.aiAnalysis.product}</div>
               <div class="text-xs text-gray-400">${state.aiAnalysis.productType || PRODUCT_TYPES.UNKNOWN}</div>
-              <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : state.aiAnalysis.trend === 'short' ? 'text-green' : 'text-yellow'}">
-                ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🟢 偏空趨勢' : '🟡 震盪趨勢'}
-              </div>
-              <div class="text-sm text-gray-300">${state.aiAnalysis.advice}</div>
+              
+              ${state.aiAnalysis.trend === 'neutral' ? `
+                <div class="text-xl font-bold text-yellow mt-2">🟡 震盪盤</div>
+                <div class="text-sm text-red-400 font-bold mt-1">⚠️ 禁止交易，觀望為主</div>
+                <div class="text-xs text-gray-400 mt-1">震盪行情勝率低，建議等待明確方向</div>
+              ` : `
+                <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : 'text-green'} mt-2">
+                  ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : '🟢 偏空趨勢'}
+                </div>
+                <div class="text-sm text-gray-300">${state.aiAnalysis.advice}</div>
+              `}
+              
               <div class="text-xs text-gray-500 mt-1">偵測時間: ${state.aiAnalysis.time}</div>
             </div>
             
-            ${(() => {
-              const decimals = state.aiAnalysis.decimals || 2;
-              const isStock = state.aiAnalysis.productType === PRODUCT_TYPES.STOCK;
-              
-              return `
-                <!-- 做多策略 -->
-                <div class="bg-darker rounded-xl p-3 border border-red/30 mb-3">
-                  <div class="text-sm font-bold text-red mb-2">🔴 做多進場 (優先級: ${state.aiAnalysis.longPriority} | 勝率: ${getWinRate(state.aiAnalysis.longPriority)})</div>
-                  <div class="grid ${isStock ? 'grid-cols-4' : 'grid-cols-3'} gap-2 text-xs mb-2">
-                    <div class="bg-black/30 p-2 rounded text-center">
-                      <div class="text-gray-400">進場價</div>
-                      <div class="font-bold text-red">${fmt(state.aiAnalysis.longEntry, decimals)}</div>
-                    </div>
-                    ${isStock ? `
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">短期獲利</div>
-                        <div class="font-bold text-yellow">${fmt(state.aiAnalysis.longTpShort, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTpShort, true, decimals)}</div>
-                      </div>
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">中期獲利</div>
-                        <div class="font-bold text-blue">${fmt(state.aiAnalysis.longTpMedium, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTpMedium, true, decimals)}</div>
-                      </div>
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">長期獲利</div>
-                        <div class="font-bold text-purple">${fmt(state.aiAnalysis.longTpLong, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTpLong, true, decimals)}</div>
-                      </div>
-                    ` : `
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">獲利目標1</div>
-                        <div class="font-bold text-yellow">${fmt(state.aiAnalysis.longTp1, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTp1, true, decimals)}</div>
-                      </div>
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">獲利目標2</div>
-                        <div class="font-bold text-green">${fmt(state.aiAnalysis.longTp2, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTp2, true, decimals)}</div>
-                      </div>
-                    `}
-                  </div>
-                  <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(state.aiAnalysis.longStopLoss, decimals)} ${calculateLoss(state.aiAnalysis.longEntry, state.aiAnalysis.longStopLoss, true, decimals)}</div>
-                  <div class="text-xs text-white bg-black/40 p-2 rounded border border-red/20">
-                    📌 進場理由：${state.aiAnalysis.longReason || '基於技術指標綜合判斷'}
-                  </div>
-                </div>
-
-                <!-- 做空策略 -->
-                <div class="bg-darker rounded-xl p-3 border border-green/30">
-                  <div class="text-sm font-bold text-green mb-2">🟢 做空進場 (優先級: ${state.aiAnalysis.shortPriority} | 勝率: ${getWinRate(state.aiAnalysis.shortPriority)})</div>
-                  <div class="grid ${isStock ? 'grid-cols-4' : 'grid-cols-3'} gap-2 text-xs mb-2">
-                    <div class="bg-black/30 p-2 rounded text-center">
-                      <div class="text-gray-400">進場價</div>
-                      <div class="font-bold text-green">${fmt(state.aiAnalysis.shortEntry, decimals)}</div>
-                    </div>
-                    ${isStock ? `
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">短期獲利</div>
-                        <div class="font-bold text-yellow">${fmt(state.aiAnalysis.shortTpShort, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTpShort, false, decimals)}</div>
-                      </div>
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">中期獲利</div>
-                        <div class="font-bold text-blue">${fmt(state.aiAnalysis.shortTpMedium, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTpMedium, false, decimals)}</div>
-                      </div>
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">長期獲利</div>
-                        <div class="font-bold text-purple">${fmt(state.aiAnalysis.shortTpLong, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTpLong, false, decimals)}</div>
-                      </div>
-                    ` : `
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">獲利目標1</div>
-                        <div class="font-bold text-yellow">${fmt(state.aiAnalysis.shortTp1, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTp1, false, decimals)}</div>
-                      </div>
-                      <div class="bg-black/30 p-2 rounded text-center">
-                        <div class="text-gray-400">獲利目標2</div>
-                        <div class="font-bold text-green">${fmt(state.aiAnalysis.shortTp2, decimals)}</div>
-                        <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTp2, false, decimals)}</div>
-                      </div>
-                    `}
-                  </div>
-                  <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(state.aiAnalysis.shortStopLoss, decimals)} ${calculateLoss(state.aiAnalysis.shortEntry, state.aiAnalysis.shortStopLoss, false, decimals)}</div>
-                  <div class="text-xs text-white bg-black/40 p-2 rounded border border-green/20">
-                    📌 進場理由：${state.aiAnalysis.shortReason || '基於技術指標綜合判斷'}
-                  </div>
-                </div>
-              `;
-            })()}
+            ${state.aiAnalysis.trend !== 'neutral' ? renderStrategyCards(state.aiAnalysis) : ''}
           </div>
         ` : `
-          <div class="bg-card border border-border rounded-2xl p-4 text-center">
+          <div class="bg-card glass border border-border rounded-2xl p-4 text-center shadow-glass">
             <div class="text-gray-400 mb-2">還沒有偵測結果</div>
             <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳任何產品截圖</div>
           </div>
@@ -358,13 +400,13 @@
     const renderLog = () => {
       return `
         <div class="flex justify-between items-center mb-2">
-          <div class="text-lg font-bold">📓 AI偵測歷史</div>
-          <button id="resetAllHistoryButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置全部</button>
+          <div class="text-lg font-bold bg-gradient-to-r from-indigo to-purple bg-clip-text text-transparent">📓 AI偵測歷史</div>
+          <button id="resetAllHistoryButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded transition-all hover:border-gray-500 hover:bg-gray-800/30">重置全部</button>
         </div>
         ${state.aiHistory.length === 0 
-          ? '<div class="text-center text-gray-500 py-10">還沒有偵測記錄</div>' 
+          ? '<div class="bg-card glass border border-border rounded-2xl p-4 text-center shadow-glass text-gray-500 py-10">還沒有偵測記錄</div>' 
           : state.aiHistory.map((record, index) => `
-            <div class="bg-card border border-border rounded-xl p-3 text-sm mb-3">
+            <div class="bg-card glass border border-border rounded-xl p-3 text-sm mb-3 shadow-card card-hover">
               <div class="flex justify-between mb-2">
                 <span class="text-indigo font-bold">${record.product}</span>
                 <span class="text-gray-400 text-xs">${record.time}</span>
@@ -376,36 +418,49 @@
                 <span class="text-xs text-gray-400">${record.productType || PRODUCT_TYPES.UNKNOWN}</span>
               </div>
               
-              ${(() => {
-                const decimals = record.decimals || 2;
-                const isStock = record.productType === PRODUCT_TYPES.STOCK;
-                
-                return `
-                  <div class="bg-red/5 rounded-lg p-2 border border-red/20 mb-2">
-                    <div class="text-xs font-bold text-red mb-1">
-                      做多進場 (${record.longPriority} | ${getWinRate(record.longPriority)}) | 進場: ${fmt(record.longEntry, decimals)}
-                    </div>
-                    <div class="text-xs text-gray-400 mb-1">
-                      ${isStock ? 
-                        `短: ${fmt(record.longTpShort, decimals)} | 中: ${fmt(record.longTpMedium, decimals)} | 長: ${fmt(record.longTpLong, decimals)}` : 
-                        `獲利: ${fmt(record.longTp1, decimals)} / ${fmt(record.longTp2, decimals)}`}
-                      | 止損: ${fmt(record.longStopLoss, decimals)}
-                    </div>
-                  </div>
-
-                  <div class="bg-green/5 rounded-lg p-2 border border-green/20">
-                    <div class="text-xs font-bold text-green mb-1">
-                      做空進場 (${record.shortPriority} | ${getWinRate(record.shortPriority)}) | 進場: ${fmt(record.shortEntry, decimals)}
-                    </div>
-                    <div class="text-xs text-gray-400 mb-1">
-                      ${isStock ? 
-                        `短: ${fmt(record.shortTpShort, decimals)} | 中: ${fmt(record.shortTpMedium, decimals)} | 長: ${fmt(record.shortTpLong, decimals)}` : 
-                        `獲利: ${fmt(record.shortTp1, decimals)} / ${fmt(record.shortTp2, decimals)}`}
-                      | 止損: ${fmt(record.shortStopLoss, decimals)}
-                    </div>
-                  </div>
-                `;
-              })()}
+              ${record.trend === 'neutral' ? `
+                <div class="bg-yellow/10 rounded-lg p-2 border border-yellow/20 text-center">
+                  <div class="text-xs font-bold text-yellow">⚠️ 震盪盤 禁止交易</div>
+                </div>
+              ` : `
+                ${(() => {
+                  const decimals = record.decimals || 2;
+                  const isStock = record.productType === PRODUCT_TYPES.STOCK;
+                  const longWinRate = getWinRate(record.longPriority);
+                  const shortWinRate = getWinRate(record.shortPriority);
+                  
+                  // 只顯示勝率高的那個
+                  if (longWinRate >= shortWinRate) {
+                    return `
+                      <div class="bg-red/5 rounded-lg p-2 border border-red/20">
+                        <div class="text-xs font-bold text-red mb-1">
+                          做多進場 (${record.longPriority} | ${longWinRate}%) | 進場: ${fmt(record.longEntry, decimals)}
+                        </div>
+                        <div class="text-xs text-gray-400 mb-1">
+                          ${isStock ? 
+                            `短: ${fmt(record.longTpShort, decimals)} | 中: ${fmt(record.longTpMedium, decimals)} | 長: ${fmt(record.longTpLong, decimals)}` : 
+                            `獲利: ${fmt(record.longTp1, decimals)} / ${fmt(record.longTp2, decimals)}`}
+                          | 止損: ${fmt(record.longStopLoss, decimals)}
+                        </div>
+                      </div>
+                    `;
+                  } else {
+                    return `
+                      <div class="bg-green/5 rounded-lg p-2 border border-green/20">
+                        <div class="text-xs font-bold text-green mb-1">
+                          做空進場 (${record.shortPriority} | ${shortWinRate}%) | 進場: ${fmt(record.shortEntry, decimals)}
+                        </div>
+                        <div class="text-xs text-gray-400 mb-1">
+                          ${isStock ? 
+                            `短: ${fmt(record.shortTpShort, decimals)} | 中: ${fmt(record.shortTpMedium, decimals)} | 長: ${fmt(record.shortTpLong, decimals)}` : 
+                            `獲利: ${fmt(record.shortTp1, decimals)} / ${fmt(record.shortTp2, decimals)}`}
+                          | 止損: ${fmt(record.shortStopLoss, decimals)}
+                        </div>
+                      </div>
+                    `;
+                  }
+                })()}
+              `}
             </div>
           `).join('')}
       `;
@@ -424,18 +479,16 @@
         productCounts[r.product] = (productCounts[r.product] || 0) + 1;
         typeCounts[r.productType || PRODUCT_TYPES.UNKNOWN] = (typeCounts[r.productType || PRODUCT_TYPES.UNKNOWN] || 0) + 1;
         
-        const longWeight = priorityWeight[r.longPriority] || 1;
-        const shortWeight = priorityWeight[r.shortPriority] || 1;
-        if (longWeight > shortWeight) {
+        if (r.trend === 'long') {
           directionCounts["做多"]++;
-        } else if (shortWeight > longWeight) {
+        } else if (r.trend === 'short') {
           directionCounts["做空"]++;
         } else {
           directionCounts["震盪"]++;
         }
 
         // 計算平均勝率
-        totalWinRate += parseFloat(getWinRate(r.longPriority)) + parseFloat(getWinRate(r.shortPriority));
+        totalWinRate += getWinRate(r.longPriority) + getWinRate(r.shortPriority);
         priorityCounts[r.longPriority]++;
         priorityCounts[r.shortPriority]++;
       });
@@ -444,36 +497,36 @@
       
       return `
         <div class="flex justify-between items-center mb-2">
-          <div class="text-lg font-bold">📈 AI偵測統計</div>
-          <button id="resetStatsButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置統計</button>
+          <div class="text-lg font-bold bg-gradient-to-r from-indigo to-purple bg-clip-text text-transparent">📈 AI偵測統計</div>
+          <button id="resetStatsButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded transition-all hover:border-gray-500 hover:bg-gray-800/30">重置統計</button>
         </div>
-        <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
+        <div class="bg-card glass border border-border rounded-xl p-4 space-y-2 text-sm mb-4 shadow-glass">
           <div class="flex justify-between font-bold"><span>總偵測次數</span><span>${total}</span></div>
           <div class="flex justify-between"><span>平均進場勝率</span><span class="text-green font-bold">${avgWinRate}</span></div>
         </div>
         
-        <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
+        <div class="bg-card glass border border-border rounded-xl p-4 space-y-2 text-sm mb-4 shadow-card">
           <div class="font-bold mb-2">🎯 優先級勝率分佈</div>
           <div class="flex justify-between"><span class="text-red">🔴 高優先級</span><span>70% (${priorityCounts["高"]}次)</span></div>
           <div class="flex justify-between"><span class="text-yellow">🟡 中優先級</span><span>60% (${priorityCounts["中"]}次)</span></div>
           <div class="flex justify-between"><span class="text-gray-400">⚪ 低優先級</span><span>50% (${priorityCounts["低"]}次)</span></div>
         </div>
         
-        <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
-          <div class="font-bold mb-2">🎯 優先方向分佈</div>
-          <div class="flex justify-between"><span class="text-red">🔴 做多優先</span><span>${directionCounts["做多"]} 次</span></div>
-          <div class="flex justify-between"><span class="text-green">🟢 做空優先</span><span>${directionCounts["做空"]} 次</span></div>
-          <div class="flex justify-between"><span class="text-yellow">🟡 震盪均衡</span><span>${directionCounts["震盪"]} 次</span></div>
+        <div class="bg-card glass border border-border rounded-xl p-4 space-y-2 text-sm mb-4 shadow-card">
+          <div class="font-bold mb-2">🎯 趨勢分佈</div>
+          <div class="flex justify-between"><span class="text-red">🔴 偏多趨勢</span><span>${directionCounts["做多"]} 次</span></div>
+          <div class="flex justify-between"><span class="text-green">🟢 偏空趨勢</span><span>${directionCounts["做空"]} 次</span></div>
+          <div class="flex justify-between"><span class="text-yellow">🟡 震盪盤(禁止交易)</span><span>${directionCounts["震盪"]} 次</span></div>
         </div>
         
-        <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
+        <div class="bg-card glass border border-border rounded-xl p-4 space-y-2 text-sm mb-4 shadow-card">
           <div class="font-bold mb-2">📊 產品類型分佈</div>
           ${Object.entries(typeCounts).map(([type, count]) => `
             <div class="flex justify-between"><span>${type}</span><span>${count} 次</span></div>
           `).join('')}
         </div>
         
-        <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm">
+        <div class="bg-card glass border border-border rounded-xl p-4 space-y-2 text-sm shadow-card">
           <div class="font-bold mb-2">🏷️ 產品名稱分佈</div>
           ${Object.entries(productCounts).map(([product, count]) => `
             <div class="flex justify-between"><span>${product}</span><span>${count} 次</span></div>
@@ -484,9 +537,9 @@
 
     const renderSettings = () => {
       return `
-        <div class="text-lg font-bold mb-2">⚙️ 系統設定</div>
+        <div class="text-lg font-bold bg-gradient-to-r from-indigo to-purple bg-clip-text text-transparent mb-2">⚙️ 系統設定</div>
         
-        <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
+        <div class="bg-card glass border border-border rounded-xl p-4 space-y-3 mb-4 shadow-glass">
           <div class="font-bold text-sm">OpenAI API 設定</div>
           <input 
             id="apiKeyInput"
@@ -501,7 +554,7 @@
           ${state.apiKey ? '<div class="text-xs text-green">✅ API Key 已設置</div>' : '<div class="text-xs text-yellow">⚠️ 請先輸入API Key才能使用AI功能</div>'}
         </div>
 
-        <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
+        <div class="bg-card glass border border-border rounded-xl p-4 space-y-3 mb-4 shadow-card">
           <div class="font-bold text-sm">代理伺服器設定（必須！）</div>
           <input 
             id="proxyUrlInput"
@@ -524,18 +577,18 @@
           </a>
         </div>
 
-        <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-          <div class="font-bold text-sm">✅ 當前模式：真實交易員雙向策略</div>
+        <div class="bg-card glass border border-border rounded-xl p-4 space-y-3 mb-4 shadow-card">
+          <div class="font-bold text-sm">✅ 當前模式：真實交易員智能策略</div>
           <div class="text-xs text-gray-400 space-y-1">
-            <div>🔹 同時顯示做多和做空雙向策略</div>
-            <div>🔹 每個策略顯示優先級 + 真實勝率</div>
+            <div>🔹 震盪盤自動顯示禁止交易</div>
+            <div>🔹 策略按真實勝率自動排序（高勝率在上）</div>
             <div>🔹 勝率標準：高70% | 中60% | 低50%</div>
             <div>🔹 真實波段風險收益比：股票2.5R/4R/6R</div>
             <div>🔹 所有點位自動優化至整五/整十關鍵位置</div>
           </div>
         </div>
 
-        <button id="clearAllDataButton" class="w-full py-2 border border-red/30 text-red rounded-lg text-sm">
+        <button id="clearAllDataButton" class="w-full py-2 border border-red/30 text-red rounded-lg text-sm transition-all hover:bg-red/10">
           清除所有數據
         </button>
       `;
@@ -545,7 +598,6 @@
       if (!state.aiAnalysis) return;
       
       const decimals = state.aiAnalysis.decimals || 2;
-      const isStock = state.aiAnalysis.productType === PRODUCT_TYPES.STOCK;
       
       const trendCard = document.getElementById('trendCard');
       const productTitle = document.getElementById('productTitle');
@@ -557,114 +609,31 @@
       productTypeLabel.textContent = state.aiAnalysis.productType || PRODUCT_TYPES.UNKNOWN;
       
       if (state.aiAnalysis.trend === 'long') {
-        trendCard.className = "rounded-xl p-4 border bg-red/10 border-red/30";
+        trendCard.className = "rounded-xl p-4 border bg-red/10 border-red/30 shadow-card card-hover";
         trendAdvice.className = "text-center text-sm text-gray-300";
         trendAdvice.textContent = `當前趨勢：偏多 | ${state.aiAnalysis.advice}`;
       } else if (state.aiAnalysis.trend === 'short') {
-        trendCard.className = "rounded-xl p-4 border bg-green/10 border-green/30";
+        trendCard.className = "rounded-xl p-4 border bg-green/10 border-green/30 shadow-card card-hover";
         trendAdvice.className = "text-center text-sm text-gray-300";
         trendAdvice.textContent = `當前趨勢：偏空 | ${state.aiAnalysis.advice}`;
       } else {
-        trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
-        trendAdvice.className = "text-center text-sm text-gray-300";
-        trendAdvice.textContent = `當前趨勢：震盪 | ${state.aiAnalysis.advice}`;
+        trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30 shadow-card card-hover";
+        trendAdvice.className = "text-center text-sm text-red-400 font-bold";
+        trendAdvice.textContent = "⚠️ 震盪盤 | 禁止交易，觀望為主";
       }
       
-      strategyContainer.innerHTML = `
-        <!-- 做多策略 -->
-        <div class="bg-darker rounded-xl p-4 border border-red/30 mb-3">
-          <div class="text-sm font-bold text-red mb-3">🔴 做多進場策略 (優先級: ${state.aiAnalysis.longPriority} | 勝率: ${getWinRate(state.aiAnalysis.longPriority)})</div>
-          <div class="grid ${isStock ? 'grid-cols-4' : 'grid-cols-2'} gap-2 text-sm">
-            <div class="bg-black/30 p-2 rounded text-center border border-red/50">
-              <div class="text-gray-400 text-xs">進場價</div>
-              <div class="text-xl font-bold text-red">${fmt(state.aiAnalysis.longEntry, decimals)}</div>
-            </div>
-            <div class="bg-black/30 p-2 rounded text-center border border-red/50">
-              <div class="text-gray-400 text-xs">⛔ 止損</div>
-              <div class="text-xl font-bold text-white">${fmt(state.aiAnalysis.longStopLoss, decimals)}</div>
-              <div class="text-xs text-red">${calculateLoss(state.aiAnalysis.longEntry, state.aiAnalysis.longStopLoss, true, decimals)}</div>
-            </div>
-            ${isStock ? `
-              <div class="bg-black/30 p-2 rounded text-center">
-                <div class="text-gray-400 text-xs">✅ 短期 (2.5R)</div>
-                <div class="text-xl font-bold text-yellow">${fmt(state.aiAnalysis.longTpShort, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTpShort, true, decimals)}</div>
-              </div>
-              <div class="bg-black/30 p-2 rounded text-center">
-                <div class="text-gray-400 text-xs">✅ 中期 (4R)</div>
-                <div class="text-xl font-bold text-blue">${fmt(state.aiAnalysis.longTpMedium, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTpMedium, true, decimals)}</div>
-              </div>
-              <div class="bg-black/30 p-2 rounded text-center col-span-2">
-                <div class="text-gray-400 text-xs">✅ 長期 (6R)</div>
-                <div class="text-xl font-bold text-purple">${fmt(state.aiAnalysis.longTpLong, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTpLong, true, decimals)}</div>
-              </div>
-            ` : `
-              <div class="bg-black/30 p-2 rounded text-center">
-                <div class="text-gray-400 text-xs">✅ 目標1 (3R)</div>
-                <div class="text-xl font-bold text-yellow">${fmt(state.aiAnalysis.longTp1, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTp1, true, decimals)}</div>
-              </div>
-              <div class="bg-black/30 p-2 rounded text-center">
-                <div class="text-gray-400 text-xs">✅ 目標2 (5R)</div>
-                <div class="text-xl font-bold text-green">${fmt(state.aiAnalysis.longTp2, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTp2, true, decimals)}</div>
-              </div>
-            `}
+      // 震盪盤不顯示策略
+      if (state.aiAnalysis.trend === 'neutral') {
+        strategyContainer.innerHTML = `
+          <div class="bg-yellow/10 rounded-xl p-4 border border-yellow/30 text-center shadow-card">
+            <div class="text-xl font-bold text-yellow mb-2">🟡 震盪行情</div>
+            <div class="text-sm text-gray-300 mb-1">當前市場沒有明確趨勢</div>
+            <div class="text-sm text-gray-300">震盪盤勝率低，建議等待突破後再交易</div>
           </div>
-          <div class="mt-2 text-xs text-white bg-black/40 p-2 rounded border border-red/20">
-            📌 進場理由：${state.aiAnalysis.longReason || '基於技術指標綜合判斷'}
-          </div>
-        </div>
-
-        <!-- 做空策略 -->
-        <div class="bg-darker rounded-xl p-4 border border-green/30">
-          <div class="text-sm font-bold text-green mb-3">🟢 做空進場策略 (優先級: ${state.aiAnalysis.shortPriority} | 勝率: ${getWinRate(state.aiAnalysis.shortPriority)})</div>
-          <div class="grid ${isStock ? 'grid-cols-4' : 'grid-cols-2'} gap-2 text-sm">
-            <div class="bg-black/30 p-2 rounded text-center border border-green/50">
-              <div class="text-gray-400 text-xs">進場價</div>
-              <div class="text-xl font-bold text-green">${fmt(state.aiAnalysis.shortEntry, decimals)}</div>
-            </div>
-            <div class="bg-black/30 p-2 rounded text-center border border-red/50">
-              <div class="text-gray-400 text-xs">⛔ 止損</div>
-              <div class="text-xl font-bold text-white">${fmt(state.aiAnalysis.shortStopLoss, decimals)}</div>
-              <div class="text-xs text-red">${calculateLoss(state.aiAnalysis.shortEntry, state.aiAnalysis.shortStopLoss, false, decimals)}</div>
-            </div>
-            ${isStock ? `
-              <div class="bg-black/30 p-2 rounded text-center">
-                <div class="text-gray-400 text-xs">✅ 短期 (2.5R)</div>
-                <div class="text-xl font-bold text-yellow">${fmt(state.aiAnalysis.shortTpShort, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTpShort, false, decimals)}</div>
-              </div>
-              <div class="bg-black/30 p-2 rounded text-center">
-                <div class="text-gray-400 text-xs">✅ 中期 (4R)</div>
-                <div class="text-xl font-bold text-blue">${fmt(state.aiAnalysis.shortTpMedium, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTpMedium, false, decimals)}</div>
-              </div>
-              <div class="bg-black/30 p-2 rounded text-center col-span-2">
-                <div class="text-gray-400 text-xs">✅ 長期 (6R)</div>
-                <div class="text-xl font-bold text-purple">${fmt(state.aiAnalysis.shortTpLong, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTpLong, false, decimals)}</div>
-              </div>
-            ` : `
-              <div class="bg-black/30 p-2 rounded text-center">
-                <div class="text-gray-400 text-xs">✅ 目標1 (3R)</div>
-                <div class="text-xl font-bold text-yellow">${fmt(state.aiAnalysis.shortTp1, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTp1, false, decimals)}</div>
-              </div>
-              <div class="bg-black/30 p-2 rounded text-center">
-                <div class="text-gray-400 text-xs">✅ 目標2 (5R)</div>
-                <div class="text-xl font-bold text-green">${fmt(state.aiAnalysis.shortTp2, decimals)}</div>
-                <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTp2, false, decimals)}</div>
-              </div>
-            `}
-          </div>
-          <div class="mt-2 text-xs text-white bg-black/40 p-2 rounded border border-green/20">
-            📌 進場理由：${state.aiAnalysis.shortReason || '基於技術指標綜合判斷'}
-          </div>
-        </div>
-      `;
+        `;
+      } else {
+        strategyContainer.innerHTML = renderStrategyCards(state.aiAnalysis);
+      }
       
       document.getElementById('productType').textContent = state.aiAnalysis.productType || PRODUCT_TYPES.UNKNOWN;
       document.getElementById('emaStatus').textContent = state.aiAnalysis.emaStatus;
@@ -795,7 +764,7 @@
       throw new Error("JSON解析失敗，所有嘗試都失敗了\n" + attempts.join("\n"));
     };
 
-    // ✅ 真實交易員雙向波段策略Prompt
+    // ✅ 真實交易員智能波段策略Prompt
     const runAiAnalyze = async () => {
       showDebug("開始識別產品並生成真實波段點位...");
       
@@ -829,6 +798,12 @@
       const sniperPrompt = `
 你是一位有15年實盤經驗的波段交易員，**只給真實可達成的點位**，絕對不要誇張。
 同時提供做多和做空雙向策略，每個策略標明優先級和真實勝率。
+
+⚠️ 重要規則：
+1. 當判斷為震盪盤（沒有明確趨勢）時，trend必須設為"neutral"
+2. 震盪盤定義：價格在一個狹窄區間內波動，沒有明顯的高低點抬升或降低
+3. 震盪盤不建議交易，勝率低於50%
+4. 只有當有明確趨勢時才給出高優先級策略
 
 ⚠️ 產品類型：期貨/指數、股票、加密貨幣、外匯
 ⚠️ 進場規則：只做進場判斷，無任何出場策略
@@ -996,7 +971,7 @@
         if (state.aiHistory.length > 50) state.aiHistory = state.aiHistory.slice(0, 50);
         saveState();
         renderAiResult();
-        showDebug(`✅ 真實雙向波段進場點位生成完成`);
+        showDebug(`✅ 真實智能波段進場點位生成完成`);
         setTimeout(hideDebug, 2000);
         
       } catch (err) {
