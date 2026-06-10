@@ -521,8 +521,8 @@
           <div class="text-xs text-gray-400 space-y-1">
             <div>🔹 系統會自動比較做多和做空的優先級</div>
             <div>🔹 只顯示AI最推薦的那一個交易方向</div>
-            <div>🔹 股票類：短期/中期/長期三階段獲利</div>
-            <div>🔹 期貨/指數/加密貨幣：3R/5R標準止盈</div>
+            <div>🔹 股票類：短期(3R)/中期(6R)/長期(12R)三階段獲利</div>
+            <div>🔹 期貨/指數/加密貨幣：5R/8R標準止盈</div>
             <div>🔹 所有歷史記錄同樣只顯示當時優先級最高的策略</div>
           </div>
         </div>
@@ -597,11 +597,11 @@
                 </div>
               ` : `
                 <div class="bg-black/30 p-2 rounded text-center">
-                  <div class="text-gray-400 text-xs">✅ 止盈1 (3R)</div>
+                  <div class="text-gray-400 text-xs">✅ 止盈1 (5R)</div>
                   <div class="text-xl font-bold text-yellow">${fmt(state.aiAnalysis.longTp1, decimals)}</div>
                 </div>
                 <div class="bg-black/30 p-2 rounded text-center">
-                  <div class="text-gray-400 text-xs">✅ 止盈2 (5R)</div>
+                  <div class="text-gray-400 text-xs">✅ 止盈2 (8R)</div>
                   <div class="text-xl font-bold text-red">${fmt(state.aiAnalysis.longTp2, decimals)}</div>
                 </div>
               `}
@@ -643,11 +643,11 @@
                 </div>
               ` : `
                 <div class="bg-black/30 p-2 rounded text-center">
-                  <div class="text-gray-400 text-xs">✅ 止盈1 (3R)</div>
+                  <div class="text-gray-400 text-xs">✅ 止盈1 (5R)</div>
                   <div class="text-xl font-bold text-yellow">${fmt(state.aiAnalysis.shortTp1, decimals)}</div>
                 </div>
                 <div class="bg-black/30 p-2 rounded text-center">
-                  <div class="text-gray-400 text-xs">✅ 止盈2 (5R)</div>
+                  <div class="text-gray-400 text-xs">✅ 止盈2 (8R)</div>
                   <div class="text-xl font-bold text-green">${fmt(state.aiAnalysis.shortTp2, decimals)}</div>
                 </div>
               `}
@@ -835,7 +835,7 @@
 
       showDebug("正在識別產品類型與波動特性...");
 
-      // ✅ 全產品自適應Prompt
+      // ✅ 全產品自適應Prompt (已放大獲利空間)
       const sniperPrompt = `
 你是一位有15年交易經驗的實盤交易員，精通所有金融產品：期貨、指數、股票、加密貨幣、外匯。
 你必須首先識別我上傳的截圖是哪個產品，並判斷產品類型，然後根據產品類型和K線的實際波動特性生成相應的交易點位。
@@ -846,15 +846,15 @@
 - 產品名稱包含"BTC"、"比特幣"、"ETH" → 類型：加密貨幣
 - 產品名稱包含"/USD"且不是黃金和加密貨幣 → 類型：外匯
 
-⚠️ 止損止盈計算規則（嚴格執行）：
+⚠️ 止損止盈計算規則（嚴格執行，確保有足夠獲利空間）：
 1. 首先根據K線的最近波動幅度自動計算合理的止損值，不要使用固定參數
 2. 對於期貨/指數/加密貨幣/外匯：
-   - 止盈1 = 進場價 ± 止損 × 3
-   - 止盈2 = 進場價 ± 止損 × 5
+   - 止盈1 = 進場價 ± 止損 × 5
+   - 止盈2 = 進場價 ± 止損 × 8
 3. 對於股票（非常重要！不要用期貨的方式）：
-   - 短期止盈（1-3天）= 進場價 ± 止損 × 2
-   - 中期止盈（1-2周）= 進場價 ± 止損 × 4
-   - 長期止盈（1個月以上）= 進場價 ± 止損 × 8
+   - 短期止盈（1-3天）= 進場價 ± 止損 × 3
+   - 中期止盈（1-2周）= 進場價 ± 止損 × 6
+   - 長期止盈（1個月以上）= 進場價 ± 止損 × 12
 4. 做空時止損和止盈方向相反
 5. 所有價格都要匹配產品的小數位數（台股整數，黃金2位，NQ1位等）
 
@@ -974,7 +974,7 @@
         let parseRes = safeParseJson(rawContent);
         showDebug("JSON解析成功");
         
-        // ✅ 強制校驗和補全所有字段
+        // ✅ 強制校驗和補全所有字段 (修正止盈計算邏輯)
         if (!parseRes.product) parseRes.product = "未知產品";
         if (!parseRes.productType) parseRes.productType = PRODUCT_TYPES.UNKNOWN;
         if (!parseRes.currentPrice) parseRes.currentPrice = 0;
@@ -990,25 +990,29 @@
         if (!parseRes.emaStatus) parseRes.emaStatus = "無";
         if (!parseRes.rsi) parseRes.rsi = "無";
         
-        // 自動補全缺失的止盈字段
+        // 自動補全缺失的止盈字段 (精確計算，確保獲利空間)
         const isStock = parseRes.productType === PRODUCT_TYPES.STOCK;
         
         if (isStock) {
-          // 股票類補全短中長期止盈
-          if (!parseRes.longTpShort && parseRes.longTp1) parseRes.longTpShort = parseRes.longTp1;
-          if (!parseRes.longTpMedium && parseRes.longTp2) parseRes.longTpMedium = parseRes.longTp2;
-          if (!parseRes.longTpLong && parseRes.longTp2) parseRes.longTpLong = Number((parseRes.longTp2 * 1.6).toFixed(parseRes.decimals));
+          // 股票類：短期3R / 中期6R / 長期12R
+          const longRisk = parseRes.longEntry - parseRes.longStopLoss;
+          if (!parseRes.longTpShort) parseRes.longTpShort = Number((parseRes.longEntry + longRisk * 3).toFixed(parseRes.decimals));
+          if (!parseRes.longTpMedium) parseRes.longTpMedium = Number((parseRes.longEntry + longRisk * 6).toFixed(parseRes.decimals));
+          if (!parseRes.longTpLong) parseRes.longTpLong = Number((parseRes.longEntry + longRisk * 12).toFixed(parseRes.decimals));
           
-          if (!parseRes.shortTpShort && parseRes.shortTp1) parseRes.shortTpShort = parseRes.shortTp1;
-          if (!parseRes.shortTpMedium && parseRes.shortTp2) parseRes.shortTpMedium = parseRes.shortTp2;
-          if (!parseRes.shortTpLong && parseRes.shortTp2) parseRes.shortTpLong = Number((parseRes.shortTp2 * 0.625).toFixed(parseRes.decimals));
+          const shortRisk = parseRes.shortStopLoss - parseRes.shortEntry;
+          if (!parseRes.shortTpShort) parseRes.shortTpShort = Number((parseRes.shortEntry - shortRisk * 3).toFixed(parseRes.decimals));
+          if (!parseRes.shortTpMedium) parseRes.shortTpMedium = Number((parseRes.shortEntry - shortRisk * 6).toFixed(parseRes.decimals));
+          if (!parseRes.shortTpLong) parseRes.shortTpLong = Number((parseRes.shortEntry - shortRisk * 12).toFixed(parseRes.decimals));
         } else {
-          // 期貨類補全標準止盈
-          if (!parseRes.longTp1 && parseRes.longTpShort) parseRes.longTp1 = parseRes.longTpShort;
-          if (!parseRes.longTp2 && parseRes.longTpMedium) parseRes.longTp2 = parseRes.longTpMedium;
+          // 期貨類：止盈1 5R / 止盈2 8R
+          const longRisk = parseRes.longEntry - parseRes.longStopLoss;
+          if (!parseRes.longTp1) parseRes.longTp1 = Number((parseRes.longEntry + longRisk * 5).toFixed(parseRes.decimals));
+          if (!parseRes.longTp2) parseRes.longTp2 = Number((parseRes.longEntry + longRisk * 8).toFixed(parseRes.decimals));
           
-          if (!parseRes.shortTp1 && parseRes.shortTpShort) parseRes.shortTp1 = parseRes.shortTpShort;
-          if (!parseRes.shortTp2 && parseRes.shortTpMedium) parseRes.shortTp2 = parseRes.shortTpMedium;
+          const shortRisk = parseRes.shortStopLoss - parseRes.shortEntry;
+          if (!parseRes.shortTp1) parseRes.shortTp1 = Number((parseRes.shortEntry - shortRisk * 5).toFixed(parseRes.decimals));
+          if (!parseRes.shortTp2) parseRes.shortTp2 = Number((parseRes.shortEntry - shortRisk * 8).toFixed(parseRes.decimals));
         }
         
         // 添加偵測時間
