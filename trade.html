@@ -218,6 +218,25 @@
         : '止盈1平50%，移動止損到進場價；止盈2全平；觸及止損立即離場';
     };
 
+    // ✅ 關鍵價格優化函數：將點位調整到整數/整五/整十關鍵位置
+    const optimizePrice = (price, decimals, productType) => {
+      if (decimals === 0) {
+        // 台股等整數價格產品：優化到整五或整十
+        const p = Math.round(price);
+        if (p % 10 === 0) return p;
+        if (p % 5 === 0) return p;
+        // 向上取最近的整五
+        return Math.ceil(p / 5) * 5;
+      } else if (decimals === 1) {
+        // NQ等一位小數產品：優化到整數
+        return Math.round(price);
+      } else {
+        // 黃金等兩位小數產品：優化到整數或0.5
+        const p = Math.round(price * 2) / 2;
+        return p;
+      }
+    };
+
     // 渲染首頁 (只顯示優先級最高的策略)
     const renderHome = () => {
       return `
@@ -235,6 +254,7 @@
               </div>
               <div class="text-sm text-gray-300">${state.aiAnalysis.advice}</div>
               <div class="text-xs text-gray-500 mt-1">偵測時間: ${state.aiAnalysis.time}</div>
+              ${state.aiAnalysis.priceOptimized ? '<div class="text-xs text-green mt-1">✅ 點位已優化至關鍵支撐壓力位</div>' : ''}
             </div>
             
             ${(() => {
@@ -523,7 +543,8 @@
             <div>🔹 只顯示AI最推薦的那一個交易方向</div>
             <div>🔹 股票類：短期(3R)/中期(6R)/長期(12R)三階段獲利</div>
             <div>🔹 期貨/指數/加密貨幣：5R/8R標準止盈</div>
-            <div>🔹 所有歷史記錄同樣只顯示當時優先級最高的策略</div>
+            <div>🔹 所有點位自動優化至整數/整五/整十關鍵位置</div>
+            <div>🔹 進場理由強制包含均線、RSI、K線形態三項</div>
           </div>
         </div>
 
@@ -804,7 +825,7 @@
       throw new Error("JSON解析失敗，所有嘗試都失敗了\n" + attempts.join("\n"));
     };
 
-    // ✅ 全產品自適應AI分析函數
+    // ✅ 全產品自適應AI分析函數 (點位優化+詳細理由)
     const runAiAnalyze = async () => {
       showDebug("開始識別產品並生成自適應點位...");
       
@@ -835,7 +856,7 @@
 
       showDebug("正在識別產品類型與波動特性...");
 
-      // ✅ 全產品自適應Prompt (已放大獲利空間)
+      // ✅ 升級版Prompt：強制關鍵點位+詳細進場理由
       const sniperPrompt = `
 你是一位有15年交易經驗的實盤交易員，精通所有金融產品：期貨、指數、股票、加密貨幣、外匯。
 你必須首先識別我上傳的截圖是哪個產品，並判斷產品類型，然後根據產品類型和K線的實際波動特性生成相應的交易點位。
@@ -846,24 +867,32 @@
 - 產品名稱包含"BTC"、"比特幣"、"ETH" → 類型：加密貨幣
 - 產品名稱包含"/USD"且不是黃金和加密貨幣 → 類型：外匯
 
-⚠️ 止損止盈計算規則（嚴格執行，確保有足夠獲利空間）：
-1. 首先根據K線的最近波動幅度自動計算合理的止損值，不要使用固定參數
-2. 對於期貨/指數/加密貨幣/外匯：
+⚠️ 止損止盈點位規則（極其重要！）：
+1. 止損和止盈必須放在**真實的關鍵支撐壓力位**，絕對不能放在中間價格
+2. 關鍵支撐壓力位包括：整數關口、整五關口、整十關口、前期高低點、均線位置
+3. 台股等整數價格產品：所有點位必須是5或10的倍數（如2275、2280、2285，絕對不能是2278、2283）
+4. NQ等一位小數產品：所有點位必須是整數
+5. 黃金等兩位小數產品：所有點位必須是整數或0.5結尾
+6. 止損必須放在"價格絕對不會到達"的位置，也就是突破就代表趨勢反轉的位置
+7. 止盈必須放在"價格很可能會到達"的位置，也就是明顯的壓力或支撐位
+
+⚠️ 止損止盈比例規則：
+1. 對於期貨/指數/加密貨幣/外匯：
    - 止盈1 = 進場價 ± 止損 × 5
    - 止盈2 = 進場價 ± 止損 × 8
-3. 對於股票（非常重要！不要用期貨的方式）：
+2. 對於股票：
    - 短期止盈（1-3天）= 進場價 ± 止損 × 3
    - 中期止盈（1-2周）= 進場價 ± 止損 × 6
    - 長期止盈（1個月以上）= 進場價 ± 止損 × 12
-4. 做空時止損和止盈方向相反
-5. 所有價格都要匹配產品的小數位數（台股整數，黃金2位，NQ1位等）
+3. 做空時止損和止盈方向相反
+4. 所有價格都要匹配產品的小數位數
 
-⚠️ 進場理由寫作規則（必須嚴格遵守）：
-理由必須包含以下至少2項，基於截圖中的真實數據：
-1. EMA指標狀態（金叉/死叉/價格與均線的位置關係）
-2. RSI指標數值和狀態（超買/超賣/中性/上升/下降）
-3. 價格走勢結構（突破/回踩/反轉/震盪）
-4. 關鍵支撐壓力位（今日高低點/近期結構高低點）
+⚠️ 進場理由寫作規則（絕對不能簡單！必須包含以下所有內容）：
+1. 必須寫出EMA的具體狀態：例如"5EMA(2282)在20EMA(2286)下方，呈現死叉向下狀態"
+2. 必須寫出RSI的具體數值和走勢：例如"RSI(14)=40，處於中性區間且持續向下，空頭動能佔優"
+3. 必須寫出K線的具體形態：例如"最近三根K線連續收陰，並且跌破了前期支撐位2280"
+4. 必須寫出關鍵支撐壓力位：例如"上方壓力位在2290，下方支撐位在2275"
+5. 理由長度必須在50字以上，絕對不能只寫"RSI在超賣區"或"均線向下"
 
 請分析我上傳的截圖，只回傳標準JSON格式，絕對不要加任何其他文字。
 開頭直接輸入{，結尾直接輸入}，不要任何其他內容。
@@ -873,19 +902,19 @@
 2. 判斷產品類型
 3. 讀取截圖中的當前價格
 4. 判斷產品的小數位數
-5. 根據K線波動自動計算合理的止損值
-6. 根據產品類型計算相應的止盈值
+5. 找到最近的關鍵支撐壓力位，設置合理的止損
+6. 根據止損和比例計算止盈，並調整到最近的關鍵位置
 7. 判斷當前整體趨勢（偏多/偏空/震盪）
 8. 給出做多策略的優先級（高/中/低）
-9. 做多進場價：當前價格附近
+9. 做多進場價：當前價格附近的關鍵位置
 10. 根據產品類型計算做多止損和止盈
 11. 給出做多的進場條件
-12. 詳細寫出做多的進場理由與依據
+12. 按照上面的規則詳細寫出做多的進場理由
 13. 給出做空策略的優先級（高/中/低）
-14. 做空進場價：當前價格附近
+14. 做空進場價：當前價格附近的關鍵位置
 15. 根據產品類型計算做空止損和止盈
 16. 給出做空的進場條件
-17. 詳細寫出做空的進場理由與依據
+17. 按照上面的規則詳細寫出做空的進場理由
 
 輸出格式必須嚴格按照以下JSON結構：
 {
@@ -904,7 +933,7 @@
   "longTpMedium": 數字,
   "longTpLong": 數字,
   "longCondition": "做多進場條件",
-  "longReason": "詳細的做多進場理由與依據",
+  "longReason": "詳細的做多進場理由",
   "shortPriority": "高/中/低",
   "shortEntry": 數字,
   "shortStopLoss": 數字,
@@ -914,7 +943,7 @@
   "shortTpMedium": 數字,
   "shortTpLong": 數字,
   "shortCondition": "做空進場條件",
-  "shortReason": "詳細的做空進場理由與依據",
+  "shortReason": "詳細的做空進場理由",
   "emaStatus": "金叉向上/死叉向下/糾纏",
   "rsi": "多頭動能/空頭動能/中性"
 }
@@ -949,7 +978,7 @@
               },
             ],
             temperature: 0.01,
-            max_tokens: 2000,
+            max_tokens: 3000,
             response_format: { type: "json_object" }
           }),
         });
@@ -968,13 +997,13 @@
         showDebug("分析結果解析成功");
         
         let rawContent = data.choices[0].message.content.trim();
-        showDebug(`原始回應: ${rawContent.substring(0, 500)}...`);
+        showDebug(`原始回應: ${rawContent.substring(0, 800)}...`);
         
         // 使用超強JSON修復函數
         let parseRes = safeParseJson(rawContent);
         showDebug("JSON解析成功");
         
-        // ✅ 強制校驗和補全所有字段 (修正止盈計算邏輯)
+        // ✅ 強制校驗和補全所有字段 + 關鍵點位優化
         if (!parseRes.product) parseRes.product = "未知產品";
         if (!parseRes.productType) parseRes.productType = PRODUCT_TYPES.UNKNOWN;
         if (!parseRes.currentPrice) parseRes.currentPrice = 0;
@@ -990,30 +1019,38 @@
         if (!parseRes.emaStatus) parseRes.emaStatus = "無";
         if (!parseRes.rsi) parseRes.rsi = "無";
         
-        // 自動補全缺失的止盈字段 (精確計算，確保獲利空間)
+        // ✅ 二次點位優化：確保所有點位都在關鍵位置
         const isStock = parseRes.productType === PRODUCT_TYPES.STOCK;
+        parseRes.longEntry = optimizePrice(parseRes.longEntry, parseRes.decimals, parseRes.productType);
+        parseRes.longStopLoss = optimizePrice(parseRes.longStopLoss, parseRes.decimals, parseRes.productType);
+        parseRes.shortEntry = optimizePrice(parseRes.shortEntry, parseRes.decimals, parseRes.productType);
+        parseRes.shortStopLoss = optimizePrice(parseRes.shortStopLoss, parseRes.decimals, parseRes.productType);
         
+        // 自動補全缺失的止盈字段 (基於優化後的止損精確計算)
         if (isStock) {
           // 股票類：短期3R / 中期6R / 長期12R
           const longRisk = parseRes.longEntry - parseRes.longStopLoss;
-          if (!parseRes.longTpShort) parseRes.longTpShort = Number((parseRes.longEntry + longRisk * 3).toFixed(parseRes.decimals));
-          if (!parseRes.longTpMedium) parseRes.longTpMedium = Number((parseRes.longEntry + longRisk * 6).toFixed(parseRes.decimals));
-          if (!parseRes.longTpLong) parseRes.longTpLong = Number((parseRes.longEntry + longRisk * 12).toFixed(parseRes.decimals));
+          parseRes.longTpShort = optimizePrice(parseRes.longEntry + longRisk * 3, parseRes.decimals, parseRes.productType);
+          parseRes.longTpMedium = optimizePrice(parseRes.longEntry + longRisk * 6, parseRes.decimals, parseRes.productType);
+          parseRes.longTpLong = optimizePrice(parseRes.longEntry + longRisk * 12, parseRes.decimals, parseRes.productType);
           
           const shortRisk = parseRes.shortStopLoss - parseRes.shortEntry;
-          if (!parseRes.shortTpShort) parseRes.shortTpShort = Number((parseRes.shortEntry - shortRisk * 3).toFixed(parseRes.decimals));
-          if (!parseRes.shortTpMedium) parseRes.shortTpMedium = Number((parseRes.shortEntry - shortRisk * 6).toFixed(parseRes.decimals));
-          if (!parseRes.shortTpLong) parseRes.shortTpLong = Number((parseRes.shortEntry - shortRisk * 12).toFixed(parseRes.decimals));
+          parseRes.shortTpShort = optimizePrice(parseRes.shortEntry - shortRisk * 3, parseRes.decimals, parseRes.productType);
+          parseRes.shortTpMedium = optimizePrice(parseRes.shortEntry - shortRisk * 6, parseRes.decimals, parseRes.productType);
+          parseRes.shortTpLong = optimizePrice(parseRes.shortEntry - shortRisk * 12, parseRes.decimals, parseRes.productType);
         } else {
           // 期貨類：止盈1 5R / 止盈2 8R
           const longRisk = parseRes.longEntry - parseRes.longStopLoss;
-          if (!parseRes.longTp1) parseRes.longTp1 = Number((parseRes.longEntry + longRisk * 5).toFixed(parseRes.decimals));
-          if (!parseRes.longTp2) parseRes.longTp2 = Number((parseRes.longEntry + longRisk * 8).toFixed(parseRes.decimals));
+          parseRes.longTp1 = optimizePrice(parseRes.longEntry + longRisk * 5, parseRes.decimals, parseRes.productType);
+          parseRes.longTp2 = optimizePrice(parseRes.longEntry + longRisk * 8, parseRes.decimals, parseRes.productType);
           
           const shortRisk = parseRes.shortStopLoss - parseRes.shortEntry;
-          if (!parseRes.shortTp1) parseRes.shortTp1 = Number((parseRes.shortEntry - shortRisk * 5).toFixed(parseRes.decimals));
-          if (!parseRes.shortTp2) parseRes.shortTp2 = Number((parseRes.shortEntry - shortRisk * 8).toFixed(parseRes.decimals));
+          parseRes.shortTp1 = optimizePrice(parseRes.shortEntry - shortRisk * 5, parseRes.decimals, parseRes.productType);
+          parseRes.shortTp2 = optimizePrice(parseRes.shortEntry - shortRisk * 8, parseRes.decimals, parseRes.productType);
         }
+        
+        // 標記點位已優化
+        parseRes.priceOptimized = true;
         
         // 添加偵測時間
         parseRes.time = new Date().toLocaleString();
