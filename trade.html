@@ -259,15 +259,6 @@
       const a = state.aiAnalysis;
       const d = a.decimals || 2;
       
-      // 禁止交易时显示指数盘整文字
-      if(a.trend === 'forbidden'){
-        floatData.innerHTML = `
-          <div class="text-center font-bold text-white">${a.product}</div>
-          <div class="text-center font-bold text-yellow mt-2">指數盤整，無明確交易方向</div>
-        `;
-        return;
-      }
-
       floatData.innerHTML = `
         <div class="text-center font-bold text-white">${a.product}</div>
         <div class="flex justify-between ${a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow'}">
@@ -392,14 +383,13 @@
               <div class="text-lg font-bold text-indigo">${state.aiAnalysis.product}</div>
               <div class="text-xs text-gray-400">${state.aiAnalysis.productType || PRODUCT_TYPES.FUTURES}</div>
               <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : state.aiAnalysis.trend === 'short' ? 'text-green' : 'text-yellow'}">
-                ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🟢 偏空趨勢' : state.aiAnalysis.trend === 'forbidden' ? '🟡 指數盤整' : '🟡 震盪趨勢'}
+                ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🟢 偏空趨勢' : '🟡 震盪趨勢'}
               </div>
               <div class="text-sm text-gray-300">${state.aiAnalysis.advice}</div>
               <div class="text-xs text-gray-500 mt-1">偵測時間: ${state.aiAnalysis.time}</div>
             </div>
             
             ${(() => {
-              if(state.aiAnalysis.trend === 'forbidden') return '';
               const decimals = state.aiAnalysis.decimals || 2;
               
               return `
@@ -477,14 +467,13 @@
                 <span class="text-gray-400 text-xs">${record.time}</span>
               </div>
               <div class="flex justify-between mb-2">
-                <span class="font-bold ${record.trend === 'long' ? 'text-red' : record.trend === 'short' ? 'text-green' : record.trend === 'forbidden' ? 'text-yellow' : 'text-yellow'}">
-                  ${record.trend === 'long' ? '🔴 偏多' : record.trend === 'short' ? '🟢 偏空' : record.trend === 'forbidden' ? '🟡 指數盤整' : '🟡 震盪'}
+                <span class="font-bold ${record.trend === 'long' ? 'text-red' : record.trend === 'short' ? 'text-green' : 'text-yellow'}">
+                  ${record.trend === 'long' ? '🔴 偏多' : record.trend === 'short' ? '🟢 偏空' : '🟡 震盪'}
                 </span>
                 <span class="text-xs text-gray-400">${record.productType || PRODUCT_TYPES.FUTURES}</span>
               </div>
               
               ${(() => {
-                if(record.trend === 'forbidden') return '<div class="text-yellow text-center">指數盤整，無明確交易方向</div>';
                 const decimals = record.decimals || 2;
                 
                 return `
@@ -517,16 +506,12 @@
     const renderStats = () => {
       const total = state.aiHistory.length;
       const productCounts = {};
-      const directionCounts = { "做多": 0, "做空": 0, "震盪": 0, "盤整":0 };
+      const directionCounts = { "做多": 0, "做空": 0, "震盪": 0 };
       let totalWinRate = 0;
       const priorityCounts = { "高": 0, "中": 0, "低": 0 };
       
       state.aiHistory.forEach(r => {
         productCounts[r.product] = (productCounts[r.product] || 0) + 1;
-        if(r.trend === 'forbidden'){
-          directionCounts["盤整"]++;
-          return;
-        }
         
         const longWeight = priorityWeight[r.longPriority] || 1;
         const shortWeight = priorityWeight[r.shortPriority] || 1;
@@ -567,7 +552,6 @@
           <div class="flex justify-between"><span class="text-red">🔴 做多優先</span><span>${directionCounts["做多"]} 次</span></div>
           <div class="flex justify-between"><span class="text-green">🟢 做空優先</span><span>${directionCounts["做空"]} 次</span></div>
           <div class="flex justify-between"><span class="text-yellow">🟡 震盪均衡</span><span>${directionCounts["震盪"]} 次</span></div>
-          <div class="flex justify-between"><span class="text-yellow">🟡 指數盤整</span><span>${directionCounts["盤整"]} 次</span></div>
         </div>
         
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm">
@@ -613,7 +597,7 @@
             直接連接OpenAI API會被Safari的CORS安全策略攔截
           </div>
           <a 
-            href="https://deploy.workers.cloudflare.com/?url=https://cloudflare/worker-openai-proxy"
+            href="https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/worker-openai-proxy"
             target="_blank"
             class="block text-xs text-indigo-400 underline mt-2"
           >
@@ -629,7 +613,7 @@
             <div>🔹 每個策略顯示優先級 + 真實勝率</div>
             <div>🔹 勝率標準：高70% | 中60% | 低50%</div>
             <div>🔹 真實波段風險收益比：3R/5R</div>
-            <div>🔹 指數盤整無方向時自動禁止交易</div>
+            <div>🔹 區間盤整與圖形混亂時自動禁止交易</div>
             <div>🔹 所有點位自動優化至整五/整十關鍵位置</div>
           </div>
         </div>
@@ -658,7 +642,7 @@
       if (state.aiAnalysis.trend === 'forbidden') {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
         trendAdvice.className = "text-center text-sm text-yellow-300";
-        trendAdvice.textContent = "指數盤整，無明確交易方向";
+        trendAdvice.textContent = state.aiAnalysis.advice;
         strategyContainer.innerHTML = '';
         indicatorCard.classList.add('hidden');
         document.getElementById('aiResult').classList.remove('hidden');
@@ -907,9 +891,9 @@
 
 ⚠️ 產品類型限制：僅分析期貨/指數類產品，其他所有產品（股票、加密貨幣、外匯等）一律返回"不支援產品"，禁止提供任何交易策略
 ⚠️ 禁止交易規則（滿足任一條件即強制禁止交易）：
-1. 區間盤整：指數狹窄盤整、連續K線無明確方向、EMA均線糾纏（5/10/20/50EMA互相交叉無明確方向）、RSI長期在45-55之間震盪
+1. 區間盤整：價格在±1.5%以內的狹窄區間波動超過3根K線、EMA均線糾纏（5/10/20/50EMA互相交叉無明確方向）、RSI長期在45-55之間震盪
 2. 圖形混亂：K線上下影線過長且頻繁出現、多空反覆突破又快速回落、無明確的支撐壓力位
-3. 禁止交易時固定輸出：{"product":"產品名","productType":"FUTURES"或"UNSUPPORTED","trend":"forbidden","advice":"指數盤整，無明確交易方向","currentPrice":數字,"decimals":小數位}，不返回任何進出場點位
+3. 禁止交易時輸出格式：{"product":"產品名","productType":"FUTURES"或"UNSUPPORTED","trend":"forbidden","advice":"禁止交易：xxx原因","currentPrice":數字,"decimals":小數位}，不返回任何進出場點位
 
 ⚠️ 進場規則：只做進場判斷，無任何出場策略
 ⚠️ 價格規則：整數/整五/整十關鍵位
@@ -1014,7 +998,7 @@
         if (parseRes.trend === 'forbidden' || parseRes.productType === PRODUCT_TYPES.UNSUPPORTED) {
           state.aiAnalysis = parseRes;
           renderAiResult();
-          showDebug(`⚠️ 指數盤整，無明確交易方向`);
+          showDebug(`⚠️ ${parseRes.advice}`);
           setTimeout(hideDebug, 3000);
           return;
         }
