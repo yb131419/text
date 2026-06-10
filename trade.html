@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全品種AI智能偵測系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:w@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
@@ -519,7 +519,7 @@
                       做空進場 (${record.shortPriority} | ${getWinRate(record.shortPriority)}) | 進場: ${fmt(record.shortEntry, decimals)}
                     </div>
                     <div class="text-xs text-gray-400 mb-1">
-                      獲利: ${fmt(record.shortTp1, decimals)} / ${fmt(record.shortTp2, decimals)}
+                     獲利: ${fmt(record.shortTp1, decimals)} / ${fmt(record.shortTp2, decimals)}
                       | 止損: ${fmt(record.shortStopLoss, decimals)}
                     </div>
                   </div>
@@ -926,48 +926,39 @@
 
       showDebug("正在識別產品類型與EMA角度...");
 
-      // 核心AI规则：移除禁止交易 + EMA必须有角度 + 盘整盘显示 + 记录留存 + 角度阈值15°
+      // ✅【核心修复】严格遵循：左=历史 / 右=最新价格，EMA只看最右侧角度
       const sniperPrompt = `
 你是一位有15年實盤經驗的期指波段交易員，**只給真實可達成的點位**，絕對不要誇張。
 同時提供做多和做空雙向策略，每個策略標明優先級和真實勝率。
 
+-------------------------
+【絕對禁止犯錯：K線時間軸規則】
+✅ K線圖：**左側 = 歷史舊數據**，**最右側 = 最新當前價格**
+✅ EMA角度/趨勢：**只看最右側最新端的傾斜方向**，絕對不能看反！
+-------------------------
+
 ⚠️ 產品類型限制：僅分析期貨/指數類產品，其他所有產品（股票、加密貨幣、外匯等）一律返回"不支援產品"
 ⚠️ 核心規則：【永遠不禁止交易】，所有狀態正常生成策略
-⚠️ EMA強制規則：必須識別精確角度(°) + 有明確角度！
-   1. 計算EMA精確角度（整數，0-90°）
-   2. 角度閾值：**≥15°=適合交易，＜15°=不適合交易**（僅提示，不禁止）
-   3. EMA向上角度 → 多頭趨勢
-   4. EMA向下角度 → 空頭趨勢
-   5. EMA水平無角度/糾纏 → 標記為【盤整盤】(trend=neutral)，正常生成策略
-⚠️ 盤整條件：區間盤整、K線無方向、EMA無角度、RSI45-55 → 全部標記盤整盤，不禁止
 
+⚠️ EMA角度判斷（基於最右側最新價格）：
+   1. 計算精確角度（整數 0-90°）
+   2. 角度閾值：≥15°=適合交易，＜15°=不適合交易（僅提示）
+   3. 【右側EMA向上翹】= 多頭趨勢 (trend=long)
+   4. 【右側EMA向下壓】= 空頭趨勢 (trend=short)
+   5. 【右側EMA水平無角度】= 盤整盤 (trend=neutral)
+
+⚠️ 盤整條件：區間盤整、K線無方向、EMA水平、RSI45-55
 ⚠️ 進場規則：只做進場判斷，無任何出場策略
 ⚠️ 價格規則：整數/整五/整十關鍵位
 
-✅ 真實波段風險收益比（嚴格執行）：
+✅ 真實波段風險收益比：
 - 止盈1 = 進場 ± 止損 × 3
 - 止盈2 = 進場 ± 止損 × 5
-- 做空時方向相反
-- 所有點位必須優化到整五/整十關鍵位置
+- 做空方向相反，點位優化至整五/整十
 
-✅ 真實勝率標準：
-- 高優先級：勝率70%
-- 中優先級：勝率60%
-- 低優先級：勝率50%
-
-✅ RSI絕對詳細規則：
-1. 輸出精確數值：RSI(14)=XX
-2. 嚴格區間+方向：
-   - <30：嚴重超賣 → 僅適合做多，禁止做空
-   - 30~45：偏弱 → 優先做多，謹慎做空
-   - 45~55：中性 → 盤整盤
-   - 55~70：偏強 → 優先做空，謹慎做多
-   - >70：嚴重超買 → 僅適合做空，禁止做多
-3. 說明RSI走勢+背離
-4. 最終格式：RSI(14)=XX，XX狀態，適合XX方向
-
-✅ 進場理由：必須包含EMA角度/狀態、RSI詳情、K線形態、關鍵支撐壓力
-❌ 禁止：任何出場策略、出場條件、不切實際的高獲利目標
+✅ 真實勝率：高70% / 中60% / 低50%
+✅ RSI規則：精確數值+區間判斷+方向建議
+✅ 進場理由：必須包含【右側EMA角度】+RSI+K線形態
 
 輸出標準JSON，無多餘文字：
 {
