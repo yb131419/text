@@ -41,10 +41,31 @@
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
       }
+      .draggable {
+        cursor: move;
+        user-select: none;
+      }
     }
   </style>
 </head>
 <body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative">
+  <!-- 核心悬浮窗【Mitrade专用】 -->
+  <div id="floatWindow" class="fixed z-[9999] hidden w-[280px] bg-card rounded-xl shadow-2xl border border-indigo/50 overflow-hidden">
+    <!-- 悬浮窗拖动栏 -->
+    <div id="floatDrag" class="draggable bg-indigo/20 px-3 py-2 flex justify-between items-center">
+      <div class="text-xs font-bold text-white">📊 Mitrade 浮窗</div>
+      <div class="flex gap-2">
+        <button id="floatMin" class="text-xs text-white">−</button>
+        <button id="floatClose" class="text-xs text-white">✕</button>
+      </div>
+    </div>
+    <!-- 悬浮窗核心内容 -->
+    <div id="floatContent" class="p-3 text-xs space-y-2">
+      <div class="text-center font-bold text-indigo text-sm mb-1">暂无分析</div>
+      <div id="floatData" class="space-y-1.5 text-[11px]"></div>
+    </div>
+  </div>
+
   <div class="bg-darker border-b border-border p-4 text-center">
     <div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
     <div class="text-xl font-bold">⚡ 真實交易員波段進出點位</div>
@@ -52,6 +73,11 @@
 
   <div id="content" class="max-w-sm mx-auto p-4 space-y-4"></div>
 
+  <!-- 悬浮窗开关按钮 -->
+  <button id="floatButton" class="fixed right-4 bottom-44 w-14 h-14 rounded-full bg-purple shadow-lg flex items-center justify-center text-2xl z-40">
+    📌
+  </button>
+  
   <button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-indigo shadow-lg flex items-center justify-center text-2xl z-40">
     🤖
   </button>
@@ -132,6 +158,116 @@
   </div>
 
   <script>
+    // ==================== 悬浮窗核心功能 ====================
+    let floatWindow, floatDrag, floatClose, floatMin, floatButton, floatData;
+    let isDragging = false, offsetX, offsetY;
+
+    // 初始化悬浮窗元素
+    const initFloatWindow = () => {
+      floatWindow = document.getElementById('floatWindow');
+      floatDrag = document.getElementById('floatDrag');
+      floatClose = document.getElementById('floatClose');
+      floatMin = document.getElementById('floatMin');
+      floatButton = document.getElementById('floatButton');
+      floatData = document.getElementById('floatData');
+
+      // 开关浮窗
+      floatButton.onclick = () => {
+        floatWindow.classList.toggle('hidden');
+        if(!floatWindow.classList.contains('hidden')) {
+          syncFloatData(); // 同步最新数据
+          // 默认定位右下角
+          floatWindow.style.right = '10px';
+          floatWindow.style.top = '100px';
+          floatWindow.style.left = 'auto';
+        }
+      };
+
+      // 关闭浮窗
+      floatClose.onclick = () => floatWindow.classList.add('hidden');
+      
+      // 最小化浮窗
+      floatMin.onclick = () => {
+        const content = document.getElementById('floatContent');
+        content.classList.toggle('hidden');
+      };
+
+      // 拖动逻辑
+      floatDrag.onmousedown = (e) => {
+        isDragging = true;
+        const rect = floatWindow.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        floatWindow.style.cursor = 'grabbing';
+      };
+
+      document.onmousemove = (e) => {
+        if(!isDragging) return;
+        let x = e.clientX - offsetX;
+        let y = e.clientY - offsetY;
+        
+        // 限制不超出屏幕
+        x = Math.max(0, Math.min(x, window.innerWidth - floatWindow.offsetWidth));
+        y = Math.max(0, Math.min(y, window.innerHeight - floatWindow.offsetHeight));
+        
+        floatWindow.style.left = x + 'px';
+        floatWindow.style.right = 'auto';
+        floatWindow.style.top = y + 'px';
+      };
+
+      document.onmouseup = () => {
+        isDragging = false;
+        if(floatDrag) floatDrag.style.cursor = 'move';
+      };
+
+      // 移动端触摸拖动
+      floatDrag.ontouchstart = (e) => {
+        isDragging = true;
+        const touch = e.touches[0];
+        const rect = floatWindow.getBoundingClientRect();
+        offsetX = touch.clientX - rect.left;
+        offsetY = touch.clientY - rect.top;
+      };
+
+      document.ontouchmove = (e) => {
+        if(!isDragging) return;
+        const touch = e.touches[0];
+        let x = touch.clientX - offsetX;
+        let y = touch.clientY - offsetY;
+        x = Math.max(0, Math.min(x, window.innerWidth - floatWindow.offsetWidth));
+        y = Math.max(0, Math.min(y, window.innerHeight - floatWindow.offsetHeight));
+        floatWindow.style.left = x + 'px';
+        floatWindow.style.right = 'auto';
+        floatWindow.style.top = y + 'px';
+        e.preventDefault();
+      };
+
+      document.ontouchend = () => isDragging = false;
+    };
+
+    // 同步AI分析数据到悬浮窗
+    const syncFloatData = () => {
+      if(!state.aiAnalysis || !floatData) return;
+      const a = state.aiAnalysis;
+      const d = a.decimals || 2;
+      
+      floatData.innerHTML = `
+        <div class="text-center font-bold text-white">${a.product}</div>
+        <div class="flex justify-between ${a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow'}">
+          <span>趨勢</span><span>${a.trend==='long'?'多頭':a.trend==='short'?'空頭':'震盪'}</span>
+        </div>
+        <div class="flex justify-between text-white">
+          <span>現價</span><span>${fmt(a.currentPrice, d)}</span>
+        </div>
+        <div class="text-[10px] border-t border-border pt-1">
+          <div class="flex justify-between text-red">🔴 多: ${fmt(a.longEntry, d)}</div>
+          <div class="flex justify-between text-green">🟢 空: ${fmt(a.shortEntry, d)}</div>
+          <div class="flex justify-between text-yellow">🎯 止盈: ${fmt(a.longTp1, d)}/${fmt(a.shortTp1, d)}</div>
+        </div>
+      `;
+    };
+    // ======================================================
+
     const num = (v) => parseFloat(v) || 0;
     const fmt = (n, d = 2) =>
      !n || isNaN(n) || !isFinite(n) ? "—" : Number(n).toFixed(d);
@@ -510,6 +646,7 @@
         strategyContainer.innerHTML = '';
         indicatorCard.classList.add('hidden');
         document.getElementById('aiResult').classList.remove('hidden');
+        syncFloatData(); // 同步浮窗
         return;
       }
       
@@ -595,6 +732,7 @@
       document.getElementById('currentPrice').textContent = fmt(state.aiAnalysis.currentPrice, decimals);
       
       document.getElementById('aiResult').classList.remove('hidden');
+      syncFloatData(); // 同步数据到浮窗
     };
 
     const render = () => {
@@ -625,6 +763,7 @@
         if (confirm("確定要重置當前AI偵測結果嗎？")) {
           state.aiAnalysis = null;
           saveState();
+          syncFloatData();
           render();
         }
       });
@@ -964,6 +1103,7 @@
     };
 
     window.addEventListener('DOMContentLoaded', () => {
+      initFloatWindow(); // 初始化悬浮窗
       initEvents();
       render();
     });
