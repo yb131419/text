@@ -29,7 +29,7 @@
       }
     }
   </script>
-  <style type="text/tailwindcss">
+  <style type="textailwindcss">
     @layer utilities {
       .content-auto {
         content-visibility: auto;
@@ -125,6 +125,16 @@
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">EMA狀態</span>
               <span id="emaStatus" class="text-lg"></span>
+            </div>
+            <!-- 新增EMA角度顯示 -->
+            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
+              <span class="text-gray-200">EMA角度</span>
+              <span id="emaAngle" class="text-lg font-bold"></span>
+            </div>
+            <!-- 新增交易適配性 -->
+            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
+              <span class="text-gray-200">交易適配</span>
+              <span id="emaSuitable" class="text-lg font-bold"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">RSI詳細分析</span>
@@ -263,7 +273,8 @@
       if(a.trend === 'neutral'){
         floatData.innerHTML = `
           <div class="text-center font-bold text-white">${a.product}</div>
-          <div class="text-center font-bold text-yellow mt-2">📊 盤整盤，無明確趨勢</div>
+          <div class="text-center font-bold text-yellow mt-1">📊 盤整盤，無明確趨勢</div>
+          <div class="text-center text-xs mt-1">EMA角度：${a.emaAngle || 0}° ${a.emaSuitable || ''}</div>
         `;
         return;
       }
@@ -272,6 +283,9 @@
         <div class="text-center font-bold text-white">${a.product}</div>
         <div class="flex justify-between ${a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow'}">
           <span>趨勢</span><span>${a.trend==='long'?'多頭':a.trend==='short'?'空頭':'盤整盤'}</span>
+        </div>
+        <div class="flex justify-between text-white">
+          <span>EMA角度</span><span>${a.emaAngle || 0}° ${a.emaSuitable || ''}</span>
         </div>
         <div class="flex justify-between text-white">
           <span>現價</span><span>${fmt(a.currentPrice, d)}</span>
@@ -394,6 +408,7 @@
               <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : state.aiAnalysis.trend === 'short' ? 'text-green' : 'text-yellow'}">
                 ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🟢 偏空趨勢' : '🟡 盤整盤'}
               </div>
+              <div class="text-sm text-gray-300 mt-1">EMA角度：${state.aiAnalysis.emaAngle || 0}° | ${state.aiAnalysis.emaSuitable || ''}</div>
               <div class="text-sm text-gray-300">${state.aiAnalysis.advice}</div>
               <div class="text-xs text-gray-500 mt-1">偵測時間: ${state.aiAnalysis.time}</div>
             </div>
@@ -479,7 +494,10 @@
                 <span class="font-bold ${record.trend === 'long' ? 'text-red' : record.trend === 'short' ? 'text-green' : 'text-yellow'}">
                   ${record.trend === 'long' ? '🔴 偏多' : record.trend === 'short' ? '🟢 偏空' : '🟡 盤整盤'}
                 </span>
-                <span class="text-xs text-gray-400">${record.productType || PRODUCT_TYPES.FUTURES}</span>
+                <span class="text-xs text-gray-400">EMA角度：${record.emaAngle || 0}°</span>
+              </div>
+              <div class="text-xs mb-2 ${record.emaSuitable?.includes('適合') ? 'text-green' : 'text-yellow'}">
+                ${record.emaSuitable || ''}
               </div>
               
               ${(() => {
@@ -518,13 +536,16 @@
       const directionCounts = { "做多": 0, "做空": 0, "盤整盤": 0 };
       let totalWinRate = 0;
       const priorityCounts = { "高": 0, "中": 0, "低": 0 };
+      const angleCounts = { "適合交易": 0, "不適合交易": 0 };
       
       state.aiHistory.forEach(r => {
         productCounts[r.product] = (productCounts[r.product] || 0) + 1;
         if(r.trend === 'neutral'){
           directionCounts["盤整盤"]++;
-          return;
         }
+        
+        if(r.emaSuitable?.includes('適合')) angleCounts["適合交易"]++;
+        else angleCounts["不適合交易"]++;
         
         const longWeight = priorityWeight[r.longPriority] || 1;
         const shortWeight = priorityWeight[r.shortPriority] || 1;
@@ -551,6 +572,13 @@
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
           <div class="flex justify-between font-bold"><span>總偵測次數</span><span>${total}</span></div>
           <div class="flex justify-between"><span>平均進場勝率</span><span class="text-green font-bold">${avgWinRate}</span></div>
+        </div>
+        
+        <!-- 新增EMA角度統計 -->
+        <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
+          <div class="font-bold mb-2">📐 EMA角度適配統計</div>
+          <div class="flex justify-between text-green"><span>✅ 適合交易(≥15°)</span><span>${angleCounts["適合交易"]} 次</span></div>
+          <div class="flex justify-between text-yellow"><span>⚠️ 不適合交易(<15°)</span><span>${angleCounts["不適合交易"]} 次</span></div>
         </div>
         
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
@@ -626,6 +654,7 @@
             <div>🔹 每個策略顯示優先級 + 真實勝率</div>
             <div>🔹 勝率標準：高70% | 中60% | 低50%</div>
             <div>🔹 真實波段風險收益比：3R/5R</div>
+            <div>🔹 EMA角度規則：≥15°適合交易，＜15°不適合(僅提示)</div>
             <div>🔹 EMA無角度自動識別為盤整盤，不禁止交易</div>
             <div>🔹 所有點位自動優化至整五/整十關鍵位置</div>
             <div>🔹 所有偵測記錄（多/空/盤整）強制留存</div>
@@ -648,25 +677,34 @@
       const trendAdvice = document.getElementById('trendAdvice');
       const productTypeLabel = document.getElementById('productTypeLabel');
       const strategyContainer = document.getElementById('strategyContainer');
-      const indicatorCard = document.getElementById('indicatorCard');
       
       productTitle.textContent = `📊 ${state.aiAnalysis.product}`;
       productTypeLabel.textContent = state.aiAnalysis.productType || PRODUCT_TYPES.FUTURES;
+      
+      // 显示EMA角度+适配状态
+      document.getElementById('emaAngle').textContent = `${state.aiAnalysis.emaAngle || 0}°`;
+      document.getElementById('emaAngle').className = state.aiAnalysis.emaSuitable?.includes('適合') 
+        ? 'text-lg font-bold text-green' 
+        : 'text-lg font-bold text-yellow';
+      
+      document.getElementById('emaSuitable').textContent = state.aiAnalysis.emaSuitable || '—';
+      document.getElementById('emaSuitable').className = state.aiAnalysis.emaSuitable?.includes('適合') 
+        ? 'text-lg font-bold text-green' 
+        : 'text-lg font-bold text-yellow';
       
       // 盘整盘正常显示，不禁止
       if (state.aiAnalysis.trend === 'neutral') {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
         trendAdvice.className = "text-center text-sm text-yellow-300";
-        trendAdvice.textContent = "📊 盤整盤，EMA無角度/無明確趨勢";
-        indicatorCard.classList.remove('hidden');
+        trendAdvice.textContent = `📊 盤整盤，EMA無角度 | 角度：${state.aiAnalysis.emaAngle || 0}°`;
       } else if (state.aiAnalysis.trend === 'long') {
         trendCard.className = "rounded-xl p-4 border bg-red/10 border-red/30";
         trendAdvice.className = "text-center text-sm text-gray-300";
-        trendAdvice.textContent = `當前趨勢：偏多 | ${state.aiAnalysis.advice}`;
+        trendAdvice.textContent = `當前趨勢：偏多 | ${state.aiAnalysis.advice} | 角度：${state.aiAnalysis.emaAngle || 0}°`;
       } else if (state.aiAnalysis.trend === 'short') {
         trendCard.className = "rounded-xl p-4 border bg-green/10 border-green/30";
         trendAdvice.className = "text-center text-sm text-gray-300";
-        trendAdvice.textContent = `當前趨勢：偏空 | ${state.aiAnalysis.advice}`;
+        trendAdvice.textContent = `當前趨勢：偏空 | ${state.aiAnalysis.advice} | 角度：${state.aiAnalysis.emaAngle || 0}°`;
       }
       
       strategyContainer.innerHTML = `
@@ -888,17 +926,19 @@
 
       showDebug("正在識別產品類型與EMA角度...");
 
-      // 核心AI规则：移除禁止交易 + EMA必须有角度 + 盘整盘显示 + 记录留存
+      // 核心AI规则：移除禁止交易 + EMA必须有角度 + 盘整盘显示 + 记录留存 + 角度阈值15°
       const sniperPrompt = `
 你是一位有15年實盤經驗的期指波段交易員，**只給真實可達成的點位**，絕對不要誇張。
 同時提供做多和做空雙向策略，每個策略標明優先級和真實勝率。
 
 ⚠️ 產品類型限制：僅分析期貨/指數類產品，其他所有產品（股票、加密貨幣、外匯等）一律返回"不支援產品"
 ⚠️ 核心規則：【永遠不禁止交易】，所有狀態正常生成策略
-⚠️ EMA強制規則：必須有明確角度！
-   - EMA向上角度 → 多頭趨勢
-   - EMA向下角度 → 空頭趨勢
-   - EMA水平無角度/糾纏 → 標記為【盤整盤】(trend=neutral)，正常生成策略
+⚠️ EMA強制規則：必須識別精確角度(°) + 有明確角度！
+   1. 計算EMA精確角度（整數，0-90°）
+   2. 角度閾值：**≥15°=適合交易，＜15°=不適合交易**（僅提示，不禁止）
+   3. EMA向上角度 → 多頭趨勢
+   4. EMA向下角度 → 空頭趨勢
+   5. EMA水平無角度/糾纏 → 標記為【盤整盤】(trend=neutral)，正常生成策略
 ⚠️ 盤整條件：區間盤整、K線無方向、EMA無角度、RSI45-55 → 全部標記盤整盤，不禁止
 
 ⚠️ 進場規則：只做進場判斷，無任何出場策略
@@ -950,6 +990,8 @@
   "shortTp2": 數字,
   "shortReason": "詳細進場理由",
   "emaStatus": "向上角度/向下角度/無角度盤整",
+  "emaAngle": 數字,
+  "emaSuitable": "適合交易/不適合交易",
   "rsi": "RSI詳細分析"
 }
 `;
@@ -1006,18 +1048,23 @@
           parseRes.trend = 'neutral';
         }
         
+        // 补全新增字段默认值
         if (!parseRes.product) parseRes.product = "未知期指";
         if (!parseRes.productType) parseRes.productType = PRODUCT_TYPES.FUTURES;
+        if (!parseRes.emaAngle) parseRes.emaAngle = 0;
+        if (!parseRes.emaSuitable) parseRes.emaSuitable = "不適合交易";
         if (!parseRes.longReason) parseRes.longReason = "指標符合真實波段進場條件";
         if (!parseRes.shortReason) parseRes.shortReason = "指標符合真實波段進場條件";
         if (!parseRes.rsi) parseRes.rsi = "RSI(14)=50，中性，盤整盤";
         if (!parseRes.emaStatus) parseRes.emaStatus = "無角度盤整";
         
+        // 价格优化
         parseRes.longEntry = optimizePrice(parseRes.longEntry, parseRes.decimals, parseRes.productType);
         parseRes.longStopLoss = optimizePrice(parseRes.longStopLoss, parseRes.decimals, parseRes.productType);
         parseRes.shortEntry = optimizePrice(parseRes.shortEntry, parseRes.decimals, parseRes.productType);
         parseRes.shortStopLoss = optimizePrice(parseRes.shortStopLoss, parseRes.decimals, parseRes.productType);
         
+        // 计算止盈
         const longRisk = parseRes.longEntry - parseRes.longStopLoss;
         parseRes.longTp1 = optimizePrice(parseRes.longEntry + longRisk * 3, parseRes.decimals, parseRes.productType);
         parseRes.longTp2 = optimizePrice(parseRes.longEntry + longRisk * 5, parseRes.decimals, parseRes.productType);
@@ -1026,9 +1073,9 @@
         parseRes.shortTp1 = optimizePrice(parseRes.shortEntry - shortRisk * 3, parseRes.decimals, parseRes.productType);
         parseRes.shortTp2 = optimizePrice(parseRes.shortEntry - shortRisk * 5, parseRes.decimals, parseRes.productType);
         
+        // 保存记录
         parseRes.time = new Date().toLocaleString();
         state.aiAnalysis = parseRes;
-        // 强制留存所有记录（盘整盘/多/空全部保存）
         state.aiHistory.unshift(parseRes);
         if (state.aiHistory.length > 50) state.aiHistory = state.aiHistory.slice(0, 50);
         saveState();
