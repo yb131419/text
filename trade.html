@@ -47,8 +47,9 @@
         display: none;
       }
       .glass {
-        backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        transform: translateZ(0);
       }
       .card-hover {
         transition: all 0.3s ease;
@@ -321,7 +322,7 @@
               <div class="bg-black/30 p-2 rounded text-center border border-${isLong ? 'green' : 'red'}/50">
                 <div class="text-gray-400 text-xs">⛔ 止損</div>
                 <div class="text-xl font-bold text-white">${fmt(strategy.stopLoss, decimals)}</div>
-                <div class="text-xs text-red">${calculateLoss(strategy.entry, strategy.stopLoss, isLong strategy.stopLoss, isLong, decimals)}</div>
+                <div class="text-xs text-red">${calculateLoss(strategy.entry, strategy.stopLoss, isLong, decimals)}</div>
               </div>
               ${isStock ? `
                 <div class="bg-black/30 p-2 rounded text-center">
@@ -472,7 +473,6 @@
       const typeCounts = {};
       const directionCounts = { "做多": 0, "做空": 0, "震盪": 0 };
       let totalWinRate = 0;
-      const priorityWinRates = { "高": 0, "中": 0, "低": 0 };
       const priorityCounts = { "高": 0, "中": 0, "低": 0 };
       
       state.aiHistory.forEach(r => {
@@ -909,9 +909,10 @@
         
         if (!res.ok) {
           if (res.status === 401) throw new Error("401 未授權：API Key 無效");
-          if (res.status === 403) throw new Error("403 禁止訪問：API Key 額度不足");
-          if (res.status === 429) throw new Error("429 請求過多");
-          throw new Error(`API錯誤: ${res.status}`);
+          if (res.status === 403) throw new Error("403 禁止訪問：API Key 額度不足或被封鎖");
+          if (res.status === 429) throw new Error("429 請求過多：請稍後再試或更換API Key");
+          if (res.status === 500) throw new Error("500 伺服器錯誤：OpenAI伺服器暫時不可用");
+          throw new Error(`API錯誤: ${res.status} ${res.statusText}`);
         }
         
         const data = await res.json();
@@ -976,7 +977,7 @@
         
       } catch (err) {
         console.error("AI解析錯誤:", err);
-        state.aiError = `❌ 錯誤: ${err.message}`;
+        state.aiError = `❌ 錯誤: ${err.message}\n\n⚠️ 常見解決方案：\n1. 確認代理伺服器已正確部署並設置\n2. 檢查API Key是否有效且有額度\n3. 嘗試重新上傳更清晰的K線截圖\n4. 如持續錯誤，請更換API Key`;
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
       } finally {
@@ -987,32 +988,54 @@
       }
     };
 
-    const initEvents = () => {
+    // ✅ 全局事件監聽器（只綁定一次）
+    const initGlobalEvents = () => {
+      // 底部導航
       document.querySelectorAll('.tab-button').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const tab = e.currentTarget.dataset.tab;
           state.tab = tab;
+          
           document.querySelectorAll('.tab-button').forEach(b => {
             b.classList.remove('text-indigo');
             b.classList.add('text-gray-400');
           });
           e.currentTarget.classList.add('text-indigo');
+          
           render();
         });
       });
 
+      // AI按鈕
       document.getElementById('aiButton').addEventListener('click', () => {
         document.getElementById('aiModal').classList.remove('hidden');
       });
 
+      // 關閉AI模態框
       document.getElementById('closeAiModal').addEventListener('click', () => {
         document.getElementById('aiModal').classList.add('hidden');
       });
 
+      // 點擊模態框外部關閉
+      document.getElementById('aiModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('aiModal')) {
+          document.getElementById('aiModal').classList.add('hidden');
+        }
+      });
+
+      // Esc鍵關閉模態框
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !document.getElementById('aiModal').classList.contains('hidden')) {
+          document.getElementById('aiModal').classList.add('hidden');
+        }
+      });
+
+      // 上傳按鈕
       document.getElementById('uploadButton').addEventListener('click', () => {
         document.getElementById('fileInput').click();
       });
 
+      // 文件選擇
       document.getElementById('fileInput').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -1026,8 +1049,10 @@
         reader.readAsDataURL(file);
       });
 
+      // 分析按鈕
       document.getElementById('analyzeButton').addEventListener('click', runAiAnalyze);
 
+      // 重置AI按鈕
       document.getElementById('resetAiButton').addEventListener('click', () => {
         state.aiBase64 = "";
         state.aiImage = null;
@@ -1040,7 +1065,7 @@
     };
 
     window.addEventListener('DOMContentLoaded', () => {
-      initEvents();
+      initGlobalEvents(); // 只在頁面加載時綁定一次全局事件
       render();
     });
   </script>
