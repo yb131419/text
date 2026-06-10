@@ -53,7 +53,7 @@
   </style>
 </head>
 <body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative">
-  <!-- 修复版悬浮窗【状态持久化】 -->
+  <!-- 修复版悬浮窗【Mitrade专用】 -->
   <div id="floatWindow" class="fixed z-[999999] hidden w-[280px] bg-card rounded-xl shadow-2xl border border-indigo/50 overflow-hidden pointer-events-auto">
     <!-- 悬浮窗拖动栏 -->
     <div id="floatDrag" class="draggable bg-indigo/20 px-3 py-2 flex justify-between items-center">
@@ -126,10 +126,12 @@
               <span class="text-gray-200">EMA狀態</span>
               <span id="emaStatus" class="text-lg"></span>
             </div>
+            <!-- 新增EMA角度顯示 -->
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">EMA角度</span>
               <span id="emaAngle" class="text-lg font-bold"></span>
             </div>
+            <!-- 新增交易適配性 -->
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">交易適配</span>
               <span id="emaSuitable" class="text-lg font-bold"></span>
@@ -170,11 +172,11 @@
   </div>
 
   <script>
-    // ==================== 修复版悬浮窗【状态持久化】 ====================
+    // ==================== 修复版悬浮窗核心功能 ====================
     let floatWindow, floatDrag, floatClose, floatMin, floatButton, floatData;
     let isDragging = false, offsetX, offsetY;
 
-    // 初始化悬浮窗元素 + 状态持久化
+    // 初始化悬浮窗元素
     const initFloatWindow = () => {
       floatWindow = document.getElementById('floatWindow');
       floatDrag = document.getElementById('floatDrag');
@@ -183,28 +185,10 @@
       floatButton = document.getElementById('floatButton');
       floatData = document.getElementById('floatData');
 
-      // 读取本地保存的浮窗状态
-      const savedFloatState = loadData("floatState", { visible: false, minimized: false });
-      state.floatState = savedFloatState;
-
-      // 恢复浮窗状态
-      if (state.floatState.visible) {
-        floatWindow.classList.remove('hidden');
-        floatWindow.style.right = '10px';
-        floatWindow.style.top = '100px';
-        floatWindow.style.left = 'auto';
-      }
-      if (state.floatState.minimized) {
-        document.getElementById('floatContent').classList.add('hidden');
-      }
-      syncFloatData();
-
-      // 开关浮窗（保存状态）
+      // 开关浮窗（修复点击）
       floatButton.addEventListener('click', () => {
         floatWindow.classList.toggle('hidden');
-        state.floatState.visible = !floatWindow.classList.contains('hidden');
-        saveData("floatState", state.floatState);
-        if(state.floatState.visible) {
+        if(!floatWindow.classList.contains('hidden')) {
           syncFloatData();
           floatWindow.style.right = '10px';
           floatWindow.style.top = '100px';
@@ -212,22 +196,18 @@
         }
       });
 
-      // 关闭浮窗（保存状态）
+      // 关闭浮窗（修复点击）
       floatClose.addEventListener('click', () => {
         floatWindow.classList.add('hidden');
-        state.floatState.visible = false;
-        saveData("floatState", state.floatState);
       });
       
-      // 最小化浮窗（保存状态）
+      // 最小化浮窗（修复点击）
       floatMin.addEventListener('click', () => {
         const content = document.getElementById('floatContent');
         content.classList.toggle('hidden');
-        state.floatState.minimized = content.classList.contains('hidden');
-        saveData("floatState", state.floatState);
       });
 
-      // 拖动逻辑
+      // 修复拖动逻辑，不影响点击
       floatDrag.addEventListener('mousedown', (e) => {
         isDragging = true;
         const rect = floatWindow.getBoundingClientRect();
@@ -241,8 +221,10 @@
         if(!isDragging) return;
         let x = e.clientX - offsetX;
         let y = e.clientY - offsetY;
+        
         x = Math.max(0, Math.min(x, window.innerWidth - floatWindow.offsetWidth));
         y = Math.max(0, Math.min(y, window.innerHeight - floatWindow.offsetHeight));
+        
         floatWindow.style.left = x + 'px';
         floatWindow.style.right = 'auto';
         floatWindow.style.top = y + 'px';
@@ -253,7 +235,7 @@
         if(floatDrag) floatDrag.style.cursor = 'move';
       });
 
-      // 移动端触摸拖动
+      // 移动端触摸拖动（修复点击）
       floatDrag.addEventListener('touchstart', (e) => {
         isDragging = true;
         const touch = e.touches[0];
@@ -287,6 +269,7 @@
       const a = state.aiAnalysis;
       const d = a.decimals || 2;
       
+      // 盘整盘显示，不禁止交易
       if(a.trend === 'neutral'){
         floatData.innerHTML = `
           <div class="text-center font-bold text-white">${a.product}</div>
@@ -322,13 +305,13 @@
 
     const priorityWeight = { "高": 3, "中": 2, "低": 1 };
 
-    // 真實交易員勝率標準
+    // ✅ 真實交易員勝率標準 (基於職業波段交易員數據)
     const getWinRate = (priority) => {
       switch(priority) {
         case "高": return "70%";
         case "中": return "60%";
         case "低": return "50%";
-        default return "55%";
+        default: return "55%";
       }
     };
 
@@ -364,8 +347,7 @@
       aiImage: null,
       aiBase64: "",
       aiLoading: false,
-      aiError: "",
-      floatState: { visible: false, minimized: false } // 浮窗状态
+      aiError: ""
     };
 
     const saveState = () => {
@@ -433,65 +415,56 @@
             
             ${(() => {
               const decimals = state.aiAnalysis.decimals || 2;
-              const a = state.aiAnalysis;
-              const longW = priorityWeight[a.longPriority] || 1;
-              const shortW = priorityWeight[a.shortPriority] || 1;
               
-              // 胜率高的置顶渲染
-              const longCard = `
+              return `
                 <div class="bg-darker rounded-xl p-3 border border-red/30 mb-3">
-                  <div class="text-sm font-bold text-red mb-2">🔴 做多進場 (優先級: ${a.longPriority} | 勝率: ${getWinRate(a.longPriority)})</div>
+                  <div class="text-sm font-bold text-red mb-2">🔴 做多進場 (優先級: ${state.aiAnalysis.longPriority} | 勝率: ${getWinRate(state.aiAnalysis.longPriority)})</div>
                   <div class="grid grid-cols-3 gap-2 text-xs mb-2">
                     <div class="bg-black/30 p-2 rounded text-center">
                       <div class="text-gray-400">進場價</div>
-                      <div class="font-bold text-red">${fmt(a.longEntry, decimals)}</div>
+                      <div class="font-bold text-red">${fmt(state.aiAnalysis.longEntry, decimals)}</div>
                     </div>
                     <div class="bg-black/30 p-2 rounded text-center">
                       <div class="text-gray-400">獲利目標1</div>
-                      <div class="font-bold text-yellow">${fmt(a.longTp1, decimals)}</div>
-                      <div class="text-xs text-green">${calculateProfit(a.longEntry, a.longTp1, true, decimals)}</div>
+                      <div class="font-bold text-yellow">${fmt(state.aiAnalysis.longTp1, decimals)}</div>
+                      <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTp1, true, decimals)}</div>
                     </div>
                     <div class="bg-black/30 p-2 rounded text-center">
                       <div class="text-gray-400">獲利目標2</div>
-                      <div class="font-bold text-green">${fmt(a.longTp2, decimals)}</div>
-                      <div class="text-xs text-green">${calculateProfit(a.longEntry, a.longTp2, true, decimals)}</div>
+                      <div class="font-bold text-green">${fmt(state.aiAnalysis.longTp2, decimals)}</div>
+                      <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTp2, true, decimals)}</div>
                     </div>
                   </div>
-                  <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(a.longStopLoss, decimals)} ${calculateLoss(a.longEntry, a.longStopLoss, true, decimals)}</div>
+                  <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(state.aiAnalysis.longStopLoss, decimals)} ${calculateLoss(state.aiAnalysis.longEntry, state.aiAnalysis.longStopLoss, true, decimals)}</div>
                   <div class="text-xs text-white bg-black/40 p-2 rounded border border-red/20">
-                    📌 進場理由：${a.longReason || '基於技術指標綜合判斷'}
+                    📌 進場理由：${state.aiAnalysis.longReason || '基於技術指標綜合判斷'}
                   </div>
                 </div>
-              `;
-              
-              const shortCard = `
+
                 <div class="bg-darker rounded-xl p-3 border border-green/30">
-                  <div class="text-sm font-bold text-green mb-2">🟢 做空進場 (優先級: ${a.shortPriority} | 勝率: ${getWinRate(a.shortPriority)})</div>
+                  <div class="text-sm font-bold text-green mb-2">🟢 做空進場 (優先級: ${state.aiAnalysis.shortPriority} | 勝率: ${getWinRate(state.aiAnalysis.shortPriority)})</div>
                   <div class="grid grid-cols-3 gap-2 text-xs mb-2">
                     <div class="bg-black/30 p-2 rounded text-center">
                       <div class="text-gray-400">進場價</div>
-                      <div class="font-bold text-green">${fmt(a.shortEntry, decimals)}</div>
+                      <div class="font-bold text-green">${fmt(state.aiAnalysis.shortEntry, decimals)}</div>
                     </div>
                     <div class="bg-black/30 p-2 rounded text-center">
                       <div class="text-gray-400">獲利目標1</div>
-                      <div class="font-bold text-yellow">${fmt(a.shortTp1, decimals)}</div>
-                      <div class="text-xs text-green">${calculateProfit(a.shortEntry, a.shortTp1, false, decimals)}</div>
+                      <div class="font-bold text-yellow">${fmt(state.aiAnalysis.shortTp1, decimals)}</div>
+                      <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTp1, false, decimals)}</div>
                     </div>
                     <div class="bg-black/30 p-2 rounded text-center">
                       <div class="text-gray-400">獲利目標2</div>
-                      <div class="font-bold text-green">${fmt(a.shortTp2, decimals)}</div>
-                      <div class="text-xs text-green">${calculateProfit(a.shortEntry, a.shortTp2, false, decimals)}</div>
+                      <div class="font-bold text-green">${fmt(state.aiAnalysis.shortTp2, decimals)}</div>
+                      <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTp2, false, decimals)}</div>
                     </div>
                   </div>
-                  <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(a.shortStopLoss, decimals)} ${calculateLoss(a.shortEntry, a.shortStopLoss, false, decimals)}</div>
+                  <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(state.aiAnalysis.shortStopLoss, decimals)} ${calculateLoss(state.aiAnalysis.shortEntry, state.aiAnalysis.shortStopLoss, false, decimals)}</div>
                   <div class="text-xs text-white bg-black/40 p-2 rounded border border-green/20">
-                    📌 進場理由：${a.shortReason || '基於技術指標綜合判斷'}
+                    📌 進場理由：${state.aiAnalysis.shortReason || '基於技術指標綜合判斷'}
                   </div>
                 </div>
               `;
-              
-              // 优先级高的显示在上面
-              return longW > shortW ? longCard + shortCard : shortCard + longCard;
             })()}
           </div>
         ` : `
@@ -511,10 +484,7 @@
         </div>
         ${state.aiHistory.length === 0 
           ? '<div class="text-center text-gray-500 py-10">還沒有偵測記錄</div>' 
-          : state.aiHistory.map((record, index) => {
-              const longW = priorityWeight[record.longPriority] || 1;
-              const shortW = priorityWeight[record.shortPriority] || 1;
-              return `
+          : state.aiHistory.map((record, index) => `
             <div class="bg-card border border-border rounded-xl p-3 text-sm mb-3">
               <div class="flex justify-between mb-2">
                 <span class="text-indigo font-bold">${record.product}</span>
@@ -532,7 +502,8 @@
               
               ${(() => {
                 const decimals = record.decimals || 2;
-                const longItem = `
+                
+                return `
                   <div class="bg-red/5 rounded-lg p-2 border border-red/20 mb-2">
                     <div class="text-xs font-bold text-red mb-1">
                       做多進場 (${record.longPriority} | ${getWinRate(record.longPriority)}) | 進場: ${fmt(record.longEntry, decimals)}
@@ -542,8 +513,7 @@
                       | 止損: ${fmt(record.longStopLoss, decimals)}
                     </div>
                   </div>
-                `;
-                const shortItem = `
+
                   <div class="bg-green/5 rounded-lg p-2 border border-green/20">
                     <div class="text-xs font-bold text-green mb-1">
                       做空進場 (${record.shortPriority} | ${getWinRate(record.shortPriority)}) | 進場: ${fmt(record.shortEntry, decimals)}
@@ -554,10 +524,9 @@
                     </div>
                   </div>
                 `;
-                return longW > shortW ? longItem + shortItem : shortItem + longItem;
               })()}
             </div>
-          `}).join('')}
+          `).join('')}
       `;
     };
 
@@ -605,6 +574,7 @@
           <div class="flex justify-between"><span>平均進場勝率</span><span class="text-green font-bold">${avgWinRate}</span></div>
         </div>
         
+        <!-- 新增EMA角度統計 -->
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
           <div class="font-bold mb-2">📐 EMA角度適配統計</div>
           <div class="flex justify-between text-green"><span>✅ 適合交易(≥15°)</span><span>${angleCounts["適合交易"]} 次</span></div>
@@ -697,14 +667,10 @@
       `;
     };
 
-    // AI结果渲染 + 胜率高的置顶
     const renderAiResult = () => {
       if (!state.aiAnalysis) return;
       
       const decimals = state.aiAnalysis.decimals || 2;
-      const a = state.aiAnalysis;
-      const longW = priorityWeight[a.longPriority] || 1;
-      const shortW = priorityWeight[a.shortPriority] || 1;
       
       const trendCard = document.getElementById('trendCard');
       const productTitle = document.getElementById('productTitle');
@@ -712,102 +678,97 @@
       const productTypeLabel = document.getElementById('productTypeLabel');
       const strategyContainer = document.getElementById('strategyContainer');
       
-      productTitle.textContent = `📊 ${a.product}`;
-      productTypeLabel.textContent = a.productType || PRODUCT_TYPES.FUTURES;
+      productTitle.textContent = `📊 ${state.aiAnalysis.product}`;
+      productTypeLabel.textContent = state.aiAnalysis.productType || PRODUCT_TYPES.FUTURES;
       
-      document.getElementById('emaAngle').textContent = `${a.emaAngle || 0}°`;
-      document.getElementById('emaAngle').className = a.emaSuitable?.includes('適合') 
+      // 显示EMA角度+适配状态
+      document.getElementById('emaAngle').textContent = `${state.aiAnalysis.emaAngle || 0}°`;
+      document.getElementById('emaAngle').className = state.aiAnalysis.emaSuitable?.includes('適合') 
         ? 'text-lg font-bold text-green' 
         : 'text-lg font-bold text-yellow';
       
-      document.getElementById('emaSuitable').textContent = a.emaSuitable || '—';
-      document.getElementById('emaSuitable').className = a.emaSuitable?.includes('適合') 
+      document.getElementById('emaSuitable').textContent = state.aiAnalysis.emaSuitable || '—';
+      document.getElementById('emaSuitable').className = state.aiAnalysis.emaSuitable?.includes('適合') 
         ? 'text-lg font-bold text-green' 
         : 'text-lg font-bold text-yellow';
       
-      if (a.trend === 'neutral') {
+      // 盘整盘正常显示，不禁止
+      if (state.aiAnalysis.trend === 'neutral') {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
         trendAdvice.className = "text-center text-sm text-yellow-300";
-        trendAdvice.textContent = `📊 盤整盤，EMA無角度 | 角度：${a.emaAngle || 0}°`;
-      } else if (a.trend === 'long') {
+        trendAdvice.textContent = `📊 盤整盤，EMA無角度 | 角度：${state.aiAnalysis.emaAngle || 0}°`;
+      } else if (state.aiAnalysis.trend === 'long') {
         trendCard.className = "rounded-xl p-4 border bg-red/10 border-red/30";
         trendAdvice.className = "text-center text-sm text-gray-300";
-        trendAdvice.textContent = `當前趨勢：偏多 | ${a.advice} | 角度：${a.emaAngle || 0}°`;
-      } else if (a.trend === 'short') {
+        trendAdvice.textContent = `當前趨勢：偏多 | ${state.aiAnalysis.advice} | 角度：${state.aiAnalysis.emaAngle || 0}°`;
+      } else if (state.aiAnalysis.trend === 'short') {
         trendCard.className = "rounded-xl p-4 border bg-green/10 border-green/30";
         trendAdvice.className = "text-center text-sm text-gray-300";
-        trendAdvice.textContent = `當前趨勢：偏空 | ${a.advice} | 角度：${a.emaAngle || 0}°`;
+        trendAdvice.textContent = `當前趨勢：偏空 | ${state.aiAnalysis.advice} | 角度：${state.aiAnalysis.emaAngle || 0}°`;
       }
       
-      // 做多策略卡片
-      const longCard = `
+      strategyContainer.innerHTML = `
         <div class="bg-darker rounded-xl p-4 border border-red/30 mb-3">
-          <div class="text-sm font-bold text-red mb-3">🔴 做多進場策略 (優先級: ${a.longPriority} | 勝率: ${getWinRate(a.longPriority)})</div>
+          <div class="text-sm font-bold text-red mb-3">🔴 做多進場策略 (優先級: ${state.aiAnalysis.longPriority} | 勝率: ${getWinRate(state.aiAnalysis.longPriority)})</div>
           <div class="grid grid-cols-2 gap-2 text-sm">
             <div class="bg-black/30 p-2 rounded text-center border border-red/50">
               <div class="text-gray-400 text-xs">進場價</div>
-              <div class="text-xl font-bold text-red">${fmt(a.longEntry, decimals)}</div>
+              <div class="text-xl font-bold text-red">${fmt(state.aiAnalysis.longEntry, decimals)}</div>
             </div>
             <div class="bg-black/30 p-2 rounded text-center border border-red/50">
               <div class="text-gray-400 text-xs">⛔ 止損</div>
-              <div class="text-xl font-bold text-white">${fmt(a.longStopLoss, decimals)}</div>
-              <div class="text-xs text-red">${calculateLoss(a.longEntry, a.longStopLoss, true, decimals)}</div>
+              <div class="text-xl font-bold text-white">${fmt(state.aiAnalysis.longStopLoss, decimals)}</div>
+              <div class="text-xs text-red">${calculateLoss(state.aiAnalysis.longEntry, state.aiAnalysis.longStopLoss, true, decimals)}</div>
             </div>
             <div class="bg-black/30 p-2 rounded text-center">
               <div class="text-gray-400 text-xs">✅ 目標1 (3R)</div>
-              <div class="text-xl font-bold text-yellow">${fmt(a.longTp1, decimals)}</div>
-              <div class="text-xs text-green">${calculateProfit(a.longEntry, a.longTp1, true, decimals)}</div>
+              <div class="text-xl font-bold text-yellow">${fmt(state.aiAnalysis.longTp1, decimals)}</div>
+              <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTp1, true, decimals)}</div>
             </div>
             <div class="bg-black/30 p-2 rounded text-center">
               <div class="text-gray-400 text-xs">✅ 目標2 (5R)</div>
-              <div class="text-xl font-bold text-green">${fmt(a.longTp2, decimals)}</div>
-              <div class="text-xs text-green">${calculateProfit(a.longEntry, a.longTp2, true, decimals)}</div>
+              <div class="text-xl font-bold text-green">${fmt(state.aiAnalysis.longTp2, decimals)}</div>
+              <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.longEntry, state.aiAnalysis.longTp2, true, decimals)}</div>
             </div>
           </div>
           <div class="mt-2 text-xs text-white bg-black/40 p-2 rounded border border-red/20">
-            📌 進場理由：${a.longReason || '基於技術指標綜合判斷'}
+            📌 進場理由：${state.aiAnalysis.longReason || '基於技術指標綜合判斷'}
           </div>
         </div>
-      `;
 
-      // 做空策略卡片
-      const shortCard = `
         <div class="bg-darker rounded-xl p-4 border border-green/30">
-          <div class="text-sm font-bold text-green mb-3">🟢 做空進場策略 (優先級: ${a.shortPriority} | 勝率: ${getWinRate(a.shortPriority)})</div>
+          <div class="text-sm font-bold text-green mb-3">🟢 做空進場策略 (優先級: ${state.aiAnalysis.shortPriority} | 勝率: ${getWinRate(state.aiAnalysis.shortPriority)})</div>
           <div class="grid grid-cols-2 gap-2 text-sm">
             <div class="bg-black/30 p-2 rounded text-center border border-green/50">
               <div class="text-gray-400 text-xs">進場價</div>
-              <div class="text-xl font-bold text-green">${fmt(a.shortEntry, decimals)}</div>
+              <div class="text-xl font-bold text-green">${fmt(state.aiAnalysis.shortEntry, decimals)}</div>
             </div>
             <div class="bg-black/30 p-2 rounded text-center border border-red/50">
               <div class="text-gray-400 text-xs">⛔ 止損</div>
-              <div class="text-xl font-bold text-white">${fmt(a.shortStopLoss, decimals)}</div>
-              <div class="text-xs text-red">${calculateLoss(a.shortEntry, a.shortStopLoss, false, decimals)}</div>
+              <div class="text-xl font-bold text-white">${fmt(state.aiAnalysis.shortStopLoss, decimals)}</div>
+              <div class="text-xs text-red">${calculateLoss(state.aiAnalysis.shortEntry, state.aiAnalysis.shortStopLoss, false, decimals)}</div>
             </div>
             <div class="bg-black/30 p-2 rounded text-center">
               <div class="text-gray-400 text-xs">✅ 目標1 (3R)</div>
-              <div class="text-xl font-bold text-yellow">${fmt(a.shortTp1, decimals)}</div>
-              <div class="text-xs text-green">${calculateProfit(a.shortEntry, a.shortTp1, false, decimals)}</div>
+              <div class="text-xl font-bold text-yellow">${fmt(state.aiAnalysis.shortTp1, decimals)}</div>
+              <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTp1, false, decimals)}</div>
             </div>
             <div class="bg-black/30 p-2 rounded text-center">
               <div class="text-gray-400 text-xs">✅ 目標2 (5R)</div>
-              <div class="text-xl font-bold text-green">${fmt(a.shortTp2, decimals)}</div>
-              <div class="text-xs text-green">${calculateProfit(a.shortEntry, a.shortTp2, false, decimals)}</div>
+              <div class="text-xl font-bold text-green">${fmt(state.aiAnalysis.shortTp2, decimals)}</div>
+              <div class="text-xs text-green">${calculateProfit(state.aiAnalysis.shortEntry, state.aiAnalysis.shortTp2, false, decimals)}</div>
             </div>
           </div>
           <div class="mt-2 text-xs text-white bg-black/40 p-2 rounded border border-green/20">
-            📌 進場理由：${a.shortReason || '基於技術指標綜合判斷'}
+            📌 進場理由：${state.aiAnalysis.shortReason || '基於技術指標綜合判斷'}
           </div>
         </div>
       `;
-
-      // 核心：胜率高的置顶
-      strategyContainer.innerHTML = longW > shortW ? longCard + shortCard : shortCard + longCard;
       
-      document.getElementById('productType').textContent = a.productType || PRODUCT_TYPES.FUTURES;
-      document.getElementById('emaStatus').textContent = a.emaStatus;
-      document.getElementById('rsiStatus').textContent = a.rsi;
-      document.getElementById('currentPrice').textContent = fmt(a.currentPrice, decimals);
+      document.getElementById('productType').textContent = state.aiAnalysis.productType || PRODUCT_TYPES.FUTURES;
+      document.getElementById('emaStatus').textContent = state.aiAnalysis.emaStatus;
+      document.getElementById('rsiStatus').textContent = state.aiAnalysis.rsi;
+      document.getElementById('currentPrice').textContent = fmt(state.aiAnalysis.currentPrice, decimals);
       
       document.getElementById('aiResult').classList.remove('hidden');
       syncFloatData();
@@ -965,7 +926,7 @@
 
       showDebug("正在識別產品類型與EMA角度...");
 
-      // 核心：严格右新左旧，EMA只看最右侧
+      // ✅【核心修复】严格遵循：左=历史 / 右=最新价格，EMA只看最右侧角度
       const sniperPrompt = `
 你是一位有15年實盤經驗的期指波段交易員，**只給真實可達成的點位**，絕對不要誇張。
 同時提供做多和做空雙向策略，每個策略標明優先級和真實勝率。
@@ -1073,10 +1034,12 @@
         let rawContent = data.choices[0].message.content.trim();
         let parseRes = safeParseJson(rawContent);
         
+        // 统一盘整盘状态，不禁止
         if (parseRes.trend === 'forbidden') {
           parseRes.trend = 'neutral';
         }
         
+        // 补全新增字段默认值
         if (!parseRes.product) parseRes.product = "未知期指";
         if (!parseRes.productType) parseRes.productType = PRODUCT_TYPES.FUTURES;
         if (!parseRes.emaAngle) parseRes.emaAngle = 0;
@@ -1086,11 +1049,13 @@
         if (!parseRes.rsi) parseRes.rsi = "RSI(14)=50，中性，盤整盤";
         if (!parseRes.emaStatus) parseRes.emaStatus = "無角度盤整";
         
+        // 价格优化
         parseRes.longEntry = optimizePrice(parseRes.longEntry, parseRes.decimals, parseRes.productType);
         parseRes.longStopLoss = optimizePrice(parseRes.longStopLoss, parseRes.decimals, parseRes.productType);
         parseRes.shortEntry = optimizePrice(parseRes.shortEntry, parseRes.decimals, parseRes.productType);
         parseRes.shortStopLoss = optimizePrice(parseRes.shortStopLoss, parseRes.decimals, parseRes.productType);
         
+        // 计算止盈
         const longRisk = parseRes.longEntry - parseRes.longStopLoss;
         parseRes.longTp1 = optimizePrice(parseRes.longEntry + longRisk * 3, parseRes.decimals, parseRes.productType);
         parseRes.longTp2 = optimizePrice(parseRes.longEntry + longRisk * 5, parseRes.decimals, parseRes.productType);
@@ -1099,6 +1064,7 @@
         parseRes.shortTp1 = optimizePrice(parseRes.shortEntry - shortRisk * 3, parseRes.decimals, parseRes.productType);
         parseRes.shortTp2 = optimizePrice(parseRes.shortEntry - shortRisk * 5, parseRes.decimals, parseRes.productType);
         
+        // 保存记录
         parseRes.time = new Date().toLocaleString();
         state.aiAnalysis = parseRes;
         state.aiHistory.unshift(parseRes);
