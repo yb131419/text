@@ -387,7 +387,10 @@
               ${state.aiAnalysis.trend === 'neutral' ? `
                 <div class="text-xl font-bold text-yellow mt-2">🟡 震盪盤</div>
                 <div class="text-sm text-red-400 font-bold mt-1">⚠️ 禁止交易，觀望為主</div>
-                <div class="text-xs text-gray-400 mt-1">震盪行情勝率低，建議等待明確方向</div>
+                <div class="text-xs text-gray-400 mt-2 p-2 bg-yellow/10 rounded border border-yellow/20 text-left">
+                  📋 禁止交易原因：<br>
+                  ${state.aiAnalysis.neutralReason || '價格在狹窄區間內波動，沒有明確趨勢方向'}
+                </div>
               ` : `
                 <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : 'text-green'} mt-2">
                   ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : '🟢 偏空趨勢'}
@@ -431,8 +434,11 @@
               </div>
               
               ${record.trend === 'neutral' ? `
-                <div class="bg-yellow/10 rounded-lg p-2 border border-yellow/20 text-center">
-                  <div class="text-xs font-bold text-yellow">⚠️ 震盪盤 禁止交易</div>
+                <div class="bg-yellow/10 rounded-lg p-2 border border-yellow/20">
+                  <div class="text-xs font-bold text-yellow mb-1">⚠️ 震盪盤 禁止交易</div>
+                  <div class="text-xs text-gray-400">
+                    ${record.neutralReason || '價格在狹窄區間內波動，沒有明確趨勢方向'}
+                  </div>
                 </div>
               ` : `
                 ${(() => {
@@ -523,7 +529,7 @@
           <div class="flex justify-between"><span class="text-gray-400">⚪ 低優先級</span><span>50% (${priorityCounts["低"]}次)</span></div>
         </div>
         
-        <div class="bg-card glass border border-border rounded-xl p-4 space-y-2 text-sm mb-4 shadow-card">
+        <div class="bg-card glass border border-border rounded-xl glass border border-border rounded-xl p-4 space-y-2 text-sm mb-4 shadow-card">
           <div class="font-bold mb-2">🎯 趨勢分佈</div>
           <div class="flex justify-between"><span class="text-red">🔴 偏多趨勢</span><span>${directionCounts["做多"]} 次</span></div>
           <div class="flex justify-between"><span class="text-green">🟢 偏空趨勢</span><span>${directionCounts["做空"]} 次</span></div>
@@ -591,7 +597,7 @@
         <div class="bg-card glass border border-border rounded-xl p-4 space-y-3 mb-4 shadow-card">
           <div class="font-bold text-sm">✅ 當前模式：真實交易員智能策略</div>
           <div class="text-xs text-gray-400 space-y-1">
-            <div>🔹 震盪盤自動顯示禁止交易</div>
+            <div>🔹 震盪盤自動顯示禁止交易及詳細原因</div>
             <div>🔹 策略按真實勝率自動排序（高勝率在上）</div>
             <div>🔹 勝率標準：高70% | 中60% | 低50%</div>
             <div>🔹 真實波段風險收益比：股票2.5R/4R/6R</div>
@@ -645,13 +651,17 @@
         trendAdvice.textContent = "⚠️ 震盪盤 | 禁止交易，觀望為主";
       }
       
-      // 震盪盤不顯示策略
+      // 震盪盤不顯示策略，顯示詳細原因
       if (state.aiAnalysis.trend === 'neutral') {
         strategyContainer.innerHTML = `
           <div class="bg-yellow/10 rounded-xl p-4 border border-yellow/30 text-center shadow-card">
             <div class="text-xl font-bold text-yellow mb-2">🟡 震盪行情</div>
-            <div class="text-sm text-gray-300 mb-1">當前市場沒有明確趨勢</div>
-            <div class="text-sm text-gray-300">震盪盤勝率低，建議等待突破後再交易</div>
+            <div class="text-sm text-gray-300 mb-3">當前市場沒有明確趨勢</div>
+            <div class="text-sm text-gray-300 mb-2">震盪盤勝率低，建議等待突破後再交易</div>
+            <div class="text-xs text-white bg-black/40 p-3 rounded border border-yellow/20 text-left">
+              📋 詳細禁止交易原因：<br><br>
+              ${state.aiAnalysis.neutralReason || '價格在狹窄區間內波動，沒有明顯的高低點抬升或降低。此時進場容易被雙向洗盤，止損概率極高。建議等待價格突破震盪區間的上沿或下沿，出現明確趨勢信號後再進場。'}
+            </div>
           </div>
         `;
       } else {
@@ -841,6 +851,14 @@
 2. 震盪盤定義：價格在一個狹窄區間內波動，沒有明顯的高低點抬升或降低
 3. 震盪盤不建議交易，勝率低於50%
 4. 只有當有明確趨勢時才給出高優先級策略
+5. 當判斷為震盪盤時，必須提供詳細的neutralReason說明為什麼不能交易
+
+⚠️ 震盪盤詳細原因要求：
+- 說明價格波動區間範圍
+- 說明EMA狀態（糾纏/走平）
+- 說明RSI狀態（在45-55之間震盪）
+- 說明K線形態（上下影線多，沒有實體大陽/大陰）
+- 說明為什麼此時進場容易虧損
 
 ⚠️ 產品類型：期貨/指數、股票、加密貨幣、外匯
 ⚠️ 進場規則：只做進場判斷，無任何出場策略
@@ -887,6 +905,7 @@
   "decimals": 小數位,
   "trend": "long/short/neutral",
   "advice": "簡短建議",
+  "neutralReason": "震盪盤詳細禁止交易原因",
   "longPriority": "高/中/低",
   "longEntry": 數字,
   "longStopLoss": 數字,
@@ -962,6 +981,7 @@
         if (!parseRes.productType) parseRes.productType = PRODUCT_TYPES.UNKNOWN;
         if (!parseRes.longReason) parseRes.longReason = "指標符合真實波段進場條件";
         if (!parseRes.shortReason) parseRes.shortReason = "指標符合真實波段進場條件";
+        if (!parseRes.neutralReason) parseRes.neutralReason = "價格在狹窄區間內波動，沒有明顯的高低點抬升或降低。此時進場容易被雙向洗盤，止損概率極高。建議等待價格突破震盪區間的上沿或下沿，出現明確趨勢信號後再進場。";
         if (!parseRes.rsi) parseRes.rsi = "RSI(14)=50，中性，觀望為主";
         
         const isStock = parseRes.productType === PRODUCT_TYPES.STOCK;
