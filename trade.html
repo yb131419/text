@@ -68,7 +68,7 @@
       <input id="fileInput" type="file" accept="image/*" hidden />
       <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
         上傳任何產品K線截圖
-        <div class="text-xs mt-1 text-gray-400">✅ NQ ✅ 黃金 ✅ 原油 ✅ 比特幣</div>
+        <div class="text-xs mt-1 text-gray-400">✅ NQ ✅ 黃金 ✅ 原油 ✅ 比特幣 ✅ 台積電 ✅ 川湖 ✅ 台股指數</div>
       </button>
       <div id="imagePreview" class="mb-3 hidden">
         <img id="previewImg" src="" alt="chart preview" class="w-full rounded-lg object-contain max-h-52" />
@@ -147,12 +147,15 @@
     // 優先級權重
     const priorityWeight = { "高": 3, "中": 2, "低": 1 };
 
-    // 產品參數配置 (15分鐘周期標準波動)
+    // 產品參數配置 (1-5分鐘周期標準波動)
     const PRODUCT_PARAMS = {
       "NQ": { stopLoss: 30, tp1: 90, tp2: 150, unit: "點", decimals: 1 },
       "黃金": { stopLoss: 5, tp1: 15, tp2: 25, unit: "美元", decimals: 2 },
       "原油": { stopLoss: 0.5, tp1: 1.5, tp2: 2.5, unit: "美元", decimals: 2 },
       "比特幣": { stopLoss: 300, tp1: 900, tp2: 1500, unit: "美元", decimals: 2 },
+      "台積電": { stopLoss: 5, tp1: 15, tp2: 25, unit: "點", decimals: 0 },
+      "川湖": { stopLoss: 20, tp1: 60, tp2: 100, unit: "點", decimals: 0 },
+      "台股指數": { stopLoss: 50, tp1: 150, tp2: 250, unit: "點", decimals: 0 },
       "未知": { stopLoss: 30, tp1: 90, tp2: 150, unit: "點", decimals: 1 }
     };
 
@@ -414,12 +417,15 @@
         </div>
 
         <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-          <div class="font-bold text-sm">產品參數配置 (15分鐘周期)</div>
+          <div class="font-bold text-sm">產品參數配置 (1-5分鐘周期)</div>
           <div class="text-xs text-gray-400 space-y-1">
             <div>🔹 NQ: 止損30點 | 止盈90/150點</div>
             <div>🔹 黃金: 止損5美元 | 止盈15/25美元</div>
             <div>🔹 原油: 止損0.5美元 | 止盈1.5/2.5美元</div>
             <div>🔹 比特幣: 止損300美元 | 止盈900/1500美元</div>
+            <div>🔹 台積電: 止損5點 | 止盈15/25點</div>
+            <div>🔹 川湖: 止損20點 | 止盈60/100點</div>
+            <div>🔹 台股指數: 止損50點 | 止盈150/250點</div>
           </div>
         </div>
 
@@ -706,25 +712,30 @@
 
       showDebug("正在識別產品類型...");
 
-      // ✅ 全品種智能識別+進場理由Prompt
+      // ✅ 全品種智能識別+進場理由Prompt (已新增台股支援)
       const sniperPrompt = `
-你是一位有15年日內交易經驗的實盤交易員，精通NQ、黃金、原油、比特幣四個品種。
+你是一位有15年日內交易經驗的實盤交易員，精通NQ、黃金、原油、比特幣以及台股三大熱門標的：台積電、川湖、台股指數。
 你必須首先識別我上傳的截圖是哪個產品，然後根據該產品的波動特性生成相應的交易點位。
 最重要的是：你必須詳細說明做多和做空的進場理由與依據，理由必須基於截圖中的實際技術指標和價格走勢。
 
-⚠️ 產品識別規則：
+⚠️ 產品識別規則（嚴格執行）：
 - 如果截圖顯示"美國科技股100指數"或"NAS100"或"NQ" → 產品：NQ
 - 如果截圖顯示"黃金"或"XAU/USD" → 產品：黃金
 - 如果截圖顯示"布倫特原油"或"UKOIL" → 產品：原油
 - 如果截圖顯示"比特幣"或"BTC/USD" → 產品：比特幣
+- 如果截圖顯示"台積電" → 產品：台積電
+- 如果截圖顯示"川湖" → 產品：川湖
+- 如果截圖顯示"台股指數" → 產品：台股指數
 
-⚠️ 產品參數規則（嚴格執行）：
+⚠️ 產品參數規則（嚴格執行，風險收益比永遠1:3/1:5）：
 - NQ: 止損30點，止盈1=進場+90點，止盈2=進場+150點
 - 黃金: 止損5美元，止盈1=進場+15美元，止盈2=進場+25美元
 - 原油: 止損0.5美元，止盈1=進場+1.5美元，止盈2=進場+2.5美元
 - 比特幣: 止損300美元，止盈1=進場+900美元，止盈2=進場+1500美元
+- 台積電: 止損5點，止盈1=進場+15點，止盈2=進場+25點
+- 川湖: 止損20點，止盈1=進場+60點，止盈2=進場+100點
+- 台股指數: 止損50點，止盈1=進場+150點，止盈2=進場+250點
 - 做空時止損和止盈方向相反
-- 風險收益比永遠保持1:3 / 1:5
 
 ⚠️ 進場理由寫作規則（必須嚴格遵守）：
 理由必須包含以下至少2項，基於截圖中的真實數據：
@@ -753,7 +764,7 @@
 
 輸出格式必須嚴格按照以下JSON結構：
 {
-  "product": "NQ/黃金/原油/比特幣",
+  "product": "NQ/黃金/原油/比特幣/台積電/川湖/台股指數",
   "currentPrice": 數字,
   "trend": "long/short/neutral",
   "advice": "簡短的核心建議",
