@@ -211,7 +211,14 @@
       document.getElementById('aiDebug').classList.add('hidden');
     };
 
-    // 渲染首頁 (最新AI偵測結果 - 優先級排序)
+    // 獲取出場策略文本
+    const getExitStrategy = (isStock) => {
+      return isStock 
+        ? '短期到達減倉30%，中期到達減倉40%，長期到達清倉剩餘30%；觸及止損立即全平' 
+        : '止盈1平50%，移動止損到進場價；止盈2全平；觸及止損立即離場';
+    };
+
+    // 渲染首頁 (最新AI偵測結果 - 完整顯示進場理由+出場策略)
     const renderHome = () => {
       return `
         ${state.aiAnalysis ? `
@@ -235,6 +242,7 @@
               const shortWeight = priorityWeight[state.aiAnalysis.shortPriority] || 1;
               const decimals = state.aiAnalysis.decimals || 2;
               const isStock = state.aiAnalysis.productType === PRODUCT_TYPES.STOCK;
+              const exitStrategy = getExitStrategy(isStock);
               
               let longCard = `
                 <div class="bg-darker rounded-xl p-3 border border-red/30 mb-3">
@@ -269,9 +277,12 @@
                     `}
                   </div>
                   <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(state.aiAnalysis.longStopLoss, decimals)}</div>
-                  <div class="text-xs text-yellow-400">📌 出場: ${isStock ? 
-                    '短期到達減倉30%，中期到達減倉40%，長期到達清倉；觸及止損立即全平' : 
-                    '止盈1平50%，移動止損到進場價；止盈2全平；觸及止損立即離場'}</div>
+                  <div class="text-xs text-white bg-black/40 p-2 rounded border border-red/20 mb-1">
+                    📌 進場理由：${state.aiAnalysis.longReason || '基於技術指標綜合判斷'}
+                  </div>
+                  <div class="text-xs text-yellow-400 bg-yellow/10 p-2 rounded border border-yellow/20">
+                    📌 出場策略：${exitStrategy}
+                  </div>
                 </div>
               `;
               
@@ -308,9 +319,12 @@
                     `}
                   </div>
                   <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(state.aiAnalysis.shortStopLoss, decimals)}</div>
-                  <div class="text-xs text-yellow-400">📌 出場: ${isStock ? 
-                    '短期到達減倉30%，中期到達減倉40%，長期到達清倉；觸及止損立即全平' : 
-                    '止盈1平50%，移動止損到進場價；止盈2全平；觸及止損立即離場'}</div>
+                  <div class="text-xs text-white bg-black/40 p-2 rounded border border-green/20 mb-1">
+                    📌 進場理由：${state.aiAnalysis.shortReason || '基於技術指標綜合判斷'}
+                  </div>
+                  <div class="text-xs text-yellow-400 bg-yellow/10 p-2 rounded border border-yellow/20">
+                    📌 出場策略：${exitStrategy}
+                  </div>
                 </div>
               `;
               
@@ -327,7 +341,7 @@
       `;
     };
 
-    // 渲染歷史頁 (AI偵測記錄 - 優先級排序)
+    // 渲染歷史頁 (AI偵測記錄 - 完整顯示進場理由+出場策略)
     const renderLog = () => {
       return `
         <div class="flex justify-between items-center mb-2">
@@ -354,17 +368,24 @@
                 const shortWeight = priorityWeight[record.shortPriority] || 1;
                 const decimals = record.decimals || 2;
                 const isStock = record.productType === PRODUCT_TYPES.STOCK;
+                const exitStrategy = getExitStrategy(isStock);
                 
                 let longCard = `
                   <div class="bg-red/5 rounded-lg p-2 mb-2 border border-red/20">
                     <div class="text-xs font-bold text-red mb-1">
                       做多 (${record.longPriority}) | 進場: ${fmt(record.longEntry, decimals)}
                     </div>
-                    <div class="text-xs text-gray-400">
+                    <div class="text-xs text-gray-400 mb-1">
                       ${isStock ? 
                         `短: ${fmt(record.longTpShort, decimals)} | 中: ${fmt(record.longTpMedium, decimals)} | 長: ${fmt(record.longTpLong, decimals)}` : 
                         `止盈: ${fmt(record.longTp1, decimals)} / ${fmt(record.longTp2, decimals)}`}
                       | 止損: ${fmt(record.longStopLoss, decimals)}
+                    </div>
+                    <div class="text-xs text-white bg-black/40 p-1 rounded mb-1">
+                      📌 理由：${record.longReason || '基於技術指標綜合判斷'}
+                    </div>
+                    <div class="text-xs text-yellow-400">
+                      📌 出場：${exitStrategy}
                     </div>
                   </div>
                 `;
@@ -374,11 +395,17 @@
                     <div class="text-xs font-bold text-green mb-1">
                       做空 (${record.shortPriority}) | 進場: ${fmt(record.shortEntry, decimals)}
                     </div>
-                    <div class="text-xs text-gray-400">
+                    <div class="text-xs text-gray-400 mb-1">
                       ${isStock ? 
                         `短: ${fmt(record.shortTpShort, decimals)} | 中: ${fmt(record.shortTpMedium, decimals)} | 長: ${fmt(record.shortTpLong, decimals)}` : 
                         `止盈: ${fmt(record.shortTp1, decimals)} / ${fmt(record.shortTp2, decimals)}`}
                       | 止損: ${fmt(record.shortStopLoss, decimals)}
+                    </div>
+                    <div class="text-xs text-white bg-black/40 p-1 rounded mb-1">
+                      📌 理由：${record.shortReason || '基於技術指標綜合判斷'}
+                    </div>
+                    <div class="text-xs text-yellow-400">
+                      📌 出場：${exitStrategy}
                     </div>
                   </div>
                 `;
@@ -492,6 +519,7 @@
       
       const decimals = state.aiAnalysis.decimals || 2;
       const isStock = state.aiAnalysis.productType === PRODUCT_TYPES.STOCK;
+      const exitStrategy = getExitStrategy(isStock);
       
       const trendCard = document.getElementById('trendCard');
       const productTitle = document.getElementById('productTitle');
@@ -562,9 +590,7 @@
             📌 進場理由：${state.aiAnalysis.longReason || '基於技術指標綜合判斷'}
           </div>
           <div class="mt-2 text-xs text-yellow-400 bg-yellow/10 p-2 rounded border border-yellow/20">
-            📌 出場策略：${isStock ? 
-              '短期到達減倉30%，中期到達減倉40%，長期到達清倉剩餘30%；觸及止損立即全平' : 
-              '止盈1平50%倉位，移動止損到進場價；止盈2平剩餘50%；觸及止損立即全平'}
+            📌 出場策略：${exitStrategy}
           </div>
         </div>
       `;
@@ -611,9 +637,7 @@
             📌 進場理由：${state.aiAnalysis.shortReason || '基於技術指標綜合判斷'}
           </div>
           <div class="mt-2 text-xs text-yellow-400 bg-yellow/10 p-2 rounded border border-yellow/20">
-            📌 出場策略：${isStock ? 
-              '短期到達減倉30%，中期到達減倉40%，長期到達清倉剩餘30%；觸及止損立即全平' : 
-              '止盈1平50%倉位，移動止損到進場價；止盈2平剩餘50%；觸及止損立即全平'}
+            📌 出場策略：${exitStrategy}
           </div>
         </div>
       `;
