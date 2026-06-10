@@ -389,7 +389,7 @@
                 <div class="text-sm text-red-400 font-bold mt-1">⚠️ 禁止交易，觀望為主</div>
                 <div class="text-xs text-gray-400 mt-2 p-2 bg-yellow/10 rounded border border-yellow/20 text-left">
                   📋 禁止交易原因：<br>
-                  ${state.aiAnalysis.neutralReason || '價格在狹窄區間內波動，沒有明確趨勢方向'}
+                  ${state.aiAnalysis.neutralReason || '價格在狹窄區間內波動，沒有明顯的高低點抬升或降低。EMA狀態顯示EMA5與EMA20糾纏，無明顯趨勢。RSI(14)=50，處於45-55之間震盪，顯示中性。K線形態上，上下影線多，沒有實體大陽/大陰。此時進場容易虧損，因為缺乏明確的方向。'}
                 </div>
               ` : `
                 <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : 'text-green'} mt-2">
@@ -437,7 +437,7 @@
                 <div class="bg-yellow/10 rounded-lg p-2 border border-yellow/20">
                   <div class="text-xs font-bold text-yellow mb-1">⚠️ 震盪盤 禁止交易</div>
                   <div class="text-xs text-gray-400">
-                    ${record.neutralReason || '價格在狹窄區間內波動，沒有明確趨勢方向'}
+                    ${record.neutralReason || '價格在狹窄區間內波動，沒有明顯的高低點抬升或降低。EMA狀態顯示EMA5與EMA20糾纏，無明顯趨勢。RSI(14)=50，處於45-55之間震盪，顯示中性。K線形態上，上下影線多，沒有實體大陽/大陰。此時進場容易虧損，因為缺乏明確的方向。'}
                   </div>
                 </div>
               ` : `
@@ -529,7 +529,7 @@
           <div class="flex justify-between"><span class="text-gray-400">⚪ 低優先級</span><span>50% (${priorityCounts["低"]}次)</span></div>
         </div>
         
-        <div class="bg-card glass border border-border rounded-xl glass border border-border rounded-xl p-4 space-y-2 text-sm mb-4 shadow-card">
+        <div class="bg-card glass border border-border rounded-xl p-4 space-y-2 text-sm mb-4 shadow-card">
           <div class="font-bold mb-2">🎯 趨勢分佈</div>
           <div class="flex justify-between"><span class="text-red">🔴 偏多趨勢</span><span>${directionCounts["做多"]} 次</span></div>
           <div class="flex justify-between"><span class="text-green">🟢 偏空趨勢</span><span>${directionCounts["做空"]} 次</span></div>
@@ -602,6 +602,7 @@
             <div>🔹 勝率標準：高70% | 中60% | 低50%</div>
             <div>🔹 真實波段風險收益比：股票2.5R/4R/6R</div>
             <div>🔹 所有點位自動優化至整五/整十關鍵位置</div>
+            <div>🔹 嚴格控制波段大小，避免過大波動</div>
           </div>
         </div>
 
@@ -659,8 +660,8 @@
             <div class="text-sm text-gray-300 mb-3">當前市場沒有明確趨勢</div>
             <div class="text-sm text-gray-300 mb-2">震盪盤勝率低，建議等待突破後再交易</div>
             <div class="text-xs text-white bg-black/40 p-3 rounded border border-yellow/20 text-left">
-              📋 詳細禁止交易原因：<br><br>
-              ${state.aiAnalysis.neutralReason || '價格在狹窄區間內波動，沒有明顯的高低點抬升或降低。此時進場容易被雙向洗盤，止損概率極高。建議等待價格突破震盪區間的上沿或下沿，出現明確趨勢信號後再進場。'}
+              📋 禁止交易原因：<br><br>
+              ${state.aiAnalysis.neutralReason || '價格在狹窄區間內波動，沒有明顯的高低點抬升或降低。EMA狀態顯示EMA5與EMA20糾纏，無明顯趨勢。RSI(14)=50，處於45-55之間震盪，顯示中性。K線形態上，上下影線多，沒有實體大陽/大陰。此時進場容易虧損，因為缺乏明確的方向。'}
             </div>
           </div>
         `;
@@ -843,22 +844,19 @@
       showDebug("正在識別產品類型與真實波動特性...");
 
       const sniperPrompt = `
-你是一位有15年實盤經驗的波段交易員，**只給真實可達成的點位**，絕對不要誇張。
+你是一位有15年實盤經驗的波段交易員，**只給真實可達成的點位**達成的點位**，絕對不要誇張。
 同時提供做多和做空雙向策略，每個策略標明優先級和真實勝率。
 
 ⚠️ 重要規則：
 1. 當判斷為震盪盤（沒有明確趨勢）時，trend必須設為"neutral"
-2. 震盪盤定義：價格在一個狹窄區間內波動，沒有明顯的高低點抬升或降低
+2. 震盪盤定義：價格在最近10根K線內的波幅小於2%，沒有明顯的高低點抬升或降低
 3. 震盪盤不建議交易，勝率低於50%
 4. 只有當有明確趨勢時才給出高優先級策略
 5. 當判斷為震盪盤時，必須提供詳細的neutralReason說明為什麼不能交易
+6. 嚴格控制波段大小，止損不得超過當前價格的1.5%，止盈嚴格按照風險收益比計算
 
-⚠️ 震盪盤詳細原因要求：
-- 說明價格波動區間範圍
-- 說明EMA狀態（糾纏/走平）
-- 說明RSI狀態（在45-55之間震盪）
-- 說明K線形態（上下影線多，沒有實體大陽/大陰）
-- 說明為什麼此時進場容易虧損
+⚠️ 震盪盤詳細原因要求（必須嚴格按照此格式輸出）：
+價格在X至Y之間波動，沒有明顯的高低點抬升或降低。EMA狀態顯示EMA5與EMA20糾纏，無明顯趨勢。RSI(14)=XX，處於45-55之間震盪，顯示中性。K線形態上，上下影線多，沒有實體大陽/大陰。此時進場容易虧損，因為缺乏明確的方向。
 
 ⚠️ 產品類型：期貨/指數、股票、加密貨幣、外匯
 ⚠️ 進場規則：只做進場判斷，無任何出場策略
@@ -866,13 +864,16 @@
 
 ✅ 真實波段風險收益比（嚴格執行，絕對不要超過）：
 1. 股票（台股/美股）：
+   - 止損 = 進場價 × 1.5%以內
    - 短期（1-3天）：止盈 = 進場 ± 止損 × 2.5
    - 中期（1-2周）：止盈 = 進場 ± 止損 × 4
    - 長期（1個月+）：止盈 = 進場 ± 止損 × 6
 2. 期貨/指數/外匯：
+   - 止損 = 進場價 × 1%以內
    - 止盈1 = 進場 ± 止損 × 3
    - 止盈2 = 進場 ± 止損 × 5
 3. 加密貨幣：
+   - 止損 = 進場價 × 2%以內
    - 止盈1 = 進場 ± 止損 × 4
    - 止盈2 = 進場 ± 止損 × 6
 4. 做空時方向相反
@@ -895,7 +896,7 @@
 4. 最終格式：RSI(14)=XX，XX狀態，適合XX方向
 
 ✅ 進場理由：必須包含EMA狀態、RSI詳情、K線形態、關鍵支撐壓力
-❌ 禁止：任何出場策略、出場條件、不切實際的高獲利目標
+❌ 禁止：任何出場策略、出場條件、不切實際的高獲利目標、過大的波段
 
 輸出標準JSON，無多餘文字：
 {
@@ -981,11 +982,24 @@
         if (!parseRes.productType) parseRes.productType = PRODUCT_TYPES.UNKNOWN;
         if (!parseRes.longReason) parseRes.longReason = "指標符合真實波段進場條件";
         if (!parseRes.shortReason) parseRes.shortReason = "指標符合真實波段進場條件";
-        if (!parseRes.neutralReason) parseRes.neutralReason = "價格在狹窄區間內波動，沒有明顯的高低點抬升或降低。此時進場容易被雙向洗盤，止損概率極高。建議等待價格突破震盪區間的上沿或下沿，出現明確趨勢信號後再進場。";
+        if (!parseRes.neutralReason) parseRes.neutralReason = "價格在狹窄區間內波動，沒有明顯的高低點抬升或降低。EMA狀態顯示EMA5與EMA20糾纏，無明顯趨勢。RSI(14)=50，處於45-55之間震盪，顯示中性。K線形態上，上下影線多，沒有實體大陽/大陰。此時進場容易虧損，因為缺乏明確的方向。";
         if (!parseRes.rsi) parseRes.rsi = "RSI(14)=50，中性，觀望為主";
         
         const isStock = parseRes.productType === PRODUCT_TYPES.STOCK;
         const isCrypto = parseRes.productType === PRODUCT_TYPES.CRYPTO;
+        
+        // ✅ 嚴格控制止損大小
+        const maxStopLossPercent = isStock ? 1.5 : isCrypto ? 2 : 1;
+        const maxLongStopLoss = parseRes.longEntry * (1 - maxStopLossPercent / 100);
+        const maxShortStopLoss = parseRes.shortEntry * (1 + maxStopLossPercent / 100);
+        
+        if (parseRes.longStopLoss < maxLongStopLoss) {
+          parseRes.longStopLoss = Math.ceil(maxLongStopLoss * Math.pow(10, parseRes.decimals)) / Math.pow(10, parseRes.decimals);
+        }
+        
+        if (parseRes.shortStopLoss > maxShortStopLoss) {
+          parseRes.shortStopLoss = Math.floor(maxShortStopLoss * Math.pow(10, parseRes.decimals)) / Math.pow(10, parseRes.decimals);
+        }
         
         // ✅ 真實波段點位優化
         parseRes.longEntry = optimizePrice(parseRes.longEntry, parseRes.decimals, parseRes.productType);
@@ -993,7 +1007,7 @@
         parseRes.shortEntry = optimizePrice(parseRes.shortEntry, parseRes.decimals, parseRes.productType);
         parseRes.shortStopLoss = optimizePrice(parseRes.shortStopLoss, parseRes.decimals, parseRes.productType);
         
-        // ✅ 真實波段止盈計算
+        // ✅ 真實波段止盈計算（嚴格按照風險收益比）
         if (isStock) {
           const longRisk = parseRes.longEntry - parseRes.longStopLoss;
           parseRes.longTpShort = optimizePrice(parseRes.longEntry + longRisk * 2.5, parseRes.decimals, parseRes.productType);
