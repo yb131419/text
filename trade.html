@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -260,11 +259,11 @@
       const a = state.aiAnalysis;
       const d = a.decimals || 2;
       
-      // 禁止交易时显示指数盘整文字
-      if(a.trend === 'forbidden'){
+      // 盘整盘显示，不禁止交易
+      if(a.trend === 'neutral'){
         floatData.innerHTML = `
           <div class="text-center font-bold text-white">${a.product}</div>
-          <div class="text-center font-bold text-yellow mt-2">指數盤整，無明確交易方向</div>
+          <div class="text-center font-bold text-yellow mt-2">📊 盤整盤，無明確趨勢</div>
         `;
         return;
       }
@@ -272,7 +271,7 @@
       floatData.innerHTML = `
         <div class="text-center font-bold text-white">${a.product}</div>
         <div class="flex justify-between ${a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow'}">
-          <span>趨勢</span><span>${a.trend==='long'?'多頭':a.trend==='short'?'空頭':'震盪'}</span>
+          <span>趨勢</span><span>${a.trend==='long'?'多頭':a.trend==='short'?'空頭':'盤整盤'}</span>
         </div>
         <div class="flex justify-between text-white">
           <span>現價</span><span>${fmt(a.currentPrice, d)}</span>
@@ -393,14 +392,13 @@
               <div class="text-lg font-bold text-indigo">${state.aiAnalysis.product}</div>
               <div class="text-xs text-gray-400">${state.aiAnalysis.productType || PRODUCT_TYPES.FUTURES}</div>
               <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : state.aiAnalysis.trend === 'short' ? 'text-green' : 'text-yellow'}">
-                ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🟢 偏空趨勢' : state.aiAnalysis.trend === 'forbidden' ? '🟡 指數盤整' : '🟡 震盪趨勢'}
+                ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🟢 偏空趨勢' : '🟡 盤整盤'}
               </div>
               <div class="text-sm text-gray-300">${state.aiAnalysis.advice}</div>
               <div class="text-xs text-gray-500 mt-1">偵測時間: ${state.aiAnalysis.time}</div>
             </div>
             
             ${(() => {
-              if(state.aiAnalysis.trend === 'forbidden') return '';
               const decimals = state.aiAnalysis.decimals || 2;
               
               return `
@@ -478,14 +476,13 @@
                 <span class="text-gray-400 text-xs">${record.time}</span>
               </div>
               <div class="flex justify-between mb-2">
-                <span class="font-bold ${record.trend === 'long' ? 'text-red' : record.trend === 'short' ? 'text-green' : record.trend === 'forbidden' ? 'text-yellow' : 'text-yellow'}">
-                  ${record.trend === 'long' ? '🔴 偏多' : record.trend === 'short' ? '🟢 偏空' : record.trend === 'forbidden' ? '🟡 指數盤整' : '🟡 震盪'}
+                <span class="font-bold ${record.trend === 'long' ? 'text-red' : record.trend === 'short' ? 'text-green' : 'text-yellow'}">
+                  ${record.trend === 'long' ? '🔴 偏多' : record.trend === 'short' ? '🟢 偏空' : '🟡 盤整盤'}
                 </span>
                 <span class="text-xs text-gray-400">${record.productType || PRODUCT_TYPES.FUTURES}</span>
               </div>
               
               ${(() => {
-                if(record.trend === 'forbidden') return '<div class="text-yellow text-center">指數盤整，無明確交易方向</div>';
                 const decimals = record.decimals || 2;
                 
                 return `
@@ -518,14 +515,14 @@
     const renderStats = () => {
       const total = state.aiHistory.length;
       const productCounts = {};
-      const directionCounts = { "做多": 0, "做空": 0, "震盪": 0, "盤整":0 };
+      const directionCounts = { "做多": 0, "做空": 0, "盤整盤": 0 };
       let totalWinRate = 0;
       const priorityCounts = { "高": 0, "中": 0, "低": 0 };
       
       state.aiHistory.forEach(r => {
         productCounts[r.product] = (productCounts[r.product] || 0) + 1;
-        if(r.trend === 'forbidden'){
-          directionCounts["盤整"]++;
+        if(r.trend === 'neutral'){
+          directionCounts["盤整盤"]++;
           return;
         }
         
@@ -536,7 +533,7 @@
         } else if (shortWeight > longWeight) {
           directionCounts["做空"]++;
         } else {
-          directionCounts["震盪"]++;
+          directionCounts["盤整盤"]++;
         }
 
         totalWinRate += parseFloat(getWinRate(r.longPriority)) + parseFloat(getWinRate(r.shortPriority));
@@ -567,8 +564,7 @@
           <div class="font-bold mb-2">🎯 優先方向分佈</div>
           <div class="flex justify-between"><span class="text-red">🔴 做多優先</span><span>${directionCounts["做多"]} 次</span></div>
           <div class="flex justify-between"><span class="text-green">🟢 做空優先</span><span>${directionCounts["做空"]} 次</span></div>
-          <div class="flex justify-between"><span class="text-yellow">🟡 震盪均衡</span><span>${directionCounts["震盪"]} 次</span></div>
-          <div class="flex justify-between"><span class="text-yellow">🟡 指數盤整</span><span>${directionCounts["盤整"]} 次</span></div>
+          <div class="flex justify-between"><span class="text-yellow">🟡 盤整盤</span><span>${directionCounts["盤整盤"]} 次</span></div>
         </div>
         
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm">
@@ -630,8 +626,9 @@
             <div>🔹 每個策略顯示優先級 + 真實勝率</div>
             <div>🔹 勝率標準：高70% | 中60% | 低50%</div>
             <div>🔹 真實波段風險收益比：3R/5R</div>
-            <div>🔹 指數盤整無方向時自動禁止交易</div>
+            <div>🔹 EMA無角度自動識別為盤整盤，不禁止交易</div>
             <div>🔹 所有點位自動優化至整五/整十關鍵位置</div>
+            <div>🔹 所有偵測記錄（多/空/盤整）強制留存</div>
           </div>
         </div>
 
@@ -656,20 +653,13 @@
       productTitle.textContent = `📊 ${state.aiAnalysis.product}`;
       productTypeLabel.textContent = state.aiAnalysis.productType || PRODUCT_TYPES.FUTURES;
       
-      if (state.aiAnalysis.trend === 'forbidden') {
+      // 盘整盘正常显示，不禁止
+      if (state.aiAnalysis.trend === 'neutral') {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
         trendAdvice.className = "text-center text-sm text-yellow-300";
-        trendAdvice.textContent = "指數盤整，無明確交易方向";
-        strategyContainer.innerHTML = '';
-        indicatorCard.classList.add('hidden');
-        document.getElementById('aiResult').classList.remove('hidden');
-        syncFloatData();
-        return;
-      }
-      
-      indicatorCard.classList.remove('hidden');
-      
-      if (state.aiAnalysis.trend === 'long') {
+        trendAdvice.textContent = "📊 盤整盤，EMA無角度/無明確趨勢";
+        indicatorCard.classList.remove('hidden');
+      } else if (state.aiAnalysis.trend === 'long') {
         trendCard.className = "rounded-xl p-4 border bg-red/10 border-red/30";
         trendAdvice.className = "text-center text-sm text-gray-300";
         trendAdvice.textContent = `當前趨勢：偏多 | ${state.aiAnalysis.advice}`;
@@ -677,10 +667,6 @@
         trendCard.className = "rounded-xl p-4 border bg-green/10 border-green/30";
         trendAdvice.className = "text-center text-sm text-gray-300";
         trendAdvice.textContent = `當前趨勢：偏空 | ${state.aiAnalysis.advice}`;
-      } else {
-        trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
-        trendAdvice.className = "text-center text-sm text-gray-300";
-        trendAdvice.textContent = `當前趨勢：震盪 | ${state.aiAnalysis.advice}`;
       }
       
       strategyContainer.innerHTML = `
@@ -900,22 +886,25 @@
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
 
-      showDebug("正在識別產品類型與真實波動特性...");
+      showDebug("正在識別產品類型與EMA角度...");
 
+      // 核心AI规则：移除禁止交易 + EMA必须有角度 + 盘整盘显示 + 记录留存
       const sniperPrompt = `
 你是一位有15年實盤經驗的期指波段交易員，**只給真實可達成的點位**，絕對不要誇張。
 同時提供做多和做空雙向策略，每個策略標明優先級和真實勝率。
 
-⚠️ 產品類型限制：僅分析期貨/指數類產品，其他所有產品（股票、加密貨幣、外匯等）一律返回"不支援產品"，禁止提供任何交易策略
-⚠️ 禁止交易規則（滿足任一條件即強制禁止交易）：
-1. 區間盤整：指數狹窄盤整、連續K線無明確方向、EMA均線糾纏（5/10/20/50EMA互相交叉無明確方向）、RSI長期在45-55之間震盪
-2. 圖形混亂：K線上下影線過長且頻繁出現、多空反覆突破又快速回落、無明確的支撐壓力位
-3. 禁止交易時固定輸出：{"product":"產品名","productType":"FUTURES"或"UNSUPPORTED","trend":"forbidden","advice":"指數盤整，無明確交易方向","currentPrice":數字,"decimals":小數位}，不返回任何進出場點位
+⚠️ 產品類型限制：僅分析期貨/指數類產品，其他所有產品（股票、加密貨幣、外匯等）一律返回"不支援產品"
+⚠️ 核心規則：【永遠不禁止交易】，所有狀態正常生成策略
+⚠️ EMA強制規則：必須有明確角度！
+   - EMA向上角度 → 多頭趨勢
+   - EMA向下角度 → 空頭趨勢
+   - EMA水平無角度/糾纏 → 標記為【盤整盤】(trend=neutral)，正常生成策略
+⚠️ 盤整條件：區間盤整、K線無方向、EMA無角度、RSI45-55 → 全部標記盤整盤，不禁止
 
 ⚠️ 進場規則：只做進場判斷，無任何出場策略
 ⚠️ 價格規則：整數/整五/整十關鍵位
 
-✅ 真實波段風險收益比（嚴格執行，絕對不要超過）：
+✅ 真實波段風險收益比（嚴格執行）：
 - 止盈1 = 進場 ± 止損 × 3
 - 止盈2 = 進場 ± 止損 × 5
 - 做空時方向相反
@@ -926,18 +915,18 @@
 - 中優先級：勝率60%
 - 低優先級：勝率50%
 
-✅ RSI絕對詳細規則（強制遵守）：
+✅ RSI絕對詳細規則：
 1. 輸出精確數值：RSI(14)=XX
 2. 嚴格區間+方向：
    - <30：嚴重超賣 → 僅適合做多，禁止做空
    - 30~45：偏弱 → 優先做多，謹慎做空
-   - 45~55：中性 → 觀望，無方向（屬於禁止交易區間）
+   - 45~55：中性 → 盤整盤
    - 55~70：偏強 → 優先做空，謹慎做多
    - >70：嚴重超買 → 僅適合做空，禁止做多
 3. 說明RSI走勢+背離
 4. 最終格式：RSI(14)=XX，XX狀態，適合XX方向
 
-✅ 進場理由：必須包含EMA狀態、RSI詳情、K線形態、關鍵支撐壓力
+✅ 進場理由：必須包含EMA角度/狀態、RSI詳情、K線形態、關鍵支撐壓力
 ❌ 禁止：任何出場策略、出場條件、不切實際的高獲利目標
 
 輸出標準JSON，無多餘文字：
@@ -946,7 +935,7 @@
   "productType": "FUTURES",
   "currentPrice": 數字,
   "decimals": 小數位,
-  "trend": "long/short/neutral/forbidden",
+  "trend": "long/short/neutral",
   "advice": "簡短建議",
   "longPriority": "高/中/低",
   "longEntry": 數字,
@@ -960,7 +949,7 @@
   "shortTp1": 數字,
   "shortTp2": 數字,
   "shortReason": "詳細進場理由",
-  "emaStatus": "金叉向上/死叉向下/糾纏",
+  "emaStatus": "向上角度/向下角度/無角度盤整",
   "rsi": "RSI詳細分析"
 }
 `;
@@ -1012,19 +1001,17 @@
         let rawContent = data.choices[0].message.content.trim();
         let parseRes = safeParseJson(rawContent);
         
-        if (parseRes.trend === 'forbidden' || parseRes.productType === PRODUCT_TYPES.UNSUPPORTED) {
-          state.aiAnalysis = parseRes;
-          renderAiResult();
-          showDebug(`⚠️ 指數盤整，無明確交易方向`);
-          setTimeout(hideDebug, 3000);
-          return;
+        // 统一盘整盘状态，不禁止
+        if (parseRes.trend === 'forbidden') {
+          parseRes.trend = 'neutral';
         }
         
         if (!parseRes.product) parseRes.product = "未知期指";
         if (!parseRes.productType) parseRes.productType = PRODUCT_TYPES.FUTURES;
         if (!parseRes.longReason) parseRes.longReason = "指標符合真實波段進場條件";
         if (!parseRes.shortReason) parseRes.shortReason = "指標符合真實波段進場條件";
-        if (!parseRes.rsi) parseRes.rsi = "RSI(14)=50，中性，觀望為主";
+        if (!parseRes.rsi) parseRes.rsi = "RSI(14)=50，中性，盤整盤";
+        if (!parseRes.emaStatus) parseRes.emaStatus = "無角度盤整";
         
         parseRes.longEntry = optimizePrice(parseRes.longEntry, parseRes.decimals, parseRes.productType);
         parseRes.longStopLoss = optimizePrice(parseRes.longStopLoss, parseRes.decimals, parseRes.productType);
@@ -1041,6 +1028,7 @@
         
         parseRes.time = new Date().toLocaleString();
         state.aiAnalysis = parseRes;
+        // 强制留存所有记录（盘整盘/多/空全部保存）
         state.aiHistory.unshift(parseRes);
         if (state.aiHistory.length > 50) state.aiHistory = state.aiHistory.slice(0, 50);
         saveState();
