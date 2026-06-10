@@ -103,7 +103,11 @@
       <!-- 實盤點位區域 -->
       <div id="aiResult" class="space-y-4 hidden">
         <!-- 產品與趨勢判斷 -->
-        <div id="trendCard" class="rounded-xl p-4 border shadow-card card-hover"></div>
+        <div id="trendCard" class="rounded-xl p-4 border shadow-card card-hover">
+          <div class="text-lg font-bold text-center mb-2" id="productTitle"></div>
+          <div class="text-center text-sm text-gray-300" id="trendAdvice"></div>
+          <div class="text-center text-xs text-gray-400 mt-1" id="productTypeLabel"></div>
+        </div>
         
         <!-- 策略卡片容器 -->
         <div id="strategyContainer"></div>
@@ -220,13 +224,18 @@
 
     const showDebug = (message) => {
       const debugEl = document.getElementById('aiDebug');
-      debugEl.textContent = message;
-      debugEl.classList.remove('hidden');
+      if (debugEl) {
+        debugEl.textContent = message;
+        debugEl.classList.remove('hidden');
+      }
       console.log("DEBUG:", message);
     };
 
     const hideDebug = () => {
-      document.getElementById('aiDebug').classList.add('hidden');
+      const debugEl = document.getElementById('aiDebug');
+      if (debugEl) {
+        debugEl.classList.add('hidden');
+      }
     };
 
     const calculateProfit = (entry, target, isLong, decimals) => {
@@ -262,6 +271,8 @@
 
     // ✅ 渲染策略卡片（按勝率排序）
     const renderStrategyCards = (analysis) => {
+      if (!analysis) return '';
+      
       const decimals = analysis.decimals || 2;
       const isStock = analysis.productType === PRODUCT_TYPES.STOCK;
       
@@ -599,11 +610,23 @@
       
       const decimals = state.aiAnalysis.decimals || 2;
       
+      // ✅ 安全獲取元素
       const trendCard = document.getElementById('trendCard');
       const productTitle = document.getElementById('productTitle');
       const trendAdvice = document.getElementById('trendAdvice');
       const productTypeLabel = document.getElementById('productTypeLabel');
       const strategyContainer = document.getElementById('strategyContainer');
+      const productType = document.getElementById('productType');
+      const emaStatus = document.getElementById('emaStatus');
+      const rsiStatus = document.getElementById('rsiStatus');
+      const currentPrice = document.getElementById('currentPrice');
+      
+      // ✅ 元素存在性檢查
+      if (!trendCard || !productTitle || !trendAdvice || !productTypeLabel || 
+          !strategyContainer || !productType || !emaStatus || !rsiStatus || !currentPrice) {
+        console.error("渲染AI結果時缺少必要元素");
+        return;
+      }
       
       productTitle.textContent = `📊 ${state.aiAnalysis.product}`;
       productTypeLabel.textContent = state.aiAnalysis.productType || PRODUCT_TYPES.UNKNOWN;
@@ -635,16 +658,17 @@
         strategyContainer.innerHTML = renderStrategyCards(state.aiAnalysis);
       }
       
-      document.getElementById('productType').textContent = state.aiAnalysis.productType || PRODUCT_TYPES.UNKNOWN;
-      document.getElementById('emaStatus').textContent = state.aiAnalysis.emaStatus;
-      document.getElementById('rsiStatus').textContent = state.aiAnalysis.rsi;
-      document.getElementById('currentPrice').textContent = fmt(state.aiAnalysis.currentPrice, decimals);
+      productType.textContent = state.aiAnalysis.productType || PRODUCT_TYPES.UNKNOWN;
+      emaStatus.textContent = state.aiAnalysis.emaStatus;
+      rsiStatus.textContent = state.aiAnalysis.rsi;
+      currentPrice.textContent = fmt(state.aiAnalysis.currentPrice, decimals);
       
       document.getElementById('aiResult').classList.remove('hidden');
     };
 
     const render = () => {
       const content = document.getElementById('content');
+      if (!content) return;
       
       switch(state.tab) {
         case 'home':
@@ -770,16 +794,22 @@
       
       if (!state.aiBase64) {
         state.aiError = "❌ 請先上傳K線/分時截圖";
-        document.getElementById('aiError').textContent = state.aiError;
-        document.getElementById('aiError').classList.remove('hidden');
+        const aiErrorEl = document.getElementById('aiError');
+        if (aiErrorEl) {
+          aiErrorEl.textContent = state.aiError;
+          aiErrorEl.classList.remove('hidden');
+        }
         hideDebug();
         return;
       }
       
       if (!state.apiKey) {
         state.aiError = "❌ 請先在設定頁面輸入你的OpenAI API Key";
-        document.getElementById('aiError').textContent = state.aiError;
-        document.getElementById('aiError').classList.remove('hidden');
+        const aiErrorEl = document.getElementById('aiError');
+        if (aiErrorEl) {
+          aiErrorEl.textContent = state.aiError;
+          aiErrorEl.classList.remove('hidden');
+        }
         hideDebug();
         return;
       }
@@ -788,10 +818,17 @@
       state.aiError = "";
       state.aiAnalysis = null;
       
-      document.getElementById('analyzeButton').textContent = "⏳ 生成真實波段點位中...";
-      document.getElementById('analyzeButton').disabled = true;
-      document.getElementById('aiError').classList.add('hidden');
-      document.getElementById('aiResult').classList.add('hidden');
+      const analyzeButton = document.getElementById('analyzeButton');
+      if (analyzeButton) {
+        analyzeButton.textContent = "⏳ 生成真實波段點位中...";
+        analyzeButton.disabled = true;
+      }
+      
+      const aiErrorEl = document.getElementById('aiError');
+      if (aiErrorEl) aiErrorEl.classList.add('hidden');
+      
+      const aiResultEl = document.getElementById('aiResult');
+      if (aiResultEl) aiResultEl.classList.add('hidden');
 
       showDebug("正在識別產品類型與真實波動特性...");
 
@@ -978,12 +1015,18 @@
       } catch (err) {
         console.error("AI解析錯誤:", err);
         state.aiError = `❌ 錯誤: ${err.message}\n\n⚠️ 常見解決方案：\n1. 確認代理伺服器已正確部署並設置\n2. 檢查API Key是否有效且有額度\n3. 嘗試重新上傳更清晰的K線截圖\n4. 如持續錯誤，請更換API Key`;
-        document.getElementById('aiError').textContent = state.aiError;
-        document.getElementById('aiError').classList.remove('hidden');
+        const aiErrorEl = document.getElementById('aiError');
+        if (aiErrorEl) {
+          aiErrorEl.textContent = state.aiError;
+          aiErrorEl.classList.remove('hidden');
+        }
       } finally {
         state.aiLoading = false;
-        document.getElementById('analyzeButton').textContent = "生成真實波段交易點位";
-        document.getElementById('analyzeButton').disabled = false;
+        const analyzeButton = document.getElementById('analyzeButton');
+        if (analyzeButton) {
+          analyzeButton.textContent = "生成真實波段交易點位";
+          analyzeButton.disabled = false;
+        }
         render();
       }
     };
@@ -1007,17 +1050,19 @@
       });
 
       // AI按鈕
-      document.getElementById('aiButton').addEventListener('click', () => {
-        document.getElementById('aiModal').classList.remove('hidden');
+      document.getElementById('aiButton')?.addEventListener('click', () => {
+        const aiModal = document.getElementById('aiModal');
+        if (aiModal) aiModal.classList.remove('hidden');
       });
 
       // 關閉AI模態框
-      document.getElementById('closeAiModal').addEventListener('click', () => {
-        document.getElementById('aiModal').classList.add('hidden');
+      document.getElementById('closeAiModal')?.addEventListener('click', () => {
+        const aiModal = document.getElementById('aiModal');
+        if (aiModal) aiModal.classList.add('hidden');
       });
 
       // 點擊模態框外部關閉
-      document.getElementById('aiModal').addEventListener('click', (e) => {
+      document.getElementById('aiModal')?.addEventListener('click', (e) => {
         if (e.target === document.getElementById('aiModal')) {
           document.getElementById('aiModal').classList.add('hidden');
         }
@@ -1025,41 +1070,54 @@
 
       // Esc鍵關閉模態框
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !document.getElementById('aiModal').classList.contains('hidden')) {
-          document.getElementById('aiModal').classList.add('hidden');
+        if (e.key === 'Escape') {
+          const aiModal = document.getElementById('aiModal');
+          if (aiModal && !aiModal.classList.contains('hidden')) {
+            aiModal.classList.add('hidden');
+          }
         }
       });
 
       // 上傳按鈕
-      document.getElementById('uploadButton').addEventListener('click', () => {
-        document.getElementById('fileInput').click();
+      document.getElementById('uploadButton')?.addEventListener('click', () => {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) fileInput.click();
       });
 
       // 文件選擇
-      document.getElementById('fileInput').addEventListener('change', (e) => {
+      document.getElementById('fileInput')?.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
         
         const reader = new FileReader();
         reader.onload = (event) => {
           state.aiBase64 = event.target.result;
-          document.getElementById('previewImg').src = state.aiBase64;
-          document.getElementById('imagePreview').classList.remove('hidden');
+          const previewImg = document.getElementById('previewImg');
+          const imagePreview = document.getElementById('imagePreview');
+          if (previewImg && imagePreview) {
+            previewImg.src = state.aiBase64;
+            imagePreview.classList.remove('hidden');
+          }
         };
         reader.readAsDataURL(file);
       });
 
       // 分析按鈕
-      document.getElementById('analyzeButton').addEventListener('click', runAiAnalyze);
+      document.getElementById('analyzeButton')?.addEventListener('click', runAiAnalyze);
 
       // 重置AI按鈕
-      document.getElementById('resetAiButton').addEventListener('click', () => {
+      document.getElementById('resetAiButton')?.addEventListener('click', () => {
         state.aiBase64 = "";
         state.aiImage = null;
-        document.getElementById('fileInput').value = "";
-        document.getElementById('imagePreview').classList.add('hidden');
-        document.getElementById('aiResult').classList.add('hidden');
-        document.getElementById('aiError').classList.add('hidden');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const aiResult = document.getElementById('aiResult');
+        const aiError = document.getElementById('aiError');
+        
+        if (fileInput) fileInput.value = "";
+        if (imagePreview) imagePreview.classList.add('hidden');
+        if (aiResult) aiResult.classList.add('hidden');
+        if (aiError) aiError.classList.add('hidden');
         hideDebug();
       });
     };
