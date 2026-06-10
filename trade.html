@@ -42,25 +42,29 @@
         display: none;
       }
       .draggable {
-        cursor: move;
-        user-select: none;
+        cursor: move !important;
+        user-select: none !important;
+      }
+      .float-btn {
+        pointer-events: auto !important;
+        cursor: pointer !important;
       }
     }
   </style>
 </head>
 <body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative">
-  <!-- 核心悬浮窗【Mitrade专用】 -->
-  <div id="floatWindow" class="fixed z-[9999] hidden w-[280px] bg-card rounded-xl shadow-2xl border border-indigo/50 overflow-hidden">
+  <!-- 修复版悬浮窗【Mitrade专用】 -->
+  <div id="floatWindow" class="fixed z-[999999] hidden w-[280px] bg-card rounded-xl shadow-2xl border border-indigo/50 overflow-hidden pointer-events-auto">
     <!-- 悬浮窗拖动栏 -->
     <div id="floatDrag" class="draggable bg-indigo/20 px-3 py-2 flex justify-between items-center">
       <div class="text-xs font-bold text-white">📊 Mitrade 浮窗</div>
-      <div class="flex gap-2">
-        <button id="floatMin" class="text-xs text-white">−</button>
-        <button id="floatClose" class="text-xs text-white">✕</button>
+      <div class="flex gap-3">
+        <button id="floatMin" class="float-btn text-xs text-white w-5 h-5 flex items-center justify-center">−</button>
+        <button id="floatClose" class="float-btn text-xs text-white w-5 h-5 flex items-center justify-center">✕</button>
       </div>
     </div>
     <!-- 悬浮窗核心内容 -->
-    <div id="floatContent" class="p-3 text-xs space-y-2">
+    <div id="floatContent" class="p-3 text-xs space-y-2 pointer-events-none">
       <div class="text-center font-bold text-indigo text-sm mb-1">暂无分析</div>
       <div id="floatData" class="space-y-1.5 text-[11px]"></div>
     </div>
@@ -74,22 +78,22 @@
   <div id="content" class="max-w-sm mx-auto p-4 space-y-4"></div>
 
   <!-- 悬浮窗开关按钮 -->
-  <button id="floatButton" class="fixed right-4 bottom-44 w-14 h-14 rounded-full bg-purple shadow-lg flex items-center justify-center text-2xl z-40">
+  <button id="floatButton" class="fixed right-4 bottom-44 w-14 h-14 rounded-full bg-purple shadow-lg flex items-center justify-center text-2xl z-50 pointer-events-auto">
     📌
   </button>
   
-  <button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-indigo shadow-lg flex items-center justify-center text-2xl z-40">
+  <button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-indigo shadow-lg flex items-center justify-center text-2xl z-50 pointer-events-auto">
     🤖
   </button>
 
-  <div id="aiModal" class="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center hidden">
+  <div id="aiModal" class="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center hidden pointer-events-auto">
     <div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-bold text-white">📊 AI 智能偵測</h3>
         <button id="closeAiModal" class="text-gray-300 text-xl">✕</button>
       </div>
       <input id="fileInput" type="file" accept="image/*" hidden />
-      <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
+      <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo300 mb-3">
         上傳任何期指K線截圖
         <div class="text-xs mt-1 text-gray-400">✅ 全球期指 ✅ 各國指數期貨</div>
       </button>
@@ -158,7 +162,7 @@
   </div>
 
   <script>
-    // ==================== 悬浮窗核心功能 ====================
+    // ==================== 修复版悬浮窗核心功能 ====================
     let floatWindow, floatDrag, floatClose, floatMin, floatButton, floatData;
     let isDragging = false, offsetX, offsetY;
 
@@ -171,65 +175,67 @@
       floatButton = document.getElementById('floatButton');
       floatData = document.getElementById('floatData');
 
-      // 开关浮窗
-      floatButton.onclick = () => {
+      // 开关浮窗（修复点击）
+      floatButton.addEventListener('click', () => {
         floatWindow.classList.toggle('hidden');
         if(!floatWindow.classList.contains('hidden')) {
-          syncFloatData(); // 同步最新数据
-          // 默认定位右下角
+          syncFloatData();
           floatWindow.style.right = '10px';
           floatWindow.style.top = '100px';
           floatWindow.style.left = 'auto';
         }
-      };
+      });
 
-      // 关闭浮窗
-      floatClose.onclick = () => floatWindow.classList.add('hidden');
+      // 关闭浮窗（修复点击）
+      floatClose.addEventListener('click', () => {
+        floatWindow.classList.add('hidden');
+      });
       
-      // 最小化浮窗
-      floatMin.onclick = () => {
+      // 最小化浮窗（修复点击）
+      floatMin.addEventListener('click', () => {
         const content = document.getElementById('floatContent');
         content.classList.toggle('hidden');
-      };
+      });
 
-      // 拖动逻辑
-      floatDrag.onmousedown = (e) => {
+      // 修复拖动逻辑，不影响点击
+      floatDrag.addEventListener('mousedown', (e) => {
         isDragging = true;
         const rect = floatWindow.getBoundingClientRect();
         offsetX = e.clientX - rect.left;
         offsetY = e.clientY - rect.top;
         floatWindow.style.cursor = 'grabbing';
-      };
+        e.stopPropagation();
+      });
 
-      document.onmousemove = (e) => {
+      document.addEventListener('mousemove', (e) => {
         if(!isDragging) return;
         let x = e.clientX - offsetX;
         let y = e.clientY - offsetY;
         
-        // 限制不超出屏幕
         x = Math.max(0, Math.min(x, window.innerWidth - floatWindow.offsetWidth));
         y = Math.max(0, Math.min(y, window.innerHeight - floatWindow.offsetHeight));
         
         floatWindow.style.left = x + 'px';
         floatWindow.style.right = 'auto';
         floatWindow.style.top = y + 'px';
-      };
+      });
 
-      document.onmouseup = () => {
+      document.addEventListener('mouseup', () => {
         isDragging = false;
         if(floatDrag) floatDrag.style.cursor = 'move';
-      };
+      });
 
-      // 移动端触摸拖动
-      floatDrag.ontouchstart = (e) => {
+      // 移动端触摸拖动（修复点击）
+      floatDrag.addEventListener('touchstart', (e) => {
         isDragging = true;
         const touch = e.touches[0];
         const rect = floatWindow.getBoundingClientRect();
         offsetX = touch.clientX - rect.left;
         offsetY = touch.clientY - rect.top;
-      };
+        e.stopPropagation();
+      });
 
-      document.ontouchmove = (e) => {
+      document.addEventListener('touchmove', (e) => {
         if(!isDragging) return;
         const touch = e.touches[0];
         let x = touch.clientX - offsetX;
@@ -240,9 +246,11 @@
         floatWindow.style.right = 'auto';
         floatWindow.style.top = y + 'px';
         e.preventDefault();
-      };
+      });
 
-      document.ontouchend = () => isDragging = false;
+      document.addEventListener('touchend', () => {
+        isDragging = false;
+      });
     };
 
     // 同步AI分析数据到悬浮窗
@@ -277,9 +285,9 @@
     // ✅ 真實交易員勝率標準 (基於職業波段交易員數據)
     const getWinRate = (priority) => {
       switch(priority) {
-        case "高": return "70%";  // 高優先級策略勝率65%-75%
-        case "中": return "60%";  // 中優先級策略勝率55%-65%
-        case "低": return "50%";  // 低優先級策略勝率45%-55%
+        case "高": return "70%";
+        case "中": return "60%";
+        case "低": return "50%";
         default: return "55%";
       }
     };
@@ -349,20 +357,15 @@
       return `${fmt(diff, decimals)} (-${percentage}%)`;
     };
 
-    // ✅ 真實交易員關鍵價格優化：優先整五/整十，其次整數
     const optimizePrice = (price, decimals, productType) => {
       if (decimals === 0) {
-        // 台指期等整數價格產品：強制整五/整十
         const p = Math.round(price);
         if (p % 10 === 0) return p;
         if (p % 5 === 0) return p;
-        // 向上取最近的整五
         return Math.ceil(p / 5) * 5;
       } else if (decimals === 1) {
-        // NQ等一位小數產品：優先整數
         return Math.round(price);
       } else {
-        // 黃金等兩位小數產品：優先整數或0.5
         const p = Math.round(price * 2) / 2;
         return p;
       }
@@ -390,7 +393,6 @@
               const decimals = state.aiAnalysis.decimals || 2;
               
               return `
-                <!-- 做多策略 -->
                 <div class="bg-darker rounded-xl p-3 border border-red/30 mb-3">
                   <div class="text-sm font-bold text-red mb-2">🔴 做多進場 (優先級: ${state.aiAnalysis.longPriority} | 勝率: ${getWinRate(state.aiAnalysis.longPriority)})</div>
                   <div class="grid grid-cols-3 gap-2 text-xs mb-2">
@@ -415,7 +417,6 @@
                   </div>
                 </div>
 
-                <!-- 做空策略 -->
                 <div class="bg-darker rounded-xl p-3 border border-green/30">
                   <div class="text-sm font-bold text-green mb-2">🟢 做空進場 (優先級: ${state.aiAnalysis.shortPriority} | 勝率: ${getWinRate(state.aiAnalysis.shortPriority)})</div>
                   <div class="grid grid-cols-3 gap-2 text-xs mb-2">
@@ -522,7 +523,6 @@
           directionCounts["震盪"]++;
         }
 
-        // 計算平均勝率
         totalWinRate += parseFloat(getWinRate(r.longPriority)) + parseFloat(getWinRate(r.shortPriority));
         priorityCounts[r.longPriority]++;
         priorityCounts[r.shortPriority]++;
@@ -646,7 +646,7 @@
         strategyContainer.innerHTML = '';
         indicatorCard.classList.add('hidden');
         document.getElementById('aiResult').classList.remove('hidden');
-        syncFloatData(); // 同步浮窗
+        syncFloatData();
         return;
       }
       
@@ -667,7 +667,6 @@
       }
       
       strategyContainer.innerHTML = `
-        <!-- 做多策略 -->
         <div class="bg-darker rounded-xl p-4 border border-red/30 mb-3">
           <div class="text-sm font-bold text-red mb-3">🔴 做多進場策略 (優先級: ${state.aiAnalysis.longPriority} | 勝率: ${getWinRate(state.aiAnalysis.longPriority)})</div>
           <div class="grid grid-cols-2 gap-2 text-sm">
@@ -696,7 +695,6 @@
           </div>
         </div>
 
-        <!-- 做空策略 -->
         <div class="bg-darker rounded-xl p-4 border border-green/30">
           <div class="text-sm font-bold text-green mb-3">🟢 做空進場策略 (優先級: ${state.aiAnalysis.shortPriority} | 勝率: ${getWinRate(state.aiAnalysis.shortPriority)})</div>
           <div class="grid grid-cols-2 gap-2 text-sm">
@@ -732,7 +730,7 @@
       document.getElementById('currentPrice').textContent = fmt(state.aiAnalysis.currentPrice, decimals);
       
       document.getElementById('aiResult').classList.remove('hidden');
-      syncFloatData(); // 同步数据到浮窗
+      syncFloatData();
     };
 
     const render = () => {
@@ -857,7 +855,6 @@
       throw new Error("JSON解析失敗，所有嘗試都失敗了\n" + attempts.join("\n"));
     };
 
-    // ✅ 期指專用雙向波段策略Prompt + 禁止交易規則
     const runAiAnalyze = async () => {
       showDebug("開始識別期指產品並生成真實波段點位...");
       
@@ -998,7 +995,6 @@
         let rawContent = data.choices[0].message.content.trim();
         let parseRes = safeParseJson(rawContent);
         
-        // 處理禁止交易情況
         if (parseRes.trend === 'forbidden' || parseRes.productType === PRODUCT_TYPES.UNSUPPORTED) {
           state.aiAnalysis = parseRes;
           renderAiResult();
@@ -1013,13 +1009,11 @@
         if (!parseRes.shortReason) parseRes.shortReason = "指標符合真實波段進場條件";
         if (!parseRes.rsi) parseRes.rsi = "RSI(14)=50，中性，觀望為主";
         
-        // ✅ 真實波段點位優化
         parseRes.longEntry = optimizePrice(parseRes.longEntry, parseRes.decimals, parseRes.productType);
         parseRes.longStopLoss = optimizePrice(parseRes.longStopLoss, parseRes.decimals, parseRes.productType);
         parseRes.shortEntry = optimizePrice(parseRes.shortEntry, parseRes.decimals, parseRes.productType);
         parseRes.shortStopLoss = optimizePrice(parseRes.shortStopLoss, parseRes.decimals, parseRes.productType);
         
-        // ✅ 真實波段止盈計算（期指統一3R/5R）
         const longRisk = parseRes.longEntry - parseRes.longStopLoss;
         parseRes.longTp1 = optimizePrice(parseRes.longEntry + longRisk * 3, parseRes.decimals, parseRes.productType);
         parseRes.longTp2 = optimizePrice(parseRes.longEntry + longRisk * 5, parseRes.decimals, parseRes.productType);
@@ -1103,7 +1097,7 @@
     };
 
     window.addEventListener('DOMContentLoaded', () => {
-      initFloatWindow(); // 初始化悬浮窗
+      initFloatWindow();
       initEvents();
       render();
     });
