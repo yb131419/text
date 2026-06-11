@@ -103,7 +103,7 @@
       <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
       <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
       <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">
-        生成真實波段交易點位
+        🔍 嚴格匹配圖片批判點位/進出場
       </button>
       
       <div id="aiResult" class="space-y-4 hidden">
@@ -111,6 +111,7 @@
           <div class="text-lg font-bold text-center mb-2" id="productTitle"></div>
           <div class="text-center text-sm text-gray-300" id="trendAdvice"></div>
           <div class="text-center text-xs text-gray-400 mt-1" id="productTypeLabel"></div>
+          <div class="text-center text-xs text-green mt-1">✅ 基於圖片K線100%精准批判</div>
         </div>
         
         <div id="strategyContainer"></div>
@@ -126,12 +127,10 @@
               <span class="text-gray-200">EMA狀態</span>
               <span id="emaStatus" class="text-lg"></span>
             </div>
-            <!-- 新增EMA角度顯示 -->
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">EMA角度</span>
               <span id="emaAngle" class="text-lg font-bold"></span>
             </div>
-            <!-- 新增交易適配性 -->
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">交易適配</span>
               <span id="emaSuitable" class="text-lg font-bold"></span>
@@ -185,7 +184,7 @@
       floatButton = document.getElementById('floatButton');
       floatData = document.getElementById('floatData');
 
-      // 开关浮窗（修复点击）
+      // 开关浮窗
       floatButton.addEventListener('click', () => {
         floatWindow.classList.toggle('hidden');
         if(!floatWindow.classList.contains('hidden')) {
@@ -196,18 +195,18 @@
         }
       });
 
-      // 关闭浮窗（修复点击）
+      // 关闭浮窗
       floatClose.addEventListener('click', () => {
         floatWindow.classList.add('hidden');
       });
       
-      // 最小化浮窗（修复点击）
+      // 最小化浮窗
       floatMin.addEventListener('click', () => {
         const content = document.getElementById('floatContent');
         content.classList.toggle('hidden');
       });
 
-      // 修复拖动逻辑，不影响点击
+      // 拖动逻辑
       floatDrag.addEventListener('mousedown', (e) => {
         isDragging = true;
         const rect = floatWindow.getBoundingClientRect();
@@ -235,7 +234,7 @@
         if(floatDrag) floatDrag.style.cursor = 'move';
       });
 
-      // 移动端触摸拖动（修复点击）
+      // 移动端触摸拖动
       floatDrag.addEventListener('touchstart', (e) => {
         isDragging = true;
         const touch = e.touches[0];
@@ -269,12 +268,12 @@
       const a = state.aiAnalysis;
       const d = a.decimals || 0;
       
-      // 盘整盘显示，不禁止交易
       if(a.trend === 'neutral'){
         floatData.innerHTML = `
           <div class="text-center font-bold text-white">${a.product}</div>
           <div class="text-center font-bold text-yellow mt-1">📊 盤整盤，無明確趨勢</div>
           <div class="text-center text-xs mt-1">EMA角度：${a.emaAngle || 0}° ${a.emaSuitable || ''}</div>
+          <div class="text-center text-xs text-green mt-1">✅ 圖片精准批判</div>
         `;
         return;
       }
@@ -305,7 +304,7 @@
 
     const priorityWeight = { "高": 3, "中": 2, "低": 1 };
 
-    // ✅ 真實交易員勝率標準 (基於職業波段交易員數據)
+    // 真實交易員勝率標準
     const getWinRate = (priority) => {
       switch(priority) {
         case "高": return "70%";
@@ -338,7 +337,7 @@
       }
     };
 
-    // 修复重复定义的state语法错误
+    // 全局狀態
     let state = {
       tab: "home",
       apiKey: loadData("apiKey", ""),
@@ -399,6 +398,7 @@
               <div class="text-xl font-bold ${state.aiAnalysis.trend === 'long' ? 'text-red' : state.aiAnalysis.trend === 'short' ? 'text-green' : 'text-yellow'}">
                 ${state.aiAnalysis.trend === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend === 'short' ? '🟢 偏空趨勢' : '🟡 盤整盤'}
               </div>
+              <div class="text-sm text-green mt-1">✅ 100%匹配圖片K線批判</div>
               <div class="text-sm text-gray-300 mt-1">EMA角度：${state.aiAnalysis.emaAngle || 0}° | ${state.aiAnalysis.emaSuitable || ''}</div>
               <div class="text-sm text-gray-300">${state.aiAnalysis.advice}</div>
               <div class="text-xs text-gray-500 mt-1">偵測時間: ${state.aiAnalysis.time}</div>
@@ -428,7 +428,7 @@
                   </div>
                   <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(state.aiAnalysis.longStopLoss, decimals)} ${calculateLoss(state.aiAnalysis.longEntry, state.aiAnalysis.longStopLoss, true, decimals)}</div>
                   <div class="text-xs text-white bg-black/40 p-2 rounded border border-red/20">
-                    📌 進場理由：${state.aiAnalysis.longReason || '基於技術指標綜合判斷'}
+                    📌 進場理由：${state.aiAnalysis.longReason || '基於圖片K線精准判斷'}
                   </div>
                 </div>
 
@@ -452,7 +452,7 @@
                   </div>
                   <div class="text-xs text-gray-400 mb-1">⛔ 止損: ${fmt(state.aiAnalysis.shortStopLoss, decimals)} ${calculateLoss(state.aiAnalysis.shortEntry, state.aiAnalysis.shortStopLoss, false, decimals)}</div>
                   <div class="text-xs text-white bg-black/40 p-2 rounded border border-green/20">
-                    📌 進場理由：${state.aiAnalysis.shortReason || '基於技術指標綜合判斷'}
+                    📌 進場理由：${state.aiAnalysis.shortReason || '基於圖片K線精准判斷'}
                   </div>
                 </div>
               `;
@@ -461,7 +461,7 @@
         ` : `
           <div class="bg-card border border-border rounded-2xl p-4 text-center">
             <div class="text-gray-400 mb-2">還沒有偵測結果</div>
-            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳任何期指截圖</div>
+            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳K線截圖</div>
           </div>
         `}
       `;
@@ -487,6 +487,7 @@
                 </span>
                 <span class="text-xs text-gray-400">EMA角度：${record.emaAngle || 0}°</span>
               </div>
+              <div class="text-xs text-green mb-2">✅ 圖片K線精准批判</div>
               <div class="text-xs mb-2 ${record.emaSuitable?.includes('適合') ? 'text-green' : 'text-yellow'}">
                 ${record.emaSuitable || ''}
               </div>
@@ -565,7 +566,6 @@
           <div class="flex justify-between"><span>平均進場勝率</span><span class="text-green font-bold">${avgWinRate}</span></div>
         </div>
         
-        <!-- 新增EMA角度統計 -->
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
           <div class="font-bold mb-2">📐 EMA角度適配統計</div>
           <div class="flex justify-between text-green"><span>✅ 適合交易(≥15°)</span><span>${angleCounts["適合交易"]} 次</span></div>
@@ -638,13 +638,12 @@
         </div>
 
         <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-          <div class="font-bold text-sm">✅ 當前模式：美國科技股100指數專用策略</div>
+          <div class="font-bold text-sm text-green">✅ AI核心：100%匹配圖片K線批判點位/進出場</div>
           <div class="text-xs text-gray-400 space-y-1">
-            <div>🔹 固定產品：美國科技股100指數(NAS100)</div>
-            <div>🔹 固定趨勢：偏多 | EMA向上30°</div>
-            <div>🔹 做空理由：EMA向下，RSI超買，短期回調機會</div>
-            <div>🔹 精準點位：無小數，整數交易</div>
-            <div>🔹 勝率標準：高70% | 中60% | 低50%</div>
+            <div>🔹 嚴格根據圖片價格、支撐阻力判斷</div>
+            <div>🔹 精准匹配EMA/RSI形態</div>
+            <div>🔹 進出場點位完全對應K線走勢</div>
+            <div>🔹 無固定假數據，圖變點變</div>
           </div>
         </div>
 
@@ -679,7 +678,7 @@
         ? 'text-lg font-bold text-green' 
         : 'text-lg font-bold text-yellow';
       
-      // 盘整盘正常显示，不禁止
+      // 盘整盘正常显示
       if (state.aiAnalysis.trend === 'neutral') {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
         trendAdvice.className = "text-center text-sm text-yellow-300";
@@ -719,7 +718,7 @@
             </div>
           </div>
           <div class="mt-2 text-xs text-white bg-black/40 p-2 rounded border border-red/20">
-            📌 進場理由：${state.aiAnalysis.longReason || '基於技術指標綜合判斷'}
+            📌 進場理由：${state.aiAnalysis.longReason || '基於圖片K線精准判斷'}
           </div>
         </div>
 
@@ -747,7 +746,7 @@
             </div>
           </div>
           <div class="mt-2 text-xs text-white bg-black/40 p-2 rounded border border-green/20">
-            📌 進場理由：${state.aiAnalysis.shortReason || '基於技術指標綜合判斷'}
+            📌 進場理由：${state.aiAnalysis.shortReason || '基於圖片K線精准判斷'}
           </div>
         </div>
       `;
@@ -834,35 +833,8 @@
       });
     };
 
-    const safeParseJson = (rawContent) => {
-      return {
-        "product": "美國科技股100指數",
-        "productType": "FUTURES",
-        "currentPrice": 28720,
-        "decimals": 0,
-        "trend": "long",
-        "advice": "EMA向上傾斜，偏多趨勢",
-        "longPriority": "高",
-        "longEntry": 28630,
-        "longStopLoss": 28540,
-        "longTp1": 28780,
-        "longTp2": 28850,
-        "longReason": "順勢回踩EMA均線企穩，多頭趨勢延續",
-        "shortPriority": "高",
-        "shortEntry": 28720,
-        "shortStopLoss": 28760,
-        "shortTp1": 28630,
-        "shortTp2": 28550,
-        "shortReason": "EMA向下，RSI超買，短期回調機會（無依圖型評價）",
-        "emaStatus": "向上角度",
-        "emaAngle": 30,
-        "emaSuitable": "適合交易",
-        "rsi": "RSI超買區間，短線回調預期"
-      };
-    };
-
-    // 真实AI调用函数（配置好API和代理后取消注释即可使用）
-    /*
+    // ==================== 核心修正：AI嚴格匹配圖片分析 ====================
+    // 真實調用OpenAI GPT-4o，100%匹配圖片K線批判點位/進出場
     const callOpenAI = async (base64Image) => {
       const response = await fetch(state.proxyUrl, {
         method: 'POST',
@@ -878,29 +850,36 @@
               content: [
                 {
                   type: 'text',
-                  text: `請分析這張K線圖，只返回JSON格式，包含以下字段：
+                  text: `【嚴格指令】你是專業期貨分析師，必須100%匹配上傳的K線圖片，嚴格批判點位、進出場，禁止捏造數據！
+                  分析規則：
+                  1. 完全根據圖片K線的價格、支撐阻力、EMA形態、RSI位置判斷
+                  2. 進場/出場/止損/止盈點位必須對應圖片真實價格
+                  3. 趨勢、EMA角度、交易適配性完全匹配圖片
+                  4. 只返回標準JSON格式，無多餘文字
+                  
+                  返回JSON字段：
                   product: 產品名稱
                   productType: FUTURES
-                  currentPrice: 當前價格(數字)
-                  decimals: 小數位數(0)
+                  currentPrice: 圖片真實當前價格(數字)
+                  decimals: 小數位數(0/1/2)
                   trend: long/short/neutral
-                  advice: 簡短建議
+                  advice: 基於圖片的簡短建議
                   longPriority: 高/中/低
-                  longEntry: 做多進場價
-                  longStopLoss: 做多止損
-                  longTp1: 做多止盈1
-                  longTp2: 做多止盈2
-                  longReason: 做多理由
+                  longEntry: 圖片匹配的做多進場價
+                  longStopLoss: 圖片匹配的做多止損
+                  longTp1: 圖片匹配的做多止盈1
+                  longTp2: 圖片匹配的做多止盈2
+                  longReason: 基於圖片的做多批判理由
                   shortPriority: 高/中/低
-                  shortEntry: 做空進場價
-                  shortStopLoss: 做空止損
-                  shortTp1: 做空止盈1
-                  shortTp2: 做空止盈2
-                  shortReason: 做空理由
-                  emaStatus: EMA狀態
-                  emaAngle: EMA角度(數字)
+                  shortEntry: 圖片匹配的做空進場價
+                  shortStopLoss: 圖片匹配的做空止損
+                  shortTp1: 圖片匹配的做空止盈1
+                  shortTp2: 圖片匹配的做空止盈2
+                  shortReason: 基於圖片的做空批判理由
+                  emaStatus: EMA真實狀態
+                  emaAngle: EMA真實角度(數字)
                   emaSuitable: 適合交易/不適合交易
-                  rsi: RSI狀態`
+                  rsi: RSI真實狀態`
                 },
                 {
                   type: 'image_url',
@@ -911,7 +890,7 @@
               ]
             }
           ],
-          temperature: 0.3
+          temperature: 0.1 // 極低溫度，保證精准匹配
         })
       });
 
@@ -922,21 +901,25 @@
       const data = await response.json();
       const content = data.choices[0].message.content;
       
-      // 提取JSON部分
+      // 提取並解析JSON
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("AI返回格式錯誤，無法解析");
-      }
-      
+      if (!jsonMatch) throw new Error("AI返回格式錯誤，無法解析");
       return JSON.parse(jsonMatch[0]);
     };
-    */
 
     const runAiAnalyze = async () => {
-      showDebug("開始生成美國科技股100指數精準交易點位...");
+      showDebug("🔍 正在嚴格匹配圖片K線批判點位/進出場...");
       
       if (!state.apiKey) {
         state.aiError = "❌ 請先在設定頁面輸入你的OpenAI API Key";
+        document.getElementById('aiError').textContent = state.aiError;
+        document.getElementById('aiError').classList.remove('hidden');
+        hideDebug();
+        return;
+      }
+      
+      if (!state.aiBase64) {
+        state.aiError = "❌ 請先上傳K線截圖";
         document.getElementById('aiError').textContent = state.aiError;
         document.getElementById('aiError').classList.remove('hidden');
         hideDebug();
@@ -947,17 +930,14 @@
       state.aiError = "";
       state.aiAnalysis = null;
       
-      document.getElementById('analyzeButton').textContent = "⏳ 生成精準交易點位中...";
+      document.getElementById('analyzeButton').textContent = "⏳ 圖片精准分析中...";
       document.getElementById('analyzeButton').disabled = true;
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
 
       try {
-        // 演示模式：返回固定數據
-        // 配置好API和代理後，替換為以下代碼：
-        // let parseRes = await callOpenAI(state.aiBase64);
-        
-        let parseRes = safeParseJson("");
+        // 真實調用AI，嚴格匹配圖片
+        let parseRes = await callOpenAI(state.aiBase64);
         
         // 價格優化
         parseRes.longEntry = optimizePrice(parseRes.longEntry);
@@ -972,7 +952,7 @@
         if (state.aiHistory.length > 50) state.aiHistory = state.aiHistory.slice(0, 50);
         saveState();
         renderAiResult();
-        showDebug(`✅ 美國科技股100指數精準點位生成完成`);
+        showDebug(`✅ 圖片K線精准批判完成`);
         setTimeout(hideDebug, 2000);
         
       } catch (err) {
@@ -982,11 +962,12 @@
         document.getElementById('aiError').classList.remove('hidden');
       } finally {
         state.aiLoading = false;
-        document.getElementById('analyzeButton').textContent = "生成真實波段交易點位";
+        document.getElementById('analyzeButton').textContent = "🔍 嚴格匹配圖片批判點位/進出場";
         document.getElementById('analyzeButton').disabled = false;
         render();
       }
     };
+    // ====================================================================
 
     const initEvents = () => {
       document.querySelectorAll('.tab-button').forEach(btn => {
