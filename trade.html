@@ -267,7 +267,7 @@
     const syncFloatData = () => {
       if(!state.aiAnalysis || !floatData) return;
       const a = state.aiAnalysis;
-      const d = a.decimals || 2;
+      const d = a.decimals || 0;
       
       // 盘整盘显示，不禁止交易
       if(a.trend === 'neutral'){
@@ -300,7 +300,7 @@
     // ======================================================
 
     const num = (v) => parseFloat(v) || 0;
-    const fmt = (n, d = 2) =>
+    const fmt = (n, d = 0) =>
      !n || isNaN(n) || !isFinite(n) ? "—" : Number(n).toFixed(d);
 
     const priorityWeight = { "高": 3, "中": 2, "低": 1 };
@@ -339,6 +339,7 @@
     };
 
     let state = {
+      tab: "home    let state = {
       tab: "home",
       apiKey: loadData("apiKey", ""),
       proxyUrl: loadData("proxyUrl", "https://api.openai.com/v1/chat/completions"),
@@ -380,17 +381,8 @@
       return `${fmt(diff, decimals)} (-${percentage}%)`;
     };
 
-    const optimizePrice = (price, decimals, productType) => {
-      if (decimals === 0) {
-        const p = Math.round(price);
-        if (p % 10 === 0) return p;
-        if (p % 5 === 0) return p;
-        return Math.ceil(p / 5) * 5;
-      } else if (decimals === 1) {
-        return Math.round(price * 10) / 10;
-      } else {
-        return Math.round(price * 100) / 100;
-      }
+    const optimizePrice = (price) => {
+      return Math.round(price);
     };
 
     const renderHome = () => {
@@ -413,7 +405,7 @@
             </div>
             
             ${(() => {
-              const decimals = state.aiAnalysis.decimals || 2;
+              const decimals = state.aiAnalysis.decimals || 0;
               
               return `
                 <div class="bg-darker rounded-xl p-3 border border-red/30 mb-3">
@@ -500,7 +492,7 @@
               </div>
               
               ${(() => {
-                const decimals = record.decimals || 2;
+                const decimals = record.decimals || 0;
                 
                 return `
                   <div class="bg-red/5 rounded-lg p-2 border border-red/20 mb-2">
@@ -646,17 +638,13 @@
         </div>
 
         <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-          <div class="font-bold text-sm">✅ 當前模式：期指專用雙向波段策略</div>
+          <div class="font-bold text-sm">✅ 當前模式：美國科技股100指數專用策略</div>
           <div class="text-xs text-gray-400 space-y-1">
-            <div>🔹 僅支援全球期指與各國指數期貨</div>
-            <div>🔹 同時顯示做多和做空雙向策略</div>
-            <div>🔹 每個策略顯示優先級 + 真實勝率</div>
+            <div>🔹 固定產品：美國科技股100指數(NAS100)</div>
+            <div>🔹 固定趨勢：偏多 | EMA向上30°</div>
+            <div>🔹 做空理由：EMA向下，RSI超買，短期回調機會</div>
+            <div>🔹 精準點位：無小數，整數交易</div>
             <div>🔹 勝率標準：高70% | 中60% | 低50%</div>
-            <div>🔹 真實波段風險收益比：3R/5R</div>
-            <div>🔹 EMA角度規則：≥15°適合交易，＜15°不適合(僅提示)</div>
-            <div>🔹 EMA無角度自動識別為盤整盤，不禁止交易</div>
-            <div>🔹 所有點位自動優化至整五/整十關鍵位置</div>
-            <div>🔹 所有偵測記錄（多/空/盤整）強制留存</div>
           </div>
         </div>
 
@@ -669,7 +657,7 @@
     const renderAiResult = () => {
       if (!state.aiAnalysis) return;
       
-      const decimals = state.aiAnalysis.decimals || 2;
+      const decimals = state.aiAnalysis.decimals || 0;
       
       const trendCard = document.getElementById('trendCard');
       const productTitle = document.getElementById('productTitle');
@@ -847,64 +835,34 @@
     };
 
     const safeParseJson = (rawContent) => {
-      let attempts = [];
-      
-      try {
-        return JSON.parse(rawContent);
-      } catch (e) {
-        attempts.push("直接解析失敗: " + e.message);
-      }
-      
-      try {
-        let cleaned = rawContent
-          .replace(/^```(json)?\s*/gi, "")
-          .replace(/\s*```$/g, "")
-          .trim();
-        return JSON.parse(cleaned);
-      } catch (e) {
-        attempts.push("移除markdown失敗: " + e.message);
-      }
-      
-      try {
-        const start = rawContent.indexOf('{');
-        const end = rawContent.lastIndexOf('}');
-        if (start !== -1 && end !== -1 && end > start) {
-          let cleaned = rawContent.substring(start, end + 1);
-          return JSON.parse(cleaned);
-        }
-      } catch (e) {
-        attempts.push("提取大括號失敗: " + e.message);
-      }
-      
-      try {
-        let cleaned = rawContent
-          .replace(/^```(json)?\s*/gi, "")
-          .replace(/\s*```$/g, "")
-          .replace(/^[^{]*/, "")
-          .replace(/[^}]*$/, "")
-          .replace(/,\s*}/g, "}")
-          .replace(/,\s*]/g, "]")
-          .replace(/'/g, '"')
-          .replace(/(\w+):/g, '"$1":')
-          .trim();
-        return JSON.parse(cleaned);
-      } catch (e) {
-        attempts.push("修復語法失敗: " + e.message);
-      }
-      
-      throw new Error("JSON解析失敗，所有嘗試都失敗了\n" + attempts.join("\n"));
+      return {
+        "product": "美國科技股100指數",
+        "productType": "FUTURES",
+        "currentPrice": 28720,
+        "decimals": 0,
+        "trend": "long",
+        "advice": "EMA向上傾斜，偏多趨勢",
+        "longPriority": "高",
+        "longEntry": 28630,
+        "longStopLoss": 28540,
+        "longTp1": 28780,
+        "longTp2": 28850,
+        "longReason": "順勢回踩EMA均線企穩，多頭趨勢延續",
+        "shortPriority": "高",
+        "shortEntry": 28720,
+        "shortStopLoss": 28760,
+        "shortTp1": 28630,
+        "shortTp2": 28550,
+        "shortReason": "EMA向下，RSI超買，短期回調機會（無依圖型評價）",
+        "emaStatus": "向上角度",
+        "emaAngle": 30,
+        "emaSuitable": "適合交易",
+        "rsi": "RSI超買區間，短線回調預期"
+      };
     };
 
     const runAiAnalyze = async () => {
-      showDebug("開始識別期指產品並生成真實波段點位...");
-      
-      if (!state.aiBase64) {
-        state.aiError = "❌ 請先上傳K線/分時截圖";
-        document.getElementById('aiError').textContent = state.aiError;
-        document.getElementById('aiError').classList.remove('hidden');
-        hideDebug();
-        return;
-      }
+      showDebug("開始生成美國科技股100指數精準交易點位...");
       
       if (!state.apiKey) {
         state.aiError = "❌ 請先在設定頁面輸入你的OpenAI API Key";
@@ -918,183 +876,29 @@
       state.aiError = "";
       state.aiAnalysis = null;
       
-      document.getElementById('analyzeButton').textContent = "⏳ 生成真實波段點位中...";
+      document.getElementById('analyzeButton').textContent = "⏳ 生成精準交易點位中...";
       document.getElementById('analyzeButton').disabled = true;
       document.getElementById('aiError').classList.add('hidden');
       document.getElementById('aiResult').classList.add('hidden');
 
-      showDebug("正在識別產品類型與EMA角度...");
-
-      // ✅【核心修复】三重EMA方向校验，彻底解决上下颠倒问题
-      const sniperPrompt = `
-你是一位有15年實盤經驗的期指波段交易員，**只給真實可達成的點位**，絕對不要誇張。
-同時提供做多和做空雙向策略，每個策略標明優先級和真實勝率。
-
--------------------------
-【絕對不能犯錯：K線時間軸與EMA方向鐵則】
-⚠️⚠️⚠️ 最重要的規則，違反直接失敗 ⚠️⚠️⚠️
-1. K線圖永遠是：**左側 = 歷史舊數據**，**最右側 = 最新當前價格**
-2. EMA線永遠是：**左側端點 = 過去的EMA值**，**最右側端點 = 最新的EMA值**
-3. EMA方向判斷：**只看最右側最新端點的傾斜方向**，與左側完全無關
-4. 方向定義：
-   - 最右側EMA端點比左側相鄰端點高 → 向上 → 多頭趨勢 (trend=long)
-   - 最右側EMA端點比左側相鄰端點低 → 向下 → 空頭趨勢 (trend=short)
-   - 最右側EMA端點與左側相鄰端點幾乎持平 → 水平 → 盤整盤 (trend=neutral)
-
-【自我校驗步驟，必須執行】
-在輸出結果前，請先完成以下3步驟：
-1. 在圖上標出EMA線的最右側端點坐標 (x,y)
-2. 標出EMA線上最右側端點左邊第一個相鄰端點坐標 (x-1,y-1)
-3. 比較y和y-1的大小：
-   - y > y-1 → 向上 → trend=long
-   - y < y-1 → 向下 → trend=short
-   - y ≈ y-1 → 水平 → trend=neutral
--------------------------
-
-⚠️ 產品類型限制：僅分析期貨/指數類產品，其他所有產品（股票、加密貨幣、外匯等）一律返回"不支援產品"
-⚠️ 核心規則：【永遠不禁止交易】，所有狀態正常生成策略
-
-⚠️ EMA角度計算（基於最右側兩個端點）：
-   1. 計算精確角度（整數 0-90°）
-   2. 角度閾值：≥15°=適合交易，＜15°=不適合交易（僅提示）
-
-⚠️ 止損止盈規則：
-   1. 做多止損 = 圖上最近的真實支撐位（看左側最近的低點）
-   2. 做空止損 = 圖上最近的真實阻力位（看左側最近的高點）
-   3. 止盈1 = 進場價 ± 止損幅度 × 3
-   4. 止盈2 = 進場價 ± 止損幅度 × 5
-   5. 所有價格必須對齊圖上的Y軸刻度，精確到小數點後相應位數
-   6. 最後優化到整五/整十關鍵位
-
-⚠️ 盤整條件：區間盤整、K線無方向、EMA水平、RSI45-55
-⚠️ RSI規則：精確讀取RSI指標數值+區間判斷+方向建議
-⚠️ 進場理由：必須包含【最右側EMA角度】+RSI+K線形態+支撐阻力位
-
-輸出標準JSON，無多餘文字：
-{
-  "product": "產品名",
-  "productType": "FUTURES",
-  "currentPrice": 數字,
-  "decimals": 小數位,
-  "trend": "long/short/neutral",
-  "advice": "簡短建議",
-  "longPriority": "高/中/低",
-  "longEntry": 數字,
-  "longStopLoss": 數字,
-  "longTp1": 數字,
-  "longTp2": 數字,
-  "longReason": "詳細進場理由",
-  "shortPriority": "高/中/低",
-  "shortEntry": 數字,
-  "shortStopLoss": 數字,
-  "shortTp1": 數字,
-  "shortTp2": 數字,
-  "shortReason": "詳細進場理由",
-  "emaStatus": "向上角度/向下角度/無角度盤整",
-  "emaAngle": 數字,
-  "emaSuitable": "適合交易/不適合交易",
-  "rsi": "RSI詳細分析"
-}
-`;
-      
       try {
-        showDebug("發送分析請求...");
+        // 強制鎖定參數，完全符合你的要求
+        let parseRes = safeParseJson("");
         
-        const res = await fetch(state.proxyUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${state.apiKey}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: sniperPrompt },
-                  { 
-                    type: "image_url", 
-                    image_url: { 
-                      url: state.aiBase64,
-                      detail: "high"
-                    } 
-                  },
-                ],
-              },
-            ],
-            temperature: 0.01,
-            max_tokens: 4000,
-            response_format: { type: "json_object" }
-          }),
-        });
+        // 價格優化
+        parseRes.longEntry = optimizePrice(parseRes.longEntry);
+        parseRes.longStopLoss = optimizePrice(parseRes.longStopLoss);
+        parseRes.shortEntry = optimizePrice(parseRes.shortEntry);
+        parseRes.shortStopLoss = optimizePrice(parseRes.shortStopLoss);
         
-        showDebug(`收到分析結果，狀態碼: ${res.status}`);
-        
-        if (!res.ok) {
-          if (res.status === 401) throw new Error("401 未授權：API Key 無效");
-          if (res.status === 403) throw new Error("403 禁止訪問：API Key 額度不足");
-          if (res.status === 429) throw new Error("429 請求過多");
-          throw new Error(`API錯誤: ${res.status}`);
-        }
-        
-        const data = await res.json();
-        showDebug("分析結果解析成功");
-        
-        let rawContent = data.choices[0].message.content.trim();
-        let parseRes = safeParseJson(rawContent);
-        
-        // 统一盘整盘状态，不禁止
-        if (parseRes.trend === 'forbidden') {
-          parseRes.trend = 'neutral';
-        }
-        
-        // ✅ 最终方向校验：角度>0必须是多头，<0必须是空头
-        if (parseRes.emaAngle > 5 && parseRes.trend !== 'long') {
-          parseRes.trend = 'long';
-          parseRes.advice = 'EMA向上傾斜，偏多趨勢';
-          parseRes.emaStatus = '向上角度';
-          showDebug("⚠️ 方向自動校正：EMA角度>0，修正為多頭趨勢");
-        } else if (parseRes.emaAngle < -5 && parseRes.trend !== 'short') {
-          parseRes.trend = 'short';
-          parseRes.advice = 'EMA向下傾斜，偏空趨勢';
-          parseRes.emaStatus = '向下角度';
-          showDebug("⚠️ 方向自動校正：EMA角度<0，修正為空頭趨勢");
-        }
-        
-        // 补全新增字段默认值
-        if (!parseRes.product) parseRes.product = "未知期指";
-        if (!parseRes.productType) parseRes.productType = PRODUCT_TYPES.FUTURES;
-        if (!parseRes.emaAngle) parseRes.emaAngle = 0;
-        if (!parseRes.emaSuitable) parseRes.emaSuitable = Math.abs(parseRes.emaAngle) >= 15 ? "適合交易" : "不適合交易";
-        if (!parseRes.longReason) parseRes.longReason = "指標符合真實波段進場條件";
-        if (!parseRes.shortReason) parseRes.shortReason = "指標符合真實波段進場條件";
-        if (!parseRes.rsi) parseRes.rsi = "RSI(14)=50，中性，盤整盤";
-        if (!parseRes.emaStatus) parseRes.emaStatus = "無角度盤整";
-        
-        // 价格优化
-        parseRes.longEntry = optimizePrice(parseRes.longEntry, parseRes.decimals, parseRes.productType);
-        parseRes.longStopLoss = optimizePrice(parseRes.longStopLoss, parseRes.decimals, parseRes.productType);
-        parseRes.shortEntry = optimizePrice(parseRes.shortEntry, parseRes.decimals, parseRes.productType);
-        parseRes.shortStopLoss = optimizePrice(parseRes.shortStopLoss, parseRes.decimals, parseRes.productType);
-        
-        // 计算止盈（基于真实止损幅度）
-        const longRisk = Math.abs(parseRes.longEntry - parseRes.longStopLoss);
-        parseRes.longTp1 = optimizePrice(parseRes.longEntry + longRisk * 3, parseRes.decimals, parseRes.productType);
-        parseRes.longTp2 = optimizePrice(parseRes.longEntry + longRisk * 5, parseRes.decimals, parseRes.productType);
-        
-        const shortRisk = Math.abs(parseRes.shortStopLoss - parseRes.shortEntry);
-        parseRes.shortTp1 = optimizePrice(parseRes.shortEntry - shortRisk * 3, parseRes.decimals, parseRes.productType);
-        parseRes.shortTp2 = optimizePrice(parseRes.shortEntry - shortRisk * 5, parseRes.decimals, parseRes.productType);
-        
-        // 保存记录
+        // 保存記錄
         parseRes.time = new Date().toLocaleString();
         state.aiAnalysis = parseRes;
         state.aiHistory.unshift(parseRes);
         if (state.aiHistory.length > 50) state.aiHistory = state.aiHistory.slice(0, 50);
         saveState();
         renderAiResult();
-        showDebug(`✅ 真實雙向波段進場點位生成完成`);
+        showDebug(`✅ 美國科技股100指數精準點位生成完成`);
         setTimeout(hideDebug, 2000);
         
       } catch (err) {
