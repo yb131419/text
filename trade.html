@@ -338,8 +338,8 @@
       }
     };
 
+    // 修复重复定义的state语法错误
     let state = {
-      tab: "home    let state = {
       tab: "home",
       apiKey: loadData("apiKey", ""),
       proxyUrl: loadData("proxyUrl", "https://api.openai.com/v1/chat/completions"),
@@ -626,10 +626,10 @@
             ⚠️ 在GitHub Pages上必須使用代理伺服器才能正常工作！
           </div>
           <div class="text-xs text-gray-500">
-            直接連接OpenAI API會被Safari的CORS安全策略攔截
+            直接連接OpenAI API會被瀏覽器的CORS安全策略攔截
           </div>
           <a 
-            href="https://deploy.workers.cloudflare.com/?url=https://cloudflare/worker-openai-proxy"
+            href="https://deploy.workers.cloudflare.com/?url=https://github.com/xyhelper/worker-openai-proxy"
             target="_blank"
             class="block text-xs text-indigo-400 underline mt-2"
           >
@@ -861,6 +861,77 @@
       };
     };
 
+    // 真实AI调用函数（配置好API和代理后取消注释即可使用）
+    /*
+    const callOpenAI = async (base64Image) => {
+      const response = await fetch(state.proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${state.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `請分析這張K線圖，只返回JSON格式，包含以下字段：
+                  product: 產品名稱
+                  productType: FUTURES
+                  currentPrice: 當前價格(數字)
+                  decimals: 小數位數(0)
+                  trend: long/short/neutral
+                  advice: 簡短建議
+                  longPriority: 高/中/低
+                  longEntry: 做多進場價
+                  longStopLoss: 做多止損
+                  longTp1: 做多止盈1
+                  longTp2: 做多止盈2
+                  longReason: 做多理由
+                  shortPriority: 高/中/低
+                  shortEntry: 做空進場價
+                  shortStopLoss: 做空止損
+                  shortTp1: 做空止盈1
+                  shortTp2: 做空止盈2
+                  shortReason: 做空理由
+                  emaStatus: EMA狀態
+                  emaAngle: EMA角度(數字)
+                  emaSuitable: 適合交易/不適合交易
+                  rsi: RSI狀態`
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: base64Image
+                  }
+                }
+              ]
+            }
+          ],
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API調用失敗: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0].message.content;
+      
+      // 提取JSON部分
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("AI返回格式錯誤，無法解析");
+      }
+      
+      return JSON.parse(jsonMatch[0]);
+    };
+    */
+
     const runAiAnalyze = async () => {
       showDebug("開始生成美國科技股100指數精準交易點位...");
       
@@ -882,7 +953,10 @@
       document.getElementById('aiResult').classList.add('hidden');
 
       try {
-        // 強制鎖定參數，完全符合你的要求
+        // 演示模式：返回固定數據
+        // 配置好API和代理後，替換為以下代碼：
+        // let parseRes = await callOpenAI(state.aiBase64);
+        
         let parseRes = safeParseJson("");
         
         // 價格優化
