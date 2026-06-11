@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全品種AI智能偵測系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:w@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
@@ -29,7 +29,7 @@
       }
     }
   </script>
-  <style type="textailwindcss">
+  <style type="text/tailwindcss">
     @layer utilities {
       .content-auto {
         content-visibility: auto;
@@ -93,7 +93,7 @@
         <button id="closeAiModal" class="text-gray-300 text-xl">✕</button>
       </div>
       <input id="fileInput" type="file" accept="image/*" hidden />
-      <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo300 mb-3">
+      <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
         上傳任何期指K線截圖
         <div class="text-xs mt-1 text-gray-400">✅ 全球期指 ✅ 各國指數期貨</div>
       </button>
@@ -387,10 +387,9 @@
         if (p % 5 === 0) return p;
         return Math.ceil(p / 5) * 5;
       } else if (decimals === 1) {
-        return Math.round(price);
+        return Math.round(price * 10) / 10;
       } else {
-        const p = Math.round(price * 2) / 2;
-        return p;
+        return Math.round(price * 100) / 100;
       }
     };
 
@@ -583,9 +582,9 @@
         
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
           <div class="font-bold mb-2">🎯 優先級勝率分佈</div>
-          <div class="flex justify-between"><span class="text-red">🔴 高優先級</span><span>70% (${priorityCounts["高"]}次)</span></div>
-          <div class="flex justify-between"><span class="text-yellow">🟡 中優先級</span><span>60% (${priorityCounts["中"]}次)</span></div>
-          <div class="flex justify-between"><span class="text-gray-400">⚪ 低優先級</span><span>50% (${priorityCounts["低"]}次)</span></div>
+          <div class="flex justify-between text-red"><span>🔴 高優先級</span><span>70% (${priorityCounts["高"]}次)</span></div>
+          <div class="flex justify-between text-yellow"><span>🟡 中優先級</span><span>60% (${priorityCounts["中"]}次)</span></div>
+          <div class="flex justify-between text-gray-400"><span>⚪ 低優先級</span><span>50% (${priorityCounts["低"]}次)</span></div>
         </div>
         
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
@@ -926,39 +925,50 @@
 
       showDebug("正在識別產品類型與EMA角度...");
 
-      // ✅【核心修复】严格遵循：左=历史 / 右=最新价格，EMA只看最右侧角度
+      // ✅【核心修复】三重EMA方向校验，彻底解决上下颠倒问题
       const sniperPrompt = `
 你是一位有15年實盤經驗的期指波段交易員，**只給真實可達成的點位**，絕對不要誇張。
 同時提供做多和做空雙向策略，每個策略標明優先級和真實勝率。
 
 -------------------------
-【絕對禁止犯錯：K線時間軸規則】
-✅ K線圖：**左側 = 歷史舊數據**，**最右側 = 最新當前價格**
-✅ EMA角度/趨勢：**只看最右側最新端的傾斜方向**，絕對不能看反！
+【絕對不能犯錯：K線時間軸與EMA方向鐵則】
+⚠️⚠️⚠️ 最重要的規則，違反直接失敗 ⚠️⚠️⚠️
+1. K線圖永遠是：**左側 = 歷史舊數據**，**最右側 = 最新當前價格**
+2. EMA線永遠是：**左側端點 = 過去的EMA值**，**最右側端點 = 最新的EMA值**
+3. EMA方向判斷：**只看最右側最新端點的傾斜方向**，與左側完全無關
+4. 方向定義：
+   - 最右側EMA端點比左側相鄰端點高 → 向上 → 多頭趨勢 (trend=long)
+   - 最右側EMA端點比左側相鄰端點低 → 向下 → 空頭趨勢 (trend=short)
+   - 最右側EMA端點與左側相鄰端點幾乎持平 → 水平 → 盤整盤 (trend=neutral)
+
+【自我校驗步驟，必須執行】
+在輸出結果前，請先完成以下3步驟：
+1. 在圖上標出EMA線的最右側端點坐標 (x,y)
+2. 標出EMA線上最右側端點左邊第一個相鄰端點坐標 (x-1,y-1)
+3. 比較y和y-1的大小：
+   - y > y-1 → 向上 → trend=long
+   - y < y-1 → 向下 → trend=short
+   - y ≈ y-1 → 水平 → trend=neutral
 -------------------------
 
 ⚠️ 產品類型限制：僅分析期貨/指數類產品，其他所有產品（股票、加密貨幣、外匯等）一律返回"不支援產品"
 ⚠️ 核心規則：【永遠不禁止交易】，所有狀態正常生成策略
 
-⚠️ EMA角度判斷（基於最右側最新價格）：
+⚠️ EMA角度計算（基於最右側兩個端點）：
    1. 計算精確角度（整數 0-90°）
    2. 角度閾值：≥15°=適合交易，＜15°=不適合交易（僅提示）
-   3. 【右側EMA向上翹】= 多頭趨勢 (trend=long)
-   4. 【右側EMA向下壓】= 空頭趨勢 (trend=short)
-   5. 【右側EMA水平無角度】= 盤整盤 (trend=neutral)
+
+⚠️ 止損止盈規則：
+   1. 做多止損 = 圖上最近的真實支撐位（看左側最近的低點）
+   2. 做空止損 = 圖上最近的真實阻力位（看左側最近的高點）
+   3. 止盈1 = 進場價 ± 止損幅度 × 3
+   4. 止盈2 = 進場價 ± 止損幅度 × 5
+   5. 所有價格必須對齊圖上的Y軸刻度，精確到小數點後相應位數
+   6. 最後優化到整五/整十關鍵位
 
 ⚠️ 盤整條件：區間盤整、K線無方向、EMA水平、RSI45-55
-⚠️ 進場規則：只做進場判斷，無任何出場策略
-⚠️ 價格規則：整數/整五/整十關鍵位
-
-✅ 真實波段風險收益比：
-- 止盈1 = 進場 ± 止損 × 3
-- 止盈2 = 進場 ± 止損 × 5
-- 做空方向相反，點位優化至整五/整十
-
-✅ 真實勝率：高70% / 中60% / 低50%
-✅ RSI規則：精確數值+區間判斷+方向建議
-✅ 進場理由：必須包含【右側EMA角度】+RSI+K線形態
+⚠️ RSI規則：精確讀取RSI指標數值+區間判斷+方向建議
+⚠️ 進場理由：必須包含【最右側EMA角度】+RSI+K線形態+支撐阻力位
 
 輸出標準JSON，無多餘文字：
 {
@@ -1039,11 +1049,24 @@
           parseRes.trend = 'neutral';
         }
         
+        // ✅ 最终方向校验：角度>0必须是多头，<0必须是空头
+        if (parseRes.emaAngle > 5 && parseRes.trend !== 'long') {
+          parseRes.trend = 'long';
+          parseRes.advice = 'EMA向上傾斜，偏多趨勢';
+          parseRes.emaStatus = '向上角度';
+          showDebug("⚠️ 方向自動校正：EMA角度>0，修正為多頭趨勢");
+        } else if (parseRes.emaAngle < -5 && parseRes.trend !== 'short') {
+          parseRes.trend = 'short';
+          parseRes.advice = 'EMA向下傾斜，偏空趨勢';
+          parseRes.emaStatus = '向下角度';
+          showDebug("⚠️ 方向自動校正：EMA角度<0，修正為空頭趨勢");
+        }
+        
         // 补全新增字段默认值
         if (!parseRes.product) parseRes.product = "未知期指";
         if (!parseRes.productType) parseRes.productType = PRODUCT_TYPES.FUTURES;
         if (!parseRes.emaAngle) parseRes.emaAngle = 0;
-        if (!parseRes.emaSuitable) parseRes.emaSuitable = "不適合交易";
+        if (!parseRes.emaSuitable) parseRes.emaSuitable = Math.abs(parseRes.emaAngle) >= 15 ? "適合交易" : "不適合交易";
         if (!parseRes.longReason) parseRes.longReason = "指標符合真實波段進場條件";
         if (!parseRes.shortReason) parseRes.shortReason = "指標符合真實波段進場條件";
         if (!parseRes.rsi) parseRes.rsi = "RSI(14)=50，中性，盤整盤";
@@ -1055,12 +1078,12 @@
         parseRes.shortEntry = optimizePrice(parseRes.shortEntry, parseRes.decimals, parseRes.productType);
         parseRes.shortStopLoss = optimizePrice(parseRes.shortStopLoss, parseRes.decimals, parseRes.productType);
         
-        // 计算止盈
-        const longRisk = parseRes.longEntry - parseRes.longStopLoss;
+        // 计算止盈（基于真实止损幅度）
+        const longRisk = Math.abs(parseRes.longEntry - parseRes.longStopLoss);
         parseRes.longTp1 = optimizePrice(parseRes.longEntry + longRisk * 3, parseRes.decimals, parseRes.productType);
         parseRes.longTp2 = optimizePrice(parseRes.longEntry + longRisk * 5, parseRes.decimals, parseRes.productType);
         
-        const shortRisk = parseRes.shortStopLoss - parseRes.shortEntry;
+        const shortRisk = Math.abs(parseRes.shortStopLoss - parseRes.shortEntry);
         parseRes.shortTp1 = optimizePrice(parseRes.shortEntry - shortRisk * 3, parseRes.decimals, parseRes.productType);
         parseRes.shortTp2 = optimizePrice(parseRes.shortEntry - shortRisk * 5, parseRes.decimals, parseRes.productType);
         
