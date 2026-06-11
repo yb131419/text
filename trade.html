@@ -524,7 +524,7 @@
                 <span class="text-xs text-gray-400">EMA角度：${record.emaAngle || 0}°</span>
               </div>
               <div class="text-xs text-green mb-2">✅ 15分鐘K線精准批判</div>
-              <div class="text-xs mb-2 ${record.emaSuitable?.includes('適合') ? 'text-green' : 'text-yellow'}">
+              <div class="text-xs mb-2 ${String(record.emaSuitable || '').includes('適合') ? 'text-green' : 'text-yellow'}">
                 ${record.emaSuitable || ''}
               </div>
               
@@ -577,8 +577,8 @@
       
       highPriorityHistory.forEach(r => {
         productCounts[r.product] = (productCounts[r.product] || 0) + 1;
-        if(r.trend === 'neutral') directionCounts["盤整盤"]++;
-        if(r.emaSuitable?.includes('適合')) angleCounts["適合交易"]++;
+        // 修復：強制轉為字符串，避免空值報錯
+        if(String(r.emaSuitable || '').includes('適合')) angleCounts["適合交易"]++;
         else angleCounts["不適合交易"]++;
         
         const longWeight = priorityWeight[r.longPriority] || 0;
@@ -704,15 +704,18 @@
       productTitle.textContent = `📊 ${a.product}`;
       productTypeLabel.textContent = a.productType || PRODUCT_TYPES.FUTURES;
       
-      document.getElementById('emaAngle').textContent = `${a.emaAngle || 0}°`;
-      document.getElementById('emaAngle').className = a.emaSuitable?.includes('適合') 
+      // 修復：強制轉為字符串，避免空值報錯
+      const emaSuitableText = String(a.emaSuitable || '');
+      document.getElementById('emaAngle').className = emaSuitableText.includes('適合') 
         ? 'text-lg font-bold text-green' 
         : 'text-lg font-bold text-yellow';
       
-      document.getElementById('emaSuitable').textContent = a.emaSuitable || '—';
-      document.getElementById('emaSuitable').className = a.emaSuitable?.includes('適合') 
+      document.getElementById('emaSuitable').className = emaSuitableText.includes('適合') 
         ? 'text-lg font-bold text-green' 
         : 'text-lg font-bold text-yellow';
+      
+      document.getElementById('emaAngle').textContent = `${a.emaAngle || 0}°`;
+      document.getElementById('emaSuitable').textContent = a.emaSuitable || '—';
       
       if (a.trend === 'neutral') {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
