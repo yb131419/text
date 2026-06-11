@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全品種AI智能偵測系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
@@ -380,9 +380,27 @@
       return `${fmt(diff, decimals)} (-${percentage}%)`;
     };
 
+    // ==================== 核心修复：价格优化 + 自动计算止盈 ====================
     const optimizePrice = (price) => {
       return Math.round(price);
     };
+
+    // 自动计算止盈点位（3R / 5R），彻底解决目标1、2相近问题
+    const calculateTakeProfit = (entry, stopLoss, isLong, decimals) => {
+      const risk = Math.abs(entry - stopLoss);
+      let tp1, tp2;
+      
+      if (isLong) {
+        tp1 = optimizePrice(entry + risk * 3);
+        tp2 = optimizePrice(entry + risk * 5);
+      } else {
+        tp1 = optimizePrice(entry - risk * 3);
+        tp2 = optimizePrice(entry - risk * 5);
+      }
+      
+      return { tp1, tp2 };
+    };
+    // ========================================================================
 
     const renderHome = () => {
       return `
@@ -833,8 +851,7 @@
       });
     };
 
-    // ==================== 核心修正：AI嚴格匹配圖片分析 ====================
-    // 真實調用OpenAI GPT-4o，100%匹配圖片K線批判點位/進出場
+    // ==================== 核心修正：AI嚴格匹配圖片 + 强制止盈间距 ====================
     const callOpenAI = async (base64Image) => {
       const response = await fetch(state.proxyUrl, {
         method: 'POST',
@@ -853,9 +870,10 @@
                   text: `【嚴格指令】你是專業期貨分析師，必須100%匹配上傳的K線圖片，嚴格批判點位、進出場，禁止捏造數據！
                   分析規則：
                   1. 完全根據圖片K線的價格、支撐阻力、EMA形態、RSI位置判斷
-                  2. 進場/出場/止損/止盈點位必須對應圖片真實價格
-                  3. 趨勢、EMA角度、交易適配性完全匹配圖片
-                  4. 只返回標準JSON格式，無多餘文字
+                  2. 進場/止損點位必須對應圖片真實價格
+                  3. 止盈1嚴格=3倍風險(3R)，止盈2嚴格=5倍風險(5R)，禁止兩個目標點位相近！
+                  4. 趨勢、EMA角度、交易適配性完全匹配圖片
+                  5. 只返回標準JSON格式，無多餘文字
                   
                   返回JSON字段：
                   product: 產品名稱
@@ -867,14 +885,14 @@
                   longPriority: 高/中/低
                   longEntry: 圖片匹配的做多進場價
                   longStopLoss: 圖片匹配的做多止損
-                  longTp1: 圖片匹配的做多止盈1
-                  longTp2: 圖片匹配的做多止盈2
+                  longTp1: 做多止盈1
+                  longTp2: 做多止盈2
                   longReason: 基於圖片的做多批判理由
                   shortPriority: 高/中/低
                   shortEntry: 圖片匹配的做空進場價
                   shortStopLoss: 圖片匹配的做空止損
-                  shortTp1: 圖片匹配的做空止盈1
-                  shortTp2: 圖片匹配的做空止盈2
+                  shortTp1: 做空止盈1
+                  shortTp2: 做空止盈2
                   shortReason: 基於圖片的做空批判理由
                   emaStatus: EMA真實狀態
                   emaAngle: EMA真實角度(數字)
@@ -890,7 +908,7 @@
               ]
             }
           ],
-          temperature: 0.1 // 極低溫度，保證精准匹配
+          temperature: 0.1
         })
       });
 
@@ -900,8 +918,6 @@
 
       const data = await response.json();
       const content = data.choices[0].message.content;
-      
-      // 提取並解析JSON
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("AI返回格式錯誤，無法解析");
       return JSON.parse(jsonMatch[0]);
@@ -936,16 +952,24 @@
       document.getElementById('aiResult').classList.add('hidden');
 
       try {
-        // 真實調用AI，嚴格匹配圖片
         let parseRes = await callOpenAI(state.aiBase64);
         
-        // 價格優化
+        // 价格优化
         parseRes.longEntry = optimizePrice(parseRes.longEntry);
         parseRes.longStopLoss = optimizePrice(parseRes.longStopLoss);
         parseRes.shortEntry = optimizePrice(parseRes.shortEntry);
         parseRes.shortStopLoss = optimizePrice(parseRes.shortStopLoss);
+
+        // ==================== 关键修复：自动计算止盈，彻底解决点位相近 ====================
+        const longTP = calculateTakeProfit(parseRes.longEntry, parseRes.longStopLoss, true, parseRes.decimals);
+        const shortTP = calculateTakeProfit(parseRes.shortEntry, parseRes.shortStopLoss, false, parseRes.decimals);
         
-        // 保存記錄
+        parseRes.longTp1 = longTP.tp1;
+        parseRes.longTp2 = longTP.tp2;
+        parseRes.shortTp1 = shortTP.tp1;
+        parseRes.shortTp2 = shortTP.tp2;
+        // ================================================================================
+        
         parseRes.time = new Date().toLocaleString();
         state.aiAnalysis = parseRes;
         state.aiHistory.unshift(parseRes);
