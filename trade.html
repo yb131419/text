@@ -72,7 +72,7 @@
 
   <div class="bg-darker border-b border-border p-4 text-center">
     <div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
-    <div class="text-xl font-bold">⚡ 15分看趨勢 · 1分找買點</div>
+    <div class="text-xl font-bold">⚡ 5分看趨勢 · 1分找買點</div>
   </div>
 
   <div id="content" class="max-w-sm mx-auto p-4 space-y-4"></div>
@@ -94,11 +94,11 @@
       </div>
       <input id="fileInput" type="file" accept="image/*" multiple hidden />
       <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
-        上傳15分+1分K線截圖
+        上傳5分+1分K線截圖
         <div class="text-xs mt-1 text-gray-400">✅ 同時上傳兩張截圖獲得最佳效果</div>
       </button>
       <div id="imagePreview" class="mb-3 hidden grid grid-cols-2 gap-2">
-        <img id="previewImg1" src="" alt="15分K線" class="w-full rounded-lg object-contain max-h-40" />
+        <img id="previewImg1" src="" alt="5分K線" class="w-full rounded-lg object-contain max-h-40" />
         <img id="previewImg2" src="" alt="1分K線" class="w-full rounded-lg object-contain max-h-40" />
       </div>
       <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
@@ -112,12 +112,12 @@
           <div class="text-lg font-bold text-center mb-2" id="productTitle"></div>
           <div class="text-center text-sm text-gray-300" id="trendAdvice"></div>
           <div class="text-center text-xs text-gray-400 mt-1" id="productTypeLabel"></div>
-          <div class="text-center text-xs text-green mt-1">✅ 基於15分+1分K線100%精准批判</div>
+          <div class="text-center text-xs text-green mt-1">✅ 基於5分+1分K線100%精准批判</div>
         </div>
         
-        <div id="trend15mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5">
-          <div class="text-sm font-bold text-indigo mb-2">📈 15分鐘大趨勢判斷</div>
-          <div id="trend15mContent"></div>
+        <div id="trend5mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5">
+          <div class="text-sm font-bold text-indigo mb-2">📈 5分鐘大趨勢判斷</div>
+          <div id="trend5mContent"></div>
         </div>
         
         <div id="entry1mCard" class="rounded-xl p-4 border border-green/30 bg-green/5">
@@ -133,16 +133,16 @@
               <span id="productType" class="text-lg"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">15分EMA角度</span>
-              <span id="emaAngle15m" class="text-lg font-bold"></span>
+              <span class="text-gray-200">5分EMA角度</span>
+              <span id="emaAngle5m" class="text-lg font-bold"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">1分EMA角度</span>
               <span id="emaAngle1m" class="text-lg font-bold"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">15分交易適配</span>
-              <span id="emaSuitable15m" class="text-lg font-bold"></span>
+              <span class="text-gray-200">5分交易適配</span>
+              <span id="emaSuitable5m" class="text-lg font-bold"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
               <span class="text-gray-200">1分交易適配</span>
@@ -284,12 +284,12 @@
       floatData.innerHTML = `
         <div class="text-center font-bold text-white">${a.product}</div>
         <div class="border-t border-border pt-1 mb-1">
-          <div class="text-center font-bold text-indigo">📈 15分鐘趨勢</div>
-          <div class="flex justify-between ${a.trend15m==='long'?'text-red':a.trend15m==='short'?'text-green':'text-yellow'}">
-            <span>方向</span><span>${a.trend15m==='long'?'多頭':a.trend15m==='short'?'空頭':'盤整盤'}</span>
+          <div class="text-center font-bold text-indigo">📈 5分鐘趨勢</div>
+          <div class="flex justify-between ${a.trend5m==='long'?'text-red':a.trend5m==='short'?'text-green':'text-yellow'}">
+            <span>方向</span><span>${a.trend5m==='long'?'多頭':a.trend5m==='short'?'空頭':'盤整盤'}</span>
           </div>
           <div class="flex justify-between text-white">
-            <span>EMA角度</span><span>${a.emaAngle15m || 0}°</span>
+            <span>EMA角度</span><span>${a.emaAngle5m || 0}°</span>
           </div>
         </div>
         <div class="border-t border-border pt-1">
@@ -397,7 +397,7 @@
       return Math.round(price);
     };
 
-    // 自動計算止盈點位（15分鐘：3R/5R，1分鐘：2R/3R）
+    // 自動計算止盈點位（5分鐘：3R/5R，1分鐘：2R/3R）
     const calculateTakeProfit = (entry, stopLoss, isLong, decimals, is1m = false) => {
       const risk = Math.abs(entry - stopLoss);
       let tp1, tp2;
@@ -428,17 +428,17 @@
             <div class="text-center mb-4">
               <div class="text-lg font-bold text-indigo">${state.aiAnalysis.product}</div>
               <div class="text-xs text-gray-400">${state.aiAnalysis.productType || PRODUCT_TYPES.FUTURES}</div>
-              <div class="text-sm text-green mt-text-sm text-green mt-1">✅ 100%匹配15分+1分K線批判</div>
+              <div class="text-sm text-green mt-1">✅ 100%匹配5分+1分K線批判</div>
               <div class="text-xs text-gray-500 mt-1">偵測時間: ${state.aiAnalysis.time}</div>
             </div>
             
             <div class="bg-indigo/10 rounded-xl p-3 border border-indigo/30 mb-3">
-              <div class="text-sm font-bold text-indigo mb-2">📈 15分鐘大趨勢</div>
-              <div class="text-center text-xl font-bold ${state.aiAnalysis.trend15m === 'long' ? 'text-red' : state.aiAnalysis.trend15m === 'short' ? 'text-green' : 'text-yellow'}">
-                ${state.aiAnalysis.trend15m === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend15m === 'short' ? '🟢 偏空趨勢' : '🟡 盤整盤'}
+              <div class="text-sm font-bold text-indigo mb-2">📈 5分鐘大趨勢</div>
+              <div class="text-center text-xl font-bold ${state.aiAnalysis.trend5m === 'long' ? 'text-red' : state.aiAnalysis.trend5m === 'short' ? 'text-green' : 'text-yellow'}">
+                ${state.aiAnalysis.trend5m === 'long' ? '🔴 偏多趨勢' : state.aiAnalysis.trend5m === 'short' ? '🟢 偏空趨勢' : '🟡 盤整盤'}
               </div>
-              <div class="text-sm text-gray-300 mt-1">EMA角度：${state.aiAnalysis.emaAngle15m || 0}° | ${state.aiAnalysis.emaSuitable15m || ''}</div>
-              <div class="text-sm text-gray-300">${state.aiAnalysis.advice15m || ''}</div>
+              <div class="text-sm text-gray-300 mt-1">EMA角度：${state.aiAnalysis.emaAngle5m || 0}° | ${state.aiAnalysis.emaSuitable5m || ''}</div>
+              <div class="text-sm text-gray-300">${state.aiAnalysis.advice5m || ''}</div>
             </div>
             
             <div class="bg-green/10 rounded-xl p-3 border border-green/30">
@@ -463,7 +463,7 @@
                     <div class="grid grid-cols-2 gap-2 text-xs mb-2">
                       <div class="bg-black/30 p-2 rounded text-center">
                         <div class="text-gray-400">趨勢入場</div>
-                        <div class="font-bold text-red">${fmt(a.longEntry15m, decimals)}</div>
+                        <div class="font-bold text-red">${fmt(a.longEntry5m, decimals)}</div>
                       </div>
                       <div class="bg-black/30 p-2 rounded text-center">
                         <div class="text-gray-400">精準買點</div>
@@ -494,7 +494,7 @@
                     <div class="grid grid-cols-2 gap-2 text-xs mb-2">
                       <div class="bg-black/30 p-2 rounded text-center">
                         <div class="text-gray-400">趨勢入場</div>
-                        <div class="font-bold text-green">${fmt(a.shortEntry15m, decimals)}</div>
+                        <div class="font-bold text-green">${fmt(a.shortEntry5m, decimals)}</div>
                       </div>
                       <div class="bg-black/30 p-2 rounded text-center">
                         <div class="text-gray-400">精準買點</div>
@@ -524,7 +524,7 @@
         ` : `
           <div class="bg-card border border-border rounded-2xl p-4 text-center">
             <div class="text-gray-400 mb-2">還沒有偵測結果</div>
-            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳15分+1分K線截圖</div>
+            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳5分+1分K線截圖</div>
           </div>
         `}
       `;
@@ -551,11 +551,11 @@
               </div>
               <div class="grid grid-cols-2 gap-2 mb-2">
                 <div class="bg-indigo/5 rounded-lg p-2 border border-indigo/20">
-                  <div class="text-xs font-bold text-indigo mb-1">15分趨勢</div>
-                  <div class="text-xs ${record.trend15m === 'long' ? 'text-red' : record.trend15m === 'short' ? 'text-green' : 'text-yellow'}">
-                    ${record.trend15m === 'long' ? '🔴 偏多' : record.trend15m === 'short' ? '🟢 偏空' : '🟡 盤整盤'}
+                  <div class="text-xs font-bold text-indigo mb-1">5分趨勢</div>
+                  <div class="text-xs ${record.trend5m === 'long' ? 'text-red' : record.trend5m === 'short' ? 'text-green' : 'text-yellow'}">
+                    ${record.trend5m === 'long' ? '🔴 偏多' : record.trend5m === 'short' ? '🟢 偏空' : '🟡 盤整盤'}
                   </div>
-                  <div class="text-xs text-gray-400">角度：${record.emaAngle15m || 0}°</div>
+                  <div class="text-xs text-gray-400">角度：${record.emaAngle5m || 0}°</div>
                 </div>
                 <div class="bg-green/5 rounded-lg p-2 border border-green/20">
                   <div class="text-xs font-bold text-green mb-1">1分買點</div>
@@ -609,15 +609,15 @@
       const total = highPriorityHistory.length;
       const productCounts = {};
       const directionCounts = { "做多": 0, "做空": 0, "盤整盤": 0 };
-      const angleCounts15m = { "適合交易": 0, "不適合交易": 0 };
+      const angleCounts5m = { "適合交易": 0, "不適合交易": 0 };
       const angleCounts1m = { "適合交易": 0, "不適合交易": 0 };
       
       highPriorityHistory.forEach(r => {
         productCounts[r.product] = (productCounts[r.product] || 0) + 1;
         
-        // 15分鐘EMA適配統計
-        if(String(r.emaSuitable15m || '').includes('適合')) angleCounts15m["適合交易"]++;
-        else angleCounts15m["不適合交易"]++;
+        // 5分鐘EMA適配統計
+        if(String(r.emaSuitable5m || '').includes('適合')) angleCounts5m["適合交易"]++;
+        else angleCounts5m["不適合交易"]++;
         
         // 1分鐘EMA適配統計
         if(String(r.emaSuitable1m || '').includes('適合')) angleCounts1m["適合交易"]++;
@@ -644,9 +644,9 @@
         
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
           <div class="font-bold mb-2">📐 EMA角度適配統計</div>
-          <div class="text-xs text-indigo mb-1">15分鐘大趨勢</div>
-          <div class="flex justify-between text-green"><span>✅ 適合交易(≥15°)</span><span>${angleCounts15m["適合交易"]} 次</span></div>
-          <div class="flex justify-between text-yellow"><span>⚠️ 不適合交易(<15°)</span><span>${angleCounts15m["不適合交易"]} 次</span></div>
+          <div class="text-xs text-indigo mb-1">5分鐘大趨勢</div>
+          <div class="flex justify-between text-green"><span>✅ 適合交易(≥15°)</span><span>${angleCounts5m["適合交易"]} 次</span></div>
+          <div class="flex justify-between text-yellow"><span>⚠️ 不適合交易(<15°)</span><span>${angleCounts5m["不適合交易"]} 次</span></div>
           <div class="text-xs text-green mt-2 mb-1">1分鐘精準買點</div>
           <div class="flex justify-between text-green"><span>✅ 適合交易(≥20°)</span><span>${angleCounts1m["適合交易"]} 次</span></div>
           <div class="flex justify-between text-yellow"><span>⚠️ 不適合交易(<20°)</span><span>${angleCounts1m["不適合交易"]} 次</span></div>
@@ -713,10 +713,10 @@
         <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
           <div class="font-bold text-sm text-green">✅ 雙周期AI核心規則</div>
           <div class="text-xs text-gray-400 space-y-1">
-            <div>🔹 15分鐘K線：判斷大趨勢方向</div>
+            <div>🔹 5分鐘K線：判斷大趨勢方向</div>
             <div>🔹 1分鐘K線：尋找精確入場點位</div>
             <div>🔹 趨勢與買點同向才產生高勝率信號</div>
-            <div>🔹 15分止盈3R/5R，1分止盈2R/3R</div>
+            <div>🔹 5分止盈3R/5R，1分止盈2R/3R</div>
             <div>🔹 只顯示高勝率(75%)交易信號</div>
           </div>
         </div>
@@ -738,18 +738,18 @@
       const productTitle = document.getElementById('productTitle');
       const trendAdvice = document.getElementById('trendAdvice');
       const productTypeLabel = document.getElementById('productTypeLabel');
-      const trend15mContent = document.getElementById('trend15mContent');
+      const trend5mContent = document.getElementById('trend5mContent');
       const entry1mContent = document.getElementById('entry1mContent');
       
       productTitle.textContent = `📊 ${a.product}`;
       productTypeLabel.textContent = a.productType || PRODUCT_TYPES.FUTURES;
       
       // 總體趨勢建議
-      if (a.trend15m === a.trend1m && a.trend15m !== 'neutral') {
+      if (a.trend5m === a.trend1m && a.trend5m !== 'neutral') {
         trendCard.className = "rounded-xl p-4 border bg-green/10 border-green/30";
         trendAdvice.className = "text-center text-sm text-green-300";
-        trendAdvice.textContent = `✅ 雙周期共振！${a.trend15m === 'long' ? '做多' : '做空'}信號確認`;
-      } else if (a.trend15m === 'neutral' || a.trend1m === 'neutral') {
+        trendAdvice.textContent = `✅ 雙周期共振！${a.trend5m === 'long' ? '做多' : '做空'}信號確認`;
+      } else if (a.trend5m === 'neutral' || a.trend1m === 'neutral') {
         trendCard.className = "rounded-xl p-4 border bg-yellow/10 border-yellow/30";
         trendAdvice.className = "text-center text-sm text-yellow-300";
         trendAdvice.textContent = "⚠️ 趨勢不明確，建議觀望等待";
@@ -759,22 +759,22 @@
         trendAdvice.textContent = "❌ 雙周期背離，不建議交易";
       }
       
-      // 15分鐘趨勢內容
-      trend15mContent.innerHTML = `
-        <div class="text-center text-xl font-bold ${a.trend15m === 'long' ? 'text-red' : a.trend15m === 'short' ? 'text-green' : 'text-yellow'} mb-2">
-          ${a.trend15m === 'long' ? '🔴 偏多趨勢' : a.trend15m === 'short' ? '🟢 偏空趨勢' : '🟡 盤整盤'}
+      // 5分鐘趨勢內容
+      trend5mContent.innerHTML = `
+        <div class="text-center text-xl font-bold ${a.trend5m === 'long' ? 'text-red' : a.trend5m === 'short' ? 'text-green' : 'text-yellow'} mb-2">
+          ${a.trend5m === 'long' ? '🔴 偏多趨勢' : a.trend5m === 'short' ? '🟢 偏空趨勢' : '🟡 盤整盤'}
         </div>
         <div class="grid grid-cols-2 gap-2 text-xs">
           <div class="bg-black/30 p-2 rounded text-center">
             <div class="text-gray-400">EMA角度</div>
-            <div class="font-bold">${a.emaAngle15m || 0}°</div>
+            <div class="font-bold">${a.emaAngle5m || 0}°</div>
           </div>
           <div class="bg-black/30 p-2 rounded text-center">
             <div class="text-gray-400">交易適配</div>
-            <div class="font-bold ${String(a.emaSuitable15m || '').includes('適合') ? 'text-green' : 'text-yellow'}">${a.emaSuitable15m || '—'}</div>
+            <div class="font-bold ${String(a.emaSuitable5m || '').includes('適合') ? 'text-green' : 'text-yellow'}">${a.emaSuitable5m || '—'}</div>
           </div>
         </div>
-        <div class="text-xs text-gray-300 mt-2">${a.advice15m || ''}</div>
+        <div class="text-xs text-gray-300 mt-2">${a.advice5m || ''}</div>
       `;
       
       // 1分鐘買點內容
@@ -796,9 +796,9 @@
       `;
       
       // 技術指標
-      document.getElementById('emaAngle15m').textContent = `${a.emaAngle15m || 0}°`;
+      document.getElementById('emaAngle5m').textContent = `${a.emaAngle5m || 0}°`;
       document.getElementById('emaAngle1m').textContent = `${a.emaAngle1m || 0}°`;
-      document.getElementById('emaSuitable15m').textContent = a.emaSuitable15m || '—';
+      document.getElementById('emaSuitable5m').textContent = a.emaSuitable5m || '—';
       document.getElementById('emaSuitable1m').textContent = a.emaSuitable1m || '—';
       document.getElementById('productType').textContent = a.productType || PRODUCT_TYPES.FUTURES;
       document.getElementById('rsiStatus').textContent = a.rsi;
@@ -886,20 +886,20 @@
       const content = [
         {
           type: 'text',
-          text: `【嚴格指令】你是專業期貨分析師，同時分析15分鐘和1分鐘兩張K線圖，產品名稱全中文，只返回標準JSON！
+          text: `【嚴格指令】你是專業期貨分析師，同時分析5分鐘和1分鐘兩張K線圖，產品名稱全中文，只返回標準JSON！
           核心規則：
-          1. 15分鐘K線 = 判斷大趨勢方向(long/short/neutral)
+          1. 5分鐘K線 = 判斷大趨勢方向(long/short/neutral)
           2. 1分鐘K線 = 尋找精確入場點位
           3. 趨勢與買點同向才標記為高優先級
-          4. 15分鐘止盈=3R/5R，1分鐘止盈=2R/3R
+          4. 5分鐘止盈=3R/5R，1分鐘止盈=2R/3R
           5. 優先級只判斷高/中/低
           
           必須返回的JSON字段：
           product(中文), productType(FUTURES), currentPrice, decimals,
-          trend15m(long/short/neutral), advice15m, emaAngle15m, emaSuitable15m,
+          trend5m(long/short/neutral), advice5m, emaAngle5m, emaSuitable5m,
           trend1m(long/short/neutral), advice1m, emaAngle1m, emaSuitable1m,
-          longPriority, longEntry15m, longEntry1m, longStopLoss1m, longTp1_15m, longTp2_15m, longTp1_1m, longTp2_1m, longReason,
-          shortPriority, shortEntry15m, shortEntry1m, shortStopLoss1m, shortTp1_15m, shortTp2_15m, shortTp1_1m, shortTp2_1m, shortReason,
+          longPriority, longEntry5m, longEntry1m, longStopLoss1m, longTp1_5m, longTp2_5m, longTp1_1m, longTp2_1m, longReason,
+          shortPriority, shortEntry5m, shortEntry1m, shortStopLoss1m, shortTp1_5m, shortTp2_5m, shortTp1_1m, shortTp2_1m, shortReason,
           rsi`
         }
       ];
@@ -963,25 +963,25 @@
         let res = await callOpenAI(state.aiBase64s);
         
         // 價格優化
-        res.longEntry15m = optimizePrice(res.longEntry15m);
+        res.longEntry5m = optimizePrice(res.longEntry5m);
         res.longEntry1m = optimizePrice(res.longEntry1m);
         res.longStopLoss1m = optimizePrice(res.longStopLoss1m);
-        res.shortEntry15m = optimizePrice(res.shortEntry15m);
+        res.shortEntry5m = optimizePrice(res.shortEntry5m);
         res.shortEntry1m = optimizePrice(res.shortEntry1m);
         res.shortStopLoss1m = optimizePrice(res.shortStopLoss1m);
         
         // 自動計算止盈點位
-        const longTP15m = calculateTakeProfit(res.longEntry15m, res.longStopLoss1m, true, res.decimals, false);
+        const longTP5m = calculateTakeProfit(res.longEntry5m, res.longStopLoss1m, true, res.decimals, false);
         const longTP1m = calculateTakeProfit(res.longEntry1m, res.longStopLoss1m, true, res.decimals, true);
-        const shortTP15m = calculateTakeProfit(res.shortEntry15m, res.shortStopLoss1m, false, res.decimals, false);
+        const shortTP5m = calculateTakeProfit(res.shortEntry5m, res.shortStopLoss1m, false, res.decimals, false);
         const shortTP1m = calculateTakeProfit(res.shortEntry1m, res.shortStopLoss1m, false, res.decimals, true);
         
-        res.longTp1_15m = longTP15m.tp1;
-        res.longTp2_15m = longTP15m.tp2;
+        res.longTp1_5m = longTP5m.tp1;
+        res.longTp2_5m = longTP5m.tp2;
         res.longTp1_1m = longTP1m.tp1;
         res.longTp2_1m = longTP1m.tp2;
-        res.shortTp1_15m = shortTP15m.tp1;
-        res.shortTp2_15m = shortTP15m.tp2;
+        res.shortTp1_5m = shortTP5m.tp1;
+        res.shortTp2_5m = shortTP5m.tp2;
         res.shortTp1_1m = shortTP1m.tp1;
         res.shortTp2_1m = shortTP1m.tp2;
         
