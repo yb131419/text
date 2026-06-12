@@ -952,17 +952,52 @@
         throw new Error("API 返回格式異常，無法解析分析結果，請重試");
       }
 
-      // 提取JSON
-      const match = data.choices[0].message.content.match(/\{[\s\S]*\}/);
-      if (!match) {
+            // 提取JSON (加強版：支援 Markdown 程式碼塊、修復常見格式問題)
+      const rawContent = data.choices[0].message.content;
+      let jsonStr = null;
+
+      // 1. 優先匹配 ```json ... ``` 格式的程式碼塊
+      const codeBlockMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1].trim();
+      } else {
+        // 2. 沒有程式碼塊則匹配最外層的 {} 物件
+        const braceMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (braceMatch) {
+          jsonStr = braceMatch[0].trim();
+        }
+      }
+
+      if (!jsonStr) {
         throw new Error("AI 回應內容無法解析為標準格式，請重新上傳更清晰的K線截圖");
       }
 
+      // 3. 預清理常見格式問題：移除行尾逗號、註解等
+      jsonStr = jsonStr
+        .replace(/,\s*([}\]])/g, '$1') // 移除最後一個屬性後的多餘逗號
+        .replace(/\/\/.*$/gm, '')       // 移除單行註解
+        .replace(/\/\*[\s\S]*?\*\//g, ''); // 移除多行註解
+
       let parsedData;
       try {
-        parsedData = JSON.parse(match[0]);
+        parsedData = JSON.parse(jsonStr);
       } catch (parseErr) {
-        throw new Error("JSON 解析失敗，AI 回傳格式不正確，請重試");
+        // 4. 解析失敗時嘗試額外修復：提取第一個完整的 {} 區塊
+        try {
+          const fallbackMatch = jsonStr.match(/^\s*(\{[\s\S]*?\})\s*$/);
+          if (fallbackMatch) {
+            parsedData = JSON.parse(fallbackMatch[1]);
+          } else {
+            throw new Error();
+          }
+        } catch (e) {
+          throw new Error(`JSON 解析失敗，AI 回傳格式不正確
+
+原始內容片段：
+${jsonStr.slice(0, 200)}${jsonStr.length > 200 ? '...' : ''}
+
+請重新上傳截圖重試，或確認圖片包含清晰的K線與數值`);
+        }
       }
       
       // ===== 整合中值後處理 =====
