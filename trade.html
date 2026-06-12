@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全品種AI智能偵測系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:w@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
@@ -177,6 +177,7 @@
   </div>
 
   <script>
+    // 角度描述函数（精准匹配统计）
     const getAngleDescription = (angle) => {
       const absAngle = Math.abs(angle);
       if (absAngle < 15) return `${angle}° (平緩)`;
@@ -185,6 +186,7 @@
       return `${angle}° (極陡)`;
     };
 
+    // 核心：EMA角度适配判断（严格对应统计区间）
     const getSuitabilityDescription = (angle) => {
       const absAngle = Math.abs(angle);
       if (absAngle >= 30) return "非常適合交易";
@@ -648,18 +650,28 @@
       `;
     };
 
+    // ✅ 核心修改：精准统计EMA角度适配次数（严格匹配角度区间）
     const renderStats = () => {
       const total = state.aiHistory.length;
       const productCounts = {};
       const directionCounts = { "做多": 0, "做空": 0, "盤整盤": 0 };
-      const angleCounts = { "非常適合交易": 0, "適合交易": 0, "尚可交易": 0, "不適合交易": 0 };
+      // 初始化角度统计（键名与getSuitabilityDescription完全一致）
+      const angleCounts = { 
+        "非常適合交易": 0, 
+        "適合交易": 0, 
+        "尚可交易": 0, 
+        "不適合交易": 0 
+      };
       
       state.aiHistory.forEach(r => {
+        // 统计产品分布
         productCounts[r.product] = (productCounts[r.product] || 0) + 1;
         
+        // 🔥 核心：按EMA角度统计适配次数
         const suitability = getSuitabilityDescription(r.emaAngle || 0);
         angleCounts[suitability]++;
         
+        // 统计方向分布
         const longWeight = priorityWeight[r.longPriority] || 0;
         const shortWeight = priorityWeight[r.shortPriority] || 0;
         if (longWeight > shortWeight) directionCounts["做多"]++;
@@ -679,6 +691,7 @@
           <div class="flex justify-between"><span>平均進場勝率</span><span class="text-green font-bold">${avgWinRate}</span></div>
         </div>
         
+        {/* 📐 EMA角度适配统计（严格匹配角度区间） */}
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
           <div class="font-bold mb-2">📐 EMA角度適配統計</div>
           <div class="flex justify-between text-green"><span>✅ 非常適合交易(≥30°)</span><span>${angleCounts["非常適合交易"]} 次</span></div>
