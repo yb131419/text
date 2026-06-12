@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全品種AI智能偵測系統 | 整合中值版 · 趨勢50點獲利保證</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
@@ -23,7 +25,7 @@
             purple: '#a855f7',
           },
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
           },
         },
       }
@@ -507,6 +509,14 @@
 
     const hideDebug = () => document.getElementById('aiDebug').classList.add('hidden');
 
+    const showError = (msg) => {
+      const el = document.getElementById('aiError');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    };
+
+    const hideError = () => document.getElementById('aiError').classList.add('hidden');
+
     // ========== 頁面渲染函數 ==========
     const renderHome = () => {
       if (!state.aiAnalysis) {
@@ -728,6 +738,9 @@
         <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
           <div class="font-bold text-sm">代理伺服器</div>
           <input id="proxyUrlInput" value="${state.proxyUrl}" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" />
+          <div class="text-xs text-gray-500">
+            💡 若遇 Load failed 請更換可用代理網址，確認支援 CORS 跨域請求
+          </div>
         </div>
         <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
           <div class="font-bold text-sm">風險參數設定</div>
@@ -895,7 +908,7 @@
       });
     };
 
-    // ========== OpenAI調用邏輯 ==========
+    // ========== OpenAI調用邏輯 (強化錯誤處理) ==========
     const callOpenAI = async (imgs) => {
       const systemPrompt = `你是專業全品種期貨分析師，使用整合中值演算法，嚴格按以下規則分析：
         1. 提取K線的EMA5、EMA20、ATR(14)、當前價、關鍵高低點
@@ -906,32 +919,80 @@
       const content = [{ type: 'text', text: systemPrompt }];
       imgs.forEach(img => content.push({ type: 'image_url', image_url: { url: img } }));
 
-      const res = await fetch(state.proxyUrl, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${state.apiKey}` 
-        },
-        body: JSON.stringify({ 
-          model: 'gpt-4o', 
-          messages: [{ role: 'user', content }], 
-          temperature: 0.1 
-        })
-      });
+      let res;
+      try {
+        res = await fetch(state.proxyUrl, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${state.apiKey}` 
+          },
+          body: JSON.stringify({ 
+            model: 'gpt-4o', 
+            messages: [{ role: 'user', content }], 
+            temperature: 0.1 
+          })
+        });
+      } catch (networkErr) {
+        throw new Error(`網路連線失敗 (Load failed)\n\n可能原因：\n1. 代理網址無效或不支援CORS跨域\n2. 網路連線不穩定\n3. 防火牆擋住請求\n\n建議：更換可用的API代理網址後重試`);
+      }
+
+      if (!res.ok) {
+        let errMsg = `API 請求錯誤 (HTTP ${res.status})`;
+        try {
+          const errData = await res.json();
+          if (errData.error) {
+            errMsg += `\n\n錯誤類型：${errData.error.type || 'unknown'}\n詳情：${errData.error.message || '無詳細資訊'}`;
+          }
+        } catch(e) {}
+        
+        if (res.status === 401) errMsg += "\n\n請檢查 API Key 是否正確";
+        if (res.status === 429) errMsg += "\n\n請求過於頻繁，請稍後再試";
+        if (res.status === 404) errMsg += "\n\n代理網址路徑錯誤，請確認是否正確";
+        
+        throw new Error(errMsg);
+      }
 
       const data = await res.json();
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        throw new Error("API 返回格式異常，無法解析分析結果");
+      }
+
       const match = data.choices[0].message.content.match(/\{[\s\S]*\}/);
-      const parsedData = JSON.parse(match[0]);
+      if (!match) {
+        throw new Error("AI 回應內容無法解析為 JSON 格式，請重試");
+      }
+
+      let parsedData;
+      try {
+        parsedData = JSON.parse(match[0]);
+      } catch (parseErr) {
+        throw new Error("JSON 解析失敗，AI 回傳格式不正確");
+      }
       
       // ===== 整合中值後處理 =====
       parsedData.result = null;
-      parsedData.emaAngle = calculateMergedEmaAngle(parsedData.ema5, parsedData.ema20, parsedData.currentPrice);
+      parsedData.emaAngle = calculateMergedEmaAngle(
+        num(parsedData.ema5), 
+        num(parsedData.ema20), 
+        num(parsedData.currentPrice)
+      );
       
-      const levels = calculateMergedLevels(parsedData.currentPrice, parsedData.atr14, false);
+      const levels = calculateMergedLevels(
+        num(parsedData.currentPrice), 
+        num(parsedData.atr14), 
+        false
+      );
       parsedData.support = levels.support;
       parsedData.resistance = levels.resistance;
       
-      const entryBase = calculateMergedEntryBaseSL(parsedData.currentPrice, parsedData.trend, parsedData.atr14, parsedData.emaAngle);
+      const entryBase = calculateMergedEntryBaseSL(
+        num(parsedData.currentPrice), 
+        parsedData.trend, 
+        num(parsedData.atr14), 
+        parsedData.emaAngle
+      );
       Object.assign(parsedData, entryBase);
       
       parsedData.entry = parsedData.trend === 'long' ? parsedData.longEntry : parsedData.shortEntry;
@@ -962,20 +1023,21 @@
     };
 
     const runAiAnalyze = async () => {
+      hideError();
       showDebug("整合中值分析中...");
-      if (!state.apiKey) { 
-        document.getElementById('aiError').textContent = "❌ 請輸入OpenAI API Key"; 
-        document.getElementById('aiError').classList.remove('hidden'); 
+      
+      if (!state.apiKey.trim()) { 
+        showError("❌ 請輸入有效的 OpenAI API Key"); 
         return; 
       }
       if (state.aiBase64s.length === 0) { 
-        document.getElementById('aiError').textContent = "❌ 請上傳K線截圖"; 
-        document.getElementById('aiError').classList.remove('hidden'); 
+        showError("❌ 請先上傳至少一張 K 線截圖"); 
         return; 
       }
       
-      document.getElementById('analyzeButton').textContent = "⏳ 分析中...";
-      document.getElementById('analyzeButton').disabled = true;
+      const analyzeBtn = document.getElementById('analyzeButton');
+      analyzeBtn.textContent = "⏳ 分析中...";
+      analyzeBtn.disabled = true;
 
       try {
         const r = await callOpenAI(state.aiBase64s);
@@ -989,11 +1051,11 @@
         showDebug("✅ 分析完成");
         setTimeout(hideDebug, 2000);
       } catch (e) {
-        document.getElementById('aiError').textContent = `❌ 分析錯誤：${e.message}`;
-        document.getElementById('aiError').classList.remove('hidden');
+        showError(`❌ ${e.message}`);
+        hideDebug();
       } finally {
-        document.getElementById('analyzeButton').textContent = "🔍 整合中值精準批判點位";
-        document.getElementById('analyzeButton').disabled = false;
+        analyzeBtn.textContent = "🔍 整合中值精準批判點位";
+        analyzeBtn.disabled = false;
         render();
       }
     };
@@ -1050,7 +1112,7 @@
         document.getElementById('fileInput').value = "";
         document.getElementById('imagePreview').classList.add('hidden');
         document.getElementById('aiResult').classList.add('hidden');
-        document.getElementById('aiError').classList.add('hidden');
+        hideError();
         hideDebug();
       });
     };
