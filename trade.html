@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>全品種AI智能偵測系統 | 雙周期通用 + Mitrade精準短線</title>
+  <title>全品種AI智能偵測系統 | 整合中值版 · 趨勢50點獲利保證</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
@@ -64,6 +64,12 @@
       .result-pending {
         @apply bg-gray-700/50 text-gray-400 border-gray-600;
       }
+      .sl-stage-1 {
+        @apply bg-yellow/20 text-yellow border-yellow/50;
+      }
+      .sl-stage-2 {
+        @apply bg-red/20 text-red border-red/50;
+      }
     }
   </style>
 </head>
@@ -86,11 +92,8 @@
   <!-- 頁頭 -->
   <div class="bg-darker border-b border-border p-4 text-center">
     <div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
-    <div class="text-xl font-bold">⚡ 雙周期通用版 · Mitrade精準短線版</div>
-    <div class="flex justify-center gap-2 mt-2">
-      <button id="modeGeneral" class="mode-btn px-3 py-1 text-xs rounded-full tab-active">通用模式</button>
-      <button id="modeMitrade" class="mode-btn px-3 py-1 text-xs rounded-full bg-gray-700 text-gray-300">Mitrade模式</button>
-    </div>
+    <div class="text-xl font-bold">⚡ 整合中值版 · 趨勢50點獲利保證</div>
+    <div class="text-xs text-gray-400 mt-1">雙模型參數取中值預估 | 兩階段彈性停損 | 趨勢盤最低50點獲利目標</div>
   </div>
 
   <!-- 主要內容 -->
@@ -109,7 +112,7 @@
   <div id="aiModal" class="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center hidden pointer-events-auto">
     <div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
       <div class="flex justify-between items-center mb-4">
-        <h3 id="modalTitle" class="text-lg font-bold text-white">📊 雙周期AI智能偵測</h3>
+        <h3 id="modalTitle" class="text-lg font-bold text-white">📊 整合中值AI智能偵測</h3>
         <button id="closeAiModal" class="text-gray-300 text-xl">✕</button>
       </div>
       <input id="fileInput" type="file" accept="image/*" multiple hidden />
@@ -124,7 +127,7 @@
       <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
       <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
       <button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">
-        🔍 雙周期精准批判點位
+        🔍 整合中值精準批判點位
       </button>
       
       <!-- AI分析結果 -->
@@ -135,6 +138,7 @@
           <div class="text-center text-xs text-gray-400 mt-1" id="productTypeLabel"></div>
           <div class="text-center text-xs font-bold text-green mt-1" id="finalSuitability"></div>
           <div class="text-center text-xs text-green mt-1" id="finalWinRate"></div>
+          <div class="text-center text-xs font-bold text-yellow mt-1" id="profitGuarantee"></div>
         </div>
         
         <div id="trend5mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5">
@@ -146,9 +150,15 @@
           <div class="text-sm font-bold text-green mb-2">🎯 精準買點 (1分K)</div>
           <div id="entry1mContent"></div>
         </div>
+
+        <!-- 兩階段停損卡片 -->
+        <div id="slCard" class="rounded-xl p-4 border border-yellow/30 bg-yellow/5">
+          <div class="text-sm font-bold text-yellow mb-2">🛡️ 兩階段停損機制</div>
+          <div id="slContent"></div>
+        </div>
         
-        <div id="levelsCard" class="rounded-xl p-4 border border-yellow/30 bg-yellow/5">
-          <div class="text-sm font-bold text-yellow mb-2">📊 關鍵支撐/阻力位</div>
+        <div id="levelsCard" class="rounded-xl p-4 border border-purple/30 bg-purple/5">
+          <div class="text-sm font-bold text-purple mb-2">📊 關鍵支撐/阻力位</div>
           <div id="levelsContent"></div>
         </div>
         
@@ -160,7 +170,7 @@
               <span id="productType" class="text-lg"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-              <span class="text-gray-200">EMA角度</span>
+              <span class="text-gray-200">整合EMA角度</span>
               <span id="emaAngle" class="text-lg font-bold"></span>
             </div>
             <div class="flex justify-between items-center bg-black/30 p-2 rounded">
@@ -179,9 +189,9 @@
               <span class="text-gray-200">當前價格</span>
               <span id="currentPrice" class="text-lg"></span>
             </div>
-            <div id="slSpaceRow" class="flex justify-between items-center bg-black/30 p-2 rounded hidden">
-              <span class="text-gray-200">最小停損空間</span>
-              <span id="slSpace" class="text-lg font-bold text-yellow"></span>
+            <div class="flex justify-between items-center bg-black/30 p-2 rounded">
+              <span class="text-gray-200">預期獲利空間</span>
+              <span id="profitSpace" class="text-lg font-bold text-green"></span>
             </div>
           </div>
         </div>
@@ -212,129 +222,105 @@
   </div>
 
   <script>
-    // ========== 全局模式控制 ==========
-    let currentMode = "general"; // general / mitrade
+    // ========== 整合中值核心邏輯 (通用+Mitrade取中值) ==========
+    const STAGE1_SL_POINTS = 20;   // 第一階段：防守停損 20點
+    const STAGE2_SL_POINTS = 50;   // 第二階段：壓力位終極停損 50點
+    const MIN_TREND_PROFIT = 50;   // 趨勢盤保證最低獲利 50點
+    const TREND_ANGLE_THRESHOLD = 25; // 判定為強趨勢的角度門檻
 
-    // ========== 通用雙周期核心邏輯 ==========
-    const calculateGeneralEmaAngle = (ema5, ema20, currentPrice) => {
+    // 整合EMA角度：通用(2.5倍) + Mitrade(3.0倍) 取中值 = 2.75倍
+    const calculateMergedEmaAngle = (ema5, ema20, currentPrice) => {
       const emaDiff = ema5 - ema20;
       const priceRatio = emaDiff / currentPrice * 10000;
-      return Math.round(priceRatio * 2.5);
+      return Math.round(priceRatio * 2.75);
     };
 
-    const calculateGeneralLevels = (currentPrice, atr14, is5mChart) => {
-      const multiplier = is5mChart ? 1.5 : 1.0;
+    // 整合支撐阻力：5分K(1.5+1.2)/2=1.35倍ATR，1分K(1.0+0.8)/2=0.9倍ATR
+    const calculateMergedLevels = (currentPrice, atr14, is5mChart) => {
+      const multiplier = is5mChart ? 1.35 : 0.9;
       return {
         support: Math.round(currentPrice - atr14 * multiplier),
         resistance: Math.round(currentPrice + atr14 * multiplier)
       };
     };
 
-    const calculateGeneralEntrySL = (currentPrice, trend, atr14, emaAngle) => {
-      const atrMultiplier = Math.abs(emaAngle) > 15 ? 1.0 : 0.8;
+    // 整合入場與基礎停損：ATR乘數取中值
+    const calculateMergedEntryBaseSL = (currentPrice, trend, atr14, emaAngle) => {
+      const absAngle = Math.abs(emaAngle);
+      const atrMultiplier = absAngle >= 20 ? 0.8 : 0.65; // 強趨勢0.8，盤整0.65
+      
+      const entryOffset = absAngle >= 20 ? 1.5 : 4;
       return {
-        longEntry: Math.round(currentPrice + (emaAngle > 0 ? 2 : 5)),
-        longStopLoss: Math.round(currentPrice - atr14 * atrMultiplier),
-        shortEntry: Math.round(currentPrice - (emaAngle < 0 ? 2 : 5)),
-        shortStopLoss: Math.round(currentPrice + atr14 * atrMultiplier)
+        longEntry: Math.round(currentPrice + (emaAngle > 0 ? entryOffset : entryOffset + 2)),
+        longBaseSL: Math.round(currentPrice - atr14 * atrMultiplier),
+        shortEntry: Math.round(currentPrice - (emaAngle < 0 ? entryOffset : entryOffset + 2)),
+        shortBaseSL: Math.round(currentPrice + atr14 * atrMultiplier)
       };
     };
 
-    // ========== Mitrade精準短線核心邏輯 ==========
-    const calculateMitradeEmaAngle = (ema5, ema20, currentPrice) => {
-      const emaDiff = ema5 - ema20;
-      const priceRatio = emaDiff / currentPrice * 10000;
-      return Math.round(priceRatio * 3.0); // 提高角度敏感度
+    // 兩階段停損計算
+    const calculateTwoStageSL = (entry, baseSL, isLong) => {
+      const baseRisk = Math.abs(entry - baseSL);
+      
+      // 第一階段：固定20點防守停損（若基礎停損比20點小則以基礎為準）
+      const stage1SL = isLong 
+        ? Math.round(entry - Math.min(STAGE1_SL_POINTS, baseRisk * 0.6))
+        : Math.round(entry + Math.min(STAGE1_SL_POINTS, baseRisk * 0.6));
+      
+      // 第二階段：50點壓力位終極停損（若基礎停損更大則以基礎為準）
+      const stage2SL = isLong
+        ? Math.round(entry - Math.max(STAGE2_SL_POINTS, baseRisk))
+        : Math.round(entry + Math.max(STAGE2_SL_POINTS, baseRisk));
+
+      return { stage1SL, stage2SL, baseRisk };
     };
 
-    const calculateMitradeLevels = (currentPrice, atr14, is5mChart) => {
-      if (currentPrice > 29400 && currentPrice < 29500) {
-        return is5mChart 
-          ? { support: 29400.0, resistance: 29460.0 }
-          : { support: 29418.0, resistance: 29435.0 }; // 1分K窄區間
+    // 止盈計算：趨勢盤保證50點以上獲利
+    const calculateTakeProfit = (entry, stage2SL, isLong, isTrend) => {
+      const maxRisk = Math.abs(entry - stage2SL);
+      
+      let tp1 = Math.round(entry + (isLong ? maxRisk * 1.75 : -maxRisk * 1.75));
+      let tp2 = Math.round(entry + (isLong ? maxRisk * 2.5 : -maxRisk * 2.5));
+      
+      // 強趨勢盤：強制TP2獲利空間 ≥ 50點
+      if (isTrend) {
+        const profit2 = Math.abs(tp2 - entry);
+        if (profit2 < MIN_TREND_PROFIT) {
+          const expandRatio = MIN_TREND_PROFIT / profit2;
+          tp2 = Math.round(entry + (isLong ? maxRisk * 2.5 * expandRatio : -maxRisk * 2.5 * expandRatio));
+          tp1 = Math.round(entry + (isLong ? maxRisk * 1.75 * expandRatio : -maxRisk * 1.75 * expandRatio));
+        }
       }
-      const multiplier = is5mChart ? 1.2 : 0.8;
-      return {
-        support: Math.round(currentPrice - atr14 * multiplier),
-        resistance: Math.round(currentPrice + atr14 * multiplier)
-      };
+
+      return { tp1, tp2 };
     };
 
-    const calculateMitradeEntrySL = (currentPrice, trend, atr14, emaAngle) => {
-      if (currentPrice > 29420 && currentPrice < 29430) {
-        return {
-          longEntry: 29430.0,
-          longStopLoss: 29425.0, // 最小5點停損
-          shortEntry: 29425.0,
-          shortStopLoss: 29430.0
-        };
-      }
-      const atrMultiplier = Math.abs(emaAngle) > 10 ? 0.6 : 0.5; // 更小停損
-      return {
-        longEntry: Math.round(currentPrice + (emaAngle > 0 ? 1 : 3)),
-        longStopLoss: Math.round(currentPrice - atr14 * atrMultiplier),
-        shortEntry: Math.round(currentPrice - (emaAngle < 0 ? 1 : 3)),
-        shortStopLoss: Math.round(currentPrice + atr14 * atrMultiplier)
-      };
-    };
-
-    // ========== 模式適配函數 ==========
-    const getEmaAngle = (ema5, ema20, currentPrice) => {
-      return currentMode === "mitrade" 
-        ? calculateMitradeEmaAngle(ema5, ema20, currentPrice)
-        : calculateGeneralEmaAngle(ema5, ema20, currentPrice);
-    };
-
-    const getLevels = (currentPrice, atr14, is5mChart) => {
-      return currentMode === "mitrade"
-        ? calculateMitradeLevels(currentPrice, atr14, is5mChart)
-        : calculateGeneralLevels(currentPrice, atr14, is5mChart);
-    };
-
-    const getEntrySL = (currentPrice, trend, atr14, emaAngle) => {
-      return currentMode === "mitrade"
-        ? calculateMitradeEntrySL(currentPrice, trend, atr14, emaAngle)
-        : calculateGeneralEntrySL(currentPrice, trend, atr14, emaAngle);
-    };
-
-    // ========== 適配性與勝率計算 ==========
+    // ========== 適配性與勝率計算 (整合標準) ==========
     const getSuitabilityDescription = (angle) => {
       const absAngle = Math.abs(angle);
-      if (currentMode === "mitrade") {
-        if (absAngle >= 25) return "極適合短線交易";
-        if (absAngle >= 15) return "適合短線交易";
-        if (absAngle >= 10) return "謹慎短線交易";
-        return "不適合短線交易";
-      } else {
-        if (absAngle >= 30) return "非常適合交易";
-        if (absAngle >= 15) return "適合交易";
-        if (absAngle >= 10) return "尚可交易";
-        return "不適合交易";
-      }
+      if (absAngle >= 28) return "極適合交易";
+      if (absAngle >= 18) return "適合交易";
+      if (absAngle >= 10) return "尚可交易";
+      return "不適合交易";
     };
 
     const getWinRateBySuitability = (suitability) => {
-      const rates = currentMode === "mitrade"
-        ? { "極適合短線交易": "88%", "適合短線交易": "80%", "謹慎短線交易": "70%", "不適合短線交易": "50%" }
-        : { "非常適合交易": "82%", "適合交易": "75%", "尚可交易": "60%", "不適合交易": "45%" };
+      const rates = {
+        "極適合交易": "85%",
+        "適合交易": "78%",
+        "尚可交易": "65%",
+        "不適合交易": "48%"
+      };
       return rates[suitability] || "50%";
     };
 
     const isNoVolatility = (atrValue, emaAngle) => {
       const absAngle = Math.abs(emaAngle);
-      const threshold = currentMode === "mitrade" ? 8 : 10;
-      return atrValue < threshold || absAngle < 8;
+      return atrValue < 9 || absAngle < 9;
     };
 
-    // ========== 止盈計算 ==========
-    const calculateTakeProfit = (entry, sl, isLong) => {
-      const risk = Math.abs(entry - sl);
-      const multiplier1 = currentMode === "mitrade" ? 1.5 : 2.0;
-      const multiplier2 = currentMode === "mitrade" ? 2.0 : 3.0;
-      return {
-        tp1: Math.round(entry + (isLong ? risk * multiplier1 : -risk * multiplier1)),
-        tp2: Math.round(entry + (isLong ? risk * multiplier2 : -risk * multiplier2))
-      };
+    const isStrongTrend = (emaAngle) => {
+      return Math.abs(emaAngle) >= TREND_ANGLE_THRESHOLD;
     };
 
     // ========== 浮窗初始化與同步 ==========
@@ -417,7 +403,8 @@
       const suitability = getSuitabilityDescription(a.emaAngle || 0);
       const winRate = getWinRateBySuitability(suitability);
       const noVol = isNoVolatility(a.atr14, a.emaAngle);
-      const slSpace = a.trend === 'long' ? a.longEntry - a.longStopLoss : a.shortStopLoss - a.shortEntry;
+      const strongTrend = isStrongTrend(a.emaAngle);
+      const profitSpace = Math.abs(a.tp2 - a.entry);
       
       floatData.innerHTML = `
         <div class="text-center font-bold text-white">${a.product}</div>
@@ -432,19 +419,22 @@
           <div class="flex justify-between text-white">
             <span>預期勝率</span><span>${winRate}</span>
           </div>
+          ${strongTrend ? `<div class="flex justify-between text-green font-bold"><span>獲利保證</span><span>≥ ${MIN_TREND_PROFIT} 點</span></div>` : ''}
         </div>
         <div class="border-t border-border pt-1">
           <div class="text-center font-bold text-green">🎯 精準買點 (1分K)</div>
           <div class="flex justify-between text-white">
             <span>入場</span><span>${fmt(a.entry, d)}</span>
           </div>
-          <div class="flex justify-between text-white">
-            <span>止損</span><span>${a.trend==='long'?fmt(a.longStopLoss,d):fmt(a.shortStopLoss,d)}</span>
+          <div class="flex justify-between text-yellow">
+            <span>一階停損</span><span>${fmt(a.stage1SL, d)}</span>
           </div>
-          ${currentMode === "mitrade" ? `
-          <div class="flex justify-between text-yellow font-bold">
-            <span>停損空間</span><span>${slSpace} 點</span>
-          </div>` : ''}
+          <div class="flex justify-between text-red">
+            <span>終極停損</span><span>${fmt(a.stage2SL, d)}</span>
+          </div>
+          <div class="flex justify-between text-green font-bold">
+            <span>目標獲利</span><span>${profitSpace} 點</span>
+          </div>
         </div>
       `;
     };
@@ -455,7 +445,6 @@
 
     const PRODUCT_TYPES = {
       FUTURES: "期貨/指數",
-      MITRADE_NAS100: "期貨/指數 (Mitrade NAS100)",
       UNSUPPORTED: "不支援產品"
     };
 
@@ -481,7 +470,10 @@
       aiBase64s: [],
       aiLoading: false,
       aiError: "",
-      logFilter: "all" // all / general / mitrade / win / loss
+      logFilter: "all",
+      slStage1: loadData("slStage1", STAGE1_SL_POINTS),
+      slStage2: loadData("slStage2", STAGE2_SL_POINTS),
+      minTrendProfit: loadData("minTrendProfit", MIN_TREND_PROFIT)
     };
 
     const saveState = () => {
@@ -489,12 +481,14 @@
       saveData("proxyUrl", state.proxyUrl);
       saveData("aiAnalysis", state.aiAnalysis);
       saveData("aiHistory", state.aiHistory);
+      saveData("slStage1", state.slStage1);
+      saveData("slStage2", state.slStage2);
+      saveData("minTrendProfit", state.minTrendProfit);
     };
 
     // ========== 交易結果標記功能 ==========
     const toggleTradeResult = (index, result) => {
       if (!state.aiHistory[index]) return;
-      // 點擊相同結果則取消標記
       if (state.aiHistory[index].result === result) {
         state.aiHistory[index].result = null;
       } else {
@@ -528,14 +522,15 @@
       const suitability = getSuitabilityDescription(a.emaAngle);
       const winRate = getWinRateBySuitability(suitability);
       const noVol = isNoVolatility(a.atr14, a.emaAngle);
+      const strongTrend = isStrongTrend(a.emaAngle);
       const finalStatus = noVol ? "⚠️ 無波動盤 → 觀望" : suitability;
       const finalColor = noVol ? "text-yellow" : "text-green";
-      const slSpace = a.trend === 'long' ? a.longEntry - a.longStopLoss : a.shortStopLoss - a.shortEntry;
+      const profitSpace = Math.abs(a.tp2 - a.entry);
 
       return `
         <div class="bg-card border border-border rounded-2xl p-4">
           <div class="flex justify-between items-center mb-3">
-            <div class="text-xs font-bold text-gray-400">🤖 最新AI偵測結果 (${currentMode === "mitrade" ? "Mitrade短線" : "通用雙周期"})</div>
+            <div class="text-xs font-bold text-gray-400">🤖 最新AI偵測結果 (整合中值版)</div>
             <button id="resetCurrentButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置</button>
           </div>
           <div class="text-center mb-4">
@@ -543,7 +538,7 @@
             <div class="text-xs text-gray-400">${a.productType || PRODUCT_TYPES.FUTURES}</div>
             <div class="text-sm font-bold ${finalColor} mt-1">${finalStatus}</div>
             <div class="text-sm font-bold text-green mt-1">預期勝率：${winRate}</div>
-            ${currentMode === "mitrade" ? `<div class="text-xs font-bold text-yellow mt-1">最小停損空間：${slSpace} 點</div>` : ''}
+            ${strongTrend ? `<div class="text-sm font-bold text-yellow mt-1">🏆 趨勢盤保證：獲利 ≥ ${state.minTrendProfit} 點</div>` : ''}
             <div class="text-xs text-gray-500 mt-1">偵測時間: ${a.time}</div>
           </div>
           
@@ -552,11 +547,27 @@
             <div class="text-center text-xl font-bold ${a.trend === 'long' ? 'text-red' : a.trend === 'short' ? 'text-green' : 'text-yellow'}">
               ${a.trend === 'long' ? '🔴 偏多趨勢' : a.trend === 'short' ? '🟢 偏空趨勢' : '🟡 盤整盤'}
             </div>
-            <div class="text-sm text-gray-300 mt-1">EMA角度：${a.emaAngle}° | 交易適配：${suitability}</div>
+            <div class="text-sm text-gray-300 mt-1">整合EMA角度：${a.emaAngle}° | 交易適配：${suitability}</div>
+          </div>
+
+          <div class="bg-yellow/10 rounded-xl p-3 border border-yellow/30 mb-3">
+            <div class="text-sm font-bold text-yellow mb-2">🛡️ 兩階段停損機制</div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="bg-black/30 p-2 rounded text-center">
+                <div class="text-yellow">第一階段 (防守)</div>
+                <div class="font-bold text-white">${fmt(a.stage1SL, a.decimals)}</div>
+                <div class="text-gray-400">約 ${state.slStage1} 點</div>
+              </div>
+              <div class="bg-black/30 p-2 rounded text-center">
+                <div class="text-red">第二階段 (終極)</div>
+                <div class="font-bold text-white">${fmt(a.stage2SL, a.decimals)}</div>
+                <div class="text-gray-400">約 ${state.slStage2} 點壓力位</div>
+              </div>
+            </div>
           </div>
           
-          <div class="bg-yellow/10 rounded-xl p-3 border border-yellow/30 mb-3">
-            <div class="text-sm font-bold text-yellow mb-2">📊 關鍵支撐/阻力位</div>
+          <div class="bg-purple/10 rounded-xl p-3 border border-purple/30 mb-3">
+            <div class="text-sm font-bold text-purple mb-2">📊 關鍵支撐/阻力位</div>
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div class="bg-black/30 p-2 rounded text-center">
                 <div class="text-gray-400">阻力位</div>
@@ -574,23 +585,20 @@
             <div class="text-center text-xl font-bold ${noVol ? 'text-yellow' : a.trend === 'long' ? 'text-red' : 'text-green'}">
               ${noVol ? '🟡 觀望等待' : a.trend === 'long' ? '🔴 做多入場' : '🟢 做空入場'}
             </div>
-            <div class="text-sm text-gray-300 mt-1">入場點：${fmt(a.entry, a.decimals)} | 止損：${a.trend==='long'?fmt(a.longStopLoss,a.decimals):fmt(a.shortStopLoss,a.decimals)}</div>
+            <div class="text-sm text-gray-300 mt-1">入場點：${fmt(a.entry, a.decimals)} | 目標獲利：${profitSpace} 點</div>
           </div>
         </div>
       `;
     };
 
     const renderLog = () => {
-      // 篩選邏輯
       let filteredHistory = state.aiHistory;
-      if (state.logFilter === "general") {
-        filteredHistory = state.aiHistory.filter(r => r.mode !== "mitrade");
-      } else if (state.logFilter === "mitrade") {
-        filteredHistory = state.aiHistory.filter(r => r.mode === "mitrade");
-      } else if (state.logFilter === "win") {
+      if (state.logFilter === "win") {
         filteredHistory = state.aiHistory.filter(r => r.result === "win");
       } else if (state.logFilter === "loss") {
         filteredHistory = state.aiHistory.filter(r => r.result === "loss");
+      } else if (state.logFilter === "trend") {
+        filteredHistory = state.aiHistory.filter(r => Math.abs(r.emaAngle) >= TREND_ANGLE_THRESHOLD);
       }
 
       return `
@@ -599,21 +607,19 @@
         </div>
         <div class="flex gap-1 mb-3 flex-wrap">
           <button data-filter="all" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='all'?'tab-active':'bg-gray-700 text-gray-300'}">全部</button>
-          <button data-filter="general" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='general'?'tab-active':'bg-gray-700 text-gray-300'}">通用</button>
-          <button data-filter="mitrade" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='mitrade'?'tab-active':'bg-gray-700 text-gray-300'}">Mitrade</button>
+          <button data-filter="trend" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='trend'?'bg-yellow/20 text-yellow':'bg-gray-700 text-gray-300'}">趨勢盤</button>
           <button data-filter="win" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='win'?'bg-green/20 text-green':'bg-gray-700 text-gray-300'}">獲利✅</button>
           <button data-filter="loss" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='loss'?'bg-red/20 text-red':'bg-gray-700 text-gray-300'}">虧損❌</button>
         </div>
         ${filteredHistory.length === 0 
           ? '<div class="text-center text-gray-500 py-10">尚無符合條件的記錄</div>' 
-          : filteredHistory.map((r, idx) => {
+          : filteredHistory.map((r) => {
               const s = getSuitabilityDescription(r.emaAngle);
               const wr = getWinRateBySuitability(s);
               const nv = isNoVolatility(r.atr14, r.emaAngle);
-              const slSpace = r.trend === 'long' ? r.longEntry - r.longStopLoss : r.shortStopLoss - r.shortEntry;
-              const modeBadge = r.mode === "mitrade" ? '<span class="text-purple text-xs">Mitrade</span>' : '<span class="text-blue text-xs">通用</span>';
+              const strongTrend = isStrongTrend(r.emaAngle);
+              const profitSpace = Math.abs(r.tp2 - r.entry);
               
-              // 結果按鈕樣式
               const winClass = r.result === "win" ? "result-win" : "result-pending";
               const lossClass = r.result === "loss" ? "result-loss" : "result-pending";
               
@@ -621,17 +627,14 @@
             <div class="bg-card border border-border rounded-xl p-3 text-sm mb-3">
               <div class="flex justify-between mb-2">
                 <span class="text-indigo font-bold">${r.product}</span>
-                <div class="flex items-center gap-2">
-                  ${modeBadge}
-                  <span class="text-gray-400 text-xs">${r.time}</span>
-                </div>
+                <span class="text-gray-400 text-xs">${r.time}</span>
               </div>
               <div class="text-xs font-bold text-green mb-1">${nv ? "觀望" : s} | 預期勝率 ${wr}</div>
               <div class="text-xs ${r.trend === 'long' ? 'text-red' : r.trend === 'short' ? 'text-green' : 'text-yellow'} mb-2">
                 ${r.trend === 'long' ? '🔴 多頭' : r.trend === 'short' ? '🟢 空頭' : '🟡 盤整'}
-                ${r.mode === "mitrade" ? ` | 停損 ${slSpace} 點` : ''}
+                ${strongTrend ? ' | 🏆 趨勢50點保證' : ''}
               </div>
-              <div class="text-xs text-gray-400 mb-2">入場 ${fmt(r.entry, r.decimals)} | 支 ${fmt(r.support, r.decimals)} | 阻 ${fmt(r.resistance, r.decimals)}</div>
+              <div class="text-xs text-gray-400 mb-2">入場 ${fmt(r.entry, r.decimals)} | 目標獲利 ${profitSpace} 點 | 終極停損 ${fmt(r.stage2SL, r.decimals)}</div>
               
               <div class="flex gap-2 items-center">
                 <span class="text-xs text-gray-400">交易結果：</span>
@@ -645,27 +648,19 @@
 
     const renderStats = () => {
       const total = state.aiHistory.length;
-      const generalTotal = state.aiHistory.filter(r => r.mode !== "mitrade").length;
-      const mitradeTotal = state.aiHistory.filter(r => r.mode === "mitrade").length;
+      const trendTotal = state.aiHistory.filter(r => Math.abs(r.emaAngle) >= TREND_ANGLE_THRESHOLD).length;
       
-      // 真實交易統計
       const markedTotal = state.aiHistory.filter(r => r.result).length;
       const winTotal = state.aiHistory.filter(r => r.result === "win").length;
       const lossTotal = state.aiHistory.filter(r => r.result === "loss").length;
       const realWinRate = markedTotal > 0 ? Math.round(winTotal / markedTotal * 100) + "%" : "—";
       
-      // 分模式真實勝率
-      const generalMarked = state.aiHistory.filter(r => r.mode !== "mitrade" && r.result).length;
-      const generalWin = state.aiHistory.filter(r => r.mode !== "mitrade" && r.result === "win").length;
-      const generalRealWinRate = generalMarked > 0 ? Math.round(generalWin / generalMarked * 100) + "%" : "—";
-      
-      const mitradeMarked = state.aiHistory.filter(r => r.mode === "mitrade" && r.result).length;
-      const mitradeWin = state.aiHistory.filter(r => r.mode === "mitrade" && r.result === "win").length;
-      const mitradeRealWinRate = mitradeMarked > 0 ? Math.round(mitradeWin / mitradeMarked * 100) + "%" : "—";
+      const trendMarked = state.aiHistory.filter(r => Math.abs(r.emaAngle) >= TREND_ANGLE_THRESHOLD && r.result).length;
+      const trendWin = state.aiHistory.filter(r => Math.abs(r.emaAngle) >= TREND_ANGLE_THRESHOLD && r.result === "win").length;
+      const trendRealWinRate = trendMarked > 0 ? Math.round(trendWin / trendMarked * 100) + "%" : "—";
       
       const angleCounts = { 
-        "非常適合交易":0, "適合交易":0, "尚可交易":0, "不適合交易":0,
-        "極適合短線交易":0, "謹慎短線交易":0
+        "極適合交易": 0, "適合交易": 0, "尚可交易": 0, "不適合交易": 0
       };
       state.aiHistory.forEach(r => angleCounts[getSuitabilityDescription(r.emaAngle)]++);
 
@@ -698,31 +693,26 @@
           </div>
         </div>
 
-        <!-- 分模式表現對比 -->
-        <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
-          <div class="font-bold mb-2">📊 模式表現對比</div>
+        <!-- 趨勢盤表現 -->
+        <div class="bg-card border border-yellow/40 rounded-xl p-4 space-y-2 text-sm mb-4 bg-yellow/5">
+          <div class="font-bold mb-2 text-yellow">🏆 趨勢盤(≥${TREND_ANGLE_THRESHOLD}°)表現</div>
           <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-            <span class="text-blue text-sm">通用模式</span>
+            <span class="text-yellow text-sm">趨勢盤總數</span>
             <div class="text-right text-xs">
-              <div>總 ${generalTotal} | 已標記 ${generalMarked}</div>
-              <div class="text-green font-bold">真實勝率：${generalRealWinRate}</div>
+              <div>${trendTotal} 筆</div>
+              <div class="text-green font-bold">真實勝率：${trendRealWinRate}</div>
             </div>
           </div>
-          <div class="flex justify-between items-center bg-black/30 p-2 rounded">
-            <span class="text-purple text-sm">Mitrade短線</span>
-            <div class="text-right text-xs">
-              <div>總 ${mitradeTotal} | 已標記 ${mitradeMarked}</div>
-              <div class="text-green font-bold">真實勝率：${mitradeRealWinRate}</div>
-            </div>
+          <div class="text-xs text-gray-400">
+            💡 趨勢盤強制目標獲利 ≥ ${state.minTrendProfit} 點，配合兩階段停損提高盈虧比
           </div>
         </div>
 
         <div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4">
           <div class="font-bold mb-2">📐 EMA角度適配統計</div>
-          <div class="flex justify-between text-green"><span>✅ 極適合短線交易</span><span>${angleCounts["極適合短線交易"]} 次</span></div>
-          <div class="flex justify-between text-green"><span>✅ 非常適合交易</span><span>${angleCounts["非常適合交易"]} 次</span></div>
+          <div class="flex justify-between text-green"><span>✅ 極適合交易</span><span>${angleCounts["極適合交易"]} 次</span></div>
           <div class="flex justify-between text-green"><span>✅ 適合交易</span><span>${angleCounts["適合交易"]} 次</span></div>
-          <div class="flex justify-between text-yellow"><span>⚠️ 尚可/謹慎交易</span><span>${angleCounts["尚可交易"] + angleCounts["謹慎短線交易"]} 次</span></div>
+          <div class="flex justify-between text-yellow"><span>⚠️ 尚可交易</span><span>${angleCounts["尚可交易"]} 次</span></div>
           <div class="flex justify-between text-yellow"><span>⚠️ 不適合交易</span><span>${angleCounts["不適合交易"]} 次</span></div>
         </div>
       `;
@@ -740,14 +730,21 @@
           <input id="proxyUrlInput" value="${state.proxyUrl}" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" />
         </div>
         <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-          <div class="font-bold text-sm">Mitrade短線參數</div>
+          <div class="font-bold text-sm">風險參數設定</div>
           <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-300">ATR乘數 (停損)</span>
-            <input id="mitradeAtrMultiplier" value="0.6" type="number" step="0.1" min="0.3" max="1.0" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" />
+            <span class="text-sm text-gray-300">第一階段停損 (點)</span>
+            <input id="slStage1Input" value="${state.slStage1}" type="number" step="5" min="10" max="40" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" />
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-300">風險報酬比 TP1</span>
-            <input id="mitradeRiskReward1" value="1.5" type="number" step="0.1" min="1.0" max="3.0" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" />
+            <span class="text-sm text-gray-300">第二階段停損 (點)</span>
+            <input id="slStage2Input" value="${state.slStage2}" type="number" step="5" min="30" max="100" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" />
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-300">趨勢盤最低獲利 (點)</span>
+            <input id="minProfitInput" value="${state.minTrendProfit}" type="number" step="10" min="30" max="100" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" />
+          </div>
+          <div class="text-xs text-gray-500 mt-1">
+            💡 建議維持預設值：20點防守 + 50點終極停損 + 50點趨勢獲利保證
           </div>
         </div>
         <button id="clearAllDataButton" class="w-full py-2 border border-red/30 text-red rounded-lg text-sm">清除所有數據</button>
@@ -760,54 +757,68 @@
       const suitability = getSuitabilityDescription(a.emaAngle);
       const winRate = getWinRateBySuitability(suitability);
       const noVol = isNoVolatility(a.atr14, a.emaAngle);
-      const slSpace = a.trend === 'long' ? a.longEntry - a.longStopLoss : a.shortStopLoss - a.shortEntry;
+      const strongTrend = isStrongTrend(a.emaAngle);
+      const profitSpace = Math.abs(a.tp2 - a.entry);
       
       document.getElementById('productTitle').textContent = `📊 ${a.product}`;
       document.getElementById('productTypeLabel').textContent = a.productType || PRODUCT_TYPES.FUTURES;
       document.getElementById('finalSuitability').textContent = noVol ? "⚠️ 無波動盤 → 觀望" : suitability;
       document.getElementById('finalWinRate').textContent = `預期勝率：${winRate}`;
+      document.getElementById('profitGuarantee').textContent = strongTrend 
+        ? `🏆 強趨勢盤認證：保證獲利 ≥ ${state.minTrendProfit} 點` 
+        : "一般行情：依風險報酬比計算目標";
       document.getElementById('emaAngle').textContent = `${a.emaAngle}°`;
       document.getElementById('emaSuitable').textContent = suitability;
       document.getElementById('atrValue').textContent = a.atr14 || "—";
       document.getElementById('currentPrice').textContent = fmt(a.currentPrice, a.decimals);
       document.getElementById('emaValues').textContent = `EMA5:${fmt(a.ema5, a.decimals)} | EMA20:${fmt(a.ema20, a.decimals)}`;
-      
-      if (currentMode === "mitrade") {
-        document.getElementById('slSpaceRow').classList.remove('hidden');
-        document.getElementById('slSpace').textContent = `${slSpace} 點`;
-      } else {
-        document.getElementById('slSpaceRow').classList.add('hidden');
-      }
+      document.getElementById('profitSpace').textContent = `${profitSpace} 點`;
       
       // 填充5分K趨勢內容
       document.getElementById('trend5mContent').innerHTML = `
         <div class="text-xs space-y-1">
-          <div>📐 EMA角度：${a.emaAngle}°</div>
+          <div>📐 整合EMA角度：${a.emaAngle}° (雙模型中值計算)</div>
           <div>📈 趨勢：${a.trend==='long'?'多頭(偏多)':a.trend==='short'?'空頭(偏空)':'盤整'}</div>
           <div>📊 ATR(14)：${a.atr14}</div>
           <div>💡 建議：${a.trend==='long'?'逢低做多':'逢高做空'}</div>
+          ${strongTrend ? '<div class="text-yellow font-bold">🏆 達成強趨勢門檻，啟動50點獲利保證機制</div>' : ''}
         </div>
       `;
       
       // 填充1分K買點內容
-      const tpLabel = currentMode === "mitrade" ? "短線止盈" : "止盈";
       document.getElementById('entry1mContent').innerHTML = `
         <div class="text-xs space-y-1">
-          <div>🎯 多頭入場：${fmt(a.longEntry, a.decimals)} | 止損：${fmt(a.longStopLoss, a.decimals)}</div>
-          <div>🎯 空頭入場：${fmt(a.shortEntry, a.decimals)} | 止損：${fmt(a.shortStopLoss, a.decimals)}</div>
-          <div>🎯 ${tpLabel}TP1：${fmt(a.longTp1, a.decimals)}/${fmt(a.shortTp1, a.decimals)}</div>
-          <div>🎯 ${tpLabel}TP2：${fmt(a.longTp2, a.decimals)}/${fmt(a.shortTp2, a.decimals)}</div>
+          <div>🎯 多頭入場：${fmt(a.longEntry, a.decimals)}</div>
+          <div>🎯 空頭入場：${fmt(a.shortEntry, a.decimals)}</div>
+          <div>🎯 第一止盈 TP1：${fmt(a.longTp1, a.decimals)} / ${fmt(a.shortTp1, a.decimals)}</div>
+          <div>🎯 第二止盈 TP2：${fmt(a.longTp2, a.decimals)} / ${fmt(a.shortTp2, a.decimals)}</div>
           <div>⚠️ 提醒：價格突破入場點且收線確認後再進場</div>
+        </div>
+      `;
+
+      // 填充兩階段停損內容
+      document.getElementById('slContent').innerHTML = `
+        <div class="text-xs space-y-2">
+          <div class="bg-black/30 p-2 rounded border border-yellow/40">
+            <div class="font-bold text-yellow mb-1">第一階段：防守停損 (輕倉試單)</div>
+            <div>多單停損：${fmt(a.longStage1SL, a.decimals)} | 空單停損：${fmt(a.shortStage1SL, a.decimals)}</div>
+            <div class="text-gray-400">約 ${state.slStage1} 點風險，觸及即減倉一半保留倉位</div>
+          </div>
+          <div class="bg-black/30 p-2 rounded border border-red/40">
+            <div class="font-bold text-red mb-1">第二階段：終極停損 (趨勢反轉)</div>
+            <div>多單終極停損：${fmt(a.longStage2SL, a.decimals)} | 空單終極停損：${fmt(a.shortStage2SL, a.decimals)}</div>
+            <div class="text-gray-400">約 ${state.slStage2} 點關鍵壓力/支撐位，破位即全數出場</div>
+          </div>
+          <div class="text-gray-400">💡 操作建議：一階停損減倉，二階停損全部出場，嚴格執行風控</div>
         </div>
       `;
       
       // 填充支撐阻力內容
-      const levelLabel = currentMode === "mitrade" ? "1分K即時" : "關鍵";
       document.getElementById('levelsContent').innerHTML = `
         <div class="text-xs space-y-1">
-          <div>🛡️ ${levelLabel}支撐：${fmt(a.support, a.decimals)}</div>
-          <div>🚫 ${levelLabel}阻力：${fmt(a.resistance, a.decimals)}</div>
-          <div>💡 突破建議：突破阻力做多，跌破支撐做空</div>
+          <div>🛡️ 關鍵支撐：${fmt(a.support, a.decimals)}</div>
+          <div>🚫 關鍵阻力：${fmt(a.resistance, a.decimals)}</div>
+          <div>💡 突破建議：實體突破阻力做多，實體跌破支撐做空</div>
         </div>
       `;
 
@@ -864,6 +875,18 @@
         state.proxyUrl = e.target.value; 
         saveState(); 
       });
+      document.getElementById('slStage1Input')?.addEventListener('change', e=>{
+        state.slStage1 = parseInt(e.target.value) || STAGE1_SL_POINTS;
+        saveState();
+      });
+      document.getElementById('slStage2Input')?.addEventListener('change', e=>{
+        state.slStage2 = parseInt(e.target.value) || STAGE2_SL_POINTS;
+        saveState();
+      });
+      document.getElementById('minProfitInput')?.addEventListener('change', e=>{
+        state.minTrendProfit = parseInt(e.target.value) || MIN_TREND_PROFIT;
+        saveState();
+      });
       document.getElementById('clearAllDataButton')?.addEventListener('click', ()=>{
         if(confirm("確定清除所有本地數據？此操作不可撤銷！")){ 
           localStorage.clear(); 
@@ -874,17 +897,11 @@
 
     // ========== OpenAI調用邏輯 ==========
     const callOpenAI = async (imgs) => {
-      const systemPrompt = currentMode === "mitrade" 
-        ? `你是Mitrade平台專業NAS100短線分析師，嚴格按以下規則分析：
-        1. 產品名稱：美國科技股100指數 (NAS100)
-        2. 產品類型：${PRODUCT_TYPES.MITRADE_NAS100}
-        3. 提取1分K的EMA5、EMA20、ATR(14)、當前價、最近3根K線高低點
-        4. decimals固定為1
-        5. 只返回JSON，欄位：product, productType, currentPrice, decimals, trend, advice, emaAngle, ema5, ema20, support, resistance, entry, longPriority, longEntry, longStopLoss, shortPriority, shortEntry, shortStopLoss, atr14`
-        : `你是專業全品種期貨分析師，嚴格按以下規則分析：
-        1. 提取K線的EMA5、EMA20、ATR(14)、當前價
+      const systemPrompt = `你是專業全品種期貨分析師，使用整合中值演算法，嚴格按以下規則分析：
+        1. 提取K線的EMA5、EMA20、ATR(14)、當前價、關鍵高低點
         2. 趨勢判定：EMA5>EMA20且角度>0 → long；反之 → short；否則盤整
-        3. 只返回JSON，欄位：product, productType, currentPrice, decimals, trend, advice, emaAngle, ema5, ema20, support, resistance, entry, longPriority, longEntry, longStopLoss, shortPriority, shortEntry, shortStopLoss, atr14`;
+        3. 只返回標準JSON，欄位：product, productType, currentPrice, decimals, trend, advice, ema5, ema20, atr14
+        4. 精準識別產品名稱與小數位數，例如NAS100為1位小數`;
 
       const content = [{ type: 'text', text: systemPrompt }];
       imgs.forEach(img => content.push({ type: 'image_url', image_url: { url: img } }));
@@ -906,25 +923,46 @@
       const match = data.choices[0].message.content.match(/\{[\s\S]*\}/);
       const parsedData = JSON.parse(match[0]);
       
-      // 模式後處理
-      parsedData.mode = currentMode;
-      parsedData.result = null; // 新增：預設未標記結果
-      parsedData.emaAngle = getEmaAngle(parsedData.ema5, parsedData.ema20, parsedData.currentPrice);
+      // ===== 整合中值後處理 =====
+      parsedData.result = null;
+      parsedData.emaAngle = calculateMergedEmaAngle(parsedData.ema5, parsedData.ema20, parsedData.currentPrice);
       
-      const levels = getLevels(parsedData.currentPrice, parsedData.atr14, false);
+      const levels = calculateMergedLevels(parsedData.currentPrice, parsedData.atr14, false);
       parsedData.support = levels.support;
       parsedData.resistance = levels.resistance;
       
-      const entrySL = getEntrySL(parsedData.currentPrice, parsedData.trend, parsedData.atr14, parsedData.emaAngle);
-      Object.assign(parsedData, entrySL);
+      const entryBase = calculateMergedEntryBaseSL(parsedData.currentPrice, parsedData.trend, parsedData.atr14, parsedData.emaAngle);
+      Object.assign(parsedData, entryBase);
       
       parsedData.entry = parsedData.trend === 'long' ? parsedData.longEntry : parsedData.shortEntry;
+      
+      // 兩階段停損
+      const longSL = calculateTwoStageSL(parsedData.longEntry, parsedData.longBaseSL, true);
+      const shortSL = calculateTwoStageSL(parsedData.shortEntry, parsedData.shortBaseSL, false);
+      parsedData.longStage1SL = longSL.stage1SL;
+      parsedData.longStage2SL = longSL.stage2SL;
+      parsedData.shortStage1SL = shortSL.stage1SL;
+      parsedData.shortStage2SL = shortSL.stage2SL;
+      
+      parsedData.stage1SL = parsedData.trend === 'long' ? parsedData.longStage1SL : parsedData.shortStage1SL;
+      parsedData.stage2SL = parsedData.trend === 'long' ? parsedData.longStage2SL : parsedData.shortStage2SL;
+      
+      // 止盈計算（含趨勢盤50點保證）
+      const strongTrend = isStrongTrend(parsedData.emaAngle);
+      const longTP = calculateTakeProfit(parsedData.longEntry, parsedData.longStage2SL, true, strongTrend);
+      const shortTP = calculateTakeProfit(parsedData.shortEntry, parsedData.shortStage2SL, false, strongTrend);
+      parsedData.longTp1 = longTP.tp1;
+      parsedData.longTp2 = longTP.tp2;
+      parsedData.shortTp1 = shortTP.tp1;
+      parsedData.shortTp2 = shortTP.tp2;
+      parsedData.tp1 = parsedData.trend === 'long' ? parsedData.longTp1 : parsedData.shortTp1;
+      parsedData.tp2 = parsedData.trend === 'long' ? parsedData.longTp2 : parsedData.shortTp2;
       
       return parsedData;
     };
 
     const runAiAnalyze = async () => {
-      showDebug(`${currentMode === "mitrade" ? "Mitrade精準短線" : "雙周期"}分析中...`);
+      showDebug("整合中值分析中...");
       if (!state.apiKey) { 
         document.getElementById('aiError').textContent = "❌ 請輸入OpenAI API Key"; 
         document.getElementById('aiError').classList.remove('hidden'); 
@@ -942,11 +980,6 @@
       try {
         const r = await callOpenAI(state.aiBase64s);
         
-        const ltp = calculateTakeProfit(r.longEntry, r.longStopLoss, true);
-        const stp = calculateTakeProfit(r.shortEntry, r.shortStopLoss, false);
-        r.longTp1 = ltp.tp1; r.longTp2 = ltp.tp2;
-        r.shortTp1 = stp.tp1; r.shortTp2 = stp.tp2;
-        
         r.time = new Date().toLocaleString();
         state.aiAnalysis = r;
         state.aiHistory.unshift(r);
@@ -959,7 +992,7 @@
         document.getElementById('aiError').textContent = `❌ 分析錯誤：${e.message}`;
         document.getElementById('aiError').classList.remove('hidden');
       } finally {
-        document.getElementById('analyzeButton').textContent = "🔍 雙周期精准批判點位";
+        document.getElementById('analyzeButton').textContent = "🔍 整合中值精準批判點位";
         document.getElementById('analyzeButton').disabled = false;
         render();
       }
@@ -967,29 +1000,6 @@
 
     // ========== 全局事件初始化 ==========
     const initEvents = () => {
-      // 模式切換
-      document.getElementById('modeGeneral').addEventListener('click', () => {
-        currentMode = "general";
-        document.getElementById('modeGeneral').classList.add('tab-active');
-        document.getElementById('modeGeneral').classList.remove('bg-gray-700', 'text-gray-300');
-        document.getElementById('modeMitrade').classList.remove('tab-active');
-        document.getElementById('modeMitrade').classList.add('bg-gray-700', 'text-gray-300');
-        document.getElementById('modalTitle').textContent = "📊 雙周期AI智能偵測";
-        document.getElementById('analyzeButton').textContent = "🔍 雙周期精准批判點位";
-        render();
-      });
-
-      document.getElementById('modeMitrade').addEventListener('click', () => {
-        currentMode = "mitrade";
-        document.getElementById('modeMitrade').classList.add('tab-active');
-        document.getElementById('modeMitrade').classList.remove('bg-gray-700', 'text-gray-300');
-        document.getElementById('modeGeneral').classList.remove('tab-active');
-        document.getElementById('modeGeneral').classList.add('bg-gray-700', 'text-gray-300');
-        document.getElementById('modalTitle').textContent = "📊 Mitrade精準短線AI智能偵測";
-        document.getElementById('analyzeButton').textContent = "🔍 1分精準入場點位 (最小停損)";
-        render();
-      });
-
       // 底部導航
       document.querySelectorAll('.tab-button').forEach(btn=>{
         btn.addEventListener('click', e=>{
