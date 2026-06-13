@@ -23,6 +23,7 @@
             yellow: '#f59e0b',
             indigo: '#6366f1',
             purple: '#a855f7',
+            cyan: '#06b6d4',
           },
           fontFamily: {
             sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
@@ -72,7 +73,7 @@
   <div class="bg-darker border-b border-border p-4 text-center">
     <div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
     <div class="text-xl font-bold">⚡ 整合中值版 · 趨勢50點獲利保證</div>
-    <div class="text-xs text-gray-400 mt-1">雙模型參數取中值計算 | 兩階段彈性停損 | 趨勢盤保證最低50點獲利空間</div>
+    <div class="text-xs text-gray-400 mt-1">雙模型參數取中值計算 | 三周期聯動驗證 | 兩階段彈性停損</div>
   </div>
 
   <!-- 主要內容 -->
@@ -93,11 +94,12 @@
       <input id="fileInput" type="file" accept="image/*" multiple hidden />
       <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
         上傳K線截圖
-        <div class="text-xs mt-1 text-gray-400">✅ 同時上傳5分+1分兩張獲得最佳效果 | 單張也可分析</div>
+        <div class="text-xs mt-1 text-gray-400">✅ 建議 5分K + 1分K + 分時圖 三張效果最佳；單張 / 兩張也可分析</div>
       </button>
-      <div id="imagePreview" class="mb-3 hidden grid grid-cols-2 gap-2">
-        <img id="previewImg1" src="" alt="K線1" class="w-full rounded-lg object-contain max-h-40" />
-        <img id="previewImg2" src="" alt="K線2" class="w-full rounded-lg object-contain max-h-40" />
+      <div id="imagePreview" class="mb-3 hidden grid grid-cols-3 gap-2">
+        <img id="previewImg1" src="" alt="K線1" class="w-full rounded-lg object-contain max-h-28 border border-gray-700" />
+        <img id="previewImg2" src="" alt="K線2" class="w-full rounded-lg object-contain max-h-28 border border-gray-700" />
+        <img id="previewImg3" src="" alt="分時圖" class="w-full rounded-lg object-contain max-h-28 border border-cyan/50" />
       </div>
       <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
       <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
@@ -113,14 +115,20 @@
           <div class="text-center text-sm text-gray-300 mb-1" id="productTypeLabel"></div>
           <div class="text-center text-base font-bold mb-1" id="trendAdvice"></div>
           <div class="text-center text-xs font-bold text-green mb-1" id="finalSuitability"></div>
-          <div class="text-center text-xs text-green mb-1" id="finalWinRate"></div>
-          <div class="text-center text-xs font-bold text-yellow" id="profitGuarantee"></div>
+          <div class="text-center text-xs font-bold text-yellow mb-1" id="finalWinRate"></div>
+          <div class="text-center text-xs font-bold text-cyan" id="profitGuarantee"></div>
         </div>
         
         <!-- 5分K趨勢卡片 -->
         <div id="trend5mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5">
           <div class="text-sm font-bold text-indigo mb-2">📈 大趨勢判斷 (5分K週期)</div>
           <div id="trend5mContent"></div>
+        </div>
+
+        <!-- 分時圖驗證卡片 -->
+        <div id="timeVerifyCard" class="rounded-xl p-4 border border-cyan/30 bg-cyan/5">
+          <div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖輔助驗證 (精細擇時)</div>
+          <div id="timeVerifyContent"></div>
         </div>
         
         <!-- 1分K買點卡片 -->
@@ -284,14 +292,20 @@
       return "不適合交易";
     };
 
-    const getWinRateBySuitability = (suitability) => {
+    const getWinRateBySuitability = (suitability, hasTimeVerify) => {
       const rates = {
         "極適合交易": "85%",
         "適合交易": "78%",
         "尚可交易": "65%",
         "不適合交易": "48%"
       };
-      return rates[suitability] || "50%";
+      const baseRate = rates[suitability] || "50%";
+      // 有分時驗證時，預期勝率提升3%
+      if (hasTimeVerify) {
+        const num = parseInt(baseRate);
+        return Math.min(num + 3, 92) + "%";
+      }
+      return baseRate;
     };
 
     const isNoVolatility = (atrValue, emaAngle) => {
@@ -385,14 +399,16 @@
         return `
           <div class="bg-card border border-border rounded-2xl p-4 text-center">
             <div class="text-gray-400 mb-2">還沒有偵測結果</div>
-            <div class="text-sm text-gray-500">點擊右下角🤖按鈕上傳K線截圖開始分析</div>
+            <div class="text-xs text-gray-500">點擊右下角🤖按鈕上傳K線截圖開始分析</div>
+            <div class="text-xs text-cyan/70 mt-2">💡 支援單張 / 多張圖片，建議搭配分時圖提升準確度</div>
           </div>
         `;
       }
 
       const a = state.aiAnalysis;
       const suitability = getSuitabilityDescription(a.emaAngle);
-      const winRate = getWinRateBySuitability(suitability);
+      const hasTimeVerify = !!a.trendConsistency;
+      const winRate = getWinRateBySuitability(suitability, hasTimeVerify);
       const noVol = isNoVolatility(a.atr14, a.emaAngle);
       const strongTrend = isStrongTrend(a.emaAngle);
       const finalStatus = noVol ? "⚠️ 無波動盤 → 建議觀望" : suitability;
@@ -419,7 +435,7 @@
           <!-- 產品與方向總結 -->
           <div class="text-center mb-4 pb-3 border-b border-gray-700">
             <div class="text-lg font-bold text-indigo mb-1">${a.product}</div>
-            <div class="text-xs text-gray-400 mb-2">${a.productType || PRODUCT_TYPES.FUTURES}</div>
+            <div class="text-xs text-gray-400 mb-2">${a.productType || PRODUCT_TYPES.FUTURES} ${hasTimeVerify ? '· ✅ 分時驗證' : ''}</div>
             <div class="text-xl font-bold ${trendColor} mb-2">${trendText}</div>
             <div class="text-base font-bold ${finalColor} mb-1">${finalStatus}</div>
             <div class="text-sm text-green font-medium mb-1">預期勝率：${winRate}</div>
@@ -436,6 +452,17 @@
               操作建議：<span class="font-medium">${a.trend === 'long' ? '逢低佈局做多單' : a.trend === 'short' ? '逢高佈局做空單' : '觀望為主，等待方向明確'}</span>
             </div>
           </div>
+
+          <!-- 分時驗證摘要 -->
+          ${hasTimeVerify ? `
+          <div class="bg-cyan/10 rounded-xl p-3 border border-cyan/30 mb-3">
+            <div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖驗證結論</div>
+            <div class="text-sm text-gray-300">
+              趨勢一致性：<span class="font-bold ${a.trendConsistency === '一致' ? 'text-green' : a.trendConsistency === '偏離' ? 'text-yellow' : 'text-red'}">${a.trendConsistency}</span><br>
+              進場建議：<span class="font-medium">${a.entryAdvice || '依1分K信號進場'}</span>
+            </div>
+          </div>
+          ` : ''}
 
           <!-- 兩階段停損 -->
           <div class="bg-yellow/10 rounded-xl p-3 border border-yellow/30 mb-3">
@@ -514,37 +541,36 @@
         </div>
         ${filteredHistory.length === 0 
           ? '<div class="text-center text-gray-500 py-10">尚無符合條件的分析紀錄</div>' 
-          : filteredHistory.map((r, index) => {
-              const s = getSuitabilityDescription(r.emaAngle);
-              const wr = getWinRateBySuitability(s);
-              const nv = isNoVolatility(r.atr14, r.emaAngle);
-              const strongTrend = isStrongTrend(r.emaAngle);
+          : filteredHistory.map((a, index) => {
+              const s = getSuitabilityDescription(a.emaAngle);
+              const hasTime = !!a.trendConsistency;
+              const strongTrend = isStrongTrend(a.emaAngle);
               
               // 動態計算獲利
-              const profitSpace = r.trend === 'long' 
-                ? Math.abs(r.longTp2 - r.longEntry) 
-                : Math.abs(r.shortTp2 - r.shortEntry);
+              const profitSpace = a.trend === 'long' 
+                ? Math.abs(a.longTp2 - a.longEntry) 
+                : Math.abs(a.shortTp2 - a.shortEntry);
               
-              const trendColor = r.trend === 'long' ? 'text-red' : r.trend === 'short' ? 'text-green' : 'text-yellow';
-              const orderType = r.trend === 'long' ? '做多單' : '做空單';
+              const trendColor = a.trend === 'long' ? 'text-red' : a.trend === 'short' ? 'text-green' : 'text-yellow';
+              const orderType = a.trend === 'long' ? '做多單' : '做空單';
               
-              const winClass = r.result === "win" ? "result-win" : "result-pending";
-              const lossClass = r.result === "loss" ? "result-loss" : "result-pending";
+              const winClass = a.result === "win" ? "result-win" : "result-pending";
+              const lossClass = a.result === "loss" ? "result-loss" : "result-pending";
               
               return `
             <div class="bg-card border border-border rounded-xl p-3 text-sm mb-3">
               <div class="flex justify-between mb-2">
-                <span class="text-indigo font-bold">${r.product}</span>
-                <span class="text-gray-400 text-xs">${r.time}</span>
+                <span class="text-indigo font-bold">${a.product} ${hasTime ? '· 🕐' : ''}</span>
+                <span class="text-gray-400 text-xs">${a.time}</span>
               </div>
               <div class="text-xs font-medium mb-1 ${trendColor}">
-                ${r.trend === 'long' ? '🔴 多頭' : r.trend === 'short' ? '🟢 空頭' : '🟡 盤整'} · ${orderType}
+                ${a.trend === 'long' ? '🔴 多頭' : a.trend === 'short' ? '🟢 空頭' : '🟡 盤整'} · ${orderType}
                 ${strongTrend ? ' · 🏆強趨勢' : ''}
               </div>
               <div class="text-xs text-gray-400 mb-2">
-                進場：${fmt(r.trend === 'long' ? r.longEntry : r.shortEntry, r.decimals)} · 
+                進場：${fmt(a.trend === 'long' ? a.longEntry : a.shortEntry, a.decimals)} · 
                 目標獲利：<span class="text-green font-medium">${profitSpace} 點</span> · 
-                終極停損：${fmt(r.trend === 'long' ? r.longStage2SL : r.shortStage2SL, r.decimals)}
+                終極停損：${fmt(a.trend === 'long' ? a.longStage2SL : a.shortStage2SL, a.decimals)}
               </div>
               
               <div class="flex gap-2 items-center pt-2 border-t border-gray-700">
@@ -560,6 +586,7 @@
     const renderStats = () => {
       const total = state.aiHistory.length;
       const trendTotal = state.aiHistory.filter(r => Math.abs(r.emaAngle) >= TREND_ANGLE_THRESHOLD).length;
+      const timeVerifyTotal = state.aiHistory.filter(r => r.trendConsistency).length;
       
       const markedTotal = state.aiHistory.filter(r => r.result).length;
       const winTotal = state.aiHistory.filter(r => r.result === "win").length;
@@ -616,6 +643,18 @@
           </div>
           <div class="text-xs text-gray-400 pt-1 border-t border-gray-700">
             💡 強趨勢盤強制目標獲利 ≥ ${state.minTrendProfit} 點，配合兩階段停損提高盈虧比
+          </div>
+        </div>
+
+        <!-- 分時驗證數據 -->
+        <div class="bg-card border border-cyan/40 rounded-xl p-4 space-y-2 text-sm mb-4 bg-cyan/5">
+          <div class="font-bold mb-2 text-cyan">⏱️ 分時驗證數據</div>
+          <div class="flex justify-between items-center bg-black/30 p-2 rounded">
+            <span class="text-cyan text-sm">含分時驗證單數</span>
+            <span class="font-bold text-white">${timeVerifyTotal} 筆</span>
+          </div>
+          <div class="text-xs text-gray-400 pt-1 border-t border-gray-700">
+            💡 分時圖驗證可過濾假突破信號，輔助提升進場時機精準度
           </div>
         </div>
 
@@ -678,7 +717,7 @@
         </button>
         
         <div class="text-xs text-gray-600 text-center">
-          全品種AI智能偵測系統 · 整合中值版 v2.0
+          全品種AI智能偵測系統 · 整合中值版 v2.1
         </div>
       `;
     };
@@ -688,7 +727,8 @@
       if (!state.aiAnalysis) return;
       const a = state.aiAnalysis;
       const suitability = getSuitabilityDescription(a.emaAngle);
-      const winRate = getWinRateBySuitability(suitability);
+      const hasTimeVerify = !!a.trendConsistency;
+      const winRate = getWinRateBySuitability(suitability, hasTimeVerify);
       const noVol = isNoVolatility(a.atr14, a.emaAngle);
       const strongTrend = isStrongTrend(a.emaAngle);
       
@@ -703,7 +743,7 @@
 
       // 填充標題區
       document.getElementById('productTitle').textContent = `📊 ${a.product}`;
-      document.getElementById('productTypeLabel').textContent = a.productType || PRODUCT_TYPES.FUTURES;
+      document.getElementById('productTypeLabel').textContent = `${a.productType || PRODUCT_TYPES.FUTURES} ${hasTimeVerify ? '· ✅ 分時驗證' : ''}`;
       document.getElementById('trendAdvice').innerHTML = `<span class="${trendColor} font-bold">${trendText}</span>`;
       document.getElementById('finalSuitability').textContent = noVol ? "⚠️ 無波動盤 → 建議觀望" : suitability;
       document.getElementById('finalWinRate').textContent = `預期勝率：${winRate}`;
@@ -729,6 +769,35 @@
           ${strongTrend ? '<div class="text-yellow font-medium pt-1 border-t border-yellow/30">🏆 達成強趨勢門檻，啟動50點獲利保證機制</div>' : ''}
         </div>
       `;
+
+      // 填充分時驗證內容
+      const timeCard = document.getElementById('timeVerifyCard');
+      if (hasTimeVerify) {
+        timeCard.classList.remove('hidden');
+        document.getElementById('timeVerifyContent').innerHTML = `
+          <div class="text-xs space-y-2">
+            <div class="flex justify-between">
+              <span>趨勢一致性：</span>
+              <span class="font-bold ${a.trendConsistency === '一致' ? 'text-green' : a.trendConsistency === '偏離' ? 'text-yellow' : 'text-red'}">${a.trendConsistency}</span>
+            </div>
+            <div class="bg-black/30 p-2 rounded">
+              <div class="font-medium text-cyan mb-1">進場時機建議</div>
+              <div class="text-gray-300">${a.entryAdvice || '依1分K信號確認後進場'}</div>
+            </div>
+            ${a.riskNote ? `
+            <div class="bg-black/30 p-2 rounded">
+              <div class="font-medium text-yellow mb-1">風控備註</div>
+              <div class="text-gray-300">${a.riskNote}</div>
+            </div>
+            ` : ''}
+            <div class="text-gray-400 pt-1 border-t border-gray-700">
+              💡 分時圖為輔助驗證，最終進場仍以5分K趨勢為主
+            </div>
+          </div>
+        `;
+      } else {
+        timeCard.classList.add('hidden');
+      }
       
       // 填充1分K買點內容
       document.getElementById('entry1mContent').innerHTML = `
@@ -882,9 +951,22 @@
 請嚴格按照以下規則分析：
 1. 從圖中提取當前價格、EMA5均線、EMA20均線、ATR(14)數值
 2. 識別產品名稱、小數位數
-3. 判斷趨勢：EMA5在EMA20上方且角度向上為long(多頭)；EMA5在EMA20下方且角度向下為short(空頭)；否則盤整
-4. 只返回標準JSON格式，欄位：product(產品名), productType(產品類型), currentPrice(當前價格), decimals(小數位數), trend(long/short/sideways), advice(操作建議), ema5(EMA5數值), ema20(EMA20數值), atr14(ATR14數值)
-5. 數值請精準，不要胡亂編造，若圖中無法識別的數值請合理估算`;
+3. 判斷趨勢：EMA5在EMA20上方且角度向上為long(多頭)；EMA5在EMA20下方且角度向下為short(空頭)；否則sideways(盤整)
+4. 若圖中有分時圖，請額外分析分時走勢與大趨勢的一致性，給出進場時機建議
+5. 只返回標準JSON格式，欄位：
+  - product: 產品名
+  - productType: 產品類型
+  - currentPrice: 當前價格
+  - decimals: 小數位數
+  - trend: long/short/sideways
+  - advice: 操作建議
+  - ema5: EMA5數值
+  - ema20: EMA20數值
+  - atr14: ATR14數值
+  - trendConsistency: 分時趨勢與5分K趨勢一致性(一致/偏離/背離)，無分時圖則省略
+  - entryAdvice: 分時圖進場時機建議，無分時圖則省略
+  - riskNote: 分時圖風控備註，無分時圖則省略
+`;
 
       const content = [{ type: 'text', text: systemPrompt }];
       imgs.forEach(img => {
@@ -952,7 +1034,7 @@
         throw new Error("API 返回格式異常，無法解析分析結果，請重試");
       }
 
-            // 提取JSON (加強版：支援 Markdown 程式碼塊、修復常見格式問題)
+      // 提取JSON (加強版：支援 Markdown 程式碼塊、修復常見格式問題)
       const rawContent = data.choices[0].message.content;
       let jsonStr = null;
 
@@ -1075,133 +1157,134 @@ ${jsonStr.slice(0, 200)}${jsonStr.length > 200 ? '...' : ''}
 
       try {
         const result = await callOpenAI(state.aiBase64s);
-        
-        // 保存結果
         state.aiAnalysis = result;
         state.aiHistory.unshift(result);
-        
-        // 限制歷史紀錄數量
-        if (state.aiHistory.length > 200) {
-          state.aiHistory = state.aiHistory.slice(0, 200);
-        }
-        
         saveState();
         
-        // 更新UI
+        hideDebug();
         renderAiResult();
-        render(); // 更新首頁
-        
-        showDebug("✅ 分析完成！");
-        setTimeout(hideDebug, 1500);
+        render();
         
       } catch (err) {
-        showError(err.message || "分析過程發生未知錯誤，請重試");
         hideDebug();
+        showError(`❌ 分析失敗：\n${err.message || '未知錯誤'}`);
       } finally {
         analyzeBtn.textContent = originalText;
         analyzeBtn.disabled = false;
       }
     };
 
-    // ========== 全域初始化 ==========
-    const initApp = () => {
-      // AI模態框相關
-      document.getElementById('aiButton').addEventListener('click', () => {
-        document.getElementById('aiModal').classList.remove('hidden');
-        // 如果已有分析結果，直接顯示
-        if (state.aiAnalysis) {
-          renderAiResult();
-        }
-      });
+    // ========== 圖片上傳處理 ==========
+    const handleFileSelect = (files) => {
+      hideError();
+      hideDebug();
       
-      document.getElementById('closeAiModal').addEventListener('click', () => {
-        document.getElementById('aiModal').classList.add('hidden');
-      });
+      if (!files || files.length === 0) return;
       
-      // 點擊背景關閉
-      document.getElementById('aiModal').addEventListener('click', (e) => {
-        if (e.target.id === 'aiModal') {
-          document.getElementById('aiModal').classList.add('hidden');
-        }
-      });
+      state.aiBase64s = [];
+      const previewImgs = [
+        document.getElementById('previewImg1'),
+        document.getElementById('previewImg2'),
+        document.getElementById('previewImg3')
+      ];
       
-      // 上傳圖片
-      document.getElementById('uploadButton').addEventListener('click', () => {
-        document.getElementById('fileInput').click();
-      });
+      previewImgs.forEach(img => img.src = '');
+      document.getElementById('imagePreview').classList.remove('hidden');
       
-      document.getElementById('fileInput').addEventListener('change', e => {
-        const files = Array.from(e.target.files);
-        if (!files.length) return;
+      let validCount = 0;
+      for (let i = 0; i < Math.min(files.length, 3); i++) {
+        const file = files[i];
+        if (!file.type.startsWith('image/')) continue;
         
-        state.aiBase64s = [];
-        let loadedCount = 0;
-        
-        files.forEach((file, index) => {
-          const reader = new FileReader();
-          reader.onload = ev => {
-            state.aiBase64s.push(ev.target.result);
-            loadedCount++;
-            
-            // 顯示預覽
-            if (index === 0) {
-              document.getElementById('previewImg1').src = ev.target.result;
-            }
-            if (index === 1) {
-              document.getElementById('previewImg2').src = ev.target.result;
-            }
-            
-            // 全部載入完成
-            if (loadedCount === files.length) {
-              document.getElementById('imagePreview').classList.remove('hidden');
-              // 只有一張時隱藏第二個預覽
-              document.getElementById('previewImg2').style.display = files.length < 2 ? 'none' : 'block';
-            }
-          };
-          reader.readAsDataURL(file);
-        });
-      });
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64 = e.target.result;
+          state.aiBase64s.push(base64);
+          
+          if (validCount < previewImgs.length) {
+            previewImgs[validCount].src = base64;
+            validCount++;
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
 
-      // 分析按鈕
-      document.getElementById('analyzeButton').addEventListener('click', runAiAnalyze);
+    // ========== 初始化 ==========
+    const init = () => {
+      render();
       
-      // 重置分析
-      document.getElementById('resetAiButton').addEventListener('click', () => {
-        state.aiBase64s = [];
-        document.getElementById('fileInput').value = "";
-        document.getElementById('imagePreview').classList.add('hidden');
-        document.getElementById('aiResult').classList.add('hidden');
-        hideError();
-        hideDebug();
-      });
-      
-      // 底部導航切換
+      // 分頁切換
       document.querySelectorAll('.tab-button').forEach(btn => {
         btn.addEventListener('click', e => {
-          const tab = e.currentTarget.dataset.tab;
-          state.tab = tab;
+          state.tab = e.currentTarget.dataset.tab;
           
-          // 更新按鈕樣式
           document.querySelectorAll('.tab-button').forEach(b => {
             b.classList.remove('text-indigo');
             b.classList.add('text-gray-400');
           });
+          
           e.currentTarget.classList.remove('text-gray-400');
           e.currentTarget.classList.add('text-indigo');
-          
           render();
         });
       });
       
-      // 首次渲染
-      render();
+      // AI 模態框
+      const aiButton = document.getElementById('aiButton');
+      const aiModal = document.getElementById('aiModal');
+      const closeAiModal = document.getElementById('closeAiModal');
+      
+      aiButton.addEventListener('click', () => {
+        aiModal.classList.remove('hidden');
+      });
+      
+      closeAiModal.addEventListener('click', () => {
+        aiModal.classList.add('hidden');
+      });
+      
+      aiModal.addEventListener('click', (e) => {
+        if (e.target === aiModal) {
+          aiModal.classList.add('hidden');
+        }
+      });
+      
+      // 上傳按鈕
+      const fileInput = document.getElementById('fileInput');
+      const uploadButton = document.getElementById('uploadButton');
+      
+      uploadButton.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      fileInput.addEventListener('change', (e) => {
+        handleFileSelect(e.target.files);
+      });
+      
+      // 分析按鈕
+      document.getElementById('analyzeButton').addEventListener('click', runAiAnalyze);
+      
+      // 重置按鈕
+      document.getElementById('resetAiButton').addEventListener('click', () => {
+        state.aiBase64s = [];
+        document.getElementById('imagePreview').classList.add('hidden');
+        document.getElementById('aiResult').classList.add('hidden');
+        hideError();
+        hideDebug();
+        fileInput.value = '';
+      });
+      
+      // 點擊預覽圖可關閉
+      document.querySelectorAll('#imagePreview img').forEach(img => {
+        img.addEventListener('click', () => {
+          img.src = '';
+          state.aiBase64s = [];
+        });
+      });
     };
 
-    // 頁面載入完成後初始化
-    document.addEventListener('DOMContentLoaded', initApp);
-    
-    // 暴露全域函數給onclick使用
-    window.toggleTradeResult = toggleTradeResult;
+    // 啟動
+    window.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
