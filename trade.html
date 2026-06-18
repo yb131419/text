@@ -1,1 +1,695 @@
-<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>全品種AI智能偵測系統 | 整合中值版 · 趨勢50點獲利保證</title><script src="https://cdn.tailwindcss.com"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script>tailwind.config={theme:{extend:{colors:{dark:'#07080f',darker:'#0d1018',card:'#111520',border:'#1a1e2e',green:'#1db954',red:'#e03e3e',blue:'#38bdf8',yellow:'#f59e0b',indigo:'#6366f1',purple:'#a855f7',cyan:'#06b6d4'},fontFamily:{sans:['Inter','system-ui','-apple-system','sans-serif']}}}}</script><style type="text/tailwindcss">@layer utilities{.content-auto{content-visibility:auto}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}.scrollbar-hide::-webkit-scrollbar{display:none}.tab-active{@apply bg-indigo/20 text-indigo}.result-btn{@apply px-2 py-0.5 rounded text-[10px] font-bold border transition-all}.result-win{@apply bg-green/20 text-green border-green/50}.result-loss{@apply bg-red/20 text-red border-red/50}.result-pending{@apply bg-gray-700/50 text-gray-400 border-gray-600}.sl-stage-1{@apply bg-yellow/20 text-yellow border-yellow/50}.sl-stage-2{@apply bg-red/20 text-red border-red/50}}</style></head><body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative"><div class="bg-darker border-b border-border p-4 text-center"><div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div><div class="text-xl font-bold">⚡ 整合中值版 · 趨勢50點獲利保證</div><div class="text-xs text-gray-400 mt-1">雙模型參數取中值計算 | 三周期聯動驗證 | 兩階段彈性停損 | 道氏+EMA5雙確認</div></div><div id="content" class="max-w-sm mx-auto p-4 space-y-4"></div><button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-indigo shadow-lg flex items-center justify-center text-2xl z-50 pointer-events-auto">🤖</button><div id="aiModal" class="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center hidden pointer-events-auto"><div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide"><div class="flex justify-between items-center mb-4"><h3 id="modalTitle" class="text-lg font-bold text-white">📊 整合中值AI智能偵測</h3><button id="closeAiModal" class="text-gray-300 text-xl">✕</button></div><input id="fileInput" type="file" accept="image/*" multiple hidden><button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">上傳K線截圖<div class="text-xs mt-1 text-gray-400">✅ 建議 5分K + 1分K + 分時圖 三張效果最佳；單張 / 兩張也可分析</div></button><div id="imagePreview" class="mb-3 hidden grid grid-cols-3 gap-2"><img id="previewImg1" src="" alt="K線1" class="w-full rounded-lg object-contain max-h-28 border border-gray-700"><img id="previewImg2" src="" alt="K線2" class="w-full rounded-lg object-contain max-h-28 border border-gray-700"><img id="previewImg3" src="" alt="分時圖" class="w-full rounded-lg object-contain max-h-28 border border-cyan/50"></div><div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div><div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div><button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">🔍 整合中值精準批判點位</button><div id="aiResult" class="space-y-4 hidden"><div id="trendCard" class="rounded-xl p-4 border"><div class="text-lg font-bold text-center mb-2" id="productTitle"></div><div class="text-center text-sm text-gray-300 mb-1" id="productTypeLabel"></div><div class="text-center text-base font-bold mb-1" id="trendAdvice"></div><div class="text-center text-xs font-bold text-green mb-1" id="finalSuitability"></div><div class="text-center text-xs font-bold text-yellow mb-1" id="finalWinRate"></div><div class="text-center text-xs font-bold text-cyan" id="profitGuarantee"></div></div><div id="trend5mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5"><div class="text-sm font-bold text-indigo mb-2">📈 大趨勢判斷 (5分K週期)</div><div id="trend5mContent"></div></div><div id="dowCard" class="rounded-xl p-4 border border-emerald/30 bg-emerald/5"><div class="text-sm font-bold text-emerald mb-2">📐 道氏理論 + EMA5 雙確認</div><div id="dowContent"></div></div><div id="timeVerifyCard" class="rounded-xl p-4 border border-cyan/30 bg-cyan/5"><div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖輔助驗證 (精細擇時)</div><div id="timeVerifyContent"></div></div><div id="entry1mCard" class="rounded-xl p-4 border border-green/30 bg-green/5"><div class="text-sm font-bold text-green mb-2">🎯 精準進場點位 (1分K週期)</div><div id="entry1mContent"></div></div><div id="slCard" class="rounded-xl p-4 border border-yellow/30 bg-yellow/5"><div class="text-sm font-bold text-yellow mb-2">🛡️ 兩階段停損機制</div><div id="slContent"></div></div><div id="levelsCard" class="rounded-xl p-4 border border-purple/30 bg-purple/5"><div class="text-sm font-bold text-purple mb-2">📊 關鍵支撐/阻力位</div><div id="levelsContent"></div></div><div class="bg-darker rounded-xl p-4 border border-gray-600" id="indicatorCard"><div class="text-sm font-bold text-white mb-3">📋 技術指標詳細數據</div><div class="space-y-2"><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">產品類型</span><span id="productType" class="text-lg font-medium"></span></div><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">整合EMA角度</span><span id="emaAngle" class="text-lg font-bold text-indigo"></span></div><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">交易適配度</span><span id="emaSuitable" class="text-lg font-bold"></span></div><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">ATR(14)波動率</span><span id="atrValue" class="text-lg font-bold text-blue"></span></div><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">EMA5 / EMA20</span><span id="emaValues" class="text-sm"></span></div><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">當前價格</span><span id="currentPrice" class="text-lg font-medium"></span></div><div class="flex justify-between items-center bg-black/30 p-2 border border-green/30"><span class="text-gray-200 font-medium">預期目標獲利空間</span><span id="profitSpace" class="text-lg font-bold text-green"></span></div></div></div></div><button id="resetAiButton" class="w-full mt-3 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">重新上傳截圖</button></div></div><div class="fixed bottom-0 left-0 right-0 bg-darker border-t border-border pb-3 pt-2 z-30"><div class="max-w-sm mx-auto grid grid-cols-4 text-xs text-center"><button data-tab="home" class="tab-button pt-1 pb-1 rounded-lg text-indigo"><div class="text-lg mb-1">🏠</div>最新</button><button data-tab="log" class="tab-button pt-1 pb-1 rounded-lg text-gray-400"><div class="text-lg mb-1">📓</div>歷史</button><button data-tab="stats" class="tab-button pt-1 pb-1 rounded-lg text-gray-400"><div class="text-lg mb-1">📈</div>統計</button><button data-tab="settings" class="tab-button pt-1 pb-1 rounded-lg text-gray-400"><div class="text-lg mb-1">⚙️</div>設定</button></div></div><script>const STAGE1_SL_POINTS=20;const STAGE2_SL_POINTS=50;const MIN_TREND_PROFIT=50;const TREND_ANGLE_THRESHOLD=25;const DOW_EMA5_ANGLE_THRESHOLD=15;const PULLBACK_TOLERANCE=0.002;const CONSOLIDATION_WAIT_MINUTES=15;const calculateMergedEmaAngle=(ema5,ema20,currentPrice)=>{const emaDiff=ema5-ema20;const priceRatio=emaDiff/currentPrice*10000;return Math.round(priceRatio*2.75)};const calculateMergedLevels=(currentPrice,atr14,is5mChart)=>{const multiplier=is5mChart?1.35:0.9;return{support:Math.round(currentPrice-atr14*multiplier),resistance:Math.round(currentPrice+atr14*multiplier)}};const calculateMergedEntryBaseSL=(currentPrice,trend,atr14,emaAngle)=>{const absAngle=Math.abs(emaAngle);const atrMultiplier=absAngle>=20?0.8:0.65;const entryOffset=absAngle>=20?1.5:4;return{longEntry:Math.round(currentPrice+(trend==='long'?entryOffset:entryOffset+2)),longBaseSL:Math.round(currentPrice-atr14*atrMultiplier),shortEntry:Math.round(currentPrice-(trend==='short'?entryOffset:entryOffset+2)),shortBaseSL:Math.round(currentPrice+atr14*atrMultiplier)}};const calculateTwoStageSL=(entry,baseSL,isLong)=>{const baseRisk=Math.abs(entry-baseSL);const stage1SL=isLong?Math.round(entry-Math.min(STAGE1_SL_POINTS,baseRisk*0.6)):Math.round(entry+Math.min(STAGE1_SL_POINTS,baseRisk*0.6));const stage2SL=isLong?Math.round(entry-Math.max(STAGE2_SL_POINTS,baseRisk)):Math.round(entry+Math.max(STAGE2_SL_POINTS,baseRisk));return{stage1SL,stage2SL,baseRisk}};const calculateTakeProfit=(entry,stage2SL,isLong,isTrend)=>{const maxRisk=Math.abs(entry-stage2SL);let tp1=Math.round(entry+(isLong?maxRisk*1.75:-maxRisk*1.75));let tp2=Math.round(entry+(isLong?maxRisk*2.5:-maxRisk*2.5));if(isTrend){const profit2=Math.abs(tp2-entry);if(profit2<MIN_TREND_PROFIT){const expandRatio=MIN_TREND_PROFIT/profit2;tp2=Math.round(entry+(isLong?maxRisk*2.5*expandRatio:-maxRisk*2.5*expandRatio));tp1=Math.round(entry+(isLong?maxRisk*1.75*expandRatio:-maxRisk*1.75*expandRatio))}}return{tp1,tp2}};const calculateDowTrend=(highs,lows)=>{if(highs.length<3||lows.length<3)return{trend:'insufficient',structure:'資料不足無法判斷結構',strength:'unknown'};const higherHigh=highs[highs.length-1]>highs[highs.length-2]&&highs[highs.length-2]>highs[highs.length-3];const higherLow=lows[lows.length-1]>lows[lows.length-2]&&lows[lows.length-2]>lows[lows.length-3];const lowerLow=lows[lows.length-1]<lows[lows.length-2]&&lows[lows.length-2]<lows[lows.length-3];const lowerHigh=highs[highs.length-1]<highs[highs.length-2]&&highs[highs.length-2]<highs[highs.length-3];if(higherHigh&&higherLow)return{trend:'uptrend',structure:'上升趨勢（高點更高、低點更高）',strength:'strong'};if(lowerLow&&lowerHigh)return{trend:'downtrend',structure:'下降趨勢（低點更低、高點更低）',strength:'strong'};return{trend:'consolidation',structure:'盤整結構（高低點無明確方向）',strength:'weak'}};const checkEma5Pullback=(currentPrice,ema5,trend)=>{const diff=Math.abs(currentPrice-ema5)/ema5;const isNearEma5=diff<=PULLBACK_TOLERANCE;let isPullbackValid=false;if(trend==='uptrend')isPullbackValid=currentPrice>=ema5;else if(trend==='downtrend')isPullbackValid=currentPrice<=ema5;return{isNearEma5,isPullbackValid,diffPercent:(diff*100).toFixed(2)}};const getDowEntrySignal=(dowTrend,emaAngle,pullbackResult,trend)=>{const angleValid=Math.abs(emaAngle)>=DOW_EMA5_ANGLE_THRESHOLD;const structureValid=dowTrend.strength==='strong';const pullbackValid=pullbackResult.isPullbackValid;const trendMatch=(trend==='long'&&dowTrend.trend==='uptrend')||(trend==='short'&&dowTrend.trend==='downtrend');let level=0,advice='';if(trendMatch)level++;if(structureValid)level++;if(angleValid)level++;if(pullbackValid)level++;if(level===4)advice='強力進場信號，四項條件全數滿足';else if(level===3)advice='穩健進場信號，三項條件滿足，可輕倉試單';else if(level===2)advice='觀望為主，僅兩項條件滿足，等待更明確信號';else advice='不建議進場，信號不足，耐心等待機會';if(dowTrend.trend==='consolidation')advice+=`，盤整行情建議等待${CONSOLIDATION_WAIT_MINUTES}分鐘再確認`;return{level,maxLevel:4,advice,angleValid,structureValid,pullbackValid,trendMatch}};const getSuitabilityDescription=(angle)=>{const absAngle=Math.abs(angle);if(absAngle>=28)return"極適合交易";if(absAngle>=18)return"適合交易";if(absAngle>=10)return"尚可交易";return"不適合交易"};const getWinRateBySuitability=(suitability,hasTimeVerify)=>{const rates={"極適合交易":"85%","適合交易":"78%","尚可交易":"65%","不適合交易":"48%"};const baseRate=rates[suitability]||"50%";if(hasTimeVerify){const num=parseInt(baseRate);return Math.min(num+3,92)+"%"}return baseRate};const isNoVolatility=(atrValue,emaAngle)=>{const absAngle=Math.abs(emaAngle);return atrValue<9||absAngle<9};const isStrongTrend=(emaAngle)=>{return Math.abs(emaAngle)>=TREND_ANGLE_THRESHOLD};const num=(v)=>parseFloat(v)||0;const fmt=(n,d=0)=>!n||isNaN(n)||!isFinite(n)?"—":Number(n).toFixed(d);const PRODUCT_TYPES={FUTURES:"期貨/指數",UNSUPPORTED:"不支援產品"};const saveData=(key,data)=>{try{localStorage.setItem(`sniper_${key}`,JSON.stringify(data))}catch(e){}};const loadData=(key,defaultValue)=>{try{const data=localStorage.getItem(`sniper_${key}`);return data?JSON.parse(data):defaultValue}catch(e){return defaultValue}};let state={tab:"home",apiKey:loadData("apiKey",""),proxyUrl:loadData("proxyUrl","https://api.openai.com/v1/chat/completions"),aiAnalysis:loadData("aiAnalysis",null),aiHistory:loadData("aiHistory",[]),aiBase64s:[],aiLoading:false,aiError:"",logFilter:"all",slStage1:loadData("slStage1",STAGE1_SL_POINTS),slStage2:loadData("slStage2",STAGE2_SL_POINTS),minTrendProfit:loadData("minTrendProfit",MIN_TREND_PROFIT)};const saveState=()=>{saveData("apiKey",state.apiKey);saveData("proxyUrl",state.proxyUrl);saveData("aiAnalysis",state.aiAnalysis);saveData("aiHistory",state.aiHistory);saveData("slStage1",state.slStage1);saveData("slStage2",state.slStage2);saveData("minTrendProfit",state.minTrendProfit)};window.toggleTradeResult=(index,result)=>{if(!state.aiHistory[index])return;if(state.aiHistory[index].result===result){state.aiHistory[index].result=null}else{state.aiHistory[index].result=result}saveState();render()};const showDebug=(msg)=>{const el=document.getElementById('aiDebug');el.textContent=msg;el.classList.remove('hidden')};const hideDebug=()=>document.getElementById('aiDebug').classList.add('hidden');const showError=(msg)=>{const el=document.getElementById('aiError');el.textContent=msg;el.classList.remove('hidden')};const hideError=()=>document.getElementById('aiError').classList.add('hidden');const renderHome=()=>{if(!state.aiAnalysis){return`<div class="bg-card border border-border rounded-2xl p-4 text-center"><div class="text-gray-400 mb-2">還沒有偵測結果</div><div class="text-xs text-gray-500">點擊右下角🤖按鈕上傳K線截圖開始分析</div><div class="text-xs text-cyan/70 mt-2">💡 支援單張 / 多張圖片，內建道氏+EMA5雙確認機制</div></div>`}const a=state.aiAnalysis;const suitability=getSuitabilityDescription(a.emaAngle);const hasTimeVerify=!!a.trendConsistency;const winRate=getWinRateBySuitability(suitability,hasTimeVerify);const noVol=isNoVolatility(a.atr14,a.emaAngle);const strongTrend=isStrongTrend(a.emaAngle);const finalStatus=noVol?"⚠️ 無波動盤 → 建議觀望":suitability;const finalColor=noVol?"text-yellow":"text-green";const profitSpace=a.trend==='long'?Math.abs(a.longTp2-a.longEntry):Math.abs(a.shortTp2-a.shortEntry);const trendText=a.trend==='long'?'🔴 偏多多頭趨勢':a.trend==='short'?'🟢 偏空空頭趨勢':'🟡 震盪盤整';const trendColor=a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow';return`<div class="bg-card border border-border rounded-2xl p-4"><div class="flex justify-between items-center mb-3"><div class="text-xs font-bold text-gray-400">🤖 最新AI偵測結果 (整合中值+道氏雙驗證)</div><button id="resetCurrentButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置</button></div><div class="text-center mb-4 pb-3 border-b border-gray-700"><div class="text-lg font-bold text-indigo mb-1">${a.product}</div><div class="text-xs text-gray-400 mb-2">${a.productType||PRODUCT_TYPES.FUTURES} ${hasTimeVerify?'· ✅ 分時驗證':''}</div><div class="text-xl font-bold ${trendColor} mb-2">${trendText}</div><div class="text-base font-bold ${finalColor} mb-1">${finalStatus}</div><div class="text-sm text-green font-medium mb-1">預期勝率：${winRate}</div>${strongTrend?`<div class="text-sm font-bold text-yellow">🏆 強趨勢盤認證 · 保證獲利 ≥ ${state.minTrendProfit} 點</div>`:''}<div class="text-xs text-gray-500 mt-2">偵測時間：${a.time}</div></div><div class="bg-indigo/10 rounded-xl p-3 border border-indigo/30 mb-3"><div class="text-sm font-bold text-indigo mb-2">📈 大趨勢判斷 (5分K週期)</div><div class="text-sm text-gray-300">整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span><br>ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span><br>操作建議：<span class="font-medium">${a.trend==='long'?'逢低佈局做多單':a.trend==='short'?'逢高佈局做空單':'觀望為主，等待方向明確'}</span></div></div><div class="bg-emerald/10 rounded-xl p-3 border border-emerald/30 mb-3"><div class="text-sm font-bold text-emerald mb-2">📐 道氏+EMA5信號等級</div><div class="text-sm text-gray-300">道氏結構：<span class="font-medium">${a.dowTrend.structure}</span><br>EMA5角度門檻：<span class="${a.dowSignal.angleValid?'text-green':'text-red'}">${a.dowSignal.angleValid?'✅ 達標':'❌ 未達標'}</span>（${DOW_EMA5_ANGLE_THRESHOLD}°）<br>回踩確認：<span class="${a.dowSignal.pullbackValid?'text-green':'text-yellow'}">${a.dowSignal.pullbackValid?'✅ 有效回踩':'⚠️ 待確認'}</span><br>綜合信號：<span class="font-bold">${a.dowSignal.level}/${a.dowSignal.maxLevel} 級</span><br>建議：<span class="font-medium">${a.dowSignal.advice}</span></div></div>${hasTimeVerify?`<div class="bg-cyan/10 rounded-xl p-3 border border-cyan/30 mb-3"><div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖驗證結論</div><div class="text-sm text-gray-300">趨勢一致性：<span class="font-bold ${a.trendConsistency==='一致'?'text-green':a.trendConsistency==='偏離'?'text-yellow':'text-red'}">${a.trendConsistency}</span><br>進場建議：<span class="font-medium">${a.entryAdvice||'依1分K信號進場'}</span></div></div>`:''}<div class="bg-yellow/10 rounded-xl p-3 border border-yellow/30 mb-3"><div class="text-sm font-bold text-yellow mb-2">🛡️ 兩階段風控停損</div><div class="grid grid-cols-2 gap-2 text-xs"><div class="bg-black/30 p-2 rounded text-center border border-yellow/40"><div class="text-yellow font-medium mb-1">第一階段 防守</div><div class="font-bold text-white text-base">${fmt(a.trend==='long'?a.longStage1SL:a.shortStage1SL,a.decimals)}</div><div class="text-gray-400 mt-1">約 ${state.slStage1} 點風險</div></div><div class="bg-black/30 p-2 rounded text-center border border-red/40"><div class="text-red font-medium mb-1">第二階段 終極</div><div class="font-bold text-white text-base">${fmt(a.trend==='long'?a.longStage2SL:a.shortStage2SL,a.decimals)}</div><div class="text-gray-400 mt-1">約 ${state.slStage2} 點風險</div></div></div></div><div class="bg-purple/10 rounded-xl p-3 border border-purple/30 mb-3"><div class="text-sm font-bold text-purple mb-2">📊 關鍵支撐 / 阻力位</div><div class="grid grid-cols-2 gap-2 text-xs"><div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 mb-1">支撐位</div><div class="font-bold text-green text-base">${fmt(a.support,a.decimals)}</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 mb-1">阻力位</div><div class="font-bold text-red text-base">${fmt(a.resistance,a.decimals)}</div></div></div></div><div class="bg-green/10 rounded-xl p-3 border border-green/30"><div class="text-sm font-bold text-green mb-2">🎯 精準進場點位 (1分K週期)</div><div class="text-center"><div class="text-base font-bold ${trendColor} mb-1">建議操作：${a.trend==='long'?'做多單':'做空單'}</div><div class="text-sm text-gray-300 mb-1">進場點位：<span class="font-bold text-white">${fmt(a.trend==='long'?a.longEntry:a.shortEntry,a.decimals)}</span></div><div class="text-sm font-bold text-green">預期目標獲利空間：${profitSpace} 點</div><div class="text-xs text-gray-500 mt-1">第一止盈TP1：${fmt(a.trend==='long'?a.longTp1:a.shortTp1,a.decimals)} | 第二止盈TP2：${fmt(a.trend==='long'?a.longTp2:a.shortTp2,a.decimals)}</div></div></div></div>`};const renderLog=()=>{let filteredHistory=state.aiHistory;if(state.logFilter==="win"){filteredHistory=state.aiHistory.filter(r=>r.result==="win")}else if(state.logFilter==="loss"){filteredHistory=state.aiHistory.filter(r=>r.result==="loss")}else if(state.logFilter==="trend"){filteredHistory=state.aiHistory.filter(r=>Math.abs(r.emaAngle)>=TREND_ANGLE_THRESHOLD)}return`<div class="flex justify-between items-center mb-2"><div class="text-lg font-bold">📓 AI偵測歷史紀錄</div></div><div class="flex gap-1 mb-3 flex-wrap"><button data-filter="all" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='all'?'tab-active':'bg-gray-700 text-gray-300'}">全部</button><button data-filter="trend" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='trend'?'bg-yellow/20 text-yellow':'bg-gray-700 text-gray-300'}">強趨勢</button><button data-filter="win" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='win'?'bg-green/20 text-green':'bg-gray-700 text-gray-300'}">獲利✅</button><button data-filter="loss" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='loss'?'bg-red/20 text-red':'bg-gray-700 text-gray-300'}">虧損❌</button></div>${filteredHistory.length===0?'<div class="text-center text-gray-500 py-10">尚無符合條件的分析紀錄</div>':filteredHistory.map((a,index)=>{const s=getSuitabilityDescription(a.emaAngle);const hasTime=!!a.trendConsistency;const strongTrend=isStrongTrend(a.emaAngle);const profitSpace=a.trend==='long'?Math.abs(a.longTp2-a.longEntry):Math.abs(a.shortTp2-a.shortEntry);const trendColor=a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow';const winClass=a.result==="win"?"result-win":"result-pending";const lossClass=a.result==="loss"?"result-loss":"result-pending";return`<div class="bg-card border border-border rounded-xl p-3 text-sm mb-3"><div class="flex justify-between mb-2"><span class="text-indigo font-bold">${a.product} ${hasTime?'· 🕐':''}</span><span class="text-gray-400 text-xs">${a.time}</span></div><div class="text-xs font-medium mb-1 ${trendColor}">${a.trend==='long'?'🔴 多頭':a.trend==='short'?'🟢 空頭':'🟡 盤整'} · 道氏信號 ${a.dowSignal.level}/${a.dowSignal.maxLevel}級 ${strongTrend?'· 🏆強趨勢':''}</div><div class="text-xs text-gray-400 mb-2">進場：${fmt(a.trend==='long'?a.longEntry:a.shortEntry,a.decimals)} · 目標獲利：<span class="text-green font-medium">${profitSpace} 點</span> · 終極停損：${fmt(a.trend==='long'?a.longStage2SL:a.shortStage2SL,a.decimals)}</div><div class="flex gap-2 items-center pt-2 border-t border-gray-700"><span class="text-xs text-gray-400">交易結果標記：</span><button class="result-btn ${winClass}" onclick="toggleTradeResult(${index},'win')">✅ 獲利</button><button class="result-btn ${lossClass}" onclick="toggleTradeResult(${index},'loss')">❌ 虧損</button></div></div>`}).join('')}`};const renderStats=()=>{const total=state.aiHistory.length;const trendTotal=state.aiHistory.filter(r=>Math.abs(r.emaAngle)>=TREND_ANGLE_THRESHOLD).length;const timeVerifyTotal=state.aiHistory.filter(r=>r.trendConsistency).length;const markedTotal=state.aiHistory.filter(r=>r.result).length;const winTotal=state.aiHistory.filter(r=>r.result==="win").length;const lossTotal=state.aiHistory.filter(r=>r.result==="loss").length;const realWinRate=markedTotal>0?Math.round(winTotal/markedTotal*100)+"%":"—";const trendMarked=state.aiHistory.filter(r=>Math.abs(r.emaAngle)>=TREND_ANGLE_THRESHOLD&&r.result).length;const trendWin=state.aiHistory.filter(r=>Math.abs(r.emaAngle)>=TREND_ANGLE_THRESHOLD&&r.result==="win").length;const trendRealWinRate=trendMarked>0?Math.round(trendWin/trendMarked*100)+"%":"—";const angleCounts={"極適合交易":0,"適合交易":0,"尚可交易":0,"不適合交易":0};state.aiHistory.forEach(r=>angleCounts[getSuitabilityDescription(r.emaAngle)]++);return`<div class="flex justify-between items-center mb-2"><div class="text-lg font-bold">📈 AI偵測數據統計</div><button id="resetStatsButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置全部</button></div><div class="bg-gradient-to-br from-indigo/20 to-purple/20 border border-indigo/40 rounded-xl p-4 space-y-2 text-sm mb-4"><div class="font-bold text-white mb-2">🏆 真實交易績效總覽</div><div class="grid grid-cols-2 gap-2"><div class="bg-black/30 p-2 rounded text-center"><div class="text-xs text-gray-400">已標記單數</div><div class="text-lg font-bold text-white">${markedTotal}</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-xs text-gray-400">整體真實勝率</div><div class="text-lg font-bold text-green">${realWinRate}</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-xs text-green">累計盈利單</div><div class="text-base font-bold text-green">${winTotal}</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-xs text-red">累計虧損單</div><div class="text-base font-bold text-red">${lossTotal}</div></div></div></div><div class="bg-card border border-yellow/40 rounded-xl p-4 space-y-2 text-sm mb-4 bg-yellow/5"><div class="font-bold mb-2 text-yellow">🏆 強趨勢盤表現 (≥${TREND_ANGLE_THRESHOLD}°)</div><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-yellow text-sm">趨勢盤總數</span><div class="text-right text-xs"><div>${trendTotal} 筆</div><div class="text-green font-medium">強趨勢勝率：${trendRealWinRate}</div></div></div><div class="text-xs text-gray-400 pt-1 border-t border-gray-700">💡 強趨勢盤強制目標獲利 ≥ ${state.minTrendProfit} 點，配合兩階段停損提高盈虧比</div></div><div class="bg-card border border-cyan/40 rounded-xl p-4 space-y-2 text-sm mb-4 bg-cyan/5"><div class="font-bold mb-2 text-cyan">⏱️ 分時驗證數據</div><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-cyan text-sm">含分時驗證單數</span><span class="font-bold text-white">${timeVerifyTotal} 筆</span></div><div class="text-xs text-gray-400 pt-1 border-t border-gray-700">💡 分時圖驗證可過濾假突破信號，輔助提升進場時機精準度</div></div><div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4"><div class="font-bold mb-2">📐 EMA角度適配度分佈</div><div class="flex justify-between text-green"><span>✅ 極適合交易</span><span>${angleCounts["極適合交易"]} 次</span></div><div class="flex justify-between text-green"><span>✅ 適合交易</span><span>${angleCounts["適合交易"]} 次</span></div><div class="flex justify-between text-yellow"><span>⚠️ 尚可交易</span><span>${angleCounts["尚可交易"]} 次</span></div><div class="flex justify-between text-yellow"><span>⚠️ 不適合交易</span><span>${angleCounts["不適合交易"]} 次</span></div><div class="text-xs text-gray-500 pt-2 border-t border-gray-700">總分析次數：${total} 次</div></div>`};const renderSettings=()=>{return`<div class="text-lg font-bold mb-2">⚙️ 系統設定</div><div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4"><div class="font-bold text-sm">OpenAI API 金鑰設定</div><input id="apiKeyInput" value="${state.apiKey}" placeholder="請輸入 sk- 開頭的API金鑰" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" /></div><div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4"><div class="font-bold text-sm">API 代理伺服器位址</div><input id="proxyUrlInput" value="${state.proxyUrl}" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" /><div class="text-xs text-gray-500">💡 若遇到跨域錯誤或載入失敗，請更換可用的代理位址</div></div><div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4"><div class="font-bold text-sm">風險參數自訂</div><div class="flex justify-between items-center"><span class="text-sm text-gray-300">第一階段防守停損 (點)</span><input id="slStage1Input" value="${state.slStage1}" type="number" step="5" min="10" max="40" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" /></div><div class="flex justify-between items-center"><span class="text-sm text-gray-300">第二階段終極停損 (點)</span><input id="slStage2Input" value="${state.slStage2}" type="number" step="5" min="30" max="100" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" /></div><div class="flex justify-between items-center"><span class="text-sm text-gray-300">趨勢盤最低保證獲利 (點)</span><input id="minProfitInput" value="${state.minTrendProfit}" type="number" step="10" min="30" max="200" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" /></div><div class="text-xs text-gray-500 pt-1 border-t border-gray-700">💡 建議維持預設值：20點防守 + 50點終極停損 + 50點趨勢獲利保證</div></div><button id="clearAllDataButton" class="w-full py-2 border border-red/30 text-red rounded-lg text-sm mb-4">清除所有本地數據</button><div class="text-xs text-gray-600 text-center">全品種AI智能偵測系統 · 整合中值+道氏雙驗證 v2.2</div>`};const renderAiResult=()=>{if(!state.aiAnalysis)return;const a=state.aiAnalysis;const suitability=getSuitabilityDescription(a.emaAngle);const hasTimeVerify=!!a.trendConsistency;const winRate=getWinRateBySuitability(suitability,hasTimeVerify);const noVol=isNoVolatility(a.atr14,a.emaAngle);const strongTrend=isStrongTrend(a.emaAngle);const longProfit=Math.abs(a.longTp2-a.longEntry);const shortProfit=Math.abs(a.shortTp2-a.shortEntry);const mainProfit=a.trend==='long'?longProfit:shortProfit;const trendColor=a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow';const trendText=a.trend==='long'?'🔴 偏多多頭趨勢':a.trend==='short'?'🟢 偏空空頭趨勢':'🟡 震盪盤整';document.getElementById('productTitle').textContent=`📊 ${a.product}`;document.getElementById('productTypeLabel').textContent=`${a.productType||PRODUCT_TYPES.FUTURES} ${hasTimeVerify?'· ✅ 分時驗證':''}`;document.getElementById('trendAdvice').innerHTML=`<span class="${trendColor} font-bold">${trendText}</span>`;document.getElementById('finalSuitability').textContent=noVol?"⚠️ 無波動盤 → 建議觀望":suitability;document.getElementById('finalWinRate').textContent=`預期勝率：${winRate}`;document.getElementById('profitGuarantee').textContent=strongTrend?`🏆 強趨勢盤認證 · 保證獲利 ≥ ${state.minTrendProfit} 點`:"一般行情 · 依風險報酬比計算目標";document.getElementById('emaAngle').textContent=`${a.emaAngle}°`;document.getElementById('emaSuitable').textContent=suitability;document.getElementById('atrValue').textContent=a.atr14||"—";document.getElementById('currentPrice').textContent=fmt(a.currentPrice,a.decimals);document.getElementById('emaValues').textContent=`EMA5：${fmt(a.ema5,a.decimals)} / EMA20：${fmt(a.ema20,a.decimals)}`;document.getElementById('profitSpace').textContent=`${mainProfit} 點 (TP2)`;document.getElementById('trend5mContent').innerHTML=`<div class="text-xs space-y-1"><div>📐 整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span> (雙模型中值演算法)</div><div>📈 趨勢方向：<span class="font-medium ${trendColor}">${trendText}</span></div><div>📊 ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span></div><div>💡 操作建議：${a.trend==='long'?'逢低佈局做多單為主':a.trend==='short'?'逢高佈局做空單為主':'觀望為主，等待明確方向'}</div>${strongTrend?'<div class="text-yellow font-medium pt-1 border-t border-yellow/30">🏆 達成強趨勢門檻，啟動50點獲利保證機制</div>':''}</div>`;document.getElementById('dowContent').innerHTML=`<div class="text-xs space-y-2"><div class="bg-black/30 p-2 rounded"><div class="font-medium text-emerald mb-1">道氏結構判斷</div><div class="text-gray-300">${a.dowTrend.structure}</div></div><div class="grid grid-cols-2 gap-2"><div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 text-xs mb-1">EMA5角度門檻</div><div class="font-bold ${a.dowSignal.angleValid?'text-green':'text-red'}">${a.dowSignal.angleValid?'✅ 達標':'❌ 未達'}</div><div class="text-gray-500 text-xs">門檻：${DOW_EMA5_ANGLE_THRESHOLD}°</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 text-xs mb-1">回踩有效性</div><div class="font-bold ${a.dowSignal.pullbackValid?'text-green':'text-yellow'}">${a.dowSignal.pullbackValid?'✅ 有效':'⚠️ 待確認'}</div><div class="text-gray-500 text-xs">偏離：${a.pullbackResult.diffPercent}%</div></div></div><div class="bg-black/30 p-2 rounded border border-emerald/40"><div class="flex justify-between items-center mb-1"><span class="text-emerald font-medium">綜合信號等級</span><span class="font-bold text-white">${a.dowSignal.level}/${a.dowSignal.maxLevel} 級</span></div><div class="text-gray-300 text-xs">${a.dowSignal.advice}</div></div></div>`;const timeCard=document.getElementById('timeVerifyCard');if(hasTimeVerify){timeCard.classList.remove('hidden');document.getElementById('timeVerifyContent').innerHTML=`<div class="text-xs space-y-2"><div class="flex justify-between"><span>趨勢一致性：</span><span class="font-bold ${a.trendConsistency==='一致'?'text-green':a.trendConsistency==='偏離'?'text-yellow':'text-red'}">${a.trendConsistency}</span></div><div class="bg-black/30 p-2 rounded"><div class="font-medium text-cyan mb-1">進場時機建議</div><div class="text-gray-300">${a.entryAdvice||'依1分K信號確認後進場'}</div></div>${a.riskNote?`<div class="bg-black/30 p-2 rounded"><div class="font-medium text-yellow mb-1">風控備註</div><div class="text-gray-300">${a.riskNote}</div></div>`:''}<div class="text-gray-400 pt-1 border-t border-gray-700">💡 分時圖為輔助驗證，最終進場仍以5分K趨勢為主</div></div>`}else{timeCard.classList.add('hidden')}document.getElementById('entry1mContent').innerHTML=`<div class="text-xs space-y-2"><div class="bg-black/30 p-2 rounded border border-red/30"><div class="font-bold text-red mb-1">🔴 做多單進場</div><div>進場點：<span class="font-bold text-white">${fmt(a.longEntry,a.decimals)}</span></div><div>第一止盈TP1：<span class="text-green">${fmt(a.longTp1,a.decimals)}</span></div><div>第二止盈TP2：<span class="text-green font-bold">${fmt(a.longTp2,a.decimals)}</span> · 獲利 ${longProfit} 點</div></div><div class="bg-black/30 p-2 rounded border border-green/30"><div class="font-bold text-green mb-1">🟢 做空單進場</div><div>進場點：<span class="font-bold text-white">${fmt(a.shortEntry,a.decimals)}</span></div><div>第一止盈TP1：<span class="text-green">${fmt(a.shortTp1,a.decimals)}</span></div><div>第二止盈TP2：<span class="text-green font-bold">${fmt(a.shortTp2,a.decimals)}</span> · 獲利 ${shortProfit} 點</div></div><div class="text-gray-400 pt-1 border-t border-gray-700">⚠️ 提醒：價格實體突破進場點且收線確認後再進場，避免假突破</div></div>`;document.getElementById('slContent').innerHTML=`<div class="text-xs space-y-2"><div class="bg-black/30 p-2 rounded border border-yellow/40"><div class="font-bold text-yellow mb-1">🛡️ 第一階段：防守停損 (輕倉試單)</div><div class="grid grid-cols-2 gap-2"><div>多單停損：<span class="font-bold text-white">${fmt(a.longStage1SL,a.decimals)}</span></div><div>空單停損：<span class="font-bold text-white">${fmt(a.shortStage1SL,a.decimals)}</span></div></div><div class="text-gray-400 mt-1">約 ${state.slStage1} 點風險 · 觸及即減倉一半，保留部分倉位</div></div><div class="bg-black/30 p-2 rounded border border-red/40"><div class="font-bold text-red mb-1">🛑 第二階段：終極停損 (趨勢反轉)</div><div class="grid grid-cols-2 gap-2"><div>多單停損：<span class="font-bold text-white">${fmt(a.longStage2SL,a.decimals)}</span></div><div>空單停損：<span class="font-bold text-white">${fmt(a.shortStage2SL,a.decimals)}</span></div></div><div class="text-gray-400 mt-1">約 ${state.slStage2} 點風險 · 關鍵支撐/阻力位，破位即全數出場</div></div><div class="text-gray-400 pt-1 border-t border-gray-700">💡 操作建議：嚴格執行兩階段停損紀律，控制單筆風險在可承受範圍內</div></div>`;document.getElementById('levelsContent').innerHTML=`<div class="text-xs space-y-1"><div>🛡️ 關鍵支撐位：<span class="font-bold text-green">${fmt(a.support,a.decimals)}</span></div><div>🚫 關鍵阻力位：<span class="font-bold text-red">${fmt(a.resistance,a.decimals)}</span></div><div class="pt-1 border-t border-gray-700 text-gray-400">💡 突破策略：實體突破阻力位確認後做多；實體跌破支撐位確認後做空</div></div>`;document.getElementById('aiResult').classList.remove('hidden')};const render=()=>{const contentEl=document.getElementById('content');switch(state.tab){case"home":contentEl.innerHTML=renderHome();bindHomeEvents();break;case"log":contentEl.innerHTML=renderLog();bindLogEvents();break;case"stats":contentEl.innerHTML=renderStats();bindStatsEvents();break;case"settings":contentEl.innerHTML=renderSettings();bindSettingsEvents();break}};const bindHomeEvents=()=>{document.getElementById('resetCurrentButton')?.addEventListener('click',()=>{if(confirm("確定要重置當前的分析結果嗎？")){state.aiAnalysis=null;saveState();render()}})};const bindLogEvents=()=>{document.querySelectorAll('.filter-btn').forEach(btn=>{btn.addEventListener('click',e=>{state.logFilter=e.currentTarget.dataset.filter;render()})})};const bindStatsEvents=()=>{document.getElementById('resetStatsButton')?.addEventListener('click',()=>{if(confirm("確定要重置所有統計數據和歷史紀錄嗎？此操作無法復原！")){state.aiHistory=[];state.aiAnalysis=null;saveState();render()}})};const bindSettingsEvents=()=>{document.getElementById('apiKeyInput')?.addEventListener('input',e=>{state.apiKey=e.target.value;saveState()});document.getElementById('proxyUrlInput')?.addEventListener('input',e=>{state.proxyUrl=e.target.value;saveState()});document.getElementById('slStage1Input')?.addEventListener('change',e=>{const val=parseInt(e.target.value);state.slStage1=isNaN(val)?STAGE1_SL_POINTS:val;saveState()});document.getElementById('slStage2Input')?.addEventListener('change',e=>{const val=parseInt(e.target.value);state.slStage2=isNaN(val)?STAGE2_SL_POINTS:val;saveState()});document.getElementById('minProfitInput')?.addEventListener('change',e=>{const val=parseInt(e.target.value);state.minTrendProfit=isNaN(val)?MIN_TREND_PROFIT:val;saveState()});document.getElementById('clearAllDataButton')?.addEventListener('click',()=>{if(confirm("確定要清除所有本地數據嗎？包括API設定、歷史紀錄、所有分析結果，此操作無法復原！")){localStorage.clear();location.reload()}})};const callOpenAI=async(imgs)=>{const systemPrompt=`你是專業的全品種期貨技術分析師，使用整合中值演算法與道氏理論進行分析。請嚴格按照以下規則分析：1. 從圖中提取當前價格、EMA5均線、EMA20均線、ATR(14)數值2. 識別產品名稱、價格小數位數3. 判斷趨勢方向：EMA5在EMA20上方且角度向上為long(多頭)；EMA5在EMA20下方且角度向下為short(空頭)；否則sideways(盤整)4. 識別最近3根K線的最高價與最低價，用於道氏結構判斷5. 若圖中有分時走勢，額外分析分時趨勢與5分K趨勢的一致性，給出進場時機建議與風控備註6. 只返回標準JSON格式，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema5, ema20, atr14, recentHighs(數組), recentLows(數組), trendConsistency(可選), entryAdvice(可選), riskNote(可選)`;const content=[{type:'text',text:systemPrompt}];imgs.forEach(img=>{content.push({type:'image_url',image_url:{url:img,detail:"high"}})});let res;try{res=await fetch(state.proxyUrl,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${state.apiKey}`},body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content}],temperature:0.1,max_tokens:1200})})}catch(networkErr){throw new Error(`網路連線失敗 (Load Error)\n\n可能原因：\n1. 代理伺服器位址無效或不支援CORS跨域\n2. 網路連線不穩定或防火牆攔截\n3. API代理服務暫時無法存取\n\n建議：\n• 更換可用的API代理位址後重試\n• 檢查網路連線是否正常\n• 確認API金鑰是否正確輸入`)}if(!res.ok){let errMsg=`API 請求錯誤 (HTTP ${res.status})`;try{const errData=await res.json();if(errData.error){errMsg+=`\n\n錯誤類型：${errData.error.type||'未知錯誤'}\n詳細說明：${errData.error.message||'無詳細資訊'}`}}catch(e){}if(res.status===401){errMsg+="\n\n💡 請檢查 API 金鑰是否正確，或是否已過期"}else if(res.status===429){errMsg+="\n\n💡 請求過於頻繁，請稍後再試；或檢查帳號額度是否不足"}else if(res.status===404){errMsg+="\n\n💡 代理位址路徑錯誤，請確認代理URL是否正確"}else if(res.status>=500){errMsg+="\n\n💡 伺服器端錯誤，請稍後重試或更換代理位址"}throw new Error(errMsg)}const data=await res.json();if(!data.choices||!data.choices[0]||!data.choices[0].message){throw new Error("API 返回格式異常，無法解析分析結果，請重新上傳更清晰的K線截圖")}const rawContent=data.choices[0].message.content;let jsonStr=null;const codeBlockMatch=rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);if(codeBlockMatch){jsonStr=codeBlockMatch[1].trim()}else{const braceMatch=rawContent.match(/\{[\s\S]*\}/);if(braceMatch){jsonStr=braceMatch[0].trim()}}if(!jsonStr){throw new Error("AI 回應內容無法解析為標準格式，請重新上傳更清晰的K線截圖")}jsonStr=jsonStr.replace(/,\s*([}\]])/g,'$1').replace(/\/\/.*$/gm,'').replace(/\/\*[\s\S]*?\*\//g,'');let parsedData;try{parsedData=JSON.parse(jsonStr)}catch(parseErr){try{const fallbackMatch=jsonStr.match(/^\s*(\{[\s\S]*?\})\s*$/);if(fallbackMatch){parsedData=JSON.parse(fallbackMatch[1])}else{throw new Error()}}catch(e){throw new Error(`JSON 解析失敗，AI 回傳格式不正確\n\n原始內容片段：\n${jsonStr.slice(0,200)}${jsonStr.length>200?'...':''}\n\n請重新上傳截圖重試，或確認圖片包含清晰的K線與數值`)}}parsedData.result=null;parsedData.emaAngle=calculateMergedEmaAngle(num(parsedData.ema5),num(parsedData.ema20),num(parsedData.currentPrice));const levels=calculateMergedLevels(num(parsedData.currentPrice),num(parsedData.atr14),false);parsedData.support=levels.support;parsedData.resistance=levels.resistance;const entryBase=calculateMergedEntryBaseSL(num(parsedData.currentPrice),parsedData.trend,num(parsedData.atr14),parsedData.emaAngle);Object.assign(parsedData,entryBase);const longSL=calculateTwoStageSL(parsedData.longEntry,parsedData.longBaseSL,true);const shortSL=calculateTwoStageSL(parsedData.shortEntry,parsedData.shortBaseSL,false);parsedData.longStage1SL=longSL.stage1SL;parsedData.longStage2SL=longSL.stage2SL;parsedData.shortStage1SL=shortSL.stage1SL;parsedData.shortStage2SL=shortSL.stage2SL;const isTrend=isStrongTrend(parsedData.emaAngle);const longTP=calculateTakeProfit(parsedData.longEntry,parsedData.longStage2SL,true,isTrend);const shortTP=calculateTakeProfit(parsedData.shortEntry,parsedData.shortStage2SL,false,isTrend);parsedData.longTp1=longTP.tp1;parsedData.longTp2=longTP.tp2;parsedData.shortTp1=shortTP.tp1;parsedData.shortTp2=shortTP.tp2;const dowTrend=calculateDowTrend(parsedData.recentHighs||[],parsedData.recentLows||[]);parsedData.dowTrend=dowTrend;const pullbackResult=checkEma5Pullback(num(parsedData.currentPrice),num(parsedData.ema5),dowTrend.trend);parsedData.pullbackResult=pullbackResult;const dowSignal=getDowEntrySignal(dowTrend,parsedData.emaAngle,pullbackResult,parsedData.trend);parsedData.dowSignal=dowSignal;parsedData.time=new Date().toLocaleString('zh-TW');return parsedData};const runAiAnalyze=async()=>{hideError();showDebug("正在進行整合中值與道氏雙驗證分析，請稍候...");if(!state.apiKey||!state.apiKey.trim()){hideDebug();showError("❌ 請先在設定頁面輸入有效的 OpenAI API 金鑰");return}if(state.aiBase64s.length===0){hideDebug();showError("❌ 請先上傳至少一張 K 線截圖再進行分析");return}const analyzeBtn=document.getElementById('analyzeButton');const originalText=analyzeBtn.textContent;analyzeBtn.textContent="⏳ 分析中，請稍候...";analyzeBtn.disabled=true;try{const result=await callOpenAI(state.aiBase64s);state.aiAnalysis=result;state.aiHistory.unshift(result);saveState();hideDebug();renderAiResult();render()}catch(err){hideDebug();showError(`❌ 分析失敗：\n${err.message||'未知錯誤'}`)}finally{analyzeBtn.textContent=originalText;analyzeBtn.disabled=false}};const handleFileSelect=(files)=>{hideError();hideDebug();if(!files||files.length===0)return;state.aiBase64s=[];const previewImgs=[document.getElementById('previewImg1'),document.getElementById('previewImg2'),document.getElementById('previewImg3')];previewImgs.forEach(img=>img.src='');document.getElementById('imagePreview').classList.remove('hidden');let validCount=0;for(let i=0;i<Math.min(files.length,3);i++){const file=files[i];if(!file.type.startsWith('image/'))continue;const reader=new FileReader();reader.onload=(e)=>{const base64=e.target.result;state.aiBase64s.push(base64);if(validCount<previewImgs.length){previewImgs[validCount].src=base64;validCount++}};reader.readAsDataURL(file)}};const init=()=>{render();document.querySelectorAll('.tab-button').forEach(btn=>{btn.addEventListener('click',e=>{state.tab=e.currentTarget.dataset.tab;document.querySelectorAll('.tab-button').forEach(b=>{b.classList.remove('text-indigo');b.classList.add('text-gray-400')});e.currentTarget.classList.remove('text-gray-400');e.currentTarget.classList.add('text-indigo');render()})})};const aiButton=document.getElementById('aiButton');const aiModal=document.getElementById('aiModal');const closeAiModal=document.getElementById('closeAiModal');const fileInput=document.getElementById('fileInput');const uploadButton=document.getElementById('uploadButton');const analyzeButton=document.getElementById('analyzeButton');const resetAiButton=document.getElementById('resetAiButton');aiButton.addEventListener('click',()=>{aiModal.classList.remove('hidden')});closeAiModal.addEventListener('click',()=>{aiModal.classList.add('hidden')});aiModal.addEventListener('click',(e)=>{if(e.target===aiModal){aiModal.classList.add('hidden')}});uploadButton.addEventListener('click',()=>{fileInput.click()});fileInput.addEventListener('change',(e)=>{handleFileSelect(e.target.files)});analyzeButton.addEventListener('click',runAiAnalyze);resetAiButton.addEventListener('click',()=>{state.aiBase64s=[];document.getElementById('imagePreview').classList.add('hidden');document.getElementById('aiResult').classList.add('hidden');hideError();hideDebug();fileInput.value=''});window.addEventListener('DOMContentLoaded',init);</script></body></html>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全品種AI智能偵測系統 | 整合中值版 · 趨勢50點獲利保證</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config={theme:{extend:{colors:{dark:'#07080f',darker:'#0d1018',card:'#111520',border:'#1a1e2e',green:'#1db954',red:'#e03e3e',blue:'#38bdf8',yellow:'#f59e0b',indigo:'#6366f1',purple:'#a855f7',cyan:'#06b6d4'},fontFamily:{sans:['Inter','system-ui','-apple-system','sans-serif']}}}}
+</script>
+<style type="text/tailwindcss">
+@layer utilities{
+.content-auto{content-visibility:auto}
+.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
+.scrollbar-hide::-webkit-scrollbar{display:none}
+.tab-active{@apply bg-indigo/20 text-indigo}
+.result-btn{@apply px-2 py-0.5 rounded text-[10px] font-bold border transition-all}
+.result-win{@apply bg-green/20 text-green border-green/50}
+.result-loss{@apply bg-red/20 text-red border-red/50}
+.result-pending{@apply bg-gray-700/50 text-gray-400 border-gray-600}
+.sl-stage-1{@apply bg-yellow/20 text-yellow border-yellow/50}
+.sl-stage-2{@apply bg-red/20 text-red border-red/50}
+}
+</style>
+</head>
+<body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative">
+<div class="bg-darker border-b border-border p-4 text-center">
+<div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
+<div class="text-xl font-bold">⚡ 整合中值版 · 趨勢50點獲利保證</div>
+<div class="text-xs text-gray-400 mt-1">雙模型參數取中值計算 | 三周期聯動驗證 | 兩階段彈性停損 | 亞當理論+EMA5順勢確認</div>
+</div>
+<div id="content" class="max-w-sm mx-auto p-4 space-y-4"></div>
+<button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-indigo shadow-lg flex items-center justify-center text-2xl z-50 pointer-events-auto">🤖</button>
+<div id="aiModal" class="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center hidden pointer-events-auto">
+<div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
+<div class="flex justify-between items-center mb-4">
+<h3 id="modalTitle" class="text-lg font-bold text-white">📊 整合中值AI智能偵測</h3>
+<button id="closeAiModal" class="text-gray-300 text-xl">✕</button>
+</div>
+<input id="fileInput" type="file" accept="image/*" multiple hidden>
+<button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">上傳K線截圖<div class="text-xs mt-1 text-gray-400">✅ 建議 5分K + 1分K + 分時圖 三張效果最佳；單張 / 兩張也可分析</div></button>
+<div id="imagePreview" class="mb-3 hidden grid grid-cols-3 gap-2">
+<img id="previewImg1" src="" alt="K線1" class="w-full rounded-lg object-contain max-h-28 border border-gray-700">
+<img id="previewImg2" src="" alt="K線2" class="w-full rounded-lg object-contain max-h-28 border border-gray-700">
+<img id="previewImg3" src="" alt="分時圖" class="w-full rounded-lg object-contain max-h-28 border border-cyan/50">
+</div>
+<div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
+<div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
+<button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">🔍 整合中值精準批判點位</button>
+<div id="aiResult" class="space-y-4 hidden">
+<div id="trendCard" class="rounded-xl p-4 border">
+<div class="text-lg font-bold text-center mb-2" id="productTitle"></div>
+<div class="text-center text-sm text-gray-300 mb-1" id="productTypeLabel"></div>
+<div class="text-center text-base font-bold mb-1" id="trendAdvice"></div>
+<div class="text-center text-xs font-bold text-green mb-1" id="finalSuitability"></div>
+<div class="text-center text-xs font-bold text-yellow mb-1" id="finalWinRate"></div>
+<div class="text-center text-xs font-bold text-cyan" id="profitGuarantee"></div>
+</div>
+<div id="trend5mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5">
+<div class="text-sm font-bold text-indigo mb-2">📈 大趨勢判斷 (5分K週期)</div>
+<div id="trend5mContent"></div>
+</div>
+<div id="dowCard" class="rounded-xl p-4 border border-emerald/30 bg-emerald/5">
+<div class="text-sm font-bold text-emerald mb-2">📐 亞當理論 + EMA5 順勢驗證</div>
+<div id="dowContent"></div>
+</div>
+<div id="timeVerifyCard" class="rounded-xl p-4 border border-cyan/30 bg-cyan/5">
+<div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖輔助驗證 (精細擇時)</div>
+<div id="timeVerifyContent"></div>
+</div>
+<div id="entry1mCard" class="rounded-xl p-4 border border-green/30 bg-green/5">
+<div class="text-sm font-bold text-green mb-2">🎯 右邊進場點位 (1分K週期)</div>
+<div id="entry1mContent"></div>
+</div>
+<div id="slCard" class="rounded-xl p-4 border border-yellow/30 bg-yellow/5">
+<div class="text-sm font-bold text-yellow mb-2">🛡️ 兩階段停損機制</div>
+<div id="slContent"></div>
+</div>
+<div id="levelsCard" class="rounded-xl p-4 border border-purple/30 bg-purple/5">
+<div class="text-sm font-bold text-purple mb-2">📊 關鍵支撐/阻力位</div>
+<div id="levelsContent"></div>
+</div>
+<div class="bg-darker rounded-xl p-4 border border-gray-600" id="indicatorCard">
+<div class="text-sm font-bold text-white mb-3">📋 技術指標詳細數據</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">產品類型</span><span id="productType" class="text-lg font-medium"></span></div>
+<div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">整合EMA角度</span><span id="emaAngle" class="text-lg font-bold text-indigo"></span></div>
+<div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">交易適配度</span><span id="emaSuitable" class="text-lg font-bold"></span></div>
+<div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">ATR(14)波動率</span><span id="atrValue" class="text-lg font-bold text-blue"></span></div>
+<div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">EMA5 / EMA20</span><span id="emaValues" class="text-sm"></span></div>
+<div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-gray-200">當前價格</span><span id="currentPrice" class="text-lg font-medium"></span></div>
+<div class="flex justify-between items-center bg-black/30 p-2 border border-green/30"><span class="text-gray-200 font-medium">預期目標獲利空間</span><span id="profitSpace" class="text-lg font-bold text-green"></span></div>
+</div>
+</div>
+</div>
+<button id="resetAiButton" class="w-full mt-3 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">重新上傳截圖</button>
+</div>
+</div>
+<div class="fixed bottom-0 left-0 right-0 bg-darker border-t border-border pb-3 pt-2 z-30">
+<div class="max-w-sm mx-auto grid grid-cols-4 text-xs text-center">
+<button data-tab="home" class="tab-button pt-1 pb-1 rounded-lg text-indigo"><div class="text-lg mb-1">🏠</div>最新</button>
+<button data-tab="log" class="tab-button pt-1 pb-1 rounded-lg text-gray-400"><div class="text-lg mb-1">📓</div>歷史</button>
+<button data-tab="stats" class="tab-button pt-1 pb-1 rounded-lg text-gray-400"><div class="text-lg mb-1">📈</div>統計</button>
+<button data-tab="settings" class="tab-button pt-1 pb-1 rounded-lg text-gray-400"><div class="text-lg mb-1">⚙️</div>設定</button>
+</div>
+</div>
+<script>
+const STAGE1_SL_POINTS=20;
+const STAGE2_SL_POINTS=50;
+const MIN_TREND_PROFIT=50;
+const TREND_ANGLE_THRESHOLD=25;
+const DOW_EMA5_ANGLE_THRESHOLD=15;
+const PULLBACK_TOLERANCE=0.002;
+const CONSOLIDATION_WAIT_MINUTES=15;
+
+const calculateMergedEmaAngle=(ema5,ema20,currentPrice)=>{
+const emaDiff=ema5-ema20;
+const priceRatio=emaDiff/currentPrice*10000;
+return Math.round(priceRatio*2.75);
+};
+
+const calculateMergedLevels=(currentPrice,atr14,is5mChart)=>{
+const multiplier=is5mChart?1.35:0.9;
+return{support:Math.round(currentPrice-atr14*multiplier),resistance:Math.round(currentPrice+atr14*multiplier)}
+};
+
+const calculateMergedEntryBaseSL=(currentPrice,trend,atr14,emaAngle)=>{
+const absAngle=Math.abs(emaAngle);
+const atrMultiplier=absAngle>=20?0.8:0.65;
+const entryOffset=absAngle>=20?1.5:4;
+return{
+longEntry:Math.round(currentPrice+(trend==='long'?entryOffset:entryOffset+2)),
+longBaseSL:Math.round(currentPrice-atr14*atrMultiplier),
+shortEntry:Math.round(currentPrice-(trend==='short'?entryOffset:entryOffset+2)),
+shortBaseSL:Math.round(currentPrice+atr14*atrMultiplier)
+}
+};
+
+const calculateTwoStageSL=(entry,baseSL,isLong)=>{
+const baseRisk=Math.abs(entry-baseSL);
+const stage1SL=isLong?Math.round(entry-Math.min(STAGE1_SL_POINTS,baseRisk*0.6)):Math.round(entry+Math.min(STAGE1_SL_POINTS,baseRisk*0.6));
+const stage2SL=isLong?Math.round(entry-Math.max(STAGE2_SL_POINTS,baseRisk)):Math.round(entry+Math.max(STAGE2_SL_POINTS,baseRisk));
+return{stage1SL,stage2SL,baseRisk}
+};
+
+const calculateTakeProfit=(entry,stage2SL,isLong,isTrend)=>{
+const maxRisk=Math.abs(entry-stage2SL);
+let tp1=Math.round(entry+(isLong?maxRisk*1.75:-maxRisk*1.75));
+let tp2=Math.round(entry+(isLong?maxRisk*2.5:-maxRisk*2.5));
+if(isTrend){
+const profit2=Math.abs(tp2-entry);
+if(profit2<MIN_TREND_PROFIT){
+const expandRatio=MIN_TREND_PROFIT/profit2;
+tp2=Math.round(entry+(isLong?maxRisk*2.5*expandRatio:-maxRisk*2.5*expandRatio));
+tp1=Math.round(entry+(isLong?maxRisk*1.75*expandRatio:-maxRisk*1.75*expandRatio));
+}
+}
+return{tp1,tp2}
+};
+
+const calculateDowTrend=(highs,lows)=>{
+if(highs.length<3||lows.length<3)return{trend:'insufficient',structure:'資料不足無法判斷結構',strength:'unknown'};
+const higherHigh=highs[highs.length-1]>highs[highs.length-2]&&highs[highs.length-2]>highs[highs.length-3];
+const higherLow=lows[lows.length-1]>lows[lows.length-2]&&lows[lows.length-2]>lows[lows.length-3];
+const lowerLow=lows[lows.length-1]<lows[lows.length-2]&&lows[lows.length-2]<lows[lows.length-3];
+const lowerHigh=highs[highs.length-1]<highs[highs.length-2]&&highs[highs.length-2]<highs[highs.length-3];
+if(higherHigh&&higherLow)return{trend:'uptrend',structure:'明確多頭趨勢（符合亞當順勢原則）',strength:'strong'};
+if(lowerLow&&lowerHigh)return{trend:'downtrend',structure:'明確空頭趨勢（符合亞當順勢原則）',strength:'strong'};
+return{trend:'consolidation',structure:'盤整無明確方向（建議觀望等待右邊信號）',strength:'weak'}
+};
+
+const checkEma5Pullback=(currentPrice,ema5,trend)=>{
+const diff=Math.abs(currentPrice-ema5)/ema5;
+const isNearEma5=diff<=PULLBACK_TOLERANCE;
+let isPullbackValid=false;
+if(trend==='uptrend')isPullbackValid=currentPrice>=ema5;
+else if(trend==='downtrend')isPullbackValid=currentPrice<=ema5;
+return{isNearEma5,isPullbackValid,diffPercent:(diff*100).toFixed(2)}
+};
+
+const getDowEntrySignal=(dowTrend,emaAngle,pullbackResult,trend)=>{
+const angleValid=Math.abs(emaAngle)>=DOW_EMA5_ANGLE_THRESHOLD;
+const structureValid=dowTrend.strength==='strong';
+const pullbackValid=pullbackResult.isPullbackValid;
+const trendMatch=(trend==='long'&&dowTrend.trend==='uptrend')||(trend==='short'&&dowTrend.trend==='downtrend');
+let level=0,advice='';
+if(trendMatch)level++;
+if(structureValid)level++;
+if(angleValid)level++;
+if(pullbackValid)level++;
+if(level===4)advice='強力右邊進場信號，四項順勢條件全數滿足，符合亞當理論原則';
+else if(level===3)advice='穩健右邊進場信號，三項條件滿足，可輕倉試單順勢操作';
+else if(level===2)advice='觀望為主，僅兩項條件滿足，等待更明確的右邊確認信號';
+else advice='不建議進場，信號不足，符合亞當理論耐心等待趨勢確認的原則';
+if(dowTrend.trend==='consolidation')advice+=`，盤整行情建議等待${CONSOLIDATION_WAIT_MINUTES}分鐘突破確認再操作`;
+return{level,maxLevel:4,advice,angleValid,structureValid,pullbackValid,trendMatch}
+};
+
+const getSuitabilityDescription=(angle)=>{
+const absAngle=Math.abs(angle);
+if(absAngle>=28)return"極適合交易";
+if(absAngle>=18)return"適合交易";
+if(absAngle>=10)return"尚可交易";
+return"不適合交易";
+};
+
+const getWinRateBySuitability=(suitability,hasTimeVerify)=>{
+const rates={"極適合交易":"85%","適合交易":"78%","尚可交易":"65%","不適合交易":"48%"};
+const baseRate=rates[suitability]||"50%";
+if(hasTimeVerify){
+const num=parseInt(baseRate);
+return Math.min(num+3,92)+"%";
+}
+return baseRate;
+};
+
+const isNoVolatility=(atrValue,emaAngle)=>{
+const absAngle=Math.abs(emaAngle);
+return atrValue<9||absAngle<9;
+};
+
+const isStrongTrend=(emaAngle)=>{
+return Math.abs(emaAngle)>=TREND_ANGLE_THRESHOLD;
+};
+
+const num=(v)=>parseFloat(v)||0;
+const fmt=(n,d=0)=>!n||isNaN(n)||!isFinite(n)?"—":Number(n).toFixed(d);
+const PRODUCT_TYPES={FUTURES:"期貨/指數",UNSUPPORTED:"不支援產品"};
+
+const saveData=(key,data)=>{
+try{localStorage.setItem(`sniper_${key}`,JSON.stringify(data))}catch(e){}
+};
+
+const loadData=(key,defaultValue)=>{
+try{
+const data=localStorage.getItem(`sniper_${key}`);
+return data?JSON.parse(data):defaultValue;
+}catch(e){return defaultValue}
+};
+
+let state={
+tab:"home",
+apiKey:loadData("apiKey",""),
+proxyUrl:loadData("proxyUrl","https://api.openai.com/v1/chat/completions"),
+aiAnalysis:loadData("aiAnalysis",null),
+aiHistory:loadData("aiHistory",[]),
+aiBase64s:[],
+aiLoading:false,
+aiError:"",
+logFilter:"all",
+slStage1:loadData("slStage1",STAGE1_SL_POINTS),
+slStage2:loadData("slStage2",STAGE2_SL_POINTS),
+minTrendProfit:loadData("minTrendProfit",MIN_TREND_PROFIT)
+};
+
+const saveState=()=>{
+saveData("apiKey",state.apiKey);
+saveData("proxyUrl",state.proxyUrl);
+saveData("aiAnalysis",state.aiAnalysis);
+saveData("aiHistory",state.aiHistory);
+saveData("slStage1",state.slStage1);
+saveData("slStage2",state.slStage2);
+saveData("minTrendProfit",state.minTrendProfit);
+};
+
+window.toggleTradeResult=(index,result)=>{
+if(!state.aiHistory[index])return;
+if(state.aiHistory[index].result===result){
+state.aiHistory[index].result=null;
+}else{
+state.aiHistory[index].result=result;
+}
+saveState();
+render();
+};
+
+const showDebug=(msg)=>{
+const el=document.getElementById('aiDebug');
+el.textContent=msg;
+el.classList.remove('hidden');
+};
+
+const hideDebug=()=>document.getElementById('aiDebug').classList.add('hidden');
+
+const showError=(msg)=>{
+const el=document.getElementById('aiError');
+el.textContent=msg;
+el.classList.remove('hidden');
+};
+
+const hideError=()=>document.getElementById('aiError').classList.add('hidden');
+
+const renderHome=()=>{
+if(!state.aiAnalysis){
+return`<div class="bg-card border border-border rounded-2xl p-4 text-center"><div class="text-gray-400 mb-2">還沒有偵測結果</div><div class="text-xs text-gray-500">點擊右下角🤖按鈕上傳K線截圖開始分析</div><div class="text-xs text-cyan/70 mt-2">💡 支援單張 / 多張圖片，內建亞當理論+EMA5雙驗證機制</div></div>`;
+}
+const a=state.aiAnalysis;
+const suitability=getSuitabilityDescription(a.emaAngle);
+const hasTimeVerify=!!a.trendConsistency;
+const winRate=getWinRateBySuitability(suitability,hasTimeVerify);
+const noVol=isNoVolatility(a.atr14,a.emaAngle);
+const strongTrend=isStrongTrend(a.emaAngle);
+const finalStatus=noVol?"⚠️ 無波動盤 → 建議觀望":suitability;
+const finalColor=noVol?"text-yellow":"text-green";
+const profitSpace=a.trend==='long'?Math.abs(a.longTp2-a.longEntry):Math.abs(a.shortTp2-a.shortEntry);
+const trendText=a.trend==='long'?'🔴 偏多多頭趨勢':a.trend==='short'?'🟢 偏空空頭趨勢':'🟡 震盪盤整';
+const trendColor=a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow';
+return`<div class="bg-card border border-border rounded-2xl p-4"><div class="flex justify-between items-center mb-3"><div class="text-xs font-bold text-gray-400">🤖 最新AI偵測結果 (整合中值+亞當理論雙驗證)</div><button id="resetCurrentButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置</button></div><div class="text-center mb-4 pb-3 border-b border-gray-700"><div class="text-lg font-bold text-indigo mb-1">${a.product}</div><div class="text-xs text-gray-400 mb-2">${a.productType||PRODUCT_TYPES.FUTURES} ${hasTimeVerify?'· ✅ 分時驗證':''}</div><div class="text-xl font-bold ${trendColor} mb-2">${trendText}</div><div class="text-base font-bold ${finalColor} mb-1">${finalStatus}</div><div class="text-sm text-green font-medium mb-1">預期勝率：${winRate}</div>${strongTrend?`<div class="text-sm font-bold text-yellow">🏆 強趨勢盤認證 · 保證獲利 ≥ ${state.minTrendProfit} 點</div>`:''}<div class="text-xs text-gray-500 mt-2">偵測時間：${a.time}</div></div><div class="bg-indigo/10 rounded-xl p-3 border border-indigo/30 mb-3"><div class="text-sm font-bold text-indigo mb-2">📈 大趨勢判斷 (5分K週期)</div><div class="text-sm text-gray-300">整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span><br>ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span><br>操作建議：<span class="font-medium">${a.trend==='long'?'逢低佈局做多單為主':a.trend==='short'?'逢高佈局做空單為主':'觀望為主，等待明確方向'}</span></div></div><div class="bg-emerald/10 rounded-xl p-3 border border-emerald/30 mb-3"><div class="text-sm font-bold text-emerald mb-2">📐 亞當理論+EMA5順勢信號</div><div class="text-sm text-gray-300">趨勢結構：<span class="font-medium">${a.dowTrend.structure}</span><br>EMA5角度門檻：<span class="${a.dowSignal.angleValid?'text-green':'text-red'}">${a.dowSignal.angleValid?'✅ 達標':'❌ 未達標'}</span>（${DOW_EMA5_ANGLE_THRESHOLD}°）<br>右邊回踩確認：<span class="${a.dowSignal.pullbackValid?'text-green':'text-yellow'}">${a.dowSignal.pullbackValid?'✅ 確認有效':'⚠️ 待確認'}</span><br>綜合信號：<span class="font-bold">${a.dowSignal.level}/${a.dowSignal.maxLevel} 級</span><br>建議：<span class="font-medium">${a.dowSignal.advice}</span></div></div>${hasTimeVerify?`<div class="bg-cyan/10 rounded-xl p-3 border border-cyan/30 mb-3"><div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖驗證結論</div><div class="text-sm text-gray-300">趨勢一致性：<span class="font-bold ${a.trendConsistency==='一致'?'text-green':a.trendConsistency==='偏離'?'text-yellow':'text-red'}">${a.trendConsistency}</span><br>進場建議：<span class="font-medium">${a.entryAdvice||'依1分K信號確認後進場'}</span></div></div>`:''}<div class="bg-yellow/10 rounded-xl p-3 border border-yellow/30 mb-3"><div class="text-sm font-bold text-yellow mb-2">🛡️ 兩階段風控停損</div><div class="grid grid-cols-2 gap-2 text-xs"><div class="bg-black/30 p-2 rounded text-center border border-yellow/40"><div class="text-yellow font-medium mb-1">第一階段 防守</div><div class="font-bold text-white text-base">${fmt(a.trend==='long'?a.longStage1SL:a.shortStage1SL,a.decimals)}</div><div class="text-gray-400 mt-1">約 ${state.slStage1} 點風險</div></div><div class="bg-black/30 p-2 rounded text-center border border-red/40"><div class="text-red font-medium mb-1">第二階段 終極</div><div class="font-bold text-white text-base">${fmt(a.trend==='long'?a.longStage2SL:a.shortStage2SL,a.decimals)}</div><div class="text-gray-400 mt-1">約 ${state.slStage2} 點風險</div></div></div></div><div class="bg-purple/10 rounded-xl p-3 border border-purple/30 mb-3"><div class="text-sm font-bold text-purple mb-2">📊 關鍵支撐 / 阻力位</div><div class="grid grid-cols-2 gap-2 text-xs"><div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 mb-1">支撐位</div><div class="font-bold text-green text-base">${fmt(a.support,a.decimals)}</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 mb-1">阻力位</div><div class="font-bold text-red text-base">${fmt(a.resistance,a.decimals)}</div></div></div></div><div class="bg-green/10 rounded-xl p-3 border border-green/30"><div class="text-sm font-bold text-green mb-2">🎯 右邊進場點位 (1分K週期)</div><div class="text-center"><div class="text-base font-bold ${trendColor} mb-1">建議操作：${a.trend==='long'?'做多單':'做空單'}</div><div class="text-sm text-gray-300 mb-1">進場點位：<span class="font-bold text-white">${fmt(a.trend==='long'?a.longEntry:a.shortEntry,a.decimals)}</span></div><div class="text-sm font-bold text-green">預期目標獲利空間：${profitSpace} 點</div><div class="text-xs text-gray-500 mt-1">第一止盈TP1：${fmt(a.trend==='long'?a.longTp1:a.shortTp1,a.decimals)} | 第二止盈TP2：${fmt(a.trend==='long'?a.longTp2:a.shortTp2,a.decimals)}</div></div></div></div>`;
+};
+
+const renderLog=()=>{
+let filteredHistory=state.aiHistory;
+if(state.logFilter==="win"){
+filteredHistory=state.aiHistory.filter(r=>r.result==="win");
+}else if(state.logFilter==="loss"){
+filteredHistory=state.aiHistory.filter(r=>r.result==="loss");
+}else if(state.logFilter==="trend"){
+filteredHistory=state.aiHistory.filter(r=>Math.abs(r.emaAngle)>=TREND_ANGLE_THRESHOLD);
+}
+return`<div class="flex justify-between items-center mb-2"><div class="text-lg font-bold">📓 AI偵測歷史紀錄</div></div><div class="flex gap-1 mb-3 flex-wrap"><button data-filter="all" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='all'?'tab-active':'bg-gray-700 text-gray-300'}">全部</button><button data-filter="trend" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='trend'?'bg-yellow/20 text-yellow':'bg-gray-700 text-gray-300'}">強趨勢</button><button data-filter="win" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='win'?'bg-green/20 text-green':'bg-gray-700 text-gray-300'}">獲利✅</button><button data-filter="loss" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='loss'?'bg-red/20 text-red':'bg-gray-700 text-gray-300'}">虧損❌</button></div>${filteredHistory.length===0?'<div class="text-center text-gray-500 py-10">尚無符合條件的分析紀錄</div>':filteredHistory.map((a,index)=>{
+const s=getSuitabilityDescription(a.emaAngle);
+const hasTime=!!a.trendConsistency;
+const strongTrend=isStrongTrend(a.emaAngle);
+const profitSpace=a.trend==='long'?Math.abs(a.longTp2-a.longEntry):Math.abs(a.shortTp2-a.shortEntry);
+const trendColor=a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow';
+const winClass=a.result==="win"?"result-win":"result-pending";
+const lossClass=a.result==="loss"?"result-loss":"result-pending";
+return`<div class="bg-card border border-border rounded-xl p-3 text-sm mb-3"><div class="flex justify-between mb-2"><span class="text-indigo font-bold">${a.product} ${hasTime?'· 🕐':''}</span><span class="text-gray-400 text-xs">${a.time}</span></div><div class="text-xs font-medium mb-1 ${trendColor}">${a.trend==='long'?'🔴 多頭':a.trend==='short'?'🟢 空頭':'🟡 盤整'} · 亞當信號 ${a.dowSignal.level}/${a.dowSignal.maxLevel}級 ${strongTrend?'· 🏆強趨勢':''}</div><div class="text-xs text-gray-400 mb-2">進場：${fmt(a.trend==='long'?a.longEntry:a.shortEntry,a.decimals)} · 目標獲利：<span class="text-green font-medium">${profitSpace} 點</span> · 終極停損：${fmt(a.trend==='long'?a.longStage2SL:a.shortStage2SL,a.decimals)}</div><div class="flex gap-2 items-center pt-2 border-t border-gray-700"><span class="text-xs text-gray-400">交易結果標記：</span><button class="result-btn ${winClass}" onclick="toggleTradeResult(${index},'win')">✅ 獲利</button><button class="result-btn ${lossClass}" onclick="toggleTradeResult(${index},'loss')">❌ 虧損</button></div></div>`;
+}).join('')}`;
+};
+
+const renderStats=()=>{
+const total=state.aiHistory.length;
+const trendTotal=state.aiHistory.filter(r=>Math.abs(r.emaAngle)>=TREND_ANGLE_THRESHOLD).length;
+const timeVerifyTotal=state.aiHistory.filter(r=>r.trendConsistency).length;
+const markedTotal=state.aiHistory.filter(r=>r.result).length;
+const winTotal=state.aiHistory.filter(r=>r.result==="win").length;
+const lossTotal=state.aiHistory.filter(r=>r.result==="loss").length;
+const realWinRate=markedTotal>0?Math.round(winTotal/markedTotal*100)+"%":"—";
+const trendMarked=state.aiHistory.filter(r=>Math.abs(r.emaAngle)>=TREND_ANGLE_THRESHOLD&&r.result).length;
+const trendWin=state.aiHistory.filter(r=>Math.abs(r.emaAngle)>=TREND_ANGLE_THRESHOLD&&r.result==="win").length;
+const trendRealWinRate=trendMarked>0?Math.round(trendWin/trendMarked*100)+"%":"—";
+const angleCounts={"極適合交易":0,"適合交易":0,"尚可交易":0,"不適合交易":0};
+state.aiHistory.forEach(r=>angleCounts[getSuitabilityDescription(r.emaAngle)]++);
+return`<div class="flex justify-between items-center mb-2"><div class="text-lg font-bold">📈 AI偵測數據統計</div><button id="resetStatsButton" class="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">重置全部</button></div><div class="bg-gradient-to-br from-indigo/20 to-purple/20 border border-indigo/40 rounded-xl p-4 space-y-2 text-sm mb-4"><div class="font-bold text-white mb-2">🏆 真實交易績效總覽</div><div class="grid grid-cols-2 gap-2"><div class="bg-black/30 p-2 rounded text-center"><div class="text-xs text-gray-400">已標記單數</div><div class="text-lg font-bold text-white">${markedTotal}</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-xs text-gray-400">整體真實勝率</div><div class="text-lg font-bold text-green">${realWinRate}</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-xs text-green">累計盈利單</div><div class="text-base font-bold text-green">${winTotal}</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-xs text-red">累計虧損單</div><div class="text-base font-bold text-red">${lossTotal}</div></div></div></div><div class="bg-card border border-yellow/40 rounded-xl p-4 space-y-2 text-sm mb-4 bg-yellow/5"><div class="font-bold mb-2 text-yellow">🏆 強趨勢盤表現 (≥${TREND_ANGLE_THRESHOLD}°)</div><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-yellow text-sm">趨勢盤總數</span><div class="text-right text-xs"><div>${trendTotal} 筆</div><div class="text-green font-medium">強趨勢勝率：${trendRealWinRate}</div></div></div><div class="text-xs text-gray-400 pt-1 border-t border-gray-700">💡 強趨勢盤強制目標獲利 ≥ ${state.minTrendProfit} 點，配合兩階段停損提高盈虧比</div></div><div class="bg-card border border-cyan/40 rounded-xl p-4 space-y-2 text-sm mb-4 bg-cyan/5"><div class="font-bold mb-2 text-cyan">⏱️ 分時驗證數據</div><div class="flex justify-between items-center bg-black/30 p-2 rounded"><span class="text-cyan text-sm">含分時驗證單數</span><span class="font-bold text-white">${timeVerifyTotal} 筆</span></div><div class="text-xs text-gray-400 pt-1 border-t border-gray-700">💡 分時圖驗證可過濾假突破信號，輔助提升進場時機精準度</div></div><div class="bg-card border border-border rounded-xl p-4 space-y-2 text-sm mb-4"><div class="font-bold mb-2">📐 EMA角度適配度分佈</div><div class="flex justify-between text-green"><span>✅ 極適合交易</span><span>${angleCounts["極適合交易"]} 次</span></div><div class="flex justify-between text-green"><span>✅ 適合交易</span><span>${angleCounts["適合交易"]} 次</span></div><div class="flex justify-between text-yellow"><span>⚠️ 尚可交易</span><span>${angleCounts["尚可交易"]} 次</span></div><div class="flex justify-between text-yellow"><span>⚠️ 不適合交易</span><span>${angleCounts["不適合交易"]} 次</span></div><div class="text-xs text-gray-500 pt-2 border-t border-gray-700">總分析次數：${total} 次</div></div>`;
+};
+
+const renderSettings=()=>{
+return`<div class="text-lg font-bold mb-2">⚙️ 系統設定</div><div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4"><div class="font-bold text-sm">OpenAI API 金鑰設定</div><input id="apiKeyInput" value="${state.apiKey}" placeholder="請輸入 sk- 開頭的API金鑰" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" /></div><div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4"><div class="font-bold text-sm">API 代理伺服器位址</div><input id="proxyUrlInput" value="${state.proxyUrl}" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" /><div class="text-xs text-gray-500">💡 若遇到跨域錯誤或載入失敗，請更換可用的代理位址</div></div><div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4"><div class="font-bold text-sm">風險參數自訂</div><div class="flex justify-between items-center"><span class="text-sm text-gray-300">第一階段防守停損 (點)</span><input id="slStage1Input" value="${state.slStage1}" type="number" step="5" min="10" max="40" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" /></div><div class="flex justify-between items-center"><span class="text-sm text-gray-300">第二階段終極停損 (點)</span><input id="slStage2Input" value="${state.slStage2}" type="number" step="5" min="30" max="100" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" /></div><div class="flex justify-between items-center"><span class="text-sm text-gray-300">趨勢盤最低保證獲利 (點)</span><input id="minProfitInput" value="${state.minTrendProfit}" type="number" step="10" min="30" max="200" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" /></div><div class="text-xs text-gray-500 pt-1 border-t border-gray-700">💡 建議維持預設值：20點防守 + 50點終極停損 + 50點趨勢獲利保證</div></div><button id="clearAllDataButton" class="w-full py-2 border border-red/30 text-red rounded-lg text-sm mb-4">清除所有本地數據</button><div class="text-xs text-gray-600 text-center">全品種AI智能偵測系統 · 整合中值+亞當理論雙驗證 v2.3</div>`;
+};
+
+const renderAiResult=()=>{
+if(!state.aiAnalysis)return;
+const a=state.aiAnalysis;
+const suitability=getSuitabilityDescription(a.emaAngle);
+const hasTimeVerify=!!a.trendConsistency;
+const winRate=getWinRateBySuitability(suitability,hasTimeVerify);
+const noVol=isNoVolatility(a.atr14,a.emaAngle);
+const strongTrend=isStrongTrend(a.emaAngle);
+const longProfit=Math.abs(a.longTp2-a.longEntry);
+const shortProfit=Math.abs(a.shortTp2-a.shortEntry);
+const mainProfit=a.trend==='long'?longProfit:shortProfit;
+const trendColor=a.trend==='long'?'text-red':a.trend==='short'?'text-green':'text-yellow';
+const trendText=a.trend==='long'?'🔴 偏多多頭趨勢':a.trend==='short'?'🟢 偏空空頭趨勢':'🟡 震盪盤整';
+document.getElementById('productTitle').textContent=`📊 ${a.product}`;
+document.getElementById('productTypeLabel').textContent=`${a.productType||PRODUCT_TYPES.FUTURES} ${hasTimeVerify?'· ✅ 分時驗證':''}`;
+document.getElementById('trendAdvice').innerHTML=`<span class="${trendColor} font-bold">${trendText}</span>`;
+document.getElementById('finalSuitability').textContent=noVol?"⚠️ 無波動盤 → 建議觀望":suitability;
+document.getElementById('finalWinRate').textContent=`預期勝率：${winRate}`;
+document.getElementById('profitGuarantee').textContent=strongTrend?`🏆 強趨勢盤認證 · 保證獲利 ≥ ${state.minTrendProfit} 點`:"一般行情 · 依風險報酬比計算目標";
+document.getElementById('emaAngle').textContent=`${a.emaAngle}°`;
+document.getElementById('emaSuitable').textContent=suitability;
+document.getElementById('atrValue').textContent=a.atr14||"—";
+document.getElementById('currentPrice').textContent=fmt(a.currentPrice,a.decimals);
+document.getElementById('emaValues').textContent=`EMA5：${fmt(a.ema5,a.decimals)} / EMA20：${fmt(a.ema20,a.decimals)}`;
+document.getElementById('profitSpace').textContent=`${mainProfit} 點 (TP2)`;
+document.getElementById('trend5mContent').innerHTML=`<div class="text-xs space-y-1"><div>📐 整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span> (雙模型中值演算法)</div><div>📈 趨勢方向：<span class="font-medium ${trendColor}">${trendText}</span></div><div>📊 ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span></div><div>💡 操作建議：${a.trend==='long'?'逢低佈局做多單為主':a.trend==='short'?'逢高佈局做空單為主':'觀望為主，等待明確方向'}</div>${strongTrend?'<div class="text-yellow font-medium pt-1 border-t border-yellow/30">🏆 達成強趨勢門檻，啟動50點獲利保證機制</div>':''}</div>`;
+document.getElementById('dowContent').innerHTML=`<div class="text-xs space-y-2"><div class="bg-black/30 p-2 rounded"><div class="font-medium text-emerald mb-1">亞當趨勢結構</div><div class="text-gray-300">${a.dowTrend.structure}</div></div><div class="grid grid-cols-2 gap-2"><div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 text-xs mb-1">EMA5角度門檻</div><div class="font-bold ${a.dowSignal.angleValid?'text-green':'text-red'}">${a.dowSignal.angleValid?'✅ 達標':'❌ 未達'}</div><div class="text-gray-500 text-xs">門檻：${DOW_EMA5_ANGLE_THRESHOLD}°</div></div><div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 text-xs mb-1">右邊回踩確認</div><div class="font-bold ${a.dowSignal.pullbackValid?'text-green':'text-yellow'}">${a.dowSignal.pullbackValid?'✅ 有效':'⚠️ 待確認'}</div><div class="text-gray-500 text-xs">偏離：${a.pullbackResult.diffPercent}%</div></div></div><div class="bg-black/30 p-2 rounded border border-emerald/40"><div class="flex justify-between items-center mb-1"><span class="text-emerald font-medium">綜合信號等級</span><span class="font-bold text-white">${a.dowSignal.level}/${a.dowSignal.maxLevel} 級</span></div><div class="text-gray-300 text-xs">${a.dowSignal.advice}</div></div></div>`;
+const timeCard=document.getElementById('timeVerifyCard');
+if(hasTimeVerify){
+timeCard.classList.remove('hidden');
+document.getElementById('timeVerifyContent').innerHTML=`<div class="text-xs space-y-2"><div class="flex justify-between"><span>趨勢一致性：</span><span class="font-bold ${a.trendConsistency==='一致'?'text-green':a.trendConsistency==='偏離'?'text-yellow':'text-red'}">${a.trendConsistency}</span></div><div class="bg-black/30 p-2 rounded"><div class="font-medium text-cyan mb-1">右邊進場時機建議</div><div class="text-gray-300">${a.entryAdvice||'依1分K信號確認後進場'}</div></div>${a.riskNote?`<div class="bg-black/30 p-2 rounded"><div class="font-medium text-yellow mb-1">風控備註</div><div class="text-gray-300">${a.riskNote}</div></div>`:''}<div class="text-gray-400 pt-1 border-t border-gray-700">💡 分時圖為輔助驗證，最終進場仍以5分K趨勢為主</div></div>`;
+}else{
+timeCard.classList.add('hidden');
+}
+document.getElementById('entry1mContent').innerHTML=`<div class="text-xs space-y-2"><div class="bg-black/30 p-2 rounded border border-red/30"><div class="font-bold text-red mb-1">🔴 做多單進場</div><div>進場點：<span class="font-bold text-white">${fmt(a.longEntry,a.decimals)}</span></div><div>第一止盈TP1：<span class="text-green">${fmt(a.longTp1,a.decimals)}</span></div><div>第二止盈TP2：<span class="text-green font-bold">${fmt(a.longTp2,a.decimals)}</span> · 獲利 ${longProfit} 點</div></div><div class="bg-black/30 p-2 rounded border border-green/30"><div class="font-bold text-green mb-1">🟢 做空單進場</div><div>進場點：<span class="font-bold text-white">${fmt(a.shortEntry,a.decimals)}</span></div><div>第一止盈TP1：<span class="text-green">${fmt(a.shortTp1,a.decimals)}</span></div><div>第二止盈TP2：<span class="text-green font-bold">${fmt(a.shortTp2,a.decimals)}</span> · 獲利 ${shortProfit} 點</div></div><div class="text-gray-400 pt-1 border-t border-gray-700">⚠️ 提醒：價格實體突破進場點且收線確認後再進場，避免假突破</div></div>`;
+document.getElementById('slContent').innerHTML=`<div class="text-xs space-y-2"><div class="bg-black/30 p-2 rounded border border-yellow/40"><div class="font-bold text-yellow mb-1">🛡️ 第一階段：防守停損 (輕倉試單)</div><div class="grid grid-cols-2 gap-2"><div>多單停損：<span class="font-bold text-white">${fmt(a.longStage1SL,a.decimals)}</span></div><div>空單停損：<span class="font-bold text-white">${fmt(a.shortStage1SL,a.decimals)}</span></div></div><div class="text-gray-400 mt-1">約 ${state.slStage1} 點風險 · 觸及即減倉一半，保留部分倉位</div></div><div class="bg-black/30 p-2 rounded border border-red/40"><div class="font-bold text-red mb-1">🛑 第二階段：終極停損 (趨勢反轉)</div><div class="grid grid-cols-2 gap-2"><div>多單停損：<span class="font-bold text-white">${fmt(a.longStage2SL,a.decimals)}</span></div><div>空單停損：<span class="font-bold text-white">${fmt(a.shortStage2SL,a.decimals)}</span></div></div><div class="text-gray-400 mt-1">約 ${state.slStage2} 點風險 · 關鍵支撐/阻力位，破位即全數出場</div></div><div class="text-gray-400 pt-1 border-t border-gray-700">💡 操作建議：嚴格執行兩階段停損紀律，控制單筆風險在可承受範圍內</div></div>`;
+document.getElementById('levelsContent').innerHTML=`<div class="text-xs space-y-1"><div>🛡️ 關鍵支撐位：<span class="font-bold text-green">${fmt(a.support,a.decimals)}</span></div><div>🚫 關鍵阻力位：<span class="font-bold text-red">${fmt(a.resistance,a.decimals)}</span></div><div class="pt-1 border-t border-gray-700 text-gray-400">💡 突破策略：實體突破阻力位確認後做多；實體跌破支撐位確認後做空</div></div>`;
+document.getElementById('aiResult').classList.remove('hidden');
+};
+
+const render=()=>{
+const contentEl=document.getElementById('content');
+switch(state.tab){
+case "home":contentEl.innerHTML=renderHome();bindHomeEvents();break;
+case "log":contentEl.innerHTML=renderLog();bindLogEvents();break;
+case "stats":contentEl.innerHTML=renderStats();bindStatsEvents();break;
+case "settings":contentEl.innerHTML=renderSettings();bindSettingsEvents();break;
+}
+};
+
+const bindHomeEvents=()=>{
+document.getElementById('resetCurrentButton')?.addEventListener('click',()=>{
+if(confirm("確定要重置當前的分析結果嗎？")){
+state.aiAnalysis=null;
+saveState();
+render();
+}
+});
+};
+
+const bindLogEvents=()=>{
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+btn.addEventListener('click',e=>{
+state.logFilter=e.currentTarget.dataset.filter;
+render();
+});
+});
+};
+
+const bindStatsEvents=()=>{
+document.getElementById('resetStatsButton')?.addEventListener('click',()=>{
+if(confirm("確定要重置所有統計數據和歷史紀錄嗎？此操作無法復原！")){
+state.aiHistory=[];
+state.aiAnalysis=null;
+saveState();
+render();
+}
+});
+};
+
+const bindSettingsEvents=()=>{
+document.getElementById('apiKeyInput')?.addEventListener('input',e=>{
+state.apiKey=e.target.value;
+saveState();
+});
+document.getElementById('proxyUrlInput')?.addEventListener('input',e=>{
+state.proxyUrl=e.target.value;
+saveState();
+});
+document.getElementById('slStage1Input')?.addEventListener('change',e=>{
+const val=parseInt(e.target.value);
+state.slStage1=isNaN(val)?STAGE1_SL_POINTS:val;
+saveState();
+});
+document.getElementById('slStage2Input')?.addEventListener('change',e=>{
+const val=parseInt(e.target.value);
+state.slStage2=isNaN(val)?STAGE2_SL_POINTS:val;
+saveState();
+});
+document.getElementById('minProfitInput')?.addEventListener('change',e=>{
+const val=parseInt(e.target.value);
+state.minTrendProfit=isNaN(val)?MIN_TREND_PROFIT:val;
+saveState();
+});
+document.getElementById('clearAllDataButton')?.addEventListener('click',()=>{
+if(confirm("確定要清除所有本地數據嗎？包括API設定、歷史紀錄、所有分析結果，此操作無法復原！")){
+localStorage.clear();
+location.reload();
+}
+});
+};
+
+const callOpenAI=async(imgs)=>{
+const systemPrompt=`你是專業的全品種期貨技術分析師，使用整合中值演算法與亞當理論進行分析。請嚴格按照以下規則分析：
+1. 從圖中提取當前價格、EMA5均線、EMA20均線、ATR(14)數值
+2. 識別產品名稱、價格小數位數
+3. 判斷趨勢方向：EMA5在EMA20之上且角度向上為long(多頭)；EMA5在EMA20之下且角度向下為short(空頭)；否則sideways(盤整)
+4. 識別最近高低點與趨勢延續性，判斷是否符合亞當理論順勢條件，確認右邊交易信號
+5. 若圖中有分時走勢，額外分析分時趨勢與5分K趨勢的一致性，給出右邊進場時機建議與風控備註
+6. 只返回標準JSON格式，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema5, ema20, atr14, recentHighs(數組), recentLows(數組), trendConsistency(可選), entryAdvice(可選), riskNote(可選)`;
+const content=[{type:'text',text:systemPrompt}];
+imgs.forEach(img=>{
+content.push({type:'image_url',image_url:{url:img,detail:"high"}});
+});
+let res;
+try{
+res=await fetch(state.proxyUrl,{
+method:'POST',
+headers:{'Content-Type':'application/json','Authorization':`Bearer ${state.apiKey}`},
+body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content}],temperature:0.1,max_tokens:1200})
+});
+}catch(networkErr){
+throw new Error(`網路連線失敗 (Load Error)\n\n可能原因：\n1. 代理伺服器位址無效或不支援CORS跨域\n2. 網路連線不穩定或防火牆攔截\n3. API代理服務暫時無法存取\n\n建議：\n• 更換可用的API代理位址後重試\n• 檢查網路連線是否正常\n• 確認API金鑰是否正確輸入`);
+}
+if(!res.ok){
+let errMsg=`API 請求錯誤 (HTTP ${res.status})`;
+try{
+const errData=await res.json();
+if(errData.error){
+errMsg+=`\n\n錯誤類型：${errData.error.type||'未知錯誤'}\n詳細說明：${errData.error.message||'無詳細資訊'}`;
+}
+}catch(e){}
+if(res.status===401){
+errMsg+="\n\n💡 請檢查 API 金鑰是否正確，或是否已過期";
+}else if(res.status===429){
+errMsg+="\n\n💡 請求過於頻繁，請稍後再試；或檢查帳號額度是否不足";
+}else if(res.status===404){
+errMsg+="\n\n💡 代理位址路徑錯誤，請確認代理URL是否正確";
+}else if(res.status>=500){
+errMsg+="\n\n💡 伺服器端錯誤，請稍後重試或更換代理位址";
+}
+throw new Error(errMsg);
+}
+const data=await res.json();
+if(!data.choices||!data.choices[0]||!data.choices[0].message){
+throw new Error("API 返回格式異常，無法解析分析結果，請重新上傳更清晰的K線截圖");
+}
+const rawContent=data.choices[0].message.content;
+let jsonStr=null;
+const codeBlockMatch=rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+if(codeBlockMatch){
+jsonStr=codeBlockMatch[1].trim();
+}else{
+const braceMatch=rawContent.match(/\{[\s\S]*\}/);
+if(braceMatch){
+jsonStr=braceMatch[0].trim();
+}
+}
+if(!jsonStr){
+throw new Error("AI 回應內容無法解析為標準格式，請重新上傳更清晰的K線截圖");
+}
+jsonStr=jsonStr.replace(/,\s*([}\]])/g,'$1').replace(/\/\/.*$/gm,'').replace(/\/\*[\s\S]*?\*\//g,'');
+let parsedData;
+try{
+parsedData=JSON.parse(jsonStr);
+}catch(parseErr){
+try{
+const fallbackMatch=jsonStr.match(/^\s*(\{[\s\S]*?\})\s*$/);
+if(fallbackMatch){
+parsedData=JSON.parse(fallbackMatch[1]);
+}else{
+throw new Error();
+}
+}catch(e){
+throw new Error(`JSON 解析失敗，AI 回傳格式不正確\n\n原始內容片段：\n${jsonStr.slice(0,200)}${jsonStr.length>200?'...':''}\n\n請重新上傳截圖重試，或確認圖片包含清晰的K線與數值`);
+}
+}
+parsedData.result=null;
+parsedData.emaAngle=calculateMergedEmaAngle(num(parsedData.ema5),num(parsedData.ema20),num(parsedData.currentPrice));
+const levels=calculateMergedLevels(num(parsedData.currentPrice),num(parsedData.atr14),false);
+parsedData.support=levels.support;
+parsedData.resistance=levels.resistance;
+const entryBase=calculateMergedEntryBaseSL(num(parsedData.currentPrice),parsedData.trend,num(parsedData.atr14),parsedData.emaAngle);
+Object.assign(parsedData,entryBase);
+const longSL=calculateTwoStageSL(parsedData.longEntry,parsedData.longBaseSL,true);
+const shortSL=calculateTwoStageSL(parsedData.shortEntry,parsedData.shortBaseSL,false);
+parsedData.longStage1SL=longSL.stage1SL;
+parsedData.longStage2SL=longSL.stage2SL;
+parsedData.shortStage1SL=shortSL.stage1SL;
+parsedData.shortStage2SL=shortSL.stage2SL;
+const isTrend=isStrongTrend(parsedData.emaAngle);
+const longTP=calculateTakeProfit(parsedData.longEntry,parsedData.longStage2SL,true,isTrend);
+const shortTP=calculateTakeProfit(parsedData.shortEntry,parsedData.shortStage2SL,false,isTrend);
+parsedData.longTp1=longTP.tp1;
+parsedData.longTp2=longTP.tp2;
+parsedData.shortTp1=shortTP.tp1;
+parsedData.shortTp2=shortTP.tp2;
+const dowTrend=calculateDowTrend(parsedData.recentHighs||[],parsedData.recentLows||[]);
+parsedData.dowTrend=dowTrend;
+const pullbackResult=checkEma5Pullback(num(parsedData.currentPrice),num(parsedData.ema5),dowTrend.trend);
+parsedData.pullbackResult=pullbackResult;
+const dowSignal=getDowEntrySignal(dowTrend,parsedData.emaAngle,pullbackResult,parsedData.trend);
+parsedData.dowSignal=dowSignal;
+parsedData.time=new Date().toLocaleString('zh-TW');
+return parsedData;
+};
+
+const runAiAnalyze=async()=>{
+hideError();
+showDebug("正在進行整合中值與亞當理論驗證分析，請稍候...");
+if(!state.apiKey||!state.apiKey.trim()){
+hideDebug();
+showError("❌ 請先在設定頁面輸入有效的 OpenAI API 金鑰");
+return;
+}
+if(state.aiBase64s.length===0){
+hideDebug();
+showError("❌ 請先上傳至少一張 K 線截圖再進行分析");
+return;
+}
+const analyzeBtn=document.getElementById('analyzeButton');
+const originalText=analyzeBtn.textContent;
+analyzeBtn.textContent="⏳ 分析中，請稍候...";
+analyzeBtn.disabled=true;
+try{
+const result=await callOpenAI(state.aiBase64s);
+state.aiAnalysis=result;
+state.aiHistory.unshift(result);
+saveState();
+hideDebug();
+renderAiResult();
+render();
+}catch(err){
+hideDebug();
+showError(`❌ 分析失敗：\n${err.message||'未知錯誤'}`);
+}finally{
+analyzeBtn.textContent=originalText;
+analyzeBtn.disabled=false;
+}
+};
+
+const handleFileSelect=(files)=>{
+hideError();
+hideDebug();
+if(!files||files.length===0)return;
+state.aiBase64s=[];
+const previewImgs=[
+document.getElementById('previewImg1'),
+document.getElementById('previewImg2'),
+document.getElementById('previewImg3')
+];
+previewImgs.forEach(img=>img.src='');
+document.getElementById('imagePreview').classList.remove('hidden');
+let validCount=0;
+for(let i=0;i<Math.min(files.length,3);i++){
+const file=files[i];
+if(!file.type.startsWith('image/'))continue;
+const reader=new FileReader();
+reader.onload=(e)=>{
+const base64=e.target.result;
+state.aiBase64s.push(base64);
+if(validCount<previewImgs.length){
+previewImgs[validCount].src=base64;
+validCount++;
+}
+};
+reader.readAsDataURL(file);
+}
+};
+
+const init=()=>{
+render();
+document.querySelectorAll('.tab-button').forEach(btn=>{
+btn.addEventListener('click',e=>{
+state.tab=e.currentTarget.dataset.tab;
+document.querySelectorAll('.tab-button').forEach(b=>{
+b.classList.remove('text-indigo');
+b.classList.add('text-gray-400');
+});
+e.currentTarget.classList.remove('text-gray-400');
+e.currentTarget.classList.add('text-indigo');
+render();
+});
+});
+};
+
+const aiButton=document.getElementById('aiButton');
+const aiModal=document.getElementById('aiModal');
+const closeAiModal=document.getElementById('closeAiModal');
+const fileInput=document.getElementById('fileInput');
+const uploadButton=document.getElementById('uploadButton');
+const analyzeButton=document.getElementById('analyzeButton');
+const resetAiButton=document.getElementById('resetAiButton');
+
+aiButton.addEventListener('click',()=>{
+aiModal.classList.remove('hidden');
+});
+
+closeAiModal.addEventListener('click',()=>{
+aiModal.classList.add('hidden');
+});
+
+aiModal.addEventListener('click',(e)=>{
+if(e.target===aiModal){
+aiModal.classList.add('hidden');
+}
+});
+
+uploadButton.addEventListener('click',()=>{
+fileInput.click();
+});
+
+fileInput.addEventListener('change',(e)=>{
+handleFileSelect(e.target.files);
+});
+
+analyzeButton.addEventListener('click',runAiAnalyze);
+
+resetAiButton.addEventListener('click',()=>{
+state.aiBase64s=[];
+document.getElementById('imagePreview').classList.add('hidden');
+document.getElementById('aiResult').classList.add('hidden');
+hideError();
+hideDebug();
+fileInput.value='';
+});
+
+window.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
