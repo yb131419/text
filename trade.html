@@ -769,7 +769,8 @@ const callOpenAI = async imgs => {
 4. 識別最近3個以上的明顯高點（recentHighs）與低點（recentLows），用於亞當理論右邊確認分析
 5. 亞當理論核心：不預測頂底，只在趨勢確立且出現右邊回踩訊號後才進場，盤整行情不操作
 6. 若圖中有分時走勢，額外分析分時趨勢與15分K趨勢的一致性，給出右邊進場時機建議與風控備註
-7. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), trendConsistency(可選), entryAdvice(可選), riskNote(可選)`;
+7. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), trendConsistency(可選), entryAdvice(可選), riskNote(可選)
+8. 【重要】所有文字欄位（advice, trendConsistency, entryAdvice, riskNote, productType 等）必須使用繁體中文，嚴禁出現任何英文句子`;
 
   // 將 base64 圖片轉成 OpenAI 格式
   const imageContents = imgs.map(imgDataUrl => ({
@@ -885,6 +886,28 @@ const callOpenAI = async imgs => {
   const adamSignal = getAdamEntrySignal(adamTrend, parsedData.emaAngle, pullbackResult, parsedData.trend);
   parsedData.adamSignal = adamSignal;
   parsedData.time = new Date().toLocaleString('zh-TW');
+
+  // ── 保底中文轉換：若 AI 仍回傳英文，自動翻譯關鍵欄位
+  const normalizeZh = str => {
+    if (!str || typeof str !== 'string') return str;
+    // trendConsistency 常見英文值
+    if (/consistent.*long/i.test(str))  return '一致（多頭）';
+    if (/consistent.*short/i.test(str)) return '一致（空頭）';
+    if (/consistent/i.test(str))        return '一致';
+    if (/diverge|inconsistent/i.test(str)) return '偏離';
+    if (/conflict/i.test(str))          return '衝突';
+    // entryAdvice / riskNote：若含英文字母超過30%，標記為需人工判讀
+    const enChars = (str.match(/[a-zA-Z]/g) || []).length;
+    const ratio = enChars / str.length;
+    if (ratio > 0.3) return str + '（AI回傳含英文，請參考上方中文分析）';
+    return str;
+  };
+
+  if (parsedData.trendConsistency) parsedData.trendConsistency = normalizeZh(parsedData.trendConsistency);
+  if (parsedData.entryAdvice)      parsedData.entryAdvice      = normalizeZh(parsedData.entryAdvice);
+  if (parsedData.riskNote)         parsedData.riskNote         = normalizeZh(parsedData.riskNote);
+  if (parsedData.advice)           parsedData.advice           = normalizeZh(parsedData.advice);
+
   return parsedData;
 };
 
