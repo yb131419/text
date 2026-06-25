@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>全品種AI智能偵測系統 | 整合中值版 · 趨勢50點獲利保證</title><script src="https://cdn.tailwindcss.com"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script>tailwind.config={theme:{extend:{colors:{dark:'#07080f',darker:'#0d1018',card:'#111520',border:'#1a1e2e',green:'#1db954',red:'#e03e3e',blue:'#38bdf8',yellow:'#f59e0b',indigo:'#6366f1',purple:'#a855f7',cyan:'#06b6d4'},fontFamily:{sans:['Inter','system-ui','-apple-system','sans-serif']}}}}</script><style type="text/tailwindcss">@layer utilities{.content-auto{content-visibility:auto}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}.scrollbar-hide::-webkit-scrollbar{display:none}.tab-active{@apply bg-indigo/20 text-indigo}.result-btn{@apply px-2 py-0.5 rounded text-[10px] font-bold border transition-all}.result-win{@apply bg-green/20 text-green border-green/50}.result-loss{@apply bg-red/20 text-red border-red/50}.result-pending{@apply bg-gray-700/50 text-gray-400 border-gray-600}.sl-stage-1{@apply bg-yellow/20 text-yellow border-yellow/50}.sl-stage-2{@apply bg-red/20 text-red border-red/50}}</style></head>
+<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>全品種AI智能偵測系統 | 整合中值版 · 趨勢50點獲利保證</title><script src="https://cdn.tailwindcss.com"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script>tailwind.config={theme:{extend:{colors:{dark:'#07080f',darker:'#0d1018',card:'#111520',border:'#1a1e2e',green:'#1db954',red:'#e03e3e',blue:'#38bdf8',yellow:'#f59e0b',indigo:'#6366f1',purple:'#a855f7',cyan:'#06b6d4'},fontFamily:{sans:['Inter','system-ui','-apple-system','sans-serif']}}}}</script><style type="text/tailwindcss">@layer utilities{.content-auto{content-visibility:auto}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}.scrollbar-hide::-webkit-scrollbar{display:none}.tab-active{@apply bg-indigo/20 text-indigo}.result-btn{@apply px-2 py-0.5 rounded text-[10px] font-bold border transition-all}.result-win{@apply bg-green/20 text-green border-green/50}.result-loss{@apply bg-red/20 text-red border-red/50}.result-pending{@apply bg-gray-700/50 text-gray-400 border-gray-600}.result-watch{@apply bg-yellow/20 text-yellow border-yellow/50}.sl-stage-1{@apply bg-yellow/20 text-yellow border-yellow/50}.sl-stage-2{@apply bg-red/20 text-red border-red/50}}</style></head>
 <body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative">
 <div class="bg-darker border-b border-border p-4 text-center">
 <div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
@@ -463,6 +463,7 @@ const renderLog = () => {
   let filtered = state.aiHistory;
   if (state.logFilter === 'win')   filtered = filtered.filter(r => r.result === 'win');
   if (state.logFilter === 'loss')  filtered = filtered.filter(r => r.result === 'loss');
+  if (state.logFilter === 'watch') filtered = filtered.filter(r => r.result === 'watch');
   if (state.logFilter === 'trend') filtered = filtered.filter(r => Math.abs(r.emaAngle) >= TREND_ANGLE_THRESHOLD);
   return `<div class="flex justify-between items-center mb-2"><div class="text-lg font-bold">📓 AI偵測歷史紀錄</div></div>
 <div class="flex gap-1 mb-3 flex-wrap">
@@ -470,20 +471,22 @@ const renderLog = () => {
 <button data-filter="trend" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='trend'?'bg-yellow/20 text-yellow':'bg-gray-700 text-gray-300'}">強趨勢</button>
 <button data-filter="win"   class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='win'  ?'bg-green/20 text-green':'bg-gray-700 text-gray-300'}">獲利✅</button>
 <button data-filter="loss"  class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='loss' ?'bg-red/20 text-red':'bg-gray-700 text-gray-300'}">虧損❌</button>
+<button data-filter="watch" class="filter-btn text-xs px-2 py-1 rounded ${state.logFilter==='watch'?'bg-yellow/20 text-yellow':'bg-gray-700 text-gray-300'}">觀望⏸️</button>
 </div>
 ${filtered.length === 0 ? '<div class="text-center text-gray-500 py-10">尚無符合條件的分析紀錄</div>' :
 filtered.map((a, index) => {
   const strongTrend = isStrongTrend(a.emaAngle);
   const profitSpace = a.longEntry !== null ? (a.trend==='long' ? Math.abs(a.longTp2-a.longEntry) : Math.abs(a.shortTp2-a.shortEntry)) : 0;
   const trendColor = a.trend==='long' ? 'text-red' : a.trend==='short' ? 'text-green' : 'text-yellow';
-  const winClass  = a.result==='win'  ? 'result-win'  : 'result-pending';
-  const lossClass = a.result==='loss' ? 'result-loss' : 'result-pending';
+  const winClass   = a.result==='win'   ? 'result-win'   : 'result-pending';
+  const lossClass  = a.result==='loss'  ? 'result-loss'  : 'result-pending';
+  const watchClass = a.result==='watch' ? 'result-watch'  : 'result-pending';
   const profileLabel = a.riskProfile ? (RISK_PROFILES[a.riskProfile]?.label || '') : '';
   return `<div class="bg-card border border-border rounded-xl p-3 text-sm mb-3">
 <div class="flex justify-between mb-2"><span class="text-indigo font-bold">${a.product} ${a.trendConsistency?'· 🕐':''}</span><span class="text-gray-400 text-xs">${a.time}</span></div>
 <div class="text-xs font-medium mb-1 ${trendColor}">${a.trend==='long'?'🔴 多頭':a.trend==='short'?'🟢 空頭':'🟡 盤整'} · 亞當訊號 ${a.adamSignal.level}/${a.adamSignal.maxLevel}級 ${strongTrend?'· 🏆強趨勢':''}${a.adamSignal?.conflictWarning?'· 🚨衝突':''}</div>
 <div class="text-xs text-gray-400 mb-1">${profileLabel ? `<span class="text-purple/70">[${profileLabel}]</span> ` : ''}${a.longEntry !== null ? `進場：${fmt(a.trend==='long'?a.longEntry:a.shortEntry,a.decimals)} · 目標：<span class="text-green font-medium">${profitSpace} 點</span> · 終極停損：${fmt(a.trend==='long'?a.longStage2SL:a.shortStage2SL,a.decimals)}` : '盤整觀望，無進場點位'}</div>
-<div class="flex gap-2 items-center pt-2 border-t border-gray-700"><span class="text-xs text-gray-400">結果標記：</span><button class="result-btn ${winClass}" onclick="toggleTradeResult(${index},'win')">✅ 獲利</button><button class="result-btn ${lossClass}" onclick="toggleTradeResult(${index},'loss')">❌ 虧損</button></div>
+<div class="flex gap-2 items-center pt-2 border-t border-gray-700"><span class="text-xs text-gray-400">結果標記：</span><button class="result-btn ${winClass}" onclick="toggleTradeResult(${index},'win')">✅ 獲利</button><button class="result-btn ${lossClass}" onclick="toggleTradeResult(${index},'loss')">❌ 虧損</button><button class="result-btn ${watchClass}" onclick="toggleTradeResult(${index},'watch')">⏸️ 觀望</button></div>
 </div>`;
 }).join('')}`;
 };
