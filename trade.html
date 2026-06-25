@@ -3,7 +3,7 @@
 <div class="bg-darker border-b border-border p-4 text-center">
 <div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
 <div class="text-xl font-bold">⚡ 整合中值版 · 趨勢50點獲利保證</div>
-<div class="text-xs text-gray-400 mt-1">雙模型參數取中值計算 | 三周期聯動驗證 | 兩階段彈性停損 | 亞當理論+EMA12順勢確認 | 移動停利 | Claude AI驅動</div>
+<div class="text-xs text-gray-400 mt-1">雙模型參數取中值計算 | 三周期聯動驗證 | 兩階段彈性停損 | 亞當理論+EMA12順勢確認 | 移動停利 | OpenAI GPT-4o驅動</div>
 </div>
 <div id="content" class="max-w-sm mx-auto p-4 space-y-4"></div>
 <button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-indigo shadow-lg flex items-center justify-center text-2xl z-50 pointer-events-auto">🤖</button>
@@ -551,9 +551,9 @@ const renderSettings = () => {
   const p = state.riskProfile || 'medium';
   return `<div class="text-lg font-bold mb-2">⚙️ 系統設定</div>
 <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-<div class="font-bold text-sm">Anthropic API 金鑰設定</div>
-<input id="apiKeyInput" value="${state.apiKey}" placeholder="請輸入 sk-ant- 開頭的API金鑰" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" />
-<div class="text-xs text-gray-500">💡 前往 <span class="text-indigo">console.anthropic.com</span> 取得 API Key，直接呼叫不需代理</div>
+<div class="font-bold text-sm">OpenAI API 金鑰設定</div>
+<input id="apiKeyInput" value="${state.apiKey}" placeholder="請輸入 sk-proj- 或 sk- 開頭的API金鑰" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" />
+<div class="text-xs text-gray-500">💡 前往 <span class="text-indigo">platform.openai.com/api-keys</span> 取得 API Key</div>
 </div>
 <div class="bg-card border border-purple/30 rounded-xl p-4 space-y-3 mb-4 bg-purple/5">
 <div class="font-bold text-sm text-purple">🎯 風險倍率選擇（短/中/長線）</div>
@@ -759,7 +759,7 @@ const bindSettingsEvents = () => {
 };
 
 // ════════════════════════════════════════════════
-// Anthropic Claude API 呼叫（無需代理，直接呼叫）
+// OpenAI API 呼叫（gpt-4o 視覺模型）
 // ════════════════════════════════════════════════
 const callOpenAI = async imgs => {
   const systemPrompt = `你是專業的全品種期貨技術分析師，使用整合中值演算法與亞當理論（右邊確認）進行分析。請嚴格按照以下規則分析：
@@ -771,12 +771,11 @@ const callOpenAI = async imgs => {
 6. 若圖中有分時走勢，額外分析分時趨勢與15分K趨勢的一致性，給出右邊進場時機建議與風控備註
 7. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), trendConsistency(可選), entryAdvice(可選), riskNote(可選)`;
 
-  // 將 base64 圖片轉成 Anthropic 格式
-  const imageContents = imgs.map(imgDataUrl => {
-    const [header, data] = imgDataUrl.split(',');
-    const mediaType = header.match(/data:(.*);base64/)?.[1] || 'image/jpeg';
-    return { type: 'image', source: { type: 'base64', media_type: mediaType, data } };
-  });
+  // 將 base64 圖片轉成 OpenAI 格式
+  const imageContents = imgs.map(imgDataUrl => ({
+    type: 'image_url',
+    image_url: { url: imgDataUrl, detail: 'high' }
+  }));
 
   const userContent = [
     ...imageContents,
@@ -785,37 +784,37 @@ const callOpenAI = async imgs => {
 
   let res;
   try {
-    res = await fetch('https://api.anthropic.com/v1/messages', {
+    res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': state.apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'Authorization': `Bearer ${state.apiKey}`
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'gpt-4o',
         max_tokens: 1200,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userContent }]
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent }
+        ]
       })
     });
   } catch(networkErr) {
-    throw new Error(`網路連線失敗\n\n請確認：\n1. 網路連線是否正常\n2. API金鑰是否已輸入（sk-ant- 開頭）\n\n錯誤詳情：${networkErr.message}`);
+    throw new Error(`網路連線失敗\n\n請確認：\n1. 網路連線是否正常\n2. API金鑰是否已輸入（sk- 開頭）\n\n錯誤詳情：${networkErr.message}`);
   }
 
   if (!res.ok) {
     let errMsg = `API 請求錯誤 (HTTP ${res.status})`;
-    try { const d = await res.json(); if (d.error) errMsg += `\n\n錯誤類型：${d.error.type||'未知'}\n詳細說明：${d.error.message||''}`; } catch(e) {}
-    if (res.status === 401) errMsg += '\n\n💡 API 金鑰錯誤或未輸入，請到設定頁輸入 sk-ant- 開頭的金鑰';
-    else if (res.status === 429) errMsg += '\n\n💡 請求過於頻繁，請稍後再試';
+    try { const d = await res.json(); if (d.error) errMsg += `\n\n錯誤類型：${d.error.code||'未知'}\n詳細說明：${d.error.message||''}`; } catch(e) {}
+    if (res.status === 401) errMsg += '\n\n💡 API 金鑰錯誤或未輸入，請到設定頁輸入 sk- 開頭的 OpenAI 金鑰';
+    else if (res.status === 429) errMsg += '\n\n💡 請求過於頻繁或額度不足，請稍後再試';
     else if (res.status >= 500) errMsg += '\n\n💡 伺服器端錯誤，請稍後重試';
     throw new Error(errMsg);
   }
 
   const data = await res.json();
-  // Anthropic 回應格式：data.content[0].text
-  const rawContent = data.content?.[0]?.text;
+  // OpenAI 回應格式：data.choices[0].message.content
+  const rawContent = data.choices?.[0]?.message?.content;
   if (!rawContent) throw new Error('API 返回格式異常，請重新上傳更清晰的K線截圖');
 
   let jsonStr = null;
@@ -895,7 +894,7 @@ const callOpenAI = async imgs => {
 const runAiAnalyze = async () => {
   hideError();
   showDebug('正在進行整合中值與亞當理論驗證分析，請稍候...');
-  if (!state.apiKey?.trim()) { hideDebug(); showError('❌ 請先在設定頁面輸入 Anthropic API 金鑰（sk-ant- 開頭）'); return; }
+  if (!state.apiKey?.trim()) { hideDebug(); showError('❌ 請先在設定頁面輸入 OpenAI API 金鑰（sk- 開頭）'); return; }
   if (state.aiBase64s.length === 0) { hideDebug(); showError('❌ 請先上傳至少一張 K 線截圖再進行分析'); return; }
   const btn = document.getElementById('analyzeButton');
   const orig = btn.textContent;
