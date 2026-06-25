@@ -290,9 +290,9 @@ const getAdamEntrySignal = (adamTrend, emaAngle, pullbackResult, trend) => {
   if (pullbackValid)   level++;
 
   let advice = '';
-  if (level === 3) advice = '🟢 強力右邊進場訊號，三項順勢條件全數滿足，符合亞當理論順勢原則';
-  else if (level === 2) advice = '🟡 穩健右邊訊號，兩項條件滿足，可輕倉試單，等待回踩確認後加倉';
-  else advice = '🔴 訊號不足，耐心等待更明確的右邊確認訊號再操作';
+  if (level === 3) advice = '✅ 三項滿足點全數達標，盤勢結構強健';
+  else if (level === 2) advice = '⚠️ 兩項滿足點達標，結構尚可但仍需觀察';
+  else advice = '❌ 滿足點不足，盤勢結構尚未成形，建議觀望';
 
   return { level, maxLevel: 3, advice, angleValid, structureValid, structureStrong, pullbackValid, directionConsistent, conflictWarning: false };
 };
@@ -413,14 +413,12 @@ ${strongTrend ? `<div class="text-sm font-bold text-yellow">🏆 強趨勢盤認
 <div class="text-sm text-gray-300">整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span><br>ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span><br>操作建議：<span class="font-medium">${a.trend === 'long' ? '逢低佈局做多單為主' : a.trend === 'short' ? '逢高佈局做空單為主' : '觀望為主，等待明確方向'}</span></div>
 </div>
 <div class="bg-emerald/10 rounded-xl p-3 border border-emerald/30 mb-3">
-<div class="text-sm font-bold text-emerald mb-2">📐 亞當理論+EMA12順勢訊號</div>
+<div class="text-sm font-bold text-emerald mb-1">📐 亞當理論三週期滿足點</div>
+<div class="text-xs text-gray-500 mb-2">僅供盤勢結構驗證，非直接進場依據</div>
 <div class="text-sm text-gray-300 space-y-1">
-<div class="${a.adamSignal.structureStrong ? 'text-green' : a.adamSignal.structureValid ? 'text-yellow' : 'text-red'}">${a.adamSignal.structureStrong ? '✅' : a.adamSignal.structureValid ? '⚠️' : '❌'} 趨勢結構${a.adamSignal.structureStrong ? '完整確認' : a.adamSignal.structureValid ? '弱確認（結構未完整）' : '不符合順勢原則'}</div>
-<div class="${a.adamSignal.angleValid ? 'text-green' : 'text-red'}">${a.adamSignal.angleValid ? '✅' : '❌'} EMA12角度達門檻 (${ADAM_EMA12_ANGLE_THRESHOLD}°)</div>
-<div class="${a.adamSignal.pullbackValid ? 'text-green' : 'text-yellow'}">${a.adamSignal.pullbackValid ? '✅' : '⚠️'} ${a.pullbackResult?.pullbackNote || '回踩確認待確認'}</div>
-<div class="${a.adamSignal.directionConsistent !== false ? 'text-green' : 'text-red'}">${a.adamSignal.directionConsistent !== false ? '✅' : '🚨'} EMA方向與結構${a.adamSignal.directionConsistent !== false ? '一致' : '衝突'}</div>
-<div class="pt-1 border-t border-gray-700 font-bold">綜合訊號等級：${a.adamSignal.level}/${a.adamSignal.maxLevel} 級</div>
-<div class="font-medium">${a.adamSignal.advice}</div>
+${[{label:'短週期 (1分K)',d:a.adamShortCalc},{label:'中週期 (15分K)',d:a.adamMidCalc},{label:'長週期 (日K)',d:a.adamLongCalc}].filter(x=>x.d).map(x=>`<div class="flex items-start gap-2"><span class="${x.d.satisfied?'text-green':x.d.strength==='weak'?'text-yellow':'text-red'} font-bold">${x.d.satisfied?'✅':x.d.strength==='weak'?'⚠️':'❌'}</span><div><span class="text-gray-300 font-medium">${x.label}</span><br><span class="text-xs text-gray-400">${x.d.note||''}</span></div></div>`).join('')}
+<div class="pt-1 border-t border-gray-700 font-bold text-white">滿足週期：${a.adamSatisfied||0} / ${a.adamTotal||0} 個符合亞當結構</div>
+<div class="font-medium text-sm">${a.adamSignal.advice}</div>
 </div>
 </div>
 ${a.dailyTrend ? `<div class="bg-purple/10 rounded-xl p-3 border border-purple/30 mb-3"><div class="text-sm font-bold text-purple mb-2">📅 日K大趨勢判斷</div><div class="text-sm text-gray-300">日K方向：<span class="font-bold ${a.dailyTrend==='long'?'text-red':a.dailyTrend==='short'?'text-green':'text-yellow'}">${a.dailyTrend==='long'?'🔴 多頭':a.dailyTrend==='short'?'🟢 空頭':'🟡 盤整'}</span><br>日K說明：<span class="font-medium">${a.dailyTrendNote||'-'}</span></div></div>` : ''}
@@ -486,7 +484,7 @@ filtered.map((a, index) => {
   const profileLabel = a.riskProfile ? (RISK_PROFILES[a.riskProfile]?.label || '') : '';
   return `<div class="bg-card border border-border rounded-xl p-3 text-sm mb-3">
 <div class="flex justify-between mb-2"><span class="text-indigo font-bold">${a.product} ${a.trendConsistency?'· 🕐':''}</span><span class="text-gray-400 text-xs">${a.time}</span></div>
-<div class="text-xs font-medium mb-1 ${trendColor}">${a.trend==='long'?'🔴 多頭':a.trend==='short'?'🟢 空頭':'🟡 盤整'} · 亞當訊號 ${a.adamSignal.level}/${a.adamSignal.maxLevel}級 ${strongTrend?'· 🏆強趨勢':''}${a.adamSignal?.conflictWarning?'· 🚨衝突':''}</div>
+<div class="text-xs font-medium mb-1 ${trendColor}">${a.trend==='long'?'🔴 多頭':a.trend==='short'?'🟢 空頭':'🟡 盤整'} · 亞當滿足 ${a.adamSatisfied||0}/${a.adamTotal||0} ${strongTrend?'· 🏆強趨勢':''}${a.adamSignal?.conflictWarning?'· 🚨衝突':''}</div>
 <div class="text-xs text-gray-400 mb-1">${profileLabel ? `<span class="text-purple/70">[${profileLabel}]</span> ` : ''}${a.longEntry !== null ? `進場：${fmt(a.trend==='long'?a.longEntry:a.shortEntry,a.decimals)} · 目標：<span class="text-green font-medium">${profitSpace} 點</span> · 終極停損：${fmt(a.trend==='long'?a.longStage2SL:a.shortStage2SL,a.decimals)}` : '盤整觀望，無進場點位'}</div>
 <div class="flex gap-2 items-center pt-2 border-t border-gray-700"><span class="text-xs text-gray-400">結果標記：</span><button class="result-btn ${winClass}" onclick="toggleTradeResult(${index},'win')">✅ 獲利</button><button class="result-btn ${lossClass}" onclick="toggleTradeResult(${index},'loss')">❌ 虧損</button><button class="result-btn ${watchClass}" onclick="toggleTradeResult(${index},'watch')">⏸️ 觀望</button></div>
 </div>`;
@@ -621,15 +619,12 @@ ${strongTrend ? '<div class="text-yellow font-medium pt-1 border-t border-yellow
 </div>`;
 
   document.getElementById('dowContent').innerHTML = `<div class="text-xs space-y-2">
-<div class="bg-black/30 p-2 rounded"><div class="font-medium text-emerald mb-1">亞當趨勢結構</div><div class="text-gray-300">${a.adamTrend.structure}</div></div>
-<div class="bg-black/30 p-2 rounded space-y-1">
-<div class="${a.adamSignal.structureStrong?'text-green':a.adamSignal.structureValid?'text-yellow':'text-red'}">${a.adamSignal.structureStrong?'✅':a.adamSignal.structureValid?'⚠️':'❌'} 趨勢結構${a.adamSignal.structureStrong?'完整確認':a.adamSignal.structureValid?'弱確認':'不符合'}</div>
-<div class="${a.adamSignal.angleValid?'text-green':'text-red'}">${a.adamSignal.angleValid?'✅':'❌'} EMA12角度達門檻 (${ADAM_EMA12_ANGLE_THRESHOLD}°)</div>
-<div class="${a.adamSignal.pullbackValid?'text-green':'text-yellow'}">${a.adamSignal.pullbackValid?'✅':'⚠️'} ${a.pullbackResult.pullbackNote} (偏離${a.pullbackResult.diffPercent}%)</div>
-<div class="${a.adamSignal.directionConsistent!==false?'text-green':'text-red'}">${a.adamSignal.directionConsistent!==false?'✅':'🚨'} EMA方向與結構${a.adamSignal.directionConsistent!==false?'一致':'衝突'}</div>
+<div class="bg-black/30 p-2 rounded"><div class="font-medium text-emerald mb-1">亞當理論三週期滿足點</div>
+<div class="text-xs text-gray-500 mb-1">僅供結構驗證，非進場依據</div>
+${[{label:'短(1分K)',d:a.adamShortCalc},{label:'中(15分K)',d:a.adamMidCalc},{label:'長(日K)',d:a.adamLongCalc}].filter(x=>x.d).map(x=>`<div class="text-xs mb-1 flex items-start gap-1"><span class="${x.d.satisfied?'text-green':x.d.strength==='weak'?'text-yellow':'text-red'} font-bold">${x.d.satisfied?'✅':x.d.strength==='weak'?'⚠️':'❌'}</span><span>${x.label}：${x.d.note||''}</span></div>`).join('')}
 </div>
 <div class="bg-black/30 p-2 rounded border border-emerald/40">
-<div class="flex justify-between items-center mb-1"><span class="text-emerald font-medium">綜合訊號等級</span><span class="font-bold text-white">${a.adamSignal.level}/${a.adamSignal.maxLevel} 級</span></div>
+<div class="flex justify-between items-center mb-1"><span class="text-emerald font-medium">滿足週期</span><span class="font-bold text-white">${a.adamSatisfied||0}/${a.adamTotal||0}</span></div>
 <div class="text-gray-300 text-xs">${a.adamSignal.advice}</div>
 </div>
 </div>`;
@@ -771,11 +766,15 @@ const callOpenAI = async imgs => {
 1. 從圖中提取當前價格、EMA12均線、EMA20均線、ATR(14)數值
 2. 識別產品名稱、價格小數位數
 3. 判斷趨勢方向：EMA12在EMA20上方且角度向上為long(多頭)；EMA12在EMA20下方且角度向下為short(空頭)；否則sideways(盤整)
-4. 識別最近3個以上的明顯高點（recentHighs）與低點（recentLows），用於亞當理論右邊確認分析
-5. 亞當理論核心：不預測頂底，只在趨勢確立且出現右邊回踩訊號後才進場，盤整行情不操作
+4. 分別識別三個週期的高低點：
+   - shortHighs/shortLows（短週期，1分K，最近3個以上明顯高低點）
+   - midHighs/midLows（中週期，15分K，最近3個以上明顯高低點）
+   - longHighs/longLows（長週期，日K，最近3個以上明顯高低點；若無日K圖則省略）
+   同時保留 recentHighs/recentLows（以15分K為主供相容）
+5. 亞當理論用於【滿足點驗證】而非直接進場依據：判斷各週期是否符合「高高高低高低」（多頭）或「低低低高低高」（空頭）結構，結果填入 adamShort/adamMid/adamLong 欄位（各含 trend:uptrend/downtrend/consolidation/insufficient 與 note 說明）
 6. 若圖中有分時走勢，額外分析分時趨勢與15分K趨勢的一致性，給出右邊進場時機建議與風控備註
 6b. 若圖中有日K走勢，分析日K大趨勢方向（多頭/空頭/盤整），判斷與15分K是否一致，結果填入 dailyTrend 與 dailyTrendNote 欄位
-7. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), trendConsistency(可選), entryAdvice(可選), riskNote(可選), dailyTrend(可選,值為long/short/sideways), dailyTrendNote(可選,繁體中文說明日K趨勢)
+7. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), shortHighs(可選), shortLows(可選), midHighs(可選), midLows(可選), longHighs(可選), longLows(可選), adamShort(可選,含trend/note), adamMid(可選,含trend/note), adamLong(可選,含trend/note), trendConsistency(可選), entryAdvice(可選), riskNote(可選), dailyTrend(可選,值為long/short/sideways), dailyTrendNote(可選,繁體中文說明日K趨勢)
 8. 【重要】所有文字欄位（advice, trendConsistency, entryAdvice, riskNote, productType 等）必須使用繁體中文，嚴禁出現任何英文句子`;
 
   // 將 base64 圖片轉成 OpenAI 格式
@@ -849,7 +848,50 @@ const callOpenAI = async imgs => {
   parsedData.support = levels.support;
   parsedData.resistance = levels.resistance;
 
-  const adamTrend = calculateAdamTrend(parsedData.recentHighs || [], parsedData.recentLows || []);
+  // ── 三週期亞當滿足點計算
+  const calcAdamForPeriod = (highs, lows, label) => {
+    if (!highs || highs.length < 3 || !lows || lows.length < 3)
+      return { trend: 'insufficient', note: `${label}：高低點資料不足，無法判斷`, strength: 'unknown', satisfied: false };
+    const hh = highs[highs.length-1] > highs[highs.length-2] && highs[highs.length-2] > highs[highs.length-3];
+    const hl = lows[lows.length-1]   > lows[lows.length-2]   && lows[lows.length-2]   > lows[lows.length-3];
+    const ll = lows[lows.length-1]   < lows[lows.length-2]   && lows[lows.length-2]   < lows[lows.length-3];
+    const lh = highs[highs.length-1] < highs[highs.length-2] && highs[highs.length-2] < highs[highs.length-3];
+    if (hh && hl)  return { trend: 'uptrend',      note: `${label}：✅ 高高高低（多頭滿足點）`,      strength: 'strong', satisfied: true  };
+    if (ll && lh)  return { trend: 'downtrend',    note: `${label}：✅ 低低低高（空頭滿足點）`,      strength: 'strong', satisfied: true  };
+    if (hh && !hl) return { trend: 'uptrend',      note: `${label}：⚠️ 高高成立，低低待跟進`,        strength: 'weak',   satisfied: false };
+    if (ll && !lh) return { trend: 'downtrend',    note: `${label}：⚠️ 低低成立，高高待跟進`,        strength: 'weak',   satisfied: false };
+    return         { trend: 'consolidation',        note: `${label}：❌ 結構不明確（盤整）`,           strength: 'none',   satisfied: false };
+  };
+
+  // 短週期（1分K）
+  const adamShortCalc = parsedData.adamShort
+    ? parsedData.adamShort
+    : calcAdamForPeriod(parsedData.shortHighs || parsedData.recentHighs, parsedData.shortLows || parsedData.recentLows, '短週期(1分K)');
+  if (!adamShortCalc.note) adamShortCalc.note = calcAdamForPeriod(parsedData.shortHighs || parsedData.recentHighs, parsedData.shortLows || parsedData.recentLows, '短週期(1分K)').note;
+  parsedData.adamShortCalc = adamShortCalc;
+
+  // 中週期（15分K）
+  const adamMidCalc = parsedData.adamMid
+    ? parsedData.adamMid
+    : calcAdamForPeriod(parsedData.midHighs || parsedData.recentHighs, parsedData.midLows || parsedData.recentLows, '中週期(15分K)');
+  if (!adamMidCalc.note) adamMidCalc.note = calcAdamForPeriod(parsedData.midHighs || parsedData.recentHighs, parsedData.midLows || parsedData.recentLows, '中週期(15分K)').note;
+  parsedData.adamMidCalc = adamMidCalc;
+
+  // 長週期（日K）
+  const adamLongCalc = parsedData.adamLong
+    ? parsedData.adamLong
+    : (parsedData.longHighs ? calcAdamForPeriod(parsedData.longHighs, parsedData.longLows || [], '長週期(日K)') : null);
+  if (adamLongCalc && !adamLongCalc.note) adamLongCalc.note = calcAdamForPeriod(parsedData.longHighs, parsedData.longLows || [], '長週期(日K)').note;
+  parsedData.adamLongCalc = adamLongCalc;
+
+  // 滿足點計數（短+中+長）
+  const adamSatisfied = [adamShortCalc, adamMidCalc, adamLongCalc].filter(a => a && a.satisfied).length;
+  const adamTotal     = [adamShortCalc, adamMidCalc, adamLongCalc].filter(a => a).length;
+  parsedData.adamSatisfied = adamSatisfied;
+  parsedData.adamTotal     = adamTotal;
+
+  // 保留舊版 adamTrend 供相容
+  const adamTrend = calcAdamForPeriod(parsedData.recentHighs || [], parsedData.recentLows || [], '');
   parsedData.adamTrend = adamTrend;
 
   const isConsolidation = parsedData.trend === 'sideways' || adamTrend.trend === 'consolidation';
