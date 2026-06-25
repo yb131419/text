@@ -11,11 +11,12 @@
 <div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
 <div class="flex justify-between items-center mb-4"><h3 id="modalTitle" class="text-lg font-bold text-white">📊 整合中值AI智能偵測</h3><button id="closeAiModal" class="text-gray-300 text-xl">✕</button></div>
 <input id="fileInput" type="file" accept="image/*" multiple hidden>
-<button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">上傳K線截圖<div class="text-xs mt-1 text-gray-400">✅ 建議 15分K + 1分K + 分時圖 三張效果最佳；單張 / 兩張也可分析</div></button>
+<button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">上傳K線截圖<div class="text-xs mt-1 text-gray-400">✅ 建議 日K + 分時 + 15分K + 1分K 四張效果最佳；單張 / 多張也可分析</div></button>
 <div id="imagePreview" class="mb-3 hidden grid grid-cols-3 gap-2">
 <img id="previewImg1" src="" alt="K線1" class="w-full rounded-lg object-contain max-h-28 border border-gray-700">
 <img id="previewImg2" src="" alt="K線2" class="w-full rounded-lg object-contain max-h-28 border border-gray-700">
 <img id="previewImg3" src="" alt="分時圖" class="w-full rounded-lg object-contain max-h-28 border border-cyan/50">
+<img id="previewImg4" src="" alt="日K圖" class="w-full rounded-lg object-contain max-h-28 border border-purple/50">
 </div>
 <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
 <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
@@ -400,7 +401,7 @@ const renderHome = () => {
 ${conflictBanner}
 <div class="text-center mb-4 pb-3 border-b border-gray-700">
 <div class="text-lg font-bold text-indigo mb-1">${a.product}</div>
-<div class="text-xs text-gray-400 mb-2">${a.productType || PRODUCT_TYPES.FUTURES} ${hasTimeVerify ? '· ✅ 分時驗證' : ''} · <span class="text-purple font-medium">${profile.label}</span></div>
+<div class="text-xs text-gray-400 mb-2">${a.productType || PRODUCT_TYPES.FUTURES} ${a.dailyTrend ? '· 📅 日K' : ''} ${hasTimeVerify ? '· ✅ 分時驗證' : ''} · <span class="text-purple font-medium">${profile.label}</span></div>
 <div class="text-xl font-bold ${trendColor} mb-2">${trendText}</div>
 <div class="text-base font-bold ${finalColor} mb-1">${finalStatus}</div>
 <div class="text-sm text-green font-medium mb-1">預期勝率：${winRate}</div>
@@ -422,6 +423,7 @@ ${strongTrend ? `<div class="text-sm font-bold text-yellow">🏆 強趨勢盤認
 <div class="font-medium">${a.adamSignal.advice}</div>
 </div>
 </div>
+${a.dailyTrend ? `<div class="bg-purple/10 rounded-xl p-3 border border-purple/30 mb-3"><div class="text-sm font-bold text-purple mb-2">📅 日K大趨勢判斷</div><div class="text-sm text-gray-300">日K方向：<span class="font-bold ${a.dailyTrend==='long'?'text-red':a.dailyTrend==='short'?'text-green':'text-yellow'}">${a.dailyTrend==='long'?'🔴 多頭':a.dailyTrend==='short'?'🟢 空頭':'🟡 盤整'}</span><br>日K說明：<span class="font-medium">${a.dailyTrendNote||'-'}</span></div></div>` : ''}
 ${hasTimeVerify ? `<div class="bg-cyan/10 rounded-xl p-3 border border-cyan/30 mb-3"><div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖驗證結論</div><div class="text-sm text-gray-300">趨勢一致性：<span class="font-bold ${a.trendConsistency === '一致' ? 'text-green' : a.trendConsistency === '偏離' ? 'text-yellow' : 'text-red'}">${a.trendConsistency}</span><br>進場建議：<span class="font-medium">${a.entryAdvice || '依1分K訊號確認後進場'}</span></div></div>` : ''}
 ${a.longEntry !== null ? `
 <div class="bg-yellow/10 rounded-xl p-3 border border-yellow/30 mb-3">
@@ -772,7 +774,8 @@ const callOpenAI = async imgs => {
 4. 識別最近3個以上的明顯高點（recentHighs）與低點（recentLows），用於亞當理論右邊確認分析
 5. 亞當理論核心：不預測頂底，只在趨勢確立且出現右邊回踩訊號後才進場，盤整行情不操作
 6. 若圖中有分時走勢，額外分析分時趨勢與15分K趨勢的一致性，給出右邊進場時機建議與風控備註
-7. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), trendConsistency(可選), entryAdvice(可選), riskNote(可選)
+6b. 若圖中有日K走勢，分析日K大趨勢方向（多頭/空頭/盤整），判斷與15分K是否一致，結果填入 dailyTrend 與 dailyTrendNote 欄位
+7. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), trendConsistency(可選), entryAdvice(可選), riskNote(可選), dailyTrend(可選,值為long/short/sideways), dailyTrendNote(可選,繁體中文說明日K趨勢)
 8. 【重要】所有文字欄位（advice, trendConsistency, entryAdvice, riskNote, productType 等）必須使用繁體中文，嚴禁出現任何英文句子`;
 
   // 將 base64 圖片轉成 OpenAI 格式
@@ -941,7 +944,7 @@ const handleFileSelect = files => {
   hideError(); hideDebug();
   if (!files?.length) return;
   state.aiBase64s = [];
-  const previews = ['previewImg1','previewImg2','previewImg3'].map(id => document.getElementById(id));
+  const previews = ['previewImg1','previewImg2','previewImg3','previewImg4'].map(id => document.getElementById(id));
   previews.forEach(img => img.src = '');
   document.getElementById('imagePreview').classList.remove('hidden');
   let count = 0;
