@@ -13,10 +13,10 @@
 <input id="fileInput" type="file" accept="image/*" multiple hidden>
 <button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">上傳K線截圖<div class="text-xs mt-1 text-gray-400">✅ 建議 日K + 分時 + 15分K + 1分K 四張效果最佳；單張 / 多張也可分析</div></button>
 <div id="imagePreview" class="mb-3 hidden grid grid-cols-2 gap-2">
-<img id="previewImg1" src="" alt="K線1" class="w-full rounded-lg object-contain max-h-28 border border-gray-700">
-<img id="previewImg2" src="" alt="K線2" class="w-full rounded-lg object-contain max-h-28 border border-gray-700">
-<img id="previewImg3" src="" alt="分時圖" class="w-full rounded-lg object-contain max-h-28 border border-cyan/50">
-<img id="previewImg4" src="" alt="日K圖" class="w-full rounded-lg object-contain max-h-28 border border-purple/50">
+<img id="previewImg1" src="" alt="K線1" class="w-full rounded-lg object-contain max-h-28 border border-gray-700 cursor-pointer" onclick="if(this.src)openLightbox(this.src)">
+<img id="previewImg2" src="" alt="K線2" class="w-full rounded-lg object-contain max-h-28 border border-gray-700 cursor-pointer" onclick="if(this.src)openLightbox(this.src)">
+<img id="previewImg3" src="" alt="分時圖" class="w-full rounded-lg object-contain max-h-28 border border-cyan/50 cursor-pointer" onclick="if(this.src)openLightbox(this.src)">
+<img id="previewImg4" src="" alt="日K圖" class="w-full rounded-lg object-contain max-h-28 border border-purple/50 cursor-pointer" onclick="if(this.src)openLightbox(this.src)">
 </div>
 <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
 <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
@@ -990,7 +990,7 @@ const handleFileSelect = files => {
   previews.forEach(img => img.src = '');
   document.getElementById('imagePreview').classList.remove('hidden');
   let count = 0;
-  for (let i = 0; i < Math.min(files.length, 3); i++) {
+  for (let i = 0; i < Math.min(files.length, 4); i++) {
     if (!files[i].type.startsWith('image/')) continue;
     const reader = new FileReader();
     reader.onload = e => {
@@ -1030,5 +1030,14 @@ document.getElementById('resetAiButton').addEventListener('click', () => {
   document.getElementById('fileInput').value = '';
 });
 window.addEventListener('DOMContentLoaded', init);
+
+window.openLightbox = src => {
+  document.getElementById('imgLightboxSrc').src = src;
+  document.getElementById('imgLightbox').classList.remove('hidden');
+};
 </script>
+<div id="imgLightbox" class="fixed inset-0 bg-black/90 z-[99999] hidden flex items-center justify-center" onclick="document.getElementById('imgLightbox').classList.add('hidden')">
+<img id="imgLightboxSrc" src="" class="max-w-full max-h-full rounded-lg object-contain" style="max-height:90vh;max-width:95vw">
+<div class="absolute top-4 right-4 text-white text-2xl cursor-pointer">✕</div>
+</div>
 </body></html>
