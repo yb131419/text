@@ -1,17 +1,30 @@
-<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>全品種AI智能偵測系統 | 整合中值版 · 趨勢50點獲利保證</title><script src="https://cdn.tailwindcss.com"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script>tailwind.config={theme:{extend:{colors:{dark:'#07080f',darker:'#0d1018',card:'#111520',border:'#1a1e2e',green:'#1db954',red:'#e03e3e',blue:'#38bdf8',yellow:'#f59e0b',indigo:'#6366f1',purple:'#a855f7',cyan:'#06b6d4'},fontFamily:{sans:['Inter','system-ui','-apple-system','sans-serif']}}}}</script><style type="text/tailwindcss">@layer utilities{.content-auto{content-visibility:auto}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}.scrollbar-hide::-webkit-scrollbar{display:none}.tab-active{@apply bg-indigo/20 text-indigo}.result-btn{@apply px-2 py-0.5 rounded text-[10px] font-bold border transition-all}.result-win{@apply bg-green/20 text-green border-green/50}.result-loss{@apply bg-red/20 text-red border-red/50}.result-pending{@apply bg-gray-700/50 text-gray-400 border-gray-600}.result-watch{@apply bg-yellow/20 text-yellow border-yellow/50}.sl-stage-1{@apply bg-yellow/20 text-yellow border-yellow/50}.sl-stage-2{@apply bg-red/20 text-red border-red/50}}</style></head>
+<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>全品種 AI 技術分析系統</title><script src="https://cdn.tailwindcss.com"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script>tailwind.config={theme:{extend:{colors:{dark:'#07080f',darker:'#0d1018',card:'#111520',border:'#1a1e2e',green:'#1db954',red:'#e03e3e',blue:'#38bdf8',yellow:'#f59e0b',indigo:'#6366f1',purple:'#a855f7',cyan:'#06b6d4'},fontFamily:{sans:['Inter','system-ui','-apple-system','sans-serif']}}}}</script><style type="text/tailwindcss">@layer utilities{.content-auto{content-visibility:auto}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}.scrollbar-hide::-webkit-scrollbar{display:none}.tab-active{@apply bg-indigo/20 text-indigo}.result-btn{@apply px-2 py-0.5 rounded text-[10px] font-bold border transition-all}.result-win{@apply bg-green/20 text-green border-green/50}.result-loss{@apply bg-red/20 text-red border-red/50}.result-pending{@apply bg-gray-700/50 text-gray-400 border-gray-600}.result-watch{@apply bg-yellow/20 text-yellow border-yellow/50}.sl-stage-1{@apply bg-yellow/20 text-yellow border-yellow/50}.sl-stage-2{@apply bg-red/20 text-red border-red/50}}</style></head>
 <body class="bg-dark text-gray-100 font-sans min-h-screen pb-24 relative">
 <div class="bg-darker border-b border-border p-4 text-center">
-<div class="text-xs text-gray-500 tracking-widest mb-1">全品種AI智能偵測系統</div>
-<div class="text-xl font-bold">⚡ 整合中值版 · 趨勢50點獲利保證</div>
-<div class="text-xs text-gray-400 mt-1">雙模型參數取中值計算 | 三周期聯動驗證 | 兩階段彈性停損 | 亞當理論+EMA12順勢確認 | 移動停利 | OpenAI GPT-4o驅動</div>
+<div class="text-xs text-gray-500 tracking-widest mb-1">AI · 技術分析 · 期貨偵測</div>
+<div class="text-xl font-bold">📊 全品種 AI 技術分析系統</div>
+<div class="text-xs text-gray-400 mt-1">亞當理論三週期方向 · EMA趨勢確認 · 翻亞當目標點位 · 兩階段停損 · 移動停利</div>
 </div>
 <div id="content" class="max-w-sm mx-auto p-4 space-y-4"></div>
 <button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-indigo shadow-lg flex items-center justify-center text-2xl z-50 pointer-events-auto">🤖</button>
 <div id="aiModal" class="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center hidden pointer-events-auto">
 <div class="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto scrollbar-hide">
-<div class="flex justify-between items-center mb-4"><h3 id="modalTitle" class="text-lg font-bold text-white">📊 整合中值AI智能偵測</h3><button id="closeAiModal" class="text-gray-300 text-xl">✕</button></div>
+<div class="flex justify-between items-center mb-4"><h3 id="modalTitle" class="text-lg font-bold text-white">📊 AI 技術分析偵測</h3><button id="closeAiModal" class="text-gray-300 text-xl">✕</button></div>
 <input id="fileInput" type="file" accept="image/*" multiple hidden>
-<button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">上傳K線截圖<div class="text-xs mt-1 text-gray-400">✅ 建議 日K + 分時 + 15分K + 1分K 四張效果最佳；單張 / 多張也可分析</div></button>
+<button id="uploadButton" class="w-full border border-dashed border-indigo/50 rounded-xl py-6 text-indigo-300 mb-3">
+📂 點此上傳 K 線截圖
+<div class="text-xs mt-2 text-gray-400 leading-5">
+建議上傳順序：<span class="text-indigo/80">① 日K　② 分時　③ 15分K　④ 1分K</span><br>
+四張效果最佳，單張也可分析
+</div>
+</button>
+<div class="bg-indigo/5 border border-indigo/20 rounded-xl p-3 mb-3 text-xs text-gray-400 space-y-1">
+<div class="text-indigo font-medium mb-1">📌 操作步驟</div>
+<div>① 上傳 K 線截圖（建議含日K）</div>
+<div>② 點「開始 AI 技術分析」</div>
+<div>③ 查看亞當理論三週期方向與點位</div>
+<div>④ 記錄交易結果到歷史紀錄</div>
+</div>
 <div id="imagePreview" class="mb-3 hidden grid grid-cols-2 gap-2">
 <img id="previewImg1" src="" alt="K線1" class="w-full rounded-lg object-contain max-h-28 border border-gray-700 cursor-pointer" onclick="if(this.src)openLightbox(this.src)">
 <img id="previewImg2" src="" alt="K線2" class="w-full rounded-lg object-contain max-h-28 border border-gray-700 cursor-pointer" onclick="if(this.src)openLightbox(this.src)">
@@ -20,15 +33,17 @@
 </div>
 <div id="aiError" class="text-red text-sm mb-3 p-3 bg-red/15 rounded border border-red/30 whitespace-pre-line hidden"></div>
 <div id="aiDebug" class="text-blue text-sm mb-3 p-3 bg-blue/15 rounded border border-blue/30 whitespace-pre-line hidden"></div>
-<button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">🔍 整合中值精準批判點位</button>
+<button id="analyzeButton" class="w-full py-3 rounded-lg bg-indigo font-bold mb-3">🔍 開始 AI 技術分析</button>
 <div id="aiResult" class="space-y-4 hidden">
 <div id="trendCard" class="rounded-xl p-4 border"><div class="text-lg font-bold text-center mb-2" id="productTitle"></div><div class="text-center text-sm text-gray-300 mb-1" id="productTypeLabel"></div><div class="text-center text-base font-bold mb-1" id="trendAdvice"></div><div class="text-center text-xs font-bold text-green mb-1" id="finalSuitability"></div><div class="text-center text-xs font-bold text-yellow mb-1" id="finalWinRate"></div><div class="text-center text-xs font-bold text-cyan" id="profitGuarantee"></div></div>
-<div id="trend5mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5"><div class="text-sm font-bold text-indigo mb-2">📈 大趨勢判斷 (15分K週期)</div><div id="trend5mContent"></div></div>
+<div id="trend5mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5"><div class="text-sm font-bold text-indigo mb-1">📈 大趨勢判斷 (15分K週期)</div>
+<div class="text-xs text-gray-500 mb-2">EMA12 在 EMA20 上方且角度向上為多頭，反之為空頭；角度 ≥ 25° 視為強趨勢</div><div id="trend5mContent"></div></div>
 <div id="dowCard" class="rounded-xl p-4 border border-emerald/30 bg-emerald/5"><div class="text-sm font-bold text-emerald mb-2">📐 亞當理論 + EMA12 順勢驗證</div><div id="dowContent"></div></div>
 <div id="timeVerifyCard" class="rounded-xl p-4 border border-cyan/30 bg-cyan/5"><div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖輔助驗證 (精細擇時)</div><div id="timeVerifyContent"></div></div>
-<div id="entry1mCard" class="rounded-xl p-4 border border-green/30 bg-green/5"><div class="text-sm font-bold text-green mb-2">🎯 右邊進場點位 (1分K週期)</div><div id="entry1mContent"></div></div>
+<div id="entry1mCard" class="rounded-xl p-4 border border-green/30 bg-green/5"><div class="text-sm font-bold text-green mb-1">🎯 右邊進場點位 (1分K週期)</div>
+<div class="text-xs text-gray-500 mb-2">等待 1 分 K 實體突破進場點收線確認後再進場，避免假突破；與亞當短週期方向一致效果最佳</div><div id="entry1mContent"></div></div>
 <div id="slCard" class="rounded-xl p-4 border border-yellow/30 bg-yellow/5"><div class="text-sm font-bold text-yellow mb-2">🛡️ 兩階段停損機制</div><div id="slContent"></div></div>
-<div id="trailCard" class="rounded-xl p-4 border border-cyan/30 bg-cyan/5"><div class="text-sm font-bold text-cyan mb-2">📈 移動停利計劃</div><div id="trailContent"></div></div>
+<div id="trailCard" class="rounded-xl p-4 border border-cyan/30 bg-cyan/5"><div class="text-sm font-bold text-cyan mb-1">📈 移動停利計劃</div><div id="trailContent"></div></div>
 <div id="levelsCard" class="rounded-xl p-4 border border-purple/30 bg-purple/5"><div class="text-sm font-bold text-purple mb-2">📊 關鍵支撐/阻力位</div><div id="levelsContent"></div></div>
 <div class="bg-darker rounded-xl p-4 border border-gray-600" id="indicatorCard">
 <div class="text-sm font-bold text-white mb-3">📋 技術指標詳細數據</div>
@@ -377,7 +392,30 @@ const hideError = () => document.getElementById('aiError').classList.add('hidden
 // ════════════════════════════════════════════════
 const renderHome = () => {
   if (!state.aiAnalysis) {
-    return `<div class="bg-card border border-border rounded-2xl p-4 text-center"><div class="text-gray-400 mb-2">還沒有偵測結果</div><div class="text-xs text-gray-500">點擊右下角🤖按鈕上傳K線截圖開始分析</div><div class="text-xs text-cyan/70 mt-2">💡 支援單張 / 多張圖片，內建亞當理論+EMA12雙驗證機制</div></div>`;
+    return `
+<div class="bg-card border border-border rounded-2xl p-4 text-center mb-3">
+<div class="text-2xl mb-2">📊</div>
+<div class="text-white font-bold mb-1">尚無分析結果</div>
+<div class="text-xs text-gray-400">點右下角 🤖 按鈕上傳 K 線截圖開始分析</div>
+</div>
+<div class="bg-card border border-indigo/30 rounded-2xl p-4 mb-3">
+<div class="text-sm font-bold text-indigo mb-3">📌 系統功能說明</div>
+<div class="space-y-2 text-xs text-gray-300">
+<div class="flex gap-2"><span class="text-indigo font-bold shrink-0">📐</span><div><span class="text-white font-medium">亞當理論三週期點位</span><br>從短（1分K）、中（15分K）、長（日K）三個週期分別判斷突破方向，計算翻亞當目標價與停損位，方向一致時信號最強。</div></div>
+<div class="flex gap-2"><span class="text-indigo font-bold shrink-0">📈</span><div><span class="text-white font-medium">EMA趨勢確認</span><br>EMA12 / EMA20 角度判斷主趨勢，搭配 ATR(14) 評估波動適配度，角度 ≥ 25° 為強趨勢盤。</div></div>
+<div class="flex gap-2"><span class="text-indigo font-bold shrink-0">🛡️</span><div><span class="text-white font-medium">兩階段停損 + 移動停利</span><br>第一階段防守停損保護部位，第二階段終極停損設在關鍵位。達到啟動條件後自動移動停損鎖定獲利。</div></div>
+<div class="flex gap-2"><span class="text-indigo font-bold shrink-0">⏱️</span><div><span class="text-white font-medium">分時圖輔助驗證</span><br>上傳分時截圖時，AI 額外比對分時與 15 分 K 趨勢一致性，提升擇時精準度。</div></div>
+</div>
+</div>
+<div class="bg-card border border-gray-700 rounded-2xl p-4">
+<div class="text-sm font-bold text-gray-300 mb-2">🖼️ 建議上傳圖片順序</div>
+<div class="grid grid-cols-2 gap-2 text-xs">
+<div class="bg-black/30 rounded-lg p-2 text-center border border-purple/30"><div class="text-purple font-bold mb-1">① 日K</div><div class="text-gray-400">大趨勢方向判斷</div></div>
+<div class="bg-black/30 rounded-lg p-2 text-center border border-cyan/30"><div class="text-cyan font-bold mb-1">② 分時</div><div class="text-gray-400">趨勢一致性驗證</div></div>
+<div class="bg-black/30 rounded-lg p-2 text-center border border-indigo/30"><div class="text-indigo font-bold mb-1">③ 15分K</div><div class="text-gray-400">主趨勢 + 亞當中週期</div></div>
+<div class="bg-black/30 rounded-lg p-2 text-center border border-green/30"><div class="text-green font-bold mb-1">④ 1分K</div><div class="text-gray-400">進場點 + 亞當短週期</div></div>
+</div>
+</div>`;
   }
   const a = state.aiAnalysis;
   const profile = RISK_PROFILES[a.riskProfile || state.riskProfile] || RISK_PROFILES.medium;
@@ -413,7 +451,8 @@ ${strongTrend ? `<div class="text-sm font-bold text-yellow">🏆 強趨勢盤認
 <div class="text-sm text-gray-300">整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span><br>ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span><br>操作建議：<span class="font-medium">${a.trend === 'long' ? '逢低佈局做多單為主' : a.trend === 'short' ? '逢高佈局做空單為主' : '觀望為主，等待明確方向'}</span></div>
 </div>
 <div class="bg-emerald/10 rounded-xl p-3 border border-emerald/30 mb-3">
-<div class="text-sm font-bold text-emerald mb-2">📐 亞當理論 · 方向 + 距離 = 明確點位</div>
+<div class="text-sm font-bold text-emerald mb-1">📐 亞當理論 · 方向 + 距離 = 明確點位</div>
+<div class="text-xs text-gray-500 mb-2">突破前高/前低確認方向，以波幅對稱計算翻亞當目標，停損設在反向極值</div>
 <div class="text-sm text-gray-300 space-y-2">
 ${[{label:'短週期 1分K',d:a.adamShortCalc},{label:'中週期 15分K',d:a.adamMidCalc},{label:'長週期 日K',d:a.adamLongCalc}].filter(x=>x.d&&x.d.hasData).map(x=>`
 <div class="bg-black/30 rounded-lg p-2 border ${x.d.direction==='long'?'border-red/30':x.d.direction==='short'?'border-green/30':'border-gray-600'}">
@@ -439,7 +478,8 @@ ${a.dailyTrend ? `<div class="bg-purple/10 rounded-xl p-3 border border-purple/3
 ${hasTimeVerify ? `<div class="bg-cyan/10 rounded-xl p-3 border border-cyan/30 mb-3"><div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖驗證結論</div><div class="text-sm text-gray-300">趨勢一致性：<span class="font-bold ${a.trendConsistency === '一致' ? 'text-green' : a.trendConsistency === '偏離' ? 'text-yellow' : 'text-red'}">${a.trendConsistency}</span><br>進場建議：<span class="font-medium">${a.entryAdvice || '依1分K訊號確認後進場'}</span></div></div>` : ''}
 ${a.longEntry !== null ? `
 <div class="bg-yellow/10 rounded-xl p-3 border border-yellow/30 mb-3">
-<div class="text-sm font-bold text-yellow mb-2">🛡️ 兩階段風控停損（${profile.label}）</div>
+<div class="text-sm font-bold text-yellow mb-1">🛡️ 兩階段風控停損（${profile.label}）</div>
+<div class="text-xs text-gray-500 mb-2">第一階段觸及時減倉一半；第二階段為關鍵位，破位全數出場</div>
 <div class="grid grid-cols-2 gap-2 text-xs">
 <div class="bg-black/30 p-2 rounded text-center border border-yellow/40"><div class="text-yellow font-medium mb-1">第一階段 防守</div><div class="font-bold text-white text-base">${fmt(a.trend === 'long' ? a.longStage1SL : a.shortStage1SL, a.decimals)}</div><div class="text-gray-400 mt-1">≈ ${state.slStage1} 點</div></div>
 <div class="bg-black/30 p-2 rounded text-center border border-red/40"><div class="text-red font-medium mb-1">第二階段 終極</div><div class="font-bold text-white text-base">${fmt(a.trend === 'long' ? a.longStage2SL : a.shortStage2SL, a.decimals)}</div><div class="text-gray-400 mt-1">≈ ${state.slStage2} 點</div></div>
@@ -591,7 +631,7 @@ ${Object.entries(RISK_PROFILES).map(([key, prof]) => `
 <div class="text-xs text-gray-500 pt-1 border-t border-gray-700">💡 上方數值為保底上限，實際停損依風險倍率動態計算</div>
 </div>
 <button id="clearAllDataButton" class="w-full py-2 border border-red/30 text-red rounded-lg text-sm mb-4">清除所有本地資料</button>
-<div class="text-xs text-gray-600 text-center">全品種AI智能偵測系統 · 整合中值+亞當理論雙驗證+移動停利 v2.6</div>`;
+<div class="text-xs text-gray-600 text-center">全品種 AI 技術分析系統 v2.6 · 亞當理論三週期 + EMA + 移動停利</div>`;
 };
 
 // ════════════════════════════════════════════════
