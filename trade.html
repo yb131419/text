@@ -210,7 +210,7 @@ const calculateAdamTrend = (highs, lows) => {
   // 新增：弱趨勢狀態，避免誤判為盤整
   if (higherHigh && !higherLow) return { trend: 'uptrend',     structure: '⚠️ 高高成立但低低尚未跟上，多頭結構未完整確認', strength: 'weak' };
   if (lowerLow   && !lowerHigh) return { trend: 'downtrend',   structure: '⚠️ 低低成立但高高尚未跟上，空頭結構未完整確認', strength: 'weak' };
-  return { trend: 'consolidation', structure: '盤整無明確方向（建議觀望等待右邊訊號）', strength: 'none' };
+  return { trend: 'consolidation', structure: '盤整無明確方向', strength: 'none' };
 };
 
 // ── 改良版：用最近高低點確認是否真的發生過回踩動作
@@ -226,7 +226,7 @@ const checkEma12Pullback = (currentPrice, ema12, trend, highs = [], lows = []) =
     const lowNearEma = Math.abs(lastLow - ema12) / ema12 <= PULLBACK_TOLERANCE;
     isPullbackValid = lowNearEma && currentPrice > lastLow && currentPrice >= ema12;
     pullbackNote = isPullbackValid
-      ? '✅ 最近低點回踩EMA12後反彈確認，右邊做多條件成立'
+      ? '✅ 最近低點回踩EMA12後反彈，多頭結構確認'
       : currentPrice < ema12
         ? '❌ 價格跌破EMA12，多頭回踩失效，等待重新站上'
         : !lowNearEma
@@ -238,7 +238,7 @@ const checkEma12Pullback = (currentPrice, ema12, trend, highs = [], lows = []) =
     const highNearEma = Math.abs(lastHigh - ema12) / ema12 <= PULLBACK_TOLERANCE;
     isPullbackValid = highNearEma && currentPrice < lastHigh && currentPrice <= ema12;
     pullbackNote = isPullbackValid
-      ? '✅ 最近高點回踩EMA12後回落確認，右邊做空條件成立'
+      ? '✅ 最近高點回踩EMA12後回落，空頭結構確認'
       : currentPrice > ema12
         ? '❌ 價格突破EMA12，空頭回踩失效，等待重新壓回'
         : !highNearEma
@@ -267,7 +267,7 @@ const getAdamEntrySignal = (adamTrend, emaAngle, pullbackResult, trend) => {
   if (adamTrend.trend === 'consolidation' || adamTrend.trend === 'insufficient') {
     return {
       level: 0, maxLevel: 3,
-      advice: `🚫 盤整行情，亞當理論不建議操作，等待${CONSOLIDATION_WAIT_MINUTES}分鐘突破確認後再評估`,
+      advice: '🟡 盤整結構：短中長週期尚未形成明確高低點序列，建議觀望',
       angleValid, structureValid, structureStrong, pullbackValid, directionConsistent,
       conflictWarning: false
     };
@@ -277,7 +277,7 @@ const getAdamEntrySignal = (adamTrend, emaAngle, pullbackResult, trend) => {
   if (!directionConsistent) {
     return {
       level: 0, maxLevel: 3,
-      advice: '🚨 EMA方向與趨勢結構相互矛盾，訊號衝突，嚴禁進場，等待兩者一致後再判斷',
+      advice: '🚨 EMA方向與結構相反，三週期滿足點驗證結果矛盾，不建議操作',
       angleValid, structureValid, structureStrong, pullbackValid, directionConsistent,
       conflictWarning: true
     };
@@ -290,9 +290,9 @@ const getAdamEntrySignal = (adamTrend, emaAngle, pullbackResult, trend) => {
   if (pullbackValid)   level++;
 
   let advice = '';
-  if (level === 3) advice = '✅ 三項滿足點全數達標，盤勢結構強健';
-  else if (level === 2) advice = '⚠️ 兩項滿足點達標，結構尚可但仍需觀察';
-  else advice = '❌ 滿足點不足，盤勢結構尚未成形，建議觀望';
+  if (level === 3) advice = '✅ 短中長三週期結構全數符合，盤勢方向清晰';
+  else if (level === 2) advice = '⚠️ 兩個週期結構符合，第三週期尚待確認';
+  else advice = '❌ 僅一個或零個週期符合結構，整體方向不明，建議觀望';
 
   return { level, maxLevel: 3, advice, angleValid, structureValid, structureStrong, pullbackValid, directionConsistent, conflictWarning: false };
 };
@@ -393,7 +393,7 @@ const renderHome = () => {
   const trendColor = a.trend === 'long' ? 'text-red' : a.trend === 'short' ? 'text-green' : 'text-yellow';
 
   const conflictBanner = a.adamSignal?.conflictWarning
-    ? `<div class="bg-red/20 border border-red/50 rounded-xl p-3 mb-3 text-center"><div class="text-red font-bold text-sm">🚨 方向衝突警告 — 嚴禁進場</div><div class="text-xs text-red/80 mt-1">EMA方向與高低點結構相反，本次訊號無效</div></div>`
+    ? `<div class="bg-red/20 border border-red/50 rounded-xl p-3 mb-3 text-center"><div class="text-red font-bold text-sm">🚨 結構衝突警告</div><div class="text-xs text-red/80 mt-1">EMA方向與三週期高低點結構不一致，滿足點驗證失敗</div></div>`
     : '';
 
   return `<div class="bg-card border border-border rounded-2xl p-4">
