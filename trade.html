@@ -655,15 +655,8 @@ ${MARKET_INTERVALS.map(i => `<button class="market-int-btn text-xs px-3 py-1.5 r
 
 <div class="bg-card border border-border rounded-xl overflow-hidden mb-3">
 <div class="text-xs text-gray-500 px-3 pt-2 pb-1">${symObj.label} · ${MARKET_INTERVALS.find(i=>i.tv===interval)?.label || interval}</div>
-<div id="tvWidgetContainer" style="height:320px">
-<iframe id="tvWidget"
-  src="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}&interval=${interval}&theme=dark&style=1&locale=zh_TW&toolbar_bg=%230d1018&hide_side_toolbar=0&allow_symbol_change=1&save_image=0&hide_volume=0"
-  style="width:100%;height:320px;border:none;pointer-events:auto"
-  allowtransparency="true"
-  frameborder="0"
-  scrolling="no"
-  allow="clipboard-write">
-</iframe>
+<div id="tvWidgetContainer" style="height:380px;background:#0d1018;display:flex;align-items:center;justify-content:center">
+<div class="text-gray-500 text-xs">圖表載入中...</div>
 </div>
 </div>
 
@@ -676,13 +669,14 @@ ${MARKET_INTERVALS.map(i => `<button class="market-int-btn text-xs px-3 py-1.5 r
 <button id="marketUploadBtn" class="w-full py-3 bg-indigo rounded-lg text-sm font-bold mb-2 active:scale-95 transition-transform">📂 上傳截圖送 AI 分析</button>
 <div class="border-t border-indigo/20 pt-2 mt-1">
 <div class="text-xs text-gray-500 mb-2">⚡ 快速數值分析（自動帶入 Yahoo Finance 報價，無需截圖）</div>
-<button id="marketAutoAnalyzeBtn" class="w-full py-3 border border-indigo/50 rounded-lg text-sm text-indigo font-medium active:bg-indigo/10 transition-colors">📊 快速數值分析</button>
+<button id="marketAutoAnalyzeBtn" class="w-full py-3 border border-indigo/50 rounded-lg text-sm text-indigo font-medium active:bg-indigo/10 transition-colors">📊 快速數值分析（實驗性）</button>
+<div class="text-xs text-gray-600 mt-1 text-center">⚠️ 需要網路可連線 Yahoo Finance</div>
 </div>
 </div>
 
 <div class="bg-card border border-border rounded-xl p-3">
-<div class="text-xs font-bold text-gray-400 mb-2">📊 參考資訊</div>
-<div id="marketQuote" class="text-xs text-gray-500">載入中...</div>
+<div class="text-xs font-bold text-gray-400 mb-2">📊 即時報價</div>
+<div id="marketQuote" style="min-height:80px"></div>
 </div>`;
 };
 
@@ -691,12 +685,14 @@ const bindMarketEvents = () => {
     btn.addEventListener('click', e => {
       state.marketSymbol = e.currentTarget.dataset.sym;
       render();
+      setTimeout(fetchMarketQuote, 100);
     });
   });
   document.querySelectorAll('.market-int-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       state.marketInterval = e.currentTarget.dataset.interval;
       render();
+      setTimeout(fetchMarketQuote, 100);
     });
   });
   document.getElementById('marketUploadBtn')?.addEventListener('click', () => {
@@ -869,34 +865,28 @@ const bindMarketEvents = () => {
   });
 };
 
-const fetchMarketQuote = async () => {
-  const el = document.getElementById('marketQuote');
-  if (!el) return;
-  const symObj = MARKET_SYMBOLS.find(s => s.tv === (state.marketSymbol || MARKET_SYMBOLS[0].tv));
-  if (!symObj) return;
-  try {
-    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symObj.yahoo}?interval=1d&range=2d`);
-    if (!res.ok) throw new Error('fetch failed');
-    const data = await res.json();
-    const q = data.chart?.result?.[0];
-    if (!q) throw new Error('no data');
-    const meta = q.meta;
-    const price = meta.regularMarketPrice?.toFixed(2) ?? '—';
-    const prev  = meta.chartPreviousClose?.toFixed(2) ?? '—';
-    const chg   = meta.regularMarketPrice && meta.chartPreviousClose
-      ? (meta.regularMarketPrice - meta.chartPreviousClose).toFixed(2) : '—';
-    const pct   = meta.regularMarketPrice && meta.chartPreviousClose
-      ? ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose * 100).toFixed(2) : '—';
-    const isUp  = parseFloat(chg) >= 0;
-    el.innerHTML = `
-<div class="grid grid-cols-2 gap-2">
-<div class="bg-black/30 rounded p-2"><div class="text-gray-500 mb-0.5">最新價</div><div class="font-bold text-white text-base">${price}</div></div>
-<div class="bg-black/30 rounded p-2"><div class="text-gray-500 mb-0.5">漲跌</div><div class="font-bold ${isUp?'text-red':'text-green'} text-base">${isUp?'+':''}${chg} (${isUp?'+':''}${pct}%)</div></div>
-<div class="bg-black/30 rounded p-2"><div class="text-gray-500 mb-0.5">前收</div><div class="text-gray-300">${prev}</div></div>
-<div class="bg-black/30 rounded p-2"><div class="text-gray-500 mb-0.5">資料來源</div><div class="text-gray-500">Yahoo Finance · 延遲15分</div></div>
-</div>`;
-  } catch(e) {
-    el.innerHTML = '<div class="text-gray-600">報價載入失敗（可能需要掛 VPN 或市場休市）</div>';
+const fetchMarketQuote = () => {
+  const sym  = state.marketSymbol || MARKET_SYMBOLS[0].tv;
+  const intv = state.marketInterval || 'D';
+
+  // 動態建立主圖表 iframe
+  const chartContainer = document.getElementById('tvWidgetContainer');
+  if (chartContainer) {
+    const chartUrl = 'https://s.tradingview.com/widgetembed/?frameElementId=tvChart'
+      + '&symbol=' + encodeURIComponent(sym)
+      + '&interval=' + intv
+      + '&hidesidetoolbar=1&hidetoptoolbar=0&symboledit=1&saveimage=0'
+      + '&toolbarbg=0d1018&theme=dark&style=1&locale=zh_TW'
+      + '&timezone=Asia%2FTaipei';
+    chartContainer.innerHTML = '<iframe src="' + chartUrl + '" style="width:100%;height:380px;border:none" frameborder="0" allowtransparency="true"></iframe>';
+  }
+
+  // 動態建立報價 ticker iframe
+  const quoteEl = document.getElementById('marketQuote');
+  if (quoteEl) {
+    const cfg = JSON.stringify({symbol: sym, width: '100%', colorTheme: 'dark', isTransparent: true});
+    const tickerUrl = 'https://s.tradingview.com/embed-widget/single-quote/?locale=zh_TW#' + encodeURIComponent(cfg);
+    quoteEl.innerHTML = '<iframe src="' + tickerUrl + '" style="width:100%;height:90px;border:none" frameborder="0"></iframe>';
   }
 };
 
@@ -1081,7 +1071,7 @@ const render = () => {
     case 'log':      el.innerHTML = renderLog();      bindLogEvents();      break;
     case 'stats':    el.innerHTML = renderStats();    bindStatsEvents();    break;
     case 'settings': el.innerHTML = renderSettings(); bindSettingsEvents(); break;
-    case 'market':   el.innerHTML = renderMarket();   bindMarketEvents();   break;
+    case 'market':   el.innerHTML = renderMarket();   bindMarketEvents();   setTimeout(fetchMarketQuote, 50); break;
   }
 };
 
