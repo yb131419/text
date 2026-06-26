@@ -618,14 +618,14 @@ const renderStats = () => {
 // 盤勢 Tab：TradingView 即時圖表 + 一鍵分析
 // ════════════════════════════════════════════════
 const MARKET_SYMBOLS = [
-  { label: '美國科技股100 (NQ)', tv: 'CME_MINI:NQ1!',  yahoo: 'NQ=F'  },
-  { label: '標普500 (ES)',        tv: 'CME_MINI:ES1!',  yahoo: 'ES=F'  },
-  { label: '道瓊 (YM)',           tv: 'CBOT_MINI:YM1!', yahoo: 'YM=F'  },
-  { label: '黃金 (GC)',           tv: 'COMEX:GC1!',     yahoo: 'GC=F'  },
-  { label: '原油 (CL)',           tv: 'NYMEX:CL1!',     yahoo: 'CL=F'  },
-  { label: '台指期 (TX)',         tv: 'TAIFEX:TX1!',    yahoo: 'TAIEX' },
-  { label: '恆生指數 (HSI)',      tv: 'HKEX:HSI1!',     yahoo: 'HSI=F' },
-  { label: '比特幣 (BTC)',        tv: 'BINANCE:BTCUSDT', yahoo: 'BTC-USD' },
+  { label: '美國科技股100', short: 'NQ', tv: 'CME_MINI:NQ1!',   tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3ANQ1!' },
+  { label: '標普500',       short: 'ES', tv: 'CME_MINI:ES1!',   tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3AES1!' },
+  { label: '道瓊',          short: 'YM', tv: 'CBOT_MINI:YM1!',  tvUrl: 'https://www.tradingview.com/chart/?symbol=CBOT_MINI%3AYM1!' },
+  { label: '黃金',          short: 'GC', tv: 'COMEX:GC1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3AGC1!' },
+  { label: '原油',          short: 'CL', tv: 'NYMEX:CL1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=NYMEX%3ACL1!' },
+  { label: '台指期',        short: 'TX', tv: 'TAIFEX:TX1!',     tvUrl: 'https://www.tradingview.com/chart/?symbol=TAIFEX%3ATX1!' },
+  { label: '恆生指數',      short: 'HSI',tv: 'HKEX:HSI1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=HKEX%3AHSI1!' },
+  { label: '比特幣',        short: 'BTC',tv: 'BINANCE:BTCUSDT',  tvUrl: 'https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT' },
 ];
 
 const MARKET_INTERVALS = [
@@ -636,47 +636,67 @@ const MARKET_INTERVALS = [
 ];
 
 const renderMarket = () => {
-  const sym = state.marketSymbol || MARKET_SYMBOLS[0].tv;
-  const interval = state.marketInterval || 'D';
+  const sym    = state.marketSymbol || MARKET_SYMBOLS[0].tv;
+  const intv   = state.marketInterval || 'D';
   const symObj = MARKET_SYMBOLS.find(s => s.tv === sym) || MARKET_SYMBOLS[0];
+  const tvLink = symObj.tvUrl + '&interval=' + intv;
+  const intvLabel = MARKET_INTERVALS.find(i => i.tv === intv)?.label || intv;
 
-  return `<div class="text-lg font-bold mb-2">📡 即時盤勢</div>
+  return `<div class="text-lg font-bold mb-3">📡 即時盤勢</div>
 
 <div class="bg-card border border-border rounded-xl p-3 mb-3">
-<div class="text-xs text-gray-400 mb-2">選擇品種</div>
-<div class="flex flex-wrap gap-1 mb-3">
-${MARKET_SYMBOLS.map(s => `<button class="market-sym-btn text-xs px-3 py-1.5 rounded border active:scale-95 transition-transform ${sym===s.tv?'border-indigo bg-indigo/20 text-indigo':'border-gray-700 text-gray-400'}" data-sym="${s.tv}" title="${s.label}">${s.label.split(' ')[0]}</button>`).join('')}
+<div class="text-xs text-gray-400 mb-2 font-medium">選擇品種</div>
+<div class="grid grid-cols-4 gap-1 mb-3">
+${MARKET_SYMBOLS.map(s => `<button class="market-sym-btn text-xs py-2 px-1 rounded-lg border text-center ${sym===s.tv?'border-indigo bg-indigo/20 text-indigo font-bold':'border-gray-700 text-gray-400'}" data-sym="${s.tv}">
+<div class="font-bold">${s.short}</div>
+<div class="text-[10px] mt-0.5 opacity-70">${s.label}</div>
+</button>`).join('')}
 </div>
-<div class="text-xs text-gray-400 mb-2">K 線週期</div>
+<div class="text-xs text-gray-400 mb-2 font-medium">K 線週期</div>
 <div class="flex gap-1">
-${MARKET_INTERVALS.map(i => `<button class="market-int-btn text-xs px-3 py-1.5 rounded border active:scale-95 transition-transform ${interval===i.tv?'border-indigo bg-indigo/20 text-indigo':'border-gray-700 text-gray-400'}" data-interval="${i.tv}">${i.label}</button>`).join('')}
+${MARKET_INTERVALS.map(i => `<button class="market-int-btn flex-1 text-xs py-1.5 rounded-lg border ${intv===i.tv?'border-indigo bg-indigo/20 text-indigo font-bold':'border-gray-700 text-gray-400'}" data-interval="${i.tv}">${i.label}</button>`).join('')}
 </div>
 </div>
 
-<div class="bg-card border border-border rounded-xl overflow-hidden mb-3">
-<div class="text-xs text-gray-500 px-3 pt-2 pb-1">${symObj.label} · ${MARKET_INTERVALS.find(i=>i.tv===interval)?.label || interval}</div>
-<div id="tvWidgetContainer" style="height:380px;background:#0d1018;display:flex;align-items:center;justify-content:center">
-<div class="text-gray-500 text-xs">圖表載入中...</div>
+<div class="bg-card border border-indigo/40 rounded-xl overflow-hidden mb-3">
+<div class="bg-indigo/10 px-4 py-3 flex items-center justify-between">
+<div>
+  <div class="font-bold text-white">${symObj.label} <span class="text-indigo text-xs ml-1">${symObj.short}</span></div>
+  <div class="text-xs text-gray-400 mt-0.5">週期：${intvLabel} · TradingView 即時圖表</div>
+</div>
+<a href="${tvLink}" target="_blank" rel="noopener"
+   class="flex items-center gap-1 bg-indigo text-white text-xs font-bold px-3 py-2 rounded-lg active:scale-95 transition-transform">
+  📈 開啟圖表
+</a>
+</div>
+<div class="p-4 space-y-2 text-xs">
+<div class="text-gray-400">點右上角「📈 開啟圖表」在 TradingView 查看即時 K 線，截圖後回來上傳分析。</div>
+<div class="bg-black/30 rounded-lg p-3 space-y-1.5">
+  <div class="text-gray-300 font-medium mb-1">📌 截圖建議</div>
+  <div class="flex items-start gap-2"><span class="text-purple shrink-0">①</span><span>開啟後切換「日K」截圖</span></div>
+  <div class="flex items-start gap-2"><span class="text-cyan shrink-0">②</span><span>切換「60分或分時」截圖</span></div>
+  <div class="flex items-start gap-2"><span class="text-indigo shrink-0">③</span><span>切換「15分K」截圖</span></div>
+  <div class="flex items-start gap-2"><span class="text-green shrink-0">④</span><span>切換「1分K」截圖</span></div>
+  <div class="text-gray-500 pt-1 border-t border-gray-700">四張截圖上傳後 AI 分析效果最佳</div>
+</div>
 </div>
 </div>
 
-<div class="bg-indigo/10 border border-indigo/30 rounded-xl p-3 mb-3">
-<div class="text-sm font-bold text-indigo mb-2">🤖 送 AI 分析</div>
-<div class="text-xs text-gray-400 mb-2 leading-5">
-截圖建議：日K → 分時 → 15分K → 1分K 各一張<br>
-<span class="text-indigo/70">圖表右上角可截圖，或手機截圖後上傳</span>
-</div>
-<button id="marketUploadBtn" class="w-full py-3 bg-indigo rounded-lg text-sm font-bold mb-2 active:scale-95 transition-transform">📂 上傳截圖送 AI 分析</button>
-<div class="border-t border-indigo/20 pt-2 mt-1">
-<div class="text-xs text-gray-500 mb-2">⚡ 快速數值分析（自動帶入 Yahoo Finance 報價，無需截圖）</div>
-<button id="marketAutoAnalyzeBtn" class="w-full py-3 border border-indigo/50 rounded-lg text-sm text-indigo font-medium active:bg-indigo/10 transition-colors">📊 快速數值分析（實驗性）</button>
-<div class="text-xs text-gray-600 mt-1 text-center">⚠️ 需要網路可連線 Yahoo Finance</div>
-</div>
+<div class="bg-indigo/10 border border-indigo/30 rounded-xl p-4 mb-3">
+<div class="text-sm font-bold text-indigo mb-2">🤖 上傳截圖送 AI 分析</div>
+<div class="text-xs text-gray-400 mb-3">截圖完成後點下方按鈕上傳，支援一次選取多張</div>
+<button id="marketUploadBtn" class="w-full py-3 bg-indigo rounded-lg text-sm font-bold active:scale-95 transition-transform">📂 上傳截圖送 AI 分析</button>
 </div>
 
-<div class="bg-card border border-border rounded-xl p-3">
-<div class="text-xs font-bold text-gray-400 mb-2">📊 即時報價</div>
-<div id="marketQuote" style="min-height:80px"></div>
+<div class="bg-card border border-border rounded-xl p-4">
+<div class="text-xs font-bold text-gray-400 mb-3">🔗 快速開啟各品種圖表</div>
+<div class="space-y-2">
+${MARKET_SYMBOLS.map(s => `<a href="${s.tvUrl}" target="_blank" rel="noopener"
+  class="flex items-center justify-between bg-black/30 rounded-lg px-3 py-2 active:bg-indigo/10 transition-colors">
+  <span class="text-gray-300 text-xs">${s.label} <span class="text-gray-600">${s.short}</span></span>
+  <span class="text-indigo text-xs">開啟 →</span>
+</a>`).join('')}
+</div>
 </div>`;
 };
 
@@ -685,22 +705,18 @@ const bindMarketEvents = () => {
     btn.addEventListener('click', e => {
       state.marketSymbol = e.currentTarget.dataset.sym;
       render();
-      setTimeout(fetchMarketQuote, 100);
     });
   });
   document.querySelectorAll('.market-int-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       state.marketInterval = e.currentTarget.dataset.interval;
       render();
-      setTimeout(fetchMarketQuote, 100);
     });
   });
   document.getElementById('marketUploadBtn')?.addEventListener('click', () => {
     openModal();
     document.getElementById('fileInput').click();
   });
-  // 載入 Yahoo Finance 即時報價（15分鐘延遲，免費）
-  fetchMarketQuote();
 
   // 快速數值分析：抓 Yahoo Finance → 帶入 AI Prompt 數值分析
   document.getElementById('marketAutoAnalyzeBtn')?.addEventListener('click', async () => {
@@ -1071,7 +1087,7 @@ const render = () => {
     case 'log':      el.innerHTML = renderLog();      bindLogEvents();      break;
     case 'stats':    el.innerHTML = renderStats();    bindStatsEvents();    break;
     case 'settings': el.innerHTML = renderSettings(); bindSettingsEvents(); break;
-    case 'market':   el.innerHTML = renderMarket();   bindMarketEvents();   setTimeout(fetchMarketQuote, 50); break;
+    case 'market':   el.innerHTML = renderMarket();   bindMarketEvents();   break;
   }
 };
 
