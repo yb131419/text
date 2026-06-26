@@ -368,7 +368,8 @@ let state = {
   minTrendProfit: loadData('minTrendProfit', MIN_TREND_PROFIT),
   riskProfile:    loadData('riskProfile', 'medium'),   // 新增：風險倍率選擇
   marketSymbol:   'CME_MINI:NQ1!',
-  marketInterval: 'D'
+  marketInterval: 'D',
+  twelveDataKey:  loadData('twelveDataKey', '')
 };
 
 const saveState = () => {
@@ -728,6 +729,12 @@ const bindMarketEvents = () => {
     document.getElementById('fileInput').click();
   });
 
+  // 刷新按鈕
+  document.getElementById('tdRefreshBtn')?.addEventListener('click', fetchTwelveData);
+
+  // 自動載入報價
+  if (state.twelveDataKey?.trim()) fetchTwelveData();
+
   // 快速數值分析：抓 Yahoo Finance → 帶入 AI Prompt 數值分析
   document.getElementById('marketAutoAnalyzeBtn')?.addEventListener('click', async () => {
     const symObj = MARKET_SYMBOLS.find(s => s.tv === (state.marketSymbol || MARKET_SYMBOLS[0].tv));
@@ -915,6 +922,104 @@ const fetchMarketQuote = () => {
     quoteEl.innerHTML = '<iframe src="' + tickerUrl + '" style="width:100%;height:90px;border:none" frameborder="0"></iframe>';
   }
 };
+
+// ════════════════════════════════════════════════
+// Twelve Data API：即時報價 + K 線
+// ════════════════════════════════════════════════
+const fetchTwelveData = async () => {
+  const key    = state.twelveDataKey?.trim();
+  const sym    = state.marketSymbol || MARKET_SYMBOLS[0].tv;
+  const intv   = state.marketInterval || 'D';
+  const symObj = MARKET_SYMBOLS.find(s => s.tv === sym) || MARKET_SYMBOLS[0];
+  const tdSym  = symObj.td;
+  const tdIntv = MARKET_INTERVALS.find(i => i.tv === intv)?.td || '1day';
+
+  const quoteEl  = document.getElementById('tdQuoteContent');
+  const candleEl = document.getElementById('tdCandleContent');
+  if (!quoteEl && !candleEl) return;
+
+  if (!key) {
+    if (quoteEl) quoteEl.innerHTML = '<div class="text-gray-600">請先在設定頁輸入 Twelve Data API Key</div>';
+    return;
+  }
+
+  try {
+    // 即時報價
+    const qRes  = await fetch('https://api.twelvedata.com/quote?symbol=' + encodeURIComponent(tdSym) + '&apikey=' + key);
+    const qData = await qRes.json();
+
+    if (qData.status === 'error' || qData.code) {
+      const msg = qData.message || '請確認 API Key 正確';
+      if (quoteEl) quoteEl.innerHTML = '<div class="text-red text-xs">❌ ' + msg + '</div>';
+    } else {
+      const price  = parseFloat(qData.close || qData.price || 0).toFixed(2);
+      const prev   = parseFloat(qData.previous_close || 0).toFixed(2);
+      const chg    = (parseFloat(price) - parseFloat(prev)).toFixed(2);
+      const pct    = prev > 0 ? ((parseFloat(chg) / parseFloat(prev)) * 100).toFixed(2) : '0.00';
+      const isUp   = parseFloat(chg) >= 0;
+      const color  = isUp ? 'text-red' : 'text-green';
+      const sign   = isUp ? '+' : '';
+      const open   = parseFloat(qData.open || 0).toFixed(2);
+      const high   = parseFloat(qData.high || 0).toFixed(2);
+      const low    = parseFloat(qData.low  || 0).toFixed(2);
+      const vol    = qData.volume ? parseInt(qData.volume).toLocaleString() : '-';
+
+      if (quoteEl) quoteEl.innerHTML = `
+<div class="grid grid-cols-2 gap-2 mb-2">
+  <div class="bg-black/30 rounded-lg p-2 col-span-2 flex items-center justify-between">
+    <div class="text-white font-bold text-xl">${price}</div>
+    <div class="${color} font-bold text-sm">${sign}${chg} (${sign}${pct}%)</div>
+  </div>
+  <div class="bg-black/30 rounded-lg p-2"><div class="text-gray-500 text-xs mb-0.5">開盤</div><div class="text-white text-sm font-medium">${open}</div></div>
+  <div class="bg-black/30 rounded-lg p-2"><div class="text-gray-500 text-xs mb-0.5">前收</div><div class="text-white text-sm font-medium">${prev}</div></div>
+  <div class="bg-black/30 rounded-lg p-2"><div class="text-gray-500 text-xs mb-0.5">最高</div><div class="text-red text-sm font-medium">${high}</div></div>
+  <div class="bg-black/30 rounded-lg p-2"><div class="text-gray-500 text-xs mb-0.5">最低</div><div class="text-green text-sm font-medium">${low}</div></div>
+</div>
+<div class="text-gray-600 text-xs text-right">成交量 ${vol} · ${qData.datetime || ''}</div>`;
+    }
+
+    // K 線數據（最近20根）
+    const cRes  = await fetch('https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(tdSym) + '&interval=' + tdIntv + '&outputsize=20&apikey=' + key);
+    const cData = await cRes.json();
+
+    if (cData.status === 'error' || !cData.values) {
+      if (candleEl) candleEl.innerHTML = '<div class="text-gray-600 text-xs">K線載入失敗</div>';
+    } else {
+      const bars = cData.values.slice(0, 10).reverse();
+      const maxH = Math.max(...bars.map(b => parseFloat(b.high)));
+      const minL = Math.min(...bars.map(b => parseFloat(b.low)));
+      const range = maxH - minL || 1;
+
+      if (candleEl) candleEl.innerHTML = `
+<div class="space-y-1">
+${bars.map(b => {
+  const o = parseFloat(b.open), c = parseFloat(b.close);
+  const h = parseFloat(b.high), l = parseFloat(b.low);
+  const isGreen = c >= o;
+  const bodyTop = Math.max(o, c), bodyBot = Math.min(o, c);
+  const topPct  = ((maxH - bodyTop) / range * 100).toFixed(1);
+  const botPct  = ((bodyBot - minL)  / range * 100).toFixed(1);
+  const bodyH   = Math.max(((bodyTop - bodyBot) / range * 100), 2).toFixed(1);
+  const chgPct  = ((c - o) / o * 100).toFixed(2);
+  const sign    = c >= o ? '+' : '';
+  return '<div class="flex items-center gap-2 text-xs">'
+    + '<div class="text-gray-600 w-16 shrink-0">' + b.datetime.slice(5, 16) + '</div>'
+    + '<div class="flex-1 h-6 relative bg-black/20 rounded">'
+    + '<div class="absolute inset-y-0 rounded" style="left:' + ((l - minL) / range * 100).toFixed(1) + '%;right:' + ((maxH - h) / range * 100).toFixed(1) + '%;background:' + (isGreen ? 'rgba(29,185,84,0.2)' : 'rgba(224,62,62,0.2)') + '"></div>'
+    + '<div class="absolute rounded" style="left:' + ((Math.min(o,c) - minL) / range * 100).toFixed(1) + '%;right:' + ((maxH - Math.max(o,c)) / range * 100).toFixed(1) + '%;top:10%;bottom:10%;background:' + (isGreen ? '#1db954' : '#e03e3e') + '"></div>'
+    + '</div>'
+    + '<div class="w-16 text-right shrink-0 ' + (isGreen ? 'text-green' : 'text-red') + '">' + sign + chgPct + '%</div>'
+    + '<div class="w-20 text-right shrink-0 text-gray-400">' + c.toFixed(1) + '</div>'
+    + '</div>';
+}).join('')}
+</div>
+<div class="text-gray-600 text-xs mt-2 text-right">資料來源：Twelve Data · 最近10根${tdIntv}K</div>`;
+    }
+  } catch(e) {
+    if (quoteEl) quoteEl.innerHTML = '<div class="text-red text-xs">❌ 連線失敗：' + e.message + '</div>';
+  }
+};
+
 
 const renderSettings = () => {
   const p = state.riskProfile || 'medium';
@@ -1105,7 +1210,7 @@ const render = () => {
     case 'log':      el.innerHTML = renderLog();      bindLogEvents();      break;
     case 'stats':    el.innerHTML = renderStats();    bindStatsEvents();    break;
     case 'settings': el.innerHTML = renderSettings(); bindSettingsEvents(); break;
-    case 'market':   el.innerHTML = renderMarket();   bindMarketEvents();   break;
+    case 'market':   el.innerHTML = renderMarket();   bindMarketEvents();   break; // fetchTwelveData called inside bindMarketEvents
   }
 };
 
