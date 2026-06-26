@@ -379,6 +379,7 @@ const saveState = () => {
   saveData('slStage2', state.slStage2);
   saveData('minTrendProfit', state.minTrendProfit);
   saveData('riskProfile', state.riskProfile);
+  saveData('twelveDataKey', state.twelveDataKey);
 };
 
 window.toggleTradeResult = (index, result) => {
@@ -469,11 +470,16 @@ ${[{label:'短週期 1分K',d:a.adamShortCalc},{label:'中週期 15分K',d:a.ada
   <span class="text-gray-300 text-xs font-medium">${x.label}</span>
 </div>
 <div class="grid grid-cols-3 gap-1 text-xs text-center">
-  <div class="bg-black/40 rounded p-1"><div class="text-gray-500 mb-0.5">突破點</div><div class="font-bold text-white">${x.d.breakoutPrice}</div></div>
-  <div class="bg-black/40 rounded p-1"><div class="text-gray-500 mb-0.5">翻亞當目標</div><div class="font-bold ${x.d.direction==='long'?'text-red':x.d.direction==='short'?'text-green':'text-yellow'}">${x.d.adamTarget}</div></div>
-  <div class="bg-black/40 rounded p-1"><div class="text-gray-500 mb-0.5">停損</div><div class="font-bold text-orange-400">${x.d.adamStop}</div></div>
+  <div class="bg-black/40 rounded p-1"><div class="text-gray-500 mb-0.5">突破點</div><div class="font-bold text-white">${x.d.breakoutPrice ?? '-'}</div></div>
+  <div class="bg-black/40 rounded p-1"><div class="text-gray-500 mb-0.5">翻亞當目標</div><div class="font-bold text-lg ${x.d.direction==='long'?'text-red':x.d.direction==='short'?'text-green':'text-yellow'}">${x.d.adamTarget ?? '-'}</div></div>
+  <div class="bg-black/40 rounded p-1"><div class="text-gray-500 mb-0.5">停損</div><div class="font-bold text-orange-400">${x.d.adamStop ?? '-'}</div></div>
 </div>
-<div class="text-xs text-gray-500 mt-1">波幅：${x.d.swingSize} 點</div>
+<div class="text-xs text-gray-500 mt-1">
+  波幅 <span class="text-white font-medium">${x.d.swingSize}</span> 點　
+  ${x.d.direction==='long' && x.d.swingLowA ? `前低A=${x.d.swingLowA}→前高B=${x.d.breakoutPrice}` :
+    x.d.direction==='short' && x.d.swingHighA ? `前高A=${x.d.swingHighA}→前低B=${x.d.breakoutPrice}` : ''}
+  ${x.d.dataSource ? `<span class="text-gray-700">（${x.d.dataSource}）</span>` : ''}
+</div>
 </div>`).join('')}
 <div class="pt-1 border-t border-gray-700 text-xs">
 <span class="text-gray-400">方向一致：</span>
@@ -618,21 +624,21 @@ const renderStats = () => {
 // 盤勢 Tab：TradingView 即時圖表 + 一鍵分析
 // ════════════════════════════════════════════════
 const MARKET_SYMBOLS = [
-  { label: '美國科技股100', short: 'NQ', tv: 'CME_MINI:NQ1!',   tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3ANQ1!' },
-  { label: '標普500',       short: 'ES', tv: 'CME_MINI:ES1!',   tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3AES1!' },
-  { label: '道瓊',          short: 'YM', tv: 'CBOT_MINI:YM1!',  tvUrl: 'https://www.tradingview.com/chart/?symbol=CBOT_MINI%3AYM1!' },
-  { label: '黃金',          short: 'GC', tv: 'COMEX:GC1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3AGC1!' },
-  { label: '原油',          short: 'CL', tv: 'NYMEX:CL1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=NYMEX%3ACL1!' },
-  { label: '台指期',        short: 'TX', tv: 'TAIFEX:TX1!',     tvUrl: 'https://www.tradingview.com/chart/?symbol=TAIFEX%3ATX1!' },
-  { label: '恆生指數',      short: 'HSI',tv: 'HKEX:HSI1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=HKEX%3AHSI1!' },
-  { label: '比特幣',        short: 'BTC',tv: 'BINANCE:BTCUSDT',  tvUrl: 'https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT' },
+  { label: '美國科技股100', short: 'NQ',  tv: 'CME_MINI:NQ1!',    td: 'NQ1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3ANQ1!'    },
+  { label: '標普500',       short: 'ES',  tv: 'CME_MINI:ES1!',    td: 'ES1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3AES1!'    },
+  { label: '道瓊',          short: 'YM',  tv: 'CBOT_MINI:YM1!',   td: 'YM1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=CBOT_MINI%3AYM1!'   },
+  { label: '黃金',          short: 'GC',  tv: 'COMEX:GC1!',       td: 'GC1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3AGC1!'       },
+  { label: '原油',          short: 'CL',  tv: 'NYMEX:CL1!',       td: 'CL1!',      tvUrl: 'https://www.tradingview.com/chart/?symbol=NYMEX%3ACL1!'       },
+  { label: '台指期',        short: 'TX',  tv: 'TAIFEX:TX1!',      td: 'TX00',      tvUrl: 'https://www.tradingview.com/chart/?symbol=TAIFEX%3ATX1!'      },
+  { label: '恆生指數',      short: 'HSI', tv: 'HKEX:HSI1!',       td: 'HSI',       tvUrl: 'https://www.tradingview.com/chart/?symbol=HKEX%3AHSI1!'       },
+  { label: '比特幣',        short: 'BTC', tv: 'BINANCE:BTCUSDT',   td: 'BTC/USDT',  tvUrl: 'https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT'  },
 ];
 
 const MARKET_INTERVALS = [
-  { label: '日K',   tv: 'D'  },
-  { label: '60分',  tv: '60' },
-  { label: '15分',  tv: '15' },
-  { label: '1分',   tv: '1'  },
+  { label: '日K',   tv: 'D',   td: '1day'  },
+  { label: '60分',  tv: '60',  td: '1h'    },
+  { label: '15分',  tv: '15',  td: '15min' },
+  { label: '1分',   tv: '1',   td: '1min'  },
 ];
 
 const renderMarket = () => {
@@ -641,6 +647,7 @@ const renderMarket = () => {
   const symObj = MARKET_SYMBOLS.find(s => s.tv === sym) || MARKET_SYMBOLS[0];
   const tvLink = symObj.tvUrl + '&interval=' + intv;
   const intvLabel = MARKET_INTERVALS.find(i => i.tv === intv)?.label || intv;
+  const hasTdKey  = !!state.twelveDataKey?.trim();
 
   return `<div class="text-lg font-bold mb-3">📡 即時盤勢</div>
 
@@ -658,45 +665,48 @@ ${MARKET_INTERVALS.map(i => `<button class="market-int-btn flex-1 text-xs py-1.5
 </div>
 </div>
 
-<div class="bg-card border border-indigo/40 rounded-xl overflow-hidden mb-3">
-<div class="bg-indigo/10 px-4 py-3 flex items-center justify-between">
+${hasTdKey ? `
+<div class="bg-card border border-cyan/30 rounded-xl p-3 mb-3" id="tdQuoteCard">
+<div class="flex items-center justify-between mb-2">
+  <div class="text-sm font-bold text-cyan">📊 ${symObj.label} 即時報價</div>
+  <button id="tdRefreshBtn" class="text-xs text-gray-400 border border-gray-600 px-2 py-1 rounded active:scale-95 transition-transform">🔄 刷新</button>
+</div>
+<div id="tdQuoteContent" class="text-xs text-gray-500">載入中...</div>
+</div>
+
+<div class="bg-card border border-cyan/20 rounded-xl p-3 mb-3">
+<div class="flex items-center justify-between mb-2">
+  <div class="text-sm font-bold text-cyan">📈 ${intvLabel} K 線數據（最近20根）</div>
+</div>
+<div id="tdCandleContent" class="text-xs text-gray-500">載入中...</div>
+</div>` : `
+<div class="bg-cyan/5 border border-cyan/20 rounded-xl p-4 mb-3 text-center">
+<div class="text-cyan font-bold text-sm mb-1">📡 即時報價功能</div>
+<div class="text-xs text-gray-400 mb-3">前往設定頁輸入 Twelve Data API Key 即可啟用</div>
+<div class="text-xs text-gray-500 space-y-1">
+  <div>① 前往 <span class="text-cyan">twelvedata.com</span> 免費註冊</div>
+  <div>② 取得 API Key 後到「⚙️ 設定」頁貼上</div>
+  <div>③ 返回此頁即可看到即時報價</div>
+</div>
+</div>`}
+
+<div class="bg-card border border-indigo/40 rounded-xl p-4 mb-3">
+<div class="flex items-center justify-between mb-2">
 <div>
-  <div class="font-bold text-white">${symObj.label} <span class="text-indigo text-xs ml-1">${symObj.short}</span></div>
-  <div class="text-xs text-gray-400 mt-0.5">週期：${intvLabel} · TradingView 即時圖表</div>
+  <div class="font-bold text-white text-sm">${symObj.label}</div>
+  <div class="text-xs text-gray-500">${intvLabel} · TradingView 圖表</div>
 </div>
 <a href="${tvLink}" target="_blank" rel="noopener"
    class="flex items-center gap-1 bg-indigo text-white text-xs font-bold px-3 py-2 rounded-lg active:scale-95 transition-transform">
   📈 開啟圖表
 </a>
 </div>
-<div class="p-4 space-y-2 text-xs">
-<div class="text-gray-400">點右上角「📈 開啟圖表」在 TradingView 查看即時 K 線，截圖後回來上傳分析。</div>
-<div class="bg-black/30 rounded-lg p-3 space-y-1.5">
-  <div class="text-gray-300 font-medium mb-1">📌 截圖建議</div>
-  <div class="flex items-start gap-2"><span class="text-purple shrink-0">①</span><span>開啟後切換「日K」截圖</span></div>
-  <div class="flex items-start gap-2"><span class="text-cyan shrink-0">②</span><span>切換「60分或分時」截圖</span></div>
-  <div class="flex items-start gap-2"><span class="text-indigo shrink-0">③</span><span>切換「15分K」截圖</span></div>
-  <div class="flex items-start gap-2"><span class="text-green shrink-0">④</span><span>切換「1分K」截圖</span></div>
-  <div class="text-gray-500 pt-1 border-t border-gray-700">四張截圖上傳後 AI 分析效果最佳</div>
-</div>
-</div>
+<div class="text-xs text-gray-600">開啟後截圖回來上傳 AI 分析，建議截日K·分時·15分·1分各一張</div>
 </div>
 
 <div class="bg-indigo/10 border border-indigo/30 rounded-xl p-4 mb-3">
 <div class="text-sm font-bold text-indigo mb-2">🤖 上傳截圖送 AI 分析</div>
-<div class="text-xs text-gray-400 mb-3">截圖完成後點下方按鈕上傳，支援一次選取多張</div>
 <button id="marketUploadBtn" class="w-full py-3 bg-indigo rounded-lg text-sm font-bold active:scale-95 transition-transform">📂 上傳截圖送 AI 分析</button>
-</div>
-
-<div class="bg-card border border-border rounded-xl p-4">
-<div class="text-xs font-bold text-gray-400 mb-3">🔗 快速開啟各品種圖表</div>
-<div class="space-y-2">
-${MARKET_SYMBOLS.map(s => `<a href="${s.tvUrl}" target="_blank" rel="noopener"
-  class="flex items-center justify-between bg-black/30 rounded-lg px-3 py-2 active:bg-indigo/10 transition-colors">
-  <span class="text-gray-300 text-xs">${s.label} <span class="text-gray-600">${s.short}</span></span>
-  <span class="text-indigo text-xs">開啟 →</span>
-</a>`).join('')}
-</div>
 </div>`;
 };
 
@@ -914,6 +924,14 @@ const renderSettings = () => {
 <input id="apiKeyInput" value="${state.apiKey}" placeholder="請輸入 sk-proj- 或 sk- 開頭的API金鑰" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" />
 <div class="text-xs text-gray-500">💡 前往 <span class="text-indigo">platform.openai.com/api-keys</span> 取得 API Key</div>
 </div>
+<div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
+<div class="font-bold text-sm text-cyan">📡 Twelve Data API Key（即時盤勢）</div>
+<input id="tdKeyInput" value="${state.twelveDataKey}" placeholder="請輸入 Twelve Data API Key" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" />
+<div class="text-xs text-gray-500 space-y-1">
+<div>💡 前往 <span class="text-cyan">twelvedata.com</span> 免費註冊取得 Key</div>
+<div class="text-gray-600">免費方案：800次/天，支援 NQ、ES、GC 等期貨</div>
+</div>
+</div>
 <div class="bg-card border border-purple/30 rounded-xl p-4 space-y-3 mb-4 bg-purple/5">
 <div class="font-bold text-sm text-purple">🎯 風險倍率選擇（短/中/長線）</div>
 <div class="text-xs text-gray-400 mb-2">選擇後下次分析自動套用對應止盈/停損倍率</div>
@@ -1119,6 +1137,7 @@ const bindSettingsEvents = () => {
       saveState(); render();
     });
   });
+  document.getElementById('tdKeyInput')?.addEventListener('input', e => { state.twelveDataKey = e.target.value; saveState(); });
   document.getElementById('clearAllDataButton')?.addEventListener('click', () => {
     if (confirm('確定要清除所有本地資料嗎？此操作無法復原！')) { localStorage.clear(); location.reload(); }
   });
@@ -1133,18 +1152,25 @@ const callOpenAI = async imgs => {
 2. 識別產品名稱、價格小數位數
 3. 判斷趨勢方向：EMA12在EMA20上方且角度向上為long(多頭)；EMA12在EMA20下方且角度向下為short(空頭)；否則sideways(盤整)
 4. 分別識別三個週期的擺動高低點（每個至少3個，按時間順序由舊到新排列）：
-   - shortHighs/shortLows（短週期，1分K）
-   - midHighs/midLows（中週期，15分K）
+   - shortHighs/shortLows（短週期，1分K，識別最近3個以上明顯波峰波谷）
+   - midHighs/midLows（中週期，15分K，識別最近3個以上明顯波峰波谷）
    - longHighs/longLows（長週期，日K；若無日K圖則省略）
    同時保留 recentHighs/recentLows（以15分K為主）
-5. 亞當理論分析【方向 + 距離 = 明確點位】：
-   對每個有資料的週期（短/中/長），計算以下欄位並填入 adamShort/adamMid/adamLong：
-   - direction: "long"（最新價突破最近擺動高點）/ "short"（跌破最近擺動低點）/ "neutral"（尚未突破）
-   - breakoutPrice: 突破點（最近擺動高點或低點的價格）
-   - swingSize: 突破前最近一段擺動的幅度（前高 - 前低 的絕對值）
-   - adamTarget: 翻亞當目標價 = breakoutPrice ± swingSize（多頭加，空頭減）
-   - adamStop: 停損價 = 突破前的反向極值（多頭為最近擺動低點，空頭為最近擺動高點）
-   - note: 繁體中文說明，例如「中週期(15分K)：突破前高 19850，擺動幅度 200 點，目標 20050，停損 19650」
+5. 亞當理論【翻亞當點位計算】，對每個有資料的週期填入 adamShort/adamMid/adamLong：
+   計算規則：
+   - 多頭翻亞當：找出最近完整一段上漲波（從前低A到前高B），突破前高B後，目標 = B + (B - A)，停損 = A
+   - 空頭翻亞當：找出最近完整一段下跌波（從前高A到前低B），跌破前低B後，目標 = B - (A - B)，停損 = A
+   - 尚未突破（neutral）：提供待突破價位及對應目標
+   每個週期必填以下欄位（數值必須從圖表精確讀取，不可估算）：
+   - direction: "long" / "short" / "neutral"
+   - swingHighA: 前段波幅的起點高點價格（空頭用）或前段低點前的高點（多頭參考）
+   - swingLowA: 前段波幅的起點低點價格（多頭用）
+   - breakoutPrice: 突破點（多頭為前高B，空頭為前低B）
+   - swingSize: 波幅大小 = abs(breakoutPrice - swingLowA) 或 abs(swingHighA - breakoutPrice)
+   - adamTarget: 翻亞當目標 = breakoutPrice + swingSize（多頭）或 breakoutPrice - swingSize（空頭）
+   - adamStop: 停損 = swingLowA（多頭）或 swingHighA（空頭）
+   - note: 繁體中文說明，格式：「週期：前低A=XXXX，前高B=XXXX，波幅=XX點，目標=XXXX，停損=XXXX」
+   ⚠️ 所有價格必須從圖表直接讀取，不可用 ATR 或均線估算
 6. 若圖中有分時走勢，額外分析分時趨勢與15分K趨勢的一致性，給出右邊進場時機建議與風控備註
 6b. 若圖中有日K走勢，分析日K大趨勢方向（多頭/空頭/盤整），判斷與15分K是否一致，結果填入 dailyTrend 與 dailyTrendNote 欄位
 7. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, productType, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), shortHighs(可選), shortLows(可選), midHighs(可選), midLows(可選), longHighs(可選), longLows(可選), adamShort(可選,含direction/breakoutPrice/swingSize/adamTarget/adamStop/note), adamMid(可選), adamLong(可選), trendConsistency(可選), entryAdvice(可選), riskNote(可選), dailyTrend(可選,值為long/short/sideways), dailyTrendNote(可選,繁體中文說明日K趨勢)
@@ -1221,64 +1247,115 @@ const callOpenAI = async imgs => {
   parsedData.support = levels.support;
   parsedData.resistance = levels.resistance;
 
-  // ── 亞當理論：方向 + 距離 → 明確點位（翻亞當）
-  // 若 AI 已算好直接用，否則用本地高低點計算
+  // ── 亞當理論：AI 提供方向+關鍵價，程式用 ATR 計算翻亞當目標
+  // 翻亞當距離 = breakoutPrice - prevSwingLow（前段實際波幅）
+  // 若 AI 沒給 prevSwingLow，備援用 ATR × 倍數
+  const atr = num(parsedData.atr14);
+  const dec = parsedData.decimals || 0;
+  const rnd = v => Math.round(v * Math.pow(10, dec)) / Math.pow(10, dec);
+
   const buildAdamCalc = (aiData, highs, lows, label) => {
-    // AI 已回傳完整點位資料，直接用
+    let direction = 'neutral', breakoutPrice = null, adamStop = null;
+    let swingSize = 0, adamTarget = null, swingLowA = null, swingHighA = null;
+    let dataSource = '';
+
+    // === 優先：AI 已計算好完整翻亞當點位 ===
     if (aiData && aiData.breakoutPrice && aiData.adamTarget && aiData.adamStop) {
-      return {
-        direction:     aiData.direction || 'neutral',
-        breakoutPrice: aiData.breakoutPrice,
-        swingSize:     aiData.swingSize || 0,
-        adamTarget:    aiData.adamTarget,
-        adamStop:      aiData.adamStop,
-        note:          aiData.note || label,
-        hasData: true
-      };
-    }
-    // AI 未回傳，用本地高低點推算
-    if (!highs || highs.length < 2 || !lows || lows.length < 2)
-      return { direction: 'neutral', hasData: false, note: `${label}：高低點資料不足` };
+      direction     = aiData.direction || 'neutral';
+      breakoutPrice = num(aiData.breakoutPrice);
+      adamTarget    = num(aiData.adamTarget);
+      adamStop      = num(aiData.adamStop);
+      swingSize     = num(aiData.swingSize) || Math.abs(adamTarget - breakoutPrice);
+      swingLowA     = num(aiData.swingLowA)  || null;
+      swingHighA    = num(aiData.swingHighA) || null;
+      dataSource    = 'AI直接計算';
 
-    const latestHigh = highs[highs.length - 1];
-    const prevHigh   = highs[highs.length - 2];
-    const latestLow  = lows[lows.length - 1];
-    const prevLow    = lows[lows.length - 2];
-    const currentPrice = num(parsedData.currentPrice);
-    const decimals = parsedData.decimals || 0;
+    // === 次選：AI 有給波幅起點，程式計算目標 ===
+    } else if (aiData && aiData.breakoutPrice) {
+      direction     = aiData.direction || 'neutral';
+      breakoutPrice = num(aiData.breakoutPrice);
+      adamStop      = num(aiData.adamStop) || null;
+      swingLowA     = num(aiData.swingLowA)  || num(aiData.prevSwingLow) || null;
+      swingHighA    = num(aiData.swingHighA) || num(aiData.prevSwingHigh) || null;
 
-    // 判斷方向：當前價是否突破最近擺動高點或低點
-    const swingRange = latestHigh - latestLow;
-    let direction, breakoutPrice, adamTarget, adamStop, swingSize;
+      if (direction === 'long' && swingLowA) {
+        swingSize  = rnd(breakoutPrice - swingLowA);
+        adamTarget = rnd(breakoutPrice + swingSize);
+        if (!adamStop) adamStop = swingLowA;
+        dataSource = 'AI波幅+程式計算目標';
+      } else if (direction === 'short' && swingHighA) {
+        swingSize  = rnd(swingHighA - breakoutPrice);
+        adamTarget = rnd(breakoutPrice - swingSize);
+        if (!adamStop) adamStop = swingHighA;
+        dataSource = 'AI波幅+程式計算目標';
+      } else {
+        // AI 沒給波幅起點，從高低點數組取
+        if (direction === 'long' && lows && lows.length >= 2) {
+          swingLowA  = lows[lows.length - 2];
+          swingSize  = rnd(breakoutPrice - swingLowA);
+          adamTarget = rnd(breakoutPrice + swingSize);
+          if (!adamStop) adamStop = lows[lows.length - 1];
+          dataSource = 'AI突破點+高低點波幅';
+        } else if (direction === 'short' && highs && highs.length >= 2) {
+          swingHighA = highs[highs.length - 2];
+          swingSize  = rnd(swingHighA - breakoutPrice);
+          adamTarget = rnd(breakoutPrice - swingSize);
+          if (!adamStop) adamStop = highs[highs.length - 1];
+          dataSource = 'AI突破點+高低點波幅';
+        } else {
+          return { direction, breakoutPrice, hasData: true, note: `${label}：缺少波幅起點，無法計算目標`, dataSource: 'AI部分' };
+        }
+      }
 
-    if (currentPrice > latestHigh) {
-      // 突破前高 → 多頭
-      direction     = 'long';
-      breakoutPrice = latestHigh;
-      swingSize     = latestHigh - prevLow;           // 前段波幅
-      adamTarget    = Math.round((breakoutPrice + swingSize) * Math.pow(10, decimals)) / Math.pow(10, decimals);
-      adamStop      = latestLow;
-    } else if (currentPrice < latestLow) {
-      // 跌破前低 → 空頭
-      direction     = 'short';
-      breakoutPrice = latestLow;
-      swingSize     = prevHigh - latestLow;           // 前段波幅
-      adamTarget    = Math.round((breakoutPrice - swingSize) * Math.pow(10, decimals)) / Math.pow(10, decimals);
-      adamStop      = latestHigh;
+    // === 備援：AI 未回傳，用本地擺動高低點推算（純圖表計算）===
+    } else if (highs && highs.length >= 3 && lows && lows.length >= 3) {
+      const H  = highs[highs.length - 1];  // 最近高點（B）
+      const H2 = highs[highs.length - 2];  // 前一高點
+      const L  = lows[lows.length - 1];    // 最近低點
+      const L2 = lows[lows.length - 2];    // 前一低點（A）
+      const cp = num(parsedData.currentPrice);
+
+      if (cp >= H) {
+        // 突破最近高點：多頭翻亞當，波幅 = H - L2
+        direction     = 'long';
+        breakoutPrice = H;
+        swingLowA     = L2;
+        swingSize     = rnd(H - L2);
+        adamTarget    = rnd(H + swingSize);
+        adamStop      = L;
+        dataSource    = '本地高低點計算';
+      } else if (cp <= L) {
+        // 跌破最近低點：空頭翻亞當，波幅 = H2 - L
+        direction     = 'short';
+        breakoutPrice = L;
+        swingHighA    = H2;
+        swingSize     = rnd(H2 - L);
+        adamTarget    = rnd(L - swingSize);
+        adamStop      = H;
+        dataSource    = '本地高低點計算';
+      } else {
+        direction     = 'neutral';
+        breakoutPrice = H;
+        swingLowA     = L2;
+        swingSize     = rnd(H - L2);
+        adamTarget    = rnd(H + swingSize);
+        adamStop      = L;
+        dataSource    = '本地高低點計算（待突破）';
+      }
     } else {
-      // 區間內，尚未突破
-      direction     = 'neutral';
-      breakoutPrice = latestHigh;                     // 待突破的目標
-      swingSize     = swingRange;
-      adamTarget    = Math.round((latestHigh + swingRange) * Math.pow(10, decimals)) / Math.pow(10, decimals);
-      adamStop      = latestLow;
+      return { direction: 'neutral', hasData: false, note: `${label}：資料不足` };
     }
 
-    const dirText = direction === 'long' ? `突破前高 ${breakoutPrice}，翻亞當目標 ${adamTarget}，停損 ${adamStop}`
-                  : direction === 'short' ? `跌破前低 ${breakoutPrice}，翻亞當目標 ${adamTarget}，停損 ${adamStop}`
-                  : `區間整理中，待突破 ${breakoutPrice} 確認方向，目標 ${adamTarget}，停損 ${adamStop}`;
-
-    return { direction, breakoutPrice, swingSize, adamTarget, adamStop, note: `${label}：${dirText}`, hasData: true };
+    const dirLabel  = direction === 'long' ? '🔴 多頭' : direction === 'short' ? '🟢 空頭' : '🟡 整理';
+    const swingDesc = direction === 'long'
+      ? 'A(前低)=' + (swingLowA ?? '?') + ' B(前高)=' + breakoutPrice + ' 波幅=' + swingSize + 'pt'
+      : direction === 'short'
+      ? 'A(前高)=' + (swingHighA ?? '?') + ' B(前低)=' + breakoutPrice + ' 波幅=' + swingSize + 'pt'
+      : '整理待突破 ' + breakoutPrice;
+    const autoNote = (aiData && aiData.note) ? aiData.note
+      : label + '：' + dirLabel + ' | ' + swingDesc + ' | 目標=' + adamTarget + ' 停損=' + adamStop;
+    return { direction, breakoutPrice, swingSize, adamTarget, adamStop,
+             swingLowA, swingHighA, dataSource, note: autoNote, hasData: true };
   };
 
   const adamShortCalc = buildAdamCalc(
