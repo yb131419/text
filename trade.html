@@ -369,7 +369,8 @@ let state = {
   riskProfile:    loadData('riskProfile', 'medium'),   // 新增：風險倍率選擇
   marketSymbol:   'CME_MINI:NQ1!',
   marketInterval: 'D',
-  twelveDataKey:  loadData('twelveDataKey', '')
+  twelveDataKey:  loadData('twelveDataKey', ''),
+  tdCustomSym:    ''
 };
 
 const saveState = () => {
@@ -625,14 +626,14 @@ const renderStats = () => {
 // 盤勢 Tab：TradingView 即時圖表 + 一鍵分析
 // ════════════════════════════════════════════════
 const MARKET_SYMBOLS = [
-  { label: '美國科技股100', short: 'NQ',  tv: 'CME_MINI:NQ1!',    td: 'NDX',       exchange: 'NASDAQ',  note:'(NDX指數)', tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3ANQ1!'    },
-  { label: '標普500',       short: 'ES',  tv: 'CME_MINI:ES1!',    td: 'SPX',       exchange: 'NYSE',    note:'(SPX指數)', tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3AES1!'    },
-  { label: '道瓊',          short: 'YM',  tv: 'CBOT_MINI:YM1!',   td: 'DJI',       exchange: 'NYSE',    note:'(DJI指數)', tvUrl: 'https://www.tradingview.com/chart/?symbol=CBOT_MINI%3AYM1!'   },
-  { label: '黃金',          short: 'GC',  tv: 'COMEX:GC1!',       td: 'XAU/USD',   exchange: '',        note:'(現貨)',     tvUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3AGC1!'       },
-  { label: '原油',          short: 'CL',  tv: 'NYMEX:CL1!',       td: 'WTI/USD',   exchange: '',        note:'(現貨)',     tvUrl: 'https://www.tradingview.com/chart/?symbol=NYMEX%3ACL1!'       },
-  { label: '台指期',        short: 'TX',  tv: 'TAIFEX:TX1!',      td: 'TWII',      exchange: '',        note:'(台股指數)',  tvUrl: 'https://www.tradingview.com/chart/?symbol=TAIFEX%3ATX1!'      },
-  { label: '恆生指數',      short: 'HSI', tv: 'HKEX:HSI1!',       td: 'HSI',       exchange: 'HKEX',    note:'(恆指)',     tvUrl: 'https://www.tradingview.com/chart/?symbol=HKEX%3AHSI1!'       },
-  { label: '比特幣',        short: 'BTC', tv: 'BINANCE:BTCUSDT',   td: 'BTC/USD',   exchange: '',        note:'',          tvUrl: 'https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT'  },
+  { label: '美國科技股100', short: 'NQ',  tv: 'CME_MINI:NQ1!',  stooq: '@nq.us',   src:'stooq', tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3ANQ1!'   },
+  { label: '標普500',       short: 'ES',  tv: 'CME_MINI:ES1!',  stooq: '@es.us',   src:'stooq', tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3AES1!'   },
+  { label: '道瓊',          short: 'YM',  tv: 'CBOT_MINI:YM1!', stooq: '@ym.us',   src:'stooq', tvUrl: 'https://www.tradingview.com/chart/?symbol=CBOT_MINI%3AYM1!'  },
+  { label: '黃金',          short: 'GC',  tv: 'COMEX:GC1!',     stooq: '@gc.us',   src:'stooq', tvUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3AGC1!'      },
+  { label: '原油',          short: 'CL',  tv: 'NYMEX:CL1!',     stooq: '@cl.us',   src:'stooq', tvUrl: 'https://www.tradingview.com/chart/?symbol=NYMEX%3ACL1!'      },
+  { label: '台指期',        short: 'TX',  tv: 'TAIFEX:TX1!',    stooq: 'tx.f',     src:'stooq', tvUrl: 'https://www.tradingview.com/chart/?symbol=TAIFEX%3ATX1!'     },
+  { label: '恆生指數',      short: 'HSI', tv: 'HKEX:HSI1!',     stooq: '^hsi.hk',  src:'stooq', tvUrl: 'https://www.tradingview.com/chart/?symbol=HKEX%3AHSI1!'      },
+  { label: '比特幣',        short: 'BTC', tv: 'BINANCE:BTCUSDT', stooq: '',          src:'binance',tvUrl: 'https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT'},
 ];
 
 const MARKET_INTERVALS = [
@@ -643,53 +644,38 @@ const MARKET_INTERVALS = [
 ];
 
 const renderMarket = () => {
-  const sym    = state.marketSymbol || MARKET_SYMBOLS[0].tv;
-  const intv   = state.marketInterval || 'D';
-  const symObj = MARKET_SYMBOLS.find(s => s.tv === sym) || MARKET_SYMBOLS[0];
-  const tvLink = symObj.tvUrl + '&interval=' + intv;
+  const sym       = state.marketSymbol || MARKET_SYMBOLS[0].tv;
+  const intv      = state.marketInterval || 'D';
+  const symObj    = MARKET_SYMBOLS.find(s => s.tv === sym) || MARKET_SYMBOLS[0];
+  const tvLink    = symObj.tvUrl + '&interval=' + intv;
   const intvLabel = MARKET_INTERVALS.find(i => i.tv === intv)?.label || intv;
-  const hasTdKey  = !!state.twelveDataKey?.trim();
 
   return `<div class="text-lg font-bold mb-3">📡 即時盤勢</div>
 
 <div class="bg-card border border-border rounded-xl p-3 mb-3">
 <div class="text-xs text-gray-400 mb-2 font-medium">選擇品種</div>
 <div class="grid grid-cols-4 gap-1 mb-3">
-${MARKET_SYMBOLS.map(s => `<button class="market-sym-btn text-xs py-2 px-1 rounded-lg border text-center ${sym===s.tv?'border-indigo bg-indigo/20 text-indigo font-bold':'border-gray-700 text-gray-400'}" data-sym="${s.tv}">
-<div class="font-bold">${s.short}</div>
-<div class="text-[10px] mt-0.5 opacity-70">${s.label}</div>
-</button>`).join('')}
+${MARKET_SYMBOLS.map(s => '<button class="market-sym-btn text-xs py-2 px-1 rounded-lg border text-center ' + (sym===s.tv?'border-indigo bg-indigo/20 text-indigo font-bold':'border-gray-700 text-gray-400') + '" data-sym="' + s.tv + '"><div class="font-bold">' + s.short + '</div><div class="text-[10px] mt-0.5 opacity-70">' + s.label + '</div></button>').join('')}
 </div>
 <div class="text-xs text-gray-400 mb-2 font-medium">K 線週期</div>
 <div class="flex gap-1">
-${MARKET_INTERVALS.map(i => `<button class="market-int-btn flex-1 text-xs py-1.5 rounded-lg border ${intv===i.tv?'border-indigo bg-indigo/20 text-indigo font-bold':'border-gray-700 text-gray-400'}" data-interval="${i.tv}">${i.label}</button>`).join('')}
+${MARKET_INTERVALS.map(i => '<button class="market-int-btn flex-1 text-xs py-1.5 rounded-lg border ' + (intv===i.tv?'border-indigo bg-indigo/20 text-indigo font-bold':'border-gray-700 text-gray-400') + '" data-interval="' + i.tv + '">' + i.label + '</button>').join('')}
 </div>
 </div>
 
-${hasTdKey ? `
 <div class="bg-card border border-cyan/30 rounded-xl p-3 mb-3" id="tdQuoteCard">
-<div class="flex items-center justify-between mb-2">
-  <div class="text-sm font-bold text-cyan">📊 ${symObj.label} 即時報價 ${symObj.note ? '<span class="text-xs text-gray-500 font-normal">' + symObj.note + '</span>' : ''}</div>
+<div class="flex items-center justify-between mb-1">
+  <div class="text-sm font-bold text-cyan">📊 ${symObj.label} 即時報價</div>
   <button id="tdRefreshBtn" class="text-xs text-gray-400 border border-gray-600 px-2 py-1 rounded active:scale-95 transition-transform">🔄 刷新</button>
 </div>
+<div class="text-xs text-gray-600 mb-2">stooq（期貨日K）/ Binance（BTC即時）· 免費無需 Key</div>
 <div id="tdQuoteContent" class="text-xs text-gray-500">載入中...</div>
 </div>
 
 <div class="bg-card border border-cyan/20 rounded-xl p-3 mb-3">
-<div class="flex items-center justify-between mb-2">
-  <div class="text-sm font-bold text-cyan">📈 ${intvLabel} K 線數據（最近20根）</div>
-</div>
+<div class="text-sm font-bold text-cyan mb-2">📈 ${intvLabel} K 線</div>
 <div id="tdCandleContent" class="text-xs text-gray-500">載入中...</div>
-</div>` : `
-<div class="bg-cyan/5 border border-cyan/20 rounded-xl p-4 mb-3 text-center">
-<div class="text-cyan font-bold text-sm mb-1">📡 即時報價功能</div>
-<div class="text-xs text-gray-400 mb-3">前往設定頁輸入 Twelve Data API Key 即可啟用</div>
-<div class="text-xs text-gray-500 space-y-1">
-  <div>① 前往 <span class="text-cyan">twelvedata.com</span> 免費註冊</div>
-  <div>② 取得 API Key 後到「⚙️ 設定」頁貼上</div>
-  <div>③ 返回此頁即可看到即時報價</div>
 </div>
-</div>`}
 
 <div class="bg-card border border-indigo/40 rounded-xl p-4 mb-3">
 <div class="flex items-center justify-between mb-2">
@@ -733,6 +719,42 @@ const bindMarketEvents = () => {
 
   // 刷新按鈕
   document.getElementById('tdRefreshBtn')?.addEventListener('click', fetchTwelveData);
+
+  // 自訂 symbol 查詢
+  const doSymSearch = async () => {
+    const key = state.twelveDataKey?.trim();
+    const q   = document.getElementById('tdSymInput')?.value?.trim();
+    if (!q || !key) return;
+    const resultEl = document.getElementById('tdSearchResult');
+    if (resultEl) { resultEl.textContent = '搜尋中...'; resultEl.classList.remove('hidden'); }
+    try {
+      const res  = await fetch('https://api.twelvedata.com/symbol_search?symbol=' + encodeURIComponent(q) + '&apikey=' + key);
+      const data = await res.json();
+      const hits = data.data?.slice(0, 5) || [];
+      if (hits.length === 0) {
+        if (resultEl) resultEl.textContent = '找不到符合的 symbol';
+      } else {
+        if (resultEl) {
+          resultEl.innerHTML = hits.map(h =>
+            '<span class="inline-block mr-1 mb-1 px-2 py-0.5 bg-cyan/10 border border-cyan/30 rounded text-cyan cursor-pointer td-sym-pick" data-sym="' + h.symbol + '" title="' + h.instrument_name + '">' + h.symbol + '</span>'
+          ).join('');
+          resultEl.classList.remove('hidden');
+          resultEl.querySelectorAll('.td-sym-pick').forEach(el => {
+            el.addEventListener('click', () => {
+              const picked = el.dataset.sym;
+              state.tdCustomSym = picked;
+              document.getElementById('tdSymInput').value = picked;
+              fetchTwelveData();
+            });
+          });
+        }
+      }
+    } catch(e) {
+      if (resultEl) resultEl.textContent = '搜尋失敗：' + e.message;
+    }
+  };
+  document.getElementById('tdSearchBtn')?.addEventListener('click', doSymSearch);
+  document.getElementById('tdSymInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') doSymSearch(); });
 
   // 自動載入報價（由 render 的 market case 統一呼叫，避免重複）
 
@@ -928,141 +950,128 @@ const fetchMarketQuote = () => {
 // Twelve Data API：即時報價 + K 線
 // ════════════════════════════════════════════════
 const fetchTwelveData = async () => {
-  const key    = state.twelveDataKey?.trim();
   const sym    = state.marketSymbol || MARKET_SYMBOLS[0].tv;
-  const intv   = state.marketInterval || 'D';
   const symObj = MARKET_SYMBOLS.find(s => s.tv === sym) || MARKET_SYMBOLS[0];
-  const tdSym  = symObj.td;
-  const tdIntv = MARKET_INTERVALS.find(i => i.tv === intv)?.td || '1day';
+  const intv   = state.marketInterval || 'D';
 
   const quoteEl  = document.getElementById('tdQuoteContent');
   const candleEl = document.getElementById('tdCandleContent');
   if (!quoteEl && !candleEl) return;
 
-  if (!key) {
-    if (quoteEl) quoteEl.innerHTML = '<div class="text-gray-600">請先在設定頁輸入 Twelve Data API Key</div>';
-    return;
-  }
-
-  // 顯示 key 資訊供除錯（只顯示前4碼和長度）
-  if (quoteEl) quoteEl.innerHTML = '<div class="text-gray-500 text-xs">連線中... (Key: ' + key.substring(0,4) + '****，長度:' + key.length + ')</div>';
+  if (quoteEl) quoteEl.innerHTML = '<div class="text-gray-500">載入中...</div>';
+  if (candleEl) candleEl.innerHTML = '<div class="text-gray-500">載入中...</div>';
 
   try {
-    // 即時報價
-    const exchParam = symObj.exchange ? '&exchange=' + symObj.exchange : '';
-    const qRes  = await fetch('https://api.twelvedata.com/quote?symbol=' + encodeURIComponent(tdSym) + exchParam + '&apikey=' + key);
-    const qData = await qRes.json();
+    if (symObj.src === 'binance') {
+      // ── BTC：用 Binance 公開 REST API（無需 key）
+      const intvMap = { D:'1d', '60':'1h', '15':'15m', '1':'1m' };
+      const bi = intvMap[intv] || '1d';
+      const res  = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=' + bi + '&limit=20');
+      const bars = await res.json();
+      if (!Array.isArray(bars) || bars.length === 0) throw new Error('Binance 無資料');
 
-    if (qData.status === 'error' || qData.code) {
-      const msg = qData.message || '請確認 API Key 正確';
-      const code = qData.code ? ' (code: ' + qData.code + ')' : '';
-      if (quoteEl) quoteEl.innerHTML = '<div class="text-red text-xs space-y-1"><div>❌ ' + msg + code + '</div><div class="text-gray-500">Symbol: ' + tdSym + ' Exchange: ' + (symObj.exchange||'未指定') + '</div></div>';
+      const last  = bars[bars.length - 1];
+      const prev  = bars[bars.length - 2];
+      const close = parseFloat(last[4]);
+      const open  = parseFloat(last[1]);
+      const high  = parseFloat(last[2]);
+      const low   = parseFloat(last[3]);
+      const pclose= parseFloat(prev[4]);
+      const chg   = (close - pclose).toFixed(2);
+      const pct   = ((close - pclose) / pclose * 100).toFixed(2);
+      const isUp  = close >= pclose;
+
+      if (quoteEl) quoteEl.innerHTML =
+        '<div class="grid grid-cols-2 gap-2 mb-1">' +
+        '<div class="bg-black/30 rounded p-2 col-span-2 flex justify-between items-center">' +
+        '<div class="text-white font-bold text-lg">' + close.toLocaleString() + '</div>' +
+        '<div class="' + (isUp?'text-red':'text-green') + ' font-bold">' + (isUp?'+':'') + chg + ' (' + (isUp?'+':'') + pct + '%)</div></div>' +
+        '<div class="bg-black/30 rounded p-2"><div class="text-gray-500 text-xs">開盤</div><div class="text-white text-sm">' + open.toLocaleString() + '</div></div>' +
+        '<div class="bg-black/30 rounded p-2"><div class="text-gray-500 text-xs">前收</div><div class="text-white text-sm">' + pclose.toLocaleString() + '</div></div>' +
+        '<div class="bg-black/30 rounded p-2"><div class="text-gray-500 text-xs">最高</div><div class="text-red text-sm">' + parseFloat(high).toLocaleString() + '</div></div>' +
+        '<div class="bg-black/30 rounded p-2"><div class="text-gray-500 text-xs">最低</div><div class="text-green text-sm">' + parseFloat(low).toLocaleString() + '</div></div>' +
+        '</div><div class="text-gray-600 text-xs text-right">Binance · 無需 API Key</div>';
+
+      // K 線圖
+      if (candleEl) {
+        const disp = bars.slice(-10);
+        const maxH = Math.max(...disp.map(b => parseFloat(b[2])));
+        const minL = Math.min(...disp.map(b => parseFloat(b[3])));
+        const range = maxH - minL || 1;
+        candleEl.innerHTML = '<div class="space-y-1">' +
+          disp.map(b => {
+            const o=parseFloat(b[1]),c=parseFloat(b[4]),h=parseFloat(b[2]),l=parseFloat(b[3]);
+            const isG=c>=o; const chgP=((c-o)/o*100).toFixed(2);
+            return '<div class="flex items-center gap-2 text-xs">' +
+              '<div class="text-gray-600 w-20 shrink-0">' + new Date(b[0]).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) + '</div>' +
+              '<div class="flex-1 h-5 relative bg-black/20 rounded">' +
+              '<div class="absolute rounded" style="left:' + ((Math.min(o,c)-minL)/range*100).toFixed(1) + '%;right:' + ((maxH-Math.max(o,c))/range*100).toFixed(1) + '%;top:15%;bottom:15%;background:' + (isG?'#1db954':'#e03e3e') + '"></div></div>' +
+              '<div class="w-12 text-right shrink-0 ' + (isG?'text-green':'text-red') + '">' + (isG?'+':'') + chgP + '%</div>' +
+              '<div class="w-20 text-right shrink-0 text-gray-400">' + c.toLocaleString() + '</div></div>';
+          }).join('') + '</div>' +
+          '<div class="text-gray-600 text-xs mt-1 text-right">Binance · 最近10根K</div>';
+      }
+
     } else {
-      const price  = parseFloat(qData.close || qData.price || 0).toFixed(2);
-      const prev   = parseFloat(qData.previous_close || 0).toFixed(2);
-      const chg    = (parseFloat(price) - parseFloat(prev)).toFixed(2);
-      const pct    = prev > 0 ? ((parseFloat(chg) / parseFloat(prev)) * 100).toFixed(2) : '0.00';
-      const isUp   = parseFloat(chg) >= 0;
-      const color  = isUp ? 'text-red' : 'text-green';
-      const sign   = isUp ? '+' : '';
-      const open   = parseFloat(qData.open || 0).toFixed(2);
-      const high   = parseFloat(qData.high || 0).toFixed(2);
-      const low    = parseFloat(qData.low  || 0).toFixed(2);
-      const vol    = qData.volume ? parseInt(qData.volume).toLocaleString() : '-';
+      // ── 其他品種：用 stooq CSV（免費、無需 key、支援期貨）
+      const stooqSym = symObj.stooq;
+      if (!stooqSym) throw new Error('此品種暫不支援自動報價');
 
-      if (quoteEl) quoteEl.innerHTML = `
-<div class="grid grid-cols-2 gap-2 mb-2">
-  <div class="bg-black/30 rounded-lg p-2 col-span-2 flex items-center justify-between">
-    <div class="text-white font-bold text-xl">${price}</div>
-    <div class="${color} font-bold text-sm">${sign}${chg} (${sign}${pct}%)</div>
-  </div>
-  <div class="bg-black/30 rounded-lg p-2"><div class="text-gray-500 text-xs mb-0.5">開盤</div><div class="text-white text-sm font-medium">${open}</div></div>
-  <div class="bg-black/30 rounded-lg p-2"><div class="text-gray-500 text-xs mb-0.5">前收</div><div class="text-white text-sm font-medium">${prev}</div></div>
-  <div class="bg-black/30 rounded-lg p-2"><div class="text-gray-500 text-xs mb-0.5">最高</div><div class="text-red text-sm font-medium">${high}</div></div>
-  <div class="bg-black/30 rounded-lg p-2"><div class="text-gray-500 text-xs mb-0.5">最低</div><div class="text-green text-sm font-medium">${low}</div></div>
-</div>
-<div class="text-gray-600 text-xs text-right">成交量 ${vol} · ${qData.datetime || ''}</div>`;
-    }
+      // stooq 提供 CSV，但直接 fetch 會有 CORS 問題
+      // 改用 allorigins 代理
+      const csvUrl   = 'https://stooq.com/q/d/l/?s=' + encodeURIComponent(stooqSym) + '&i=d';
+      const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(csvUrl);
+      const res      = await fetch(proxyUrl);
+      const json     = await res.json();
+      const csv      = json.contents || '';
+      const rows     = csv.trim().split('\n').filter(r => r && !r.startsWith('Date'));
+      if (rows.length < 2) throw new Error('stooq 無資料，市場可能休市');
 
-    // K 線數據（最近20根）
-    const cRes  = await fetch('https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(tdSym) + exchParam + '&interval=' + tdIntv + '&outputsize=20&apikey=' + key);
-    const cData = await cRes.json();
+      // 解析最近兩根日K
+      const parse = row => { const [date,o,h,l,c,v] = row.split(','); return {date,o:+o,h:+h,l:+l,c:+c,v:+v}; };
+      const recent = rows.slice(-20).map(parse).filter(r => r.c > 0);
+      const last2  = recent.slice(-2);
+      const last   = last2[last2.length-1];
+      const prev   = last2[last2.length-2] || last;
+      const chg    = (last.c - prev.c).toFixed(2);
+      const pct    = ((last.c - prev.c) / prev.c * 100).toFixed(2);
+      const isUp   = last.c >= prev.c;
 
-    if (cData.status === 'error' || !cData.values) {
-      if (candleEl) candleEl.innerHTML = '<div class="text-gray-600 text-xs">K線載入失敗</div>';
-    } else {
-      const bars = cData.values.slice(0, 10).reverse();
-      const maxH = Math.max(...bars.map(b => parseFloat(b.high)));
-      const minL = Math.min(...bars.map(b => parseFloat(b.low)));
-      const range = maxH - minL || 1;
+      if (quoteEl) quoteEl.innerHTML =
+        '<div class="grid grid-cols-2 gap-2 mb-1">' +
+        '<div class="bg-black/30 rounded p-2 col-span-2 flex justify-between items-center">' +
+        '<div class="text-white font-bold text-lg">' + last.c.toLocaleString() + '</div>' +
+        '<div class="' + (isUp?'text-red':'text-green') + ' font-bold">' + (isUp?'+':'') + chg + ' (' + (isUp?'+':'') + pct + '%)</div></div>' +
+        '<div class="bg-black/30 rounded p-2"><div class="text-gray-500 text-xs">開盤</div><div class="text-white text-sm">' + last.o.toLocaleString() + '</div></div>' +
+        '<div class="bg-black/30 rounded p-2"><div class="text-gray-500 text-xs">前收</div><div class="text-white text-sm">' + prev.c.toLocaleString() + '</div></div>' +
+        '<div class="bg-black/30 rounded p-2"><div class="text-gray-500 text-xs">最高</div><div class="text-red text-sm">' + last.h.toLocaleString() + '</div></div>' +
+        '<div class="bg-black/30 rounded p-2"><div class="text-gray-500 text-xs">最低</div><div class="text-green text-sm">' + last.l.toLocaleString() + '</div></div>' +
+        '</div><div class="text-gray-600 text-xs text-right">stooq · 日K收盤價 · 日期:' + last.date + '</div>';
 
-      if (candleEl) candleEl.innerHTML = `
-<div class="space-y-1">
-${bars.map(b => {
-  const o = parseFloat(b.open), c = parseFloat(b.close);
-  const h = parseFloat(b.high), l = parseFloat(b.low);
-  const isGreen = c >= o;
-  const bodyTop = Math.max(o, c), bodyBot = Math.min(o, c);
-  const topPct  = ((maxH - bodyTop) / range * 100).toFixed(1);
-  const botPct  = ((bodyBot - minL)  / range * 100).toFixed(1);
-  const bodyH   = Math.max(((bodyTop - bodyBot) / range * 100), 2).toFixed(1);
-  const chgPct  = ((c - o) / o * 100).toFixed(2);
-  const sign    = c >= o ? '+' : '';
-  return '<div class="flex items-center gap-2 text-xs">'
-    + '<div class="text-gray-600 w-16 shrink-0">' + b.datetime.slice(5, 16) + '</div>'
-    + '<div class="flex-1 h-6 relative bg-black/20 rounded">'
-    + '<div class="absolute inset-y-0 rounded" style="left:' + ((l - minL) / range * 100).toFixed(1) + '%;right:' + ((maxH - h) / range * 100).toFixed(1) + '%;background:' + (isGreen ? 'rgba(29,185,84,0.2)' : 'rgba(224,62,62,0.2)') + '"></div>'
-    + '<div class="absolute rounded" style="left:' + ((Math.min(o,c) - minL) / range * 100).toFixed(1) + '%;right:' + ((maxH - Math.max(o,c)) / range * 100).toFixed(1) + '%;top:10%;bottom:10%;background:' + (isGreen ? '#1db954' : '#e03e3e') + '"></div>'
-    + '</div>'
-    + '<div class="w-16 text-right shrink-0 ' + (isGreen ? 'text-green' : 'text-red') + '">' + sign + chgPct + '%</div>'
-    + '<div class="w-20 text-right shrink-0 text-gray-400">' + c.toFixed(1) + '</div>'
-    + '</div>';
-}).join('')}
-</div>
-<div class="text-gray-600 text-xs mt-2 text-right">資料來源：Twelve Data · 最近10根${tdIntv}K</div>`;
+      if (candleEl) {
+        const disp  = recent.slice(-10);
+        const maxH  = Math.max(...disp.map(b => b.h));
+        const minL  = Math.min(...disp.map(b => b.l));
+        const range = maxH - minL || 1;
+        candleEl.innerHTML = '<div class="space-y-1">' +
+          disp.map(b => {
+            const isG=b.c>=b.o; const chgP=((b.c-b.o)/b.o*100).toFixed(2);
+            return '<div class="flex items-center gap-2 text-xs">' +
+              '<div class="text-gray-600 w-20 shrink-0">' + b.date + '</div>' +
+              '<div class="flex-1 h-5 relative bg-black/20 rounded">' +
+              '<div class="absolute rounded" style="left:' + ((Math.min(b.o,b.c)-minL)/range*100).toFixed(1) + '%;right:' + ((maxH-Math.max(b.o,b.c))/range*100).toFixed(1) + '%;top:15%;bottom:15%;background:' + (isG?'#1db954':'#e03e3e') + '"></div></div>' +
+              '<div class="w-12 text-right shrink-0 ' + (isG?'text-green':'text-red') + '">' + (isG?'+':'') + chgP + '%</div>' +
+              '<div class="w-20 text-right shrink-0 text-gray-400">' + b.c.toLocaleString() + '</div></div>';
+          }).join('') + '</div>' +
+          '<div class="text-gray-600 text-xs mt-1 text-right">stooq · 日K · 最近10根</div>';
+      }
     }
   } catch(e) {
-    if (quoteEl) quoteEl.innerHTML = '<div class="text-red text-xs">❌ 連線失敗：' + e.message + '</div>';
+    if (quoteEl) quoteEl.innerHTML = '<div class="text-red text-xs">❌ ' + e.message + '</div>';
+    if (candleEl) candleEl.innerHTML = '';
   }
 };
 
-
-const renderSettings = () => {
-  const p = state.riskProfile || 'medium';
-  return `<div class="text-lg font-bold mb-2">⚙️ 系統設定</div>
-<div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-<div class="font-bold text-sm">OpenAI API 金鑰設定</div>
-<input id="apiKeyInput" value="${state.apiKey}" placeholder="請輸入 sk-proj- 或 sk- 開頭的API金鑰" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" />
-<div class="text-xs text-gray-500">💡 前往 <span class="text-indigo">platform.openai.com/api-keys</span> 取得 API Key</div>
-</div>
-<div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-<div class="font-bold text-sm text-cyan">📡 Twelve Data API Key（即時盤勢）</div>
-<input id="tdKeyInput" value="${state.twelveDataKey}" placeholder="請輸入 Twelve Data API Key" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" />
-<div class="text-xs text-gray-500 space-y-1">
-<div>💡 前往 <span class="text-cyan">twelvedata.com</span> 免費註冊取得 Key</div>
-<div class="text-gray-600">免費方案：800次/天，支援 NQ、ES、GC 等期貨</div>
-</div>
-</div>
-<div class="bg-card border border-purple/30 rounded-xl p-4 space-y-3 mb-4 bg-purple/5">
-<div class="font-bold text-sm text-purple">🎯 風險倍率選擇（短/中/長線）</div>
-<div class="text-xs text-gray-400 mb-2">選擇後下次分析自動套用對應止盈/停損倍率</div>
-${Object.entries(RISK_PROFILES).map(([key, prof]) => `
-<div class="bg-black/30 rounded-lg p-3 border ${p===key?'border-purple/60':'border-gray-700'} cursor-pointer active:scale-95 transition-transform profile-btn" data-profile="${key}">
-<div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 rounded-full border-2 ${p===key?'bg-purple border-purple':'border-gray-500'}"></div><span class="font-bold text-sm ${p===key?'text-purple':'text-gray-300'}">${prof.label}</span></div>
-<div class="text-xs text-gray-400 ml-5">TP1=${prof.tp1Ratio}x · TP2=${prof.tp2Ratio}x · 移動停利啟動=${prof.trailActivate}x · 鎖定${Math.round(prof.trailLock*100)}%</div>
-<div class="text-xs text-gray-500 ml-5 mt-1">${prof.desc}</div>
-</div>`).join('')}
-</div>
-<div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-<div class="font-bold text-sm">風險參數自訂</div>
-<div class="flex justify-between items-center"><span class="text-sm text-gray-300">第一階段防守停損上限 (點)</span><input id="slStage1Input" value="${state.slStage1}" type="number" step="5" min="10" max="40" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" /></div>
-<div class="flex justify-between items-center"><span class="text-sm text-gray-300">第二階段終極停損下限 (點)</span><input id="slStage2Input" value="${state.slStage2}" type="number" step="5" min="30" max="100" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" /></div>
-<div class="flex justify-between items-center"><span class="text-sm text-gray-300">趨勢盤最低保證獲利 (點)</span><input id="minProfitInput" value="${state.minTrendProfit}" type="number" step="10" min="30" max="200" class="w-16 bg-black/40 border border-gray-700 rounded p-1 text-center text-sm" /></div>
-<div class="text-xs text-gray-500 pt-1 border-t border-gray-700">💡 上方數值為保底上限，實際停損依風險倍率動態計算</div>
-</div>
-<button id="clearAllDataButton" class="w-full py-3 border border-red/30 text-red rounded-lg text-sm mb-4 active:bg-red/10 transition-colors">清除所有本地資料</button>
-<div class="text-xs text-gray-600 text-center">全品種 AI 技術分析系統 v2.6 · 亞當理論三週期 + EMA + 移動停利</div>`;
-};
 
 // ════════════════════════════════════════════════
 // Modal 結果渲染
