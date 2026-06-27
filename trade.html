@@ -625,13 +625,13 @@ const renderStats = () => {
 // 盤勢 Tab：TradingView 即時圖表 + 一鍵分析
 // ════════════════════════════════════════════════
 const MARKET_SYMBOLS = [
-  { label: '美國科技股100', short: 'NQ',  tv: 'CME_MINI:NQ1!',    td: 'QQQ',       exchange: 'NASDAQ',  note:'(QQQ替代)', tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3ANQ1!'    },
-  { label: '標普500',       short: 'ES',  tv: 'CME_MINI:ES1!',    td: 'SPY',       exchange: 'NYSE',    note:'(SPY替代)', tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3AES1!'    },
-  { label: '道瓊',          short: 'YM',  tv: 'CBOT_MINI:YM1!',   td: 'DIA',       exchange: 'NYSE',    note:'(DIA替代)', tvUrl: 'https://www.tradingview.com/chart/?symbol=CBOT_MINI%3AYM1!'   },
-  { label: '黃金',          short: 'GC',  tv: 'COMEX:GC1!',       td: 'XAU/USD',   exchange: '',        note:'',          tvUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3AGC1!'       },
-  { label: '原油',          short: 'CL',  tv: 'NYMEX:CL1!',       td: 'USO',       exchange: 'NYSE',    note:'(USO替代)', tvUrl: 'https://www.tradingview.com/chart/?symbol=NYMEX%3ACL1!'       },
-  { label: '台指期',        short: 'TX',  tv: 'TAIFEX:TX1!',      td: 'EWT',       exchange: 'NYSE',    note:'(EWT替代)', tvUrl: 'https://www.tradingview.com/chart/?symbol=TAIFEX%3ATX1!'      },
-  { label: '恆生指數',      short: 'HSI', tv: 'HKEX:HSI1!',       td: 'EWH',       exchange: 'NYSE',    note:'(EWH替代)', tvUrl: 'https://www.tradingview.com/chart/?symbol=HKEX%3AHSI1!'       },
+  { label: '美國科技股100', short: 'NQ',  tv: 'CME_MINI:NQ1!',    td: 'NDX',       exchange: 'NASDAQ',  note:'(NDX指數)', tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3ANQ1!'    },
+  { label: '標普500',       short: 'ES',  tv: 'CME_MINI:ES1!',    td: 'SPX',       exchange: 'NYSE',    note:'(SPX指數)', tvUrl: 'https://www.tradingview.com/chart/?symbol=CME_MINI%3AES1!'    },
+  { label: '道瓊',          short: 'YM',  tv: 'CBOT_MINI:YM1!',   td: 'DJI',       exchange: 'NYSE',    note:'(DJI指數)', tvUrl: 'https://www.tradingview.com/chart/?symbol=CBOT_MINI%3AYM1!'   },
+  { label: '黃金',          short: 'GC',  tv: 'COMEX:GC1!',       td: 'XAU/USD',   exchange: '',        note:'(現貨)',     tvUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3AGC1!'       },
+  { label: '原油',          short: 'CL',  tv: 'NYMEX:CL1!',       td: 'WTI/USD',   exchange: '',        note:'(現貨)',     tvUrl: 'https://www.tradingview.com/chart/?symbol=NYMEX%3ACL1!'       },
+  { label: '台指期',        short: 'TX',  tv: 'TAIFEX:TX1!',      td: 'TWII',      exchange: '',        note:'(台股指數)',  tvUrl: 'https://www.tradingview.com/chart/?symbol=TAIFEX%3ATX1!'      },
+  { label: '恆生指數',      short: 'HSI', tv: 'HKEX:HSI1!',       td: 'HSI',       exchange: 'HKEX',    note:'(恆指)',     tvUrl: 'https://www.tradingview.com/chart/?symbol=HKEX%3AHSI1!'       },
   { label: '比特幣',        short: 'BTC', tv: 'BINANCE:BTCUSDT',   td: 'BTC/USD',   exchange: '',        note:'',          tvUrl: 'https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT'  },
 ];
 
@@ -716,6 +716,8 @@ const bindMarketEvents = () => {
     btn.addEventListener('click', e => {
       state.marketSymbol = e.currentTarget.dataset.sym;
       render();
+      // render 重建 DOM 後，bindMarketEvents 裡的 fetchTwelveData 會執行
+      // 但為確保 DOM ready，再加一次保險
     });
   });
   document.querySelectorAll('.market-int-btn').forEach(btn => {
@@ -732,8 +734,7 @@ const bindMarketEvents = () => {
   // 刷新按鈕
   document.getElementById('tdRefreshBtn')?.addEventListener('click', fetchTwelveData);
 
-  // 自動載入報價
-  if (state.twelveDataKey?.trim()) fetchTwelveData();
+  // 自動載入報價（由 render 的 market case 統一呼叫，避免重複）
 
   // 快速數值分析：抓 Yahoo Finance → 帶入 AI Prompt 數值分析
   document.getElementById('marketAutoAnalyzeBtn')?.addEventListener('click', async () => {
@@ -1215,7 +1216,12 @@ const render = () => {
     case 'log':      el.innerHTML = renderLog();      bindLogEvents();      break;
     case 'stats':    el.innerHTML = renderStats();    bindStatsEvents();    break;
     case 'settings': el.innerHTML = renderSettings(); bindSettingsEvents(); break;
-    case 'market':   el.innerHTML = renderMarket();   bindMarketEvents();   break; // fetchTwelveData called inside bindMarketEvents
+    case 'market':
+      el.innerHTML = renderMarket();
+      bindMarketEvents();
+      // 確保 DOM 已更新後再 fetch（bindMarketEvents 裡也有，這是雙保險）
+      if (state.twelveDataKey?.trim()) setTimeout(fetchTwelveData, 0);
+      break;
   }
 };
 
