@@ -1,17 +1,729 @@
-PDF 沒辦法直接讀是因為瀏覽器讀不了 PDF 的二進位內容，需要用 PDF.js 把文字抽出來。我來補上這段。
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI 一人公司</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";}</script>
+<style>
+  :root{
+    --paper:#F6F4EE;
+    --paper-2:#FFFFFF;
+    --ink:#1A1D29;
+    --ink-soft:#4A4F5E;
+    --ink-faint:#8A8F9C;
+    --line:rgba(26,29,41,.10);
+    --line-2:rgba(26,29,41,.06);
+    --shadow:0 1px 2px rgba(26,29,41,.04), 0 8px 24px rgba(26,29,41,.06);
+    --radius:18px;
+    --radius-sm:12px;
+    /* 部門色 */
+    --c-post:#E0613B;
+    --c-integrate:#1F8A72;
+    --c-collect:#C7902B;
+    --c-plan:#6B4E9E;
+    --c-develop:#2E6FB0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--paper);position:relative;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  textarea,input,select{font-family:inherit;}
 
-先加入 PDF.js 函式庫：加一個小的解析中動畫樣式：現在重寫檔案處理邏輯，支援 PDF 抽文字：最後，避免 PDF 還在解析就按執行——加個防呆：驗證一下 JS 沒問題：修好了，現在可以加 PDF 檔。
+  /* ---------- Header ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:var(--ink);color:#fff;
+    padding:14px 16px 16px;
+    border-radius:0 0 22px 22px;
+  }
+  .topbar .row{display:flex;align-items:center;gap:10px;}
+  .brand-tag{
+    font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.55);
+    text-transform:uppercase;font-weight:600;
+  }
+  .title-edit{
+    flex:1;font-size:21px;font-weight:800;letter-spacing:.5px;
+    background:transparent;border:none;color:#fff;outline:none;
+    border-bottom:1px dashed transparent;padding:2px 0;min-width:0;
+  }
+  .title-edit:focus{border-bottom-color:rgba(255,255,255,.4);}
+  .gear{
+    width:38px;height:38px;border-radius:11px;flex:0 0 auto;
+    background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:18px;
+    transition:background .15s;
+  }
+  .gear:active{background:rgba(255,255,255,.25);}
+  .status-line{
+    margin-top:8px;font-size:12px;color:rgba(255,255,255,.6);
+    display:flex;align-items:center;gap:6px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:#E0613B;flex:0 0 auto;}
+  .dot.on{background:#3FCF8E;}
 
-**怎麼運作**
+  /* ---------- Views ---------- */
+  .view{display:none;padding:16px 14px 40px;}
+  .view.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
-選 PDF 後，會用 PDF.js 在你瀏覽器裡把文字抽出來（檔名旁邊會轉一個小圈圈表示解析中），抽好後文字會自動帶進 AI 的分析內容裡。多頁也沒問題。解析中按執行會擋下來提醒你稍候。
+  .section-label{
+    font-size:11px;letter-spacing:2px;color:var(--ink-faint);
+    font-weight:700;text-transform:uppercase;margin:6px 4px 10px;
+  }
 
-**三種檔案各自的處理**
+  /* ---------- 任務鏈 ---------- */
+  .chain-wrap{margin-bottom:22px;}
+  .chain-scroll{
+    display:flex;gap:8px;overflow-x:auto;padding:2px 4px 8px;
+    scrollbar-width:none;
+  }
+  .chain-scroll::-webkit-scrollbar{display:none;}
+  .chain-item{
+    flex:0 0 auto;display:flex;align-items:center;gap:8px;
+    background:var(--paper-2);border:1px solid var(--line);
+    border-radius:30px;padding:7px 12px 7px 8px;box-shadow:var(--shadow);
+  }
+  .chain-empty{
+    font-size:13px;color:var(--ink-faint);padding:14px;text-align:center;
+    border:1px dashed var(--line);border-radius:var(--radius-sm);
+  }
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;
+    white-space:nowrap;
+  }
+  .chip .pin{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .arrow{color:var(--ink-faint);font-size:13px;}
 
-文字／PDF（.txt / .md / .csv / .json / .pdf）會讀成文字交給 AI 分析；圖片會走視覺辨識（記得模型選 gpt-4o 或 gpt-4o-mini）。
+  /* ---------- 部門列表 ---------- */
+  .dept-card{
+    background:var(--paper-2);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px;margin-bottom:12px;
+    box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;
+    position:relative;overflow:hidden;transition:transform .12s;
+  }
+  .dept-card:active{transform:scale(.985);}
+  .dept-card .bar{position:absolute;left:0;top:0;bottom:0;width:5px;}
+  .dept-ic{
+    width:46px;height:46px;border-radius:13px;flex:0 0 auto;
+    display:grid;place-items:center;font-size:22px;
+  }
+  .dept-meta{flex:1;min-width:0;}
+  .dept-name{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;}
+  .dept-tag{font-size:12.5px;color:var(--ink-soft);margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dept-count{
+    font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;
+    background:var(--ink);color:#fff;flex:0 0 auto;
+  }
+  .dept-count.zero{background:var(--line);color:var(--ink-faint);}
+  .chev{color:var(--ink-faint);font-size:18px;flex:0 0 auto;}
 
-**一個前提與一個限制**
+  /* ---------- 部門工作區 ---------- */
+  .ws-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px;}
+  .back{
+    width:36px;height:36px;border-radius:11px;background:var(--paper-2);
+    border:1px solid var(--line);display:grid;place-items:center;font-size:18px;flex:0 0 auto;
+  }
+  .ws-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:21px;flex:0 0 auto;}
+  .ws-title{flex:1;}
+  .ws-title h2{margin:0;font-size:19px;font-weight:800;}
+  .ws-title p{margin:1px 0 0;font-size:12.5px;color:var(--ink-soft);}
 
-PDF.js 是上線時從 CDN 載入的，所以放上 GitHub Pages 後使用者的手機要有網路才能解析 PDF（這對線上工具來說本來就需要）。另外，**掃描型 PDF**（整頁是圖片、沒有文字圖層）抽不出文字——遇到這種我有讓它提示你「改用圖片上傳並選 gpt-4o」來做視覺分析。
+  .role-box{
+    margin:14px 0;border:1px solid var(--line);border-radius:var(--radius-sm);
+    background:var(--paper-2);overflow:hidden;
+  }
+  .role-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;
+  }
+  .role-head .lbl{display:flex;align-items:center;gap:7px;color:var(--ink-soft);}
+  .role-body{display:none;padding:0 12px 12px;}
+  .role-body.open{display:block;}
+  .role-body textarea{
+    width:100%;min-height:120px;border:1px solid var(--line);border-radius:10px;
+    padding:10px;font-size:13px;resize:vertical;background:#fff;color:var(--ink);outline:none;
+  }
+  .role-body textarea:focus{border-color:var(--ink-faint);}
+  .save-role{
+    margin-top:8px;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px;
+    background:var(--ink);color:#fff;
+  }
 
-要不要我再幫你把「解析完的 PDF 文字」做個可展開預覽，讓你交辦前先確認抓到的內容對不對？
+  .handoff-banner{
+    display:flex;gap:9px;align-items:flex-start;
+    background:rgba(199,144,43,.10);border:1px solid rgba(199,144,43,.3);
+    border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:12px;font-size:12.5px;
+  }
+  .handoff-banner .x{margin-left:auto;color:var(--ink-faint);font-size:16px;flex:0 0 auto;}
+  .handoff-banner b{color:#9a6c12;}
+
+  .input-card{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:13px;box-shadow:var(--shadow);margin-bottom:14px;
+  }
+  .input-card textarea{
+    width:100%;min-height:96px;border:none;outline:none;resize:vertical;
+    font-size:15px;background:transparent;color:var(--ink);line-height:1.55;
+  }
+  .files{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px;}
+  .file-chip{
+    display:inline-flex;align-items:center;gap:6px;background:var(--paper);
+    border:1px solid var(--line);border-radius:20px;padding:5px 8px 5px 10px;font-size:11.5px;
+  }
+  .file-chip .rm{color:var(--ink-faint);font-size:14px;}
+  .mini-spin{display:inline-block;width:11px;height:11px;border:2px solid var(--line);
+    border-top-color:var(--ink-soft);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px;}
+  .input-actions{
+    display:flex;align-items:center;gap:10px;margin-top:10px;
+    border-top:1px solid var(--line-2);padding-top:11px;
+  }
+  .attach{
+    display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;
+    color:var(--ink-soft);padding:8px 12px;border-radius:10px;background:var(--paper);
+    border:1px solid var(--line);
+  }
+  .run-btn{
+    margin-left:auto;display:inline-flex;align-items:center;gap:8px;
+    font-size:14.5px;font-weight:800;color:#fff;padding:11px 20px;border-radius:12px;
+    box-shadow:0 4px 14px rgba(26,29,41,.18);transition:opacity .15s,transform .1s;
+  }
+  .run-btn:active{transform:scale(.97);}
+  .run-btn:disabled{opacity:.55;}
+  .spinner{
+    width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+    border-radius:50%;animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .output-card{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;
+  }
+  .output-card .oc-head{
+    padding:10px 14px;border-bottom:1px solid var(--line-2);
+    display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--ink-soft);
+  }
+  .output-body{padding:14px;font-size:14.5px;white-space:pre-wrap;word-break:break-word;line-height:1.7;}
+  .oc-actions{padding:0 12px 12px;display:flex;flex-wrap:wrap;gap:8px;}
+  .mini{
+    font-size:12.5px;font-weight:700;padding:8px 13px;border-radius:10px;
+    border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);
+  }
+  .handoff-title{font-size:11px;color:var(--ink-faint);width:100%;font-weight:700;
+    letter-spacing:1px;margin:4px 2px 0;}
+  .ho-btn{
+    font-size:12.5px;font-weight:700;padding:8px 12px;border-radius:10px;color:#fff;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+
+  .hist-item{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:12px 13px;margin-bottom:9px;
+  }
+  .hist-item .hi-top{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink-faint);margin-bottom:5px;}
+  .hist-item .hi-in{font-size:13px;color:var(--ink-soft);margin-bottom:6px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .hist-item .hi-out{font-size:13px;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--line);color:var(--ink-soft);}
+
+  /* ---------- 設定 ---------- */
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px;}
+  .field .hint{font-size:11.5px;color:var(--ink-faint);font-weight:400;margin-top:5px;line-height:1.5;}
+  .field input[type=text],.field input[type=password],.field select,.field textarea{
+    width:100%;border:1px solid var(--line);border-radius:11px;padding:12px;
+    font-size:14px;background:var(--paper-2);color:var(--ink);outline:none;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink-faint);}
+  .field textarea{min-height:90px;resize:vertical;line-height:1.6;}
+  .key-row{display:flex;gap:8px;}
+  .key-row input{flex:1;}
+  .toggle-key{flex:0 0 auto;padding:0 14px;border:1px solid var(--line);border-radius:11px;
+    font-size:13px;font-weight:700;color:var(--ink-soft);background:var(--paper-2);}
+  .save-bar{position:sticky;bottom:0;background:linear-gradient(transparent,var(--paper) 30%);
+    padding:14px 0 4px;margin-top:8px;}
+  .save-main{width:100%;padding:14px;border-radius:13px;background:var(--ink);color:#fff;
+    font-size:15px;font-weight:800;}
+  .danger{width:100%;margin-top:10px;padding:12px;border-radius:13px;font-size:13px;font-weight:700;
+    color:#b33;background:rgba(204,51,51,.06);border:1px solid rgba(204,51,51,.2);}
+
+  .note{font-size:12px;color:var(--ink-faint);background:var(--paper-2);border:1px solid var(--line);
+    border-radius:var(--radius-sm);padding:12px;line-height:1.6;margin-bottom:16px;}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 20px;border-radius:30px;font-size:13.5px;font-weight:600;
+    opacity:0;pointer-events:none;transition:.25s;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,.25);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .hidden{display:none!important;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="topbar">
+    <div class="brand-tag">AI ONE-PERSON COMPANY</div>
+    <div class="row" style="margin-top:4px;">
+      <input id="titleInput" class="title-edit" value="彥彬 AI 一人公司" maxlength="20" spellcheck="false">
+      <button class="gear" onclick="openView('settings')" aria-label="設定">⚙︎</button>
+    </div>
+    <div class="status-line">
+      <span class="dot" id="keyDot"></span>
+      <span id="keyStatus">尚未連接 AI — 請到設定填入 OpenAI 金鑰</span>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <section id="view-home" class="view active">
+    <div class="chain-wrap">
+      <div class="section-label">任務鏈 · 部門串聯</div>
+      <div id="chainBox"></div>
+    </div>
+    <div class="section-label">五大部門</div>
+    <div id="deptList"></div>
+  </section>
+
+  <!-- DEPARTMENT -->
+  <section id="view-dept" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-ic" id="wsIc"></div>
+      <div class="ws-title">
+        <h2 id="wsName"></h2>
+        <p id="wsTag"></p>
+      </div>
+    </div>
+
+    <div class="role-box">
+      <div class="role-head" onclick="toggleRole()">
+        <span class="lbl">🎯 AI 定位設定（可調整）</span>
+        <span id="roleChev">＋</span>
+      </div>
+      <div class="role-body" id="roleBody">
+        <textarea id="roleText" placeholder="描述這個部門的 AI 角色、任務、語氣與限制…"></textarea>
+        <button class="save-role" onclick="saveRole()">儲存定位</button>
+      </div>
+    </div>
+
+    <div id="handoffBanner"></div>
+
+    <div class="input-card">
+      <textarea id="taskInput" placeholder="交辦這個部門要做的事…例如：幫我寫三則 LINE 限動推康園益生菌的貼文"></textarea>
+      <div class="files" id="fileList"></div>
+      <div class="input-actions">
+        <label class="attach">📎 加檔案
+          <input type="file" id="fileInput" multiple accept=".txt,.md,.csv,.json,.pdf,application/pdf,image/*" class="hidden" onchange="handleFiles(event)">
+        </label>
+        <button class="run-btn" id="runBtn" onclick="runTask()">執行 ▸</button>
+      </div>
+    </div>
+
+    <div id="outputZone"></div>
+
+    <div class="section-label" id="histLabel" style="display:none;">本部門紀錄</div>
+    <div id="deptHistory"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-title"><h2>設定</h2><p>接上 AI 就能獨立運轉</p></div>
+    </div>
+
+    <div class="note">
+      🔑 金鑰只存在你自己的瀏覽器（localStorage），不會上傳到任何伺服器。放上 GitHub Pages 後即可獨立運作。<br>
+      ⚠️ 因金鑰寫在前端，請勿把含金鑰的網址公開分享給他人。
+    </div>
+
+    <div class="field">
+      <label>OpenAI API 金鑰</label>
+      <div class="key-row">
+        <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" spellcheck="false">
+        <button class="toggle-key" onclick="toggleKey()" id="toggleKeyBtn">顯示</button>
+      </div>
+      <div class="hint">前往 platform.openai.com → API keys 取得。</div>
+    </div>
+
+    <div class="field">
+      <label>使用模型</label>
+      <select id="modelSel">
+        <option value="gpt-4o-mini">gpt-4o-mini（便宜快速，支援圖片）</option>
+        <option value="gpt-4o">gpt-4o（最聰明，支援圖片）</option>
+        <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+        <option value="gpt-4.1">gpt-4.1</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>公司名稱（顯示在最上方標題）</label>
+      <input type="text" id="titleSet" maxlength="20">
+    </div>
+
+    <div class="field">
+      <label>公司背景 · 共用設定</label>
+      <textarea id="contextSet" placeholder="所有部門都會參考這段背景…"></textarea>
+      <div class="hint">寫你的事業、品牌精神、目標客群與法規禁忌，五個部門都會自動套用。</div>
+    </div>
+
+    <div class="save-bar">
+      <button class="save-main" onclick="saveSettings()">儲存設定</button>
+      <button class="danger" onclick="resetAll()">回復出廠預設（清空所有資料）</button>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 預設資料 ============ */
+const DEFAULTS = {
+  title:"彥彬 AI 一人公司",
+  context:"我經營傳直銷事業（康園國際 / 大地之粹的草本保健品），品牌精神是「相信自己，找回初心」。\n語氣真誠、生活化、貼近台灣讀者。\n嚴格遵守台灣《食品安全衛生管理法》：不得宣稱療效、根治、醫療效能，不用「世界第一／全球第一」等絕對誇大用語。\n目標：經營個人品牌、招募事業夥伴、留住回購客。",
+  apiKey:"",
+  model:"gpt-4o-mini",
+  departments:[
+    { id:"collect", name:"收集部", emoji:"🔎", accent:"#C7902B", varName:"--c-collect",
+      tagline:"收集名單、痛點、市場聲量",
+      role:"你是『收集部』，負責情報與素材收集分析。把使用者給的資訊整理成結構化清單：客戶輪廓、常見痛點、競品話術、市場關鍵字、可用見證素材。輸出條列、可直接被下一個部門使用，不要空話。" },
+    { id:"plan", name:"策劃部", emoji:"🧭", accent:"#6B4E9E", varName:"--c-plan",
+      tagline:"規劃活動、跟進節奏、KPI",
+      role:"你是『策劃部』，負責策略規劃。依據需求規劃行銷／招募流程、貼文主題排程、跟進節奏（如 Day3／14／25／60）、轉介紹節點與可量化 KPI。產出要有明確步驟、時間點與負責動作。" },
+    { id:"integrate", name:"整合部", emoji:"🧩", accent:"#1F8A72", varName:"--c-integrate",
+      tagline:"把零散素材整合成內容包",
+      role:"你是『整合部』，負責內容整合。把零散的產品資訊、見證、活動細節整合成一套可發布的內容包或簡報大綱：含主標、賣點順序、CTA。結構清楚、好交給貼文部直接寫稿。" },
+    { id:"post", name:"貼文部", emoji:"✍️", accent:"#E0613B", varName:"--c-post",
+      tagline:"產出社群貼文與文案",
+      role:"你是『貼文部』，負責社群文案。產出 LINE／FB／IG 貼文與限動文案，貼合品牌語氣『相信自己，找回初心』，生活化、有畫面、帶自然 CTA。嚴禁誇大療效與違法宣稱。一次可給 2–3 個版本。" },
+    { id:"develop", name:"開發部", emoji:"🤝", accent:"#2E6FB0", varName:"--c-develop",
+      tagline:"開發新夥伴與客戶話術",
+      role:"你是『開發部』，負責開發與成交。產出冷／溫開發訊息、異議處理話術、商機說明腳本、邀約話術。口吻真誠不推銷感，符合法規，給對方下一步的低門檻行動。" }
+  ],
+  tasks:[]  // {id, deptId, deptName, accent, input, output, time, fromDept}
+};
+
+/* ============ 狀態 ============ */
+let state = load();
+let current = null;        // 目前部門 id
+let pendingFiles = [];     // {name, type, content/url, isImage}
+let handoffFrom = null;    // {deptName, output}
+
+function load(){
+  try{
+    const raw = localStorage.getItem("ai_company_v1");
+    if(raw){ const s = JSON.parse(raw); return {...structuredClone(DEFAULTS), ...s,
+      departments: s.departments && s.departments.length===5 ? s.departments : structuredClone(DEFAULTS.departments)}; }
+  }catch(e){}
+  return structuredClone(DEFAULTS);
+}
+function save(){ try{ localStorage.setItem("ai_company_v1", JSON.stringify(state)); }catch(e){ toast("儲存失敗：瀏覽器空間不足"); } }
+
+/* ============ 工具 ============ */
+function toast(msg){
+  const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove("show"),1900);
+}
+function dept(id){ return state.departments.find(d=>d.id===id); }
+function esc(s){ return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function timeStr(t){ const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
+
+/* ============ 視圖切換 ============ */
+function openView(v){
+  document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
+  document.getElementById("view-"+v).classList.add("active");
+  window.scrollTo(0,0);
+  if(v==="home") renderHome();
+  if(v==="settings") fillSettings();
+}
+
+/* ============ Home ============ */
+function renderHome(){
+  // 任務鏈
+  const box=document.getElementById("chainBox");
+  const links = state.tasks.filter(t=>t.fromDept).slice(-6);
+  if(links.length===0){
+    box.innerHTML='<div class="chain-empty">還沒有交辦紀錄。到任一部門產出後，按「交辦給」即可串聯部門。</div>';
+  }else{
+    box.innerHTML='<div class="chain-scroll">'+links.map(t=>{
+      const a=dept(getIdByName(t.fromDept))||{accent:"#999"};
+      const b=dept(t.deptId)||{accent:"#999"};
+      return `<div class="chain-item">
+        <span class="chip"><span class="pin" style="background:${a.accent}"></span>${esc(t.fromDept)}</span>
+        <span class="arrow">→</span>
+        <span class="chip"><span class="pin" style="background:${b.accent}"></span>${esc(t.deptName)}</span>
+      </div>`;
+    }).join("")+'</div>';
+  }
+  // 部門列表
+  const list=document.getElementById("deptList");
+  list.innerHTML = state.departments.map(d=>{
+    const cnt = state.tasks.filter(t=>t.deptId===d.id).length;
+    return `<div class="dept-card" onclick="openDept('${d.id}')">
+      <div class="bar" style="background:${d.accent}"></div>
+      <div class="dept-ic" style="background:${hexA(d.accent,.13)};color:${d.accent}">${d.emoji}</div>
+      <div class="dept-meta">
+        <div class="dept-name">${esc(d.name)}</div>
+        <div class="dept-tag">${esc(d.tagline)}</div>
+      </div>
+      <span class="dept-count ${cnt?'':'zero'}">${cnt} 筆</span>
+      <span class="chev">›</span>
+    </div>`;
+  }).join("");
+  updateKeyStatus();
+}
+function getIdByName(name){ const d=state.departments.find(x=>x.name===name); return d?d.id:""; }
+function hexA(hex,a){ const n=hex.replace("#",""); const r=parseInt(n.slice(0,2),16),g=parseInt(n.slice(2,4),16),b=parseInt(n.slice(4,6),16); return `rgba(${r},${g},${b},${a})`; }
+
+/* ============ 部門工作區 ============ */
+function openDept(id){
+  current=id; pendingFiles=[]; handoffFrom=null;
+  const d=dept(id);
+  document.getElementById("wsIc").textContent=d.emoji;
+  document.getElementById("wsIc").style.background=hexA(d.accent,.13);
+  document.getElementById("wsIc").style.color=d.accent;
+  document.getElementById("wsName").textContent=d.name;
+  document.getElementById("wsTag").textContent=d.tagline;
+  document.getElementById("roleText").value=d.role;
+  document.getElementById("roleBody").classList.remove("open");
+  document.getElementById("roleChev").textContent="＋";
+  document.getElementById("taskInput").value="";
+  document.getElementById("fileList").innerHTML="";
+  document.getElementById("outputZone").innerHTML="";
+  document.getElementById("handoffBanner").innerHTML="";
+  const rb=document.getElementById("runBtn");
+  rb.style.background=d.accent;
+  renderHistory();
+  openView("dept");
+}
+function toggleRole(){
+  const b=document.getElementById("roleBody");
+  b.classList.toggle("open");
+  document.getElementById("roleChev").textContent=b.classList.contains("open")?"－":"＋";
+}
+function saveRole(){
+  const d=dept(current); d.role=document.getElementById("roleText").value.trim(); save(); toast("已更新定位");
+}
+function renderHistory(){
+  const items=state.tasks.filter(t=>t.deptId===current).slice().reverse();
+  const lbl=document.getElementById("histLabel");
+  const box=document.getElementById("deptHistory");
+  if(items.length===0){ lbl.style.display="none"; box.innerHTML=""; return; }
+  lbl.style.display="block";
+  box.innerHTML=items.map(t=>`<div class="hist-item">
+    <div class="hi-top">${t.fromDept?`<span class="tag">↩ 來自 ${esc(t.fromDept)}</span>`:""}<span>${timeStr(t.time)}</span></div>
+    <div class="hi-in">📝 ${esc(t.input)}</div>
+    <div class="hi-out">${esc(t.output)}</div>
+  </div>`).join("");
+}
+
+/* ============ 檔案 ============ */
+async function handleFiles(e){
+  const files=[...e.target.files];
+  e.target.value="";
+  for(const f of files){
+    const isImg=f.type.startsWith("image/");
+    const isPdf=f.type==="application/pdf"||/\.pdf$/i.test(f.name);
+    if(isImg){
+      const url=await readAs(f,"dataURL");
+      pendingFiles.push({name:f.name,isImage:true,url});
+      renderFiles();
+    }else if(isPdf){
+      const idx=pendingFiles.push({name:f.name,isImage:false,isPdf:true,content:"",loading:true})-1;
+      renderFiles();
+      try{
+        const buf=await readAs(f,"arrayBuffer");
+        const text=await extractPdf(buf);
+        pendingFiles[idx].content=text||"（此 PDF 沒有可擷取的文字，可能是掃描圖檔；若要分析圖檔請改用『圖片』上傳並選 gpt-4o 模型）";
+      }catch(err){
+        pendingFiles[idx].content="（PDF 解析失敗："+err.message+"）";
+      }
+      pendingFiles[idx].loading=false;
+      renderFiles();
+    }else{
+      const text=await readAs(f,"text");
+      pendingFiles.push({name:f.name,isImage:false,content:text});
+      renderFiles();
+    }
+  }
+}
+function readAs(file,kind){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=()=>rej(new Error("讀取失敗"));
+    if(kind==="dataURL") r.readAsDataURL(file);
+    else if(kind==="arrayBuffer") r.readAsArrayBuffer(file);
+    else r.readAsText(file);
+  });
+}
+async function extractPdf(buf){
+  if(!window.pdfjsLib) throw new Error("PDF 元件未載入，請檢查網路後重整");
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let out="";
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const c=await page.getTextContent();
+    out+=c.items.map(it=>it.str).join(" ")+"\n\n";
+  }
+  return out.trim();
+}
+function renderFiles(){
+  document.getElementById("fileList").innerHTML=pendingFiles.map((f,i)=>{
+    const ic=f.isImage?"🖼":(f.isPdf?"📕":"📄");
+    const status=f.loading?' <span class="mini-spin"></span>':"";
+    return `<span class="file-chip">${ic} ${esc(f.name)}${status}<span class="rm" onclick="rmFile(${i})">×</span></span>`;
+  }).join("");
+}
+function rmFile(i){ pendingFiles.splice(i,1); renderFiles(); }
+
+/* ============ 交辦串聯 ============ */
+function handoff(fromDeptName, output, toId){
+  openDept(toId);
+  handoffFrom={deptName:fromDeptName, output};
+  document.getElementById("handoffBanner").innerHTML=
+    `<div class="handoff-banner">↩ <div>已接收 <b>${esc(fromDeptName)}</b> 的產出作為素材，下方直接輸入你要這個部門做什麼。
+    <span class="x" onclick="clearHandoff()">×</span></div></div>`;
+  document.getElementById("taskInput").focus();
+}
+function clearHandoff(){ handoffFrom=null; document.getElementById("handoffBanner").innerHTML=""; }
+
+/* ============ 執行 AI ============ */
+async function runTask(){
+  if(!state.apiKey){ toast("請先到設定填入 OpenAI 金鑰"); openView("settings"); return; }
+  const input=document.getElementById("taskInput").value.trim();
+  if(!input && pendingFiles.length===0){ toast("請輸入要交辦的內容"); return; }
+  if(pendingFiles.some(f=>f.loading)){ toast("檔案還在解析中，請稍候"); return; }
+
+  const d=dept(current);
+  const btn=document.getElementById("runBtn");
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>執行中';
+
+  // 組 system
+  const sys = `你是「${state.title}」的部門 AI 助理。\n\n【公司共用背景】\n${state.context}\n\n【你的部門定位】\n${d.role}\n\n請務必用繁體中文（台灣用語）回覆，內容要可以直接拿去用。`;
+
+  // 組 user content
+  let textPart = input || "（請依附件素材處理）";
+  if(handoffFrom){ textPart = `【${handoffFrom.deptName} 交辦的素材】\n${handoffFrom.output}\n\n【本次任務】\n${textPart}`; }
+  const textFiles = pendingFiles.filter(f=>!f.isImage);
+  if(textFiles.length){ textPart += "\n\n【附加檔案內容】\n"+textFiles.map(f=>`---「${f.name}」---\n${f.content}`).join("\n\n"); }
+  const imgFiles = pendingFiles.filter(f=>f.isImage);
+
+  let userContent;
+  if(imgFiles.length){
+    userContent=[{type:"text",text:textPart}, ...imgFiles.map(f=>({type:"image_url",image_url:{url:f.url}}))];
+  }else{ userContent=textPart; }
+
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json","Authorization":"Bearer "+state.apiKey },
+      body:JSON.stringify({ model:state.model, temperature:0.75, max_tokens:1800,
+        messages:[ {role:"system",content:sys}, {role:"user",content:userContent} ] })
+    });
+    if(!res.ok){
+      let m="HTTP "+res.status;
+      try{ const er=await res.json(); m=er.error?.message||m; }catch(e){}
+      throw new Error(m);
+    }
+    const data=await res.json();
+    const out=(data.choices?.[0]?.message?.content||"").trim();
+
+    const task={ id:Date.now(), deptId:current, deptName:d.name, accent:d.accent,
+      input:input||"(附件處理)", output:out, time:Date.now(),
+      fromDept:handoffFrom?handoffFrom.deptName:null };
+    state.tasks.push(task); save();
+    renderOutput(out, d);
+    renderHistory();
+    clearHandoff();
+    pendingFiles=[]; renderFiles();
+  }catch(err){
+    renderError(err.message);
+  }finally{
+    btn.disabled=false; btn.innerHTML="執行 ▸";
+  }
+}
+
+function renderOutput(out, d){
+  const others=state.departments.filter(x=>x.id!==d.id);
+  document.getElementById("outputZone").innerHTML=
+   `<div class="output-card">
+     <div class="oc-head"><span class="pin" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${d.accent}"></span>${esc(d.name)} 產出</div>
+     <div class="output-body" id="lastOut">${esc(out)}</div>
+     <div class="oc-actions">
+       <button class="mini" onclick="copyOut()">📋 複製</button>
+       <div class="handoff-title">交辦給下一個部門 ▸</div>
+       ${others.map(o=>`<button class="ho-btn" style="background:${o.accent}" onclick="handoff('${d.name}', getLastOut(), '${o.id}')">${o.emoji} ${esc(o.name)}</button>`).join("")}
+     </div>
+   </div>`;
+  document.getElementById("outputZone").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function renderError(msg){
+  document.getElementById("outputZone").innerHTML=
+   `<div class="output-card"><div class="oc-head">⚠️ 執行失敗</div>
+   <div class="output-body" style="color:#b33">${esc(msg)}<br><br>請檢查：金鑰是否正確、帳戶是否有額度、模型名稱是否可用。</div></div>`;
+}
+function getLastOut(){ return document.getElementById("lastOut")?.textContent||""; }
+function copyOut(){ navigator.clipboard.writeText(getLastOut()).then(()=>toast("已複製")); }
+
+/* ============ 設定 ============ */
+function fillSettings(){
+  document.getElementById("apiKey").value=state.apiKey;
+  document.getElementById("modelSel").value=state.model;
+  document.getElementById("titleSet").value=state.title;
+  document.getElementById("contextSet").value=state.context;
+}
+function toggleKey(){
+  const i=document.getElementById("apiKey"); const b=document.getElementById("toggleKeyBtn");
+  if(i.type==="password"){ i.type="text"; b.textContent="隱藏"; } else { i.type="password"; b.textContent="顯示"; }
+}
+function saveSettings(){
+  state.apiKey=document.getElementById("apiKey").value.trim();
+  state.model=document.getElementById("modelSel").value;
+  state.title=document.getElementById("titleSet").value.trim()||"AI 一人公司";
+  state.context=document.getElementById("contextSet").value.trim();
+  save();
+  document.getElementById("titleInput").value=state.title;
+  toast("設定已儲存");
+  updateKeyStatus();
+  openView("home");
+}
+function resetAll(){
+  if(confirm("確定要清空所有部門設定、紀錄與金鑰，回復出廠預設？")){
+    localStorage.removeItem("ai_company_v1"); state=structuredClone(DEFAULTS);
+    document.getElementById("titleInput").value=state.title;
+    toast("已回復預設"); openView("home");
+  }
+}
+function updateKeyStatus(){
+  const on=!!state.apiKey;
+  document.getElementById("keyDot").classList.toggle("on",on);
+  document.getElementById("keyStatus").textContent= on
+    ? `已連接 · 模型 ${state.model}`
+    : "尚未連接 AI — 請到設定填入 OpenAI 金鑰";
+}
+
+/* ============ 標題即時編輯 ============ */
+document.getElementById("titleInput").addEventListener("change",e=>{
+  state.title=e.target.value.trim()||"AI 一人公司"; e.target.value=state.title; save();
+});
+document.getElementById("titleInput").addEventListener("keydown",e=>{ if(e.key==="Enter") e.target.blur(); });
+
+/* ============ 啟動 ============ */
+document.getElementById("titleInput").value=state.title;
+renderHome();
+</script>
+</body>
+</html>
