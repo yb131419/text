@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI 一人公司</title>
+<title>AI 集團</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";}</script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
@@ -302,6 +302,44 @@
     background:var(--paper);color:var(--ink-soft);}
   .hi-btn.del{color:#b33;border-color:rgba(204,51,51,.25);background:rgba(204,51,51,.05);}
   .hi-out.full{-webkit-line-clamp:unset;display:block;white-space:pre-wrap;}
+
+  /* 素材庫入口 */
+  .lib-entry{display:flex;align-items:center;gap:13px;background:var(--paper-2);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px 16px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .lib-entry:active{transform:scale(.99);}
+  .le-ic{width:42px;height:42px;border-radius:12px;background:rgba(199,144,43,.13);color:#C7902B;
+    display:grid;place-items:center;font-size:20px;flex:0 0 auto;}
+  .le-meta{flex:1;min-width:0;}
+  .le-name{font-size:16px;font-weight:800;}
+  .le-sub{font-size:12px;color:var(--ink-soft);margin-top:1px;}
+  .lib-upload{display:inline-flex;margin:6px 2px 14px;}
+
+  /* 素材庫清單 */
+  .lib-item{display:flex;align-items:center;gap:11px;background:var(--paper-2);border:1px solid var(--line);
+    border-radius:var(--radius-sm);padding:12px;margin-bottom:9px;}
+  .lib-item .li-ic{font-size:20px;flex:0 0 auto;}
+  .lib-item .li-meta{flex:1;min-width:0;}
+  .lib-item .li-name{font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lib-item .li-size{font-size:11px;color:var(--ink-faint);margin-top:1px;}
+  .lib-toggle{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--ink-soft);
+    padding:7px 11px;border-radius:9px;border:1px solid var(--line);background:var(--paper);flex:0 0 auto;}
+  .lib-toggle.on{background:#1F8A72;color:#fff;border-color:#1F8A72;}
+  .lib-del{color:var(--ink-faint);font-size:18px;padding:4px 6px;flex:0 0 auto;}
+
+  /* pipeline 步驟挑選 */
+  #pipeSteps{margin:4px 0 8px;}
+  .ps-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid rgba(255,255,255,.1);}
+  .ps-tagn{font-size:12.5px;font-weight:700;color:#fff;flex:0 0 92px;display:flex;align-items:center;gap:6px;}
+  .ps-row select{flex:1;min-width:0;background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:9px;
+    padding:8px 9px;font-size:12px;outline:none;-webkit-appearance:none;}
+  .ps-row select option{color:#1A1D29;}
+  #libPickBar{font-size:12px;color:rgba(255,255,255,.75);margin:4px 2px 2px;line-height:1.5;}
+
+  /* 指定素材列 */
+  .wslib{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 2px 10px;font-size:12px;color:var(--ink-soft);}
+  .wslib .ttl{font-weight:700;color:var(--ink-faint);}
+  .wslib .f{display:inline-flex;align-items:center;gap:4px;background:rgba(31,138,114,.1);
+    border:1px solid rgba(31,138,114,.3);color:#1F8A72;border-radius:16px;padding:4px 10px;font-weight:600;}
 </style>
 </head>
 <body>
@@ -311,7 +349,7 @@
   <header class="topbar">
     <div class="brand-tag">AI ONE-PERSON COMPANY</div>
     <div class="row" style="margin-top:4px;">
-      <input id="titleInput" class="title-edit" value="彥彬 AI 一人公司" maxlength="20" spellcheck="false">
+      <input id="titleInput" class="title-edit" value="彥彬 健康戰役指揮部" maxlength="20" spellcheck="false">
       <button class="gear" onclick="openView('settings')" aria-label="設定">⚙︎</button>
     </div>
     <div class="status-line">
@@ -323,20 +361,44 @@
   <!-- HOME -->
   <section id="view-home" class="view active">
     <div class="pipeline">
-      <div class="pl-title">⚡ 一鍵運轉 · 五部門串聯</div>
-      <div class="pl-sub">輸入這次的主題或目標，五個部門會依序接力，一次給你完整成果。</div>
-      <textarea id="pipeInput" placeholder="例如：這次要把康園益生菌推廣給忙碌的上班族，目標是招募 3 位事業夥伴"></textarea>
-      <button class="pl-run" id="pipeBtn" onclick="runAllDepartments()">▶ 一次運轉五個部門</button>
+      <div class="pl-title">⚔️ 一鍵發起 · 健康戰役全自動</div>
+      <div class="pl-sub">從每個部門挑一項建議任務，五個部門依序接力打完一場健康戰役。共同主題可留空。</div>
+      <textarea id="pipeInput" placeholder="（可留空）這場戰役的主題，例如：用氣血戰場觀念，幫忙碌上班族建立保養意識"></textarea>
+      <div id="pipeSteps"></div>
+      <div id="libPickBar"></div>
+      <button class="pl-run" id="pipeBtn" onclick="runAllDepartments()">▶ 發起健康戰役（全自動）</button>
       <div id="pipeProgress"></div>
     </div>
     <div id="pipeResults"></div>
 
+    <div class="lib-entry" onclick="openLibrary()">
+      <div class="le-ic">📁</div>
+      <div class="le-meta">
+        <div class="le-name">素材庫</div>
+        <div class="le-sub" id="libSummary">留存常用檔案，指定後各部門自動使用</div>
+      </div>
+      <span class="chev">›</span>
+    </div>
+
     <div class="chain-wrap">
-      <div class="section-label">任務鏈 · 最近串聯</div>
+      <div class="section-label">戰役串聯 · 最近接力</div>
       <div id="chainBox"></div>
     </div>
-    <div class="section-label">五大部門（可單獨執行）</div>
+    <div class="section-label">五大戰線（可單獨出擊）</div>
     <div id="deptList"></div>
+  </section>
+
+  <!-- LIBRARY -->
+  <section id="view-library" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-title"><h2>📁 素材庫</h2><p>檔案留存一次，之後勾選即可使用</p></div>
+    </div>
+    <div class="note">檔案存在你自己的瀏覽器。勾選「指定使用」的檔案，會在「一鍵運轉」與各部門執行時自動帶入，不必每次重新上傳。圖片建議精簡，避免佔太多空間。</div>
+    <label class="attach lib-upload">＋ 上傳檔案到素材庫
+      <input type="file" id="libInput" multiple accept=".txt,.md,.csv,.json,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" class="hidden" onchange="handleLibUpload(event)">
+    </label>
+    <div id="libList"></div>
   </section>
 
   <!-- DEPARTMENT -->
@@ -365,8 +427,10 @@
 
     <div class="preset-wrap" id="presetWrap"></div>
 
+    <div id="wsLibBar"></div>
+
     <div class="input-card">
-      <textarea id="taskInput" placeholder="交辦這個部門要做的事…例如：幫我寫三則 LINE 限動推康園益生菌的貼文"></textarea>
+      <textarea id="taskInput" placeholder="交辦這個部門要做的事…例如：用氣血戰場比喻寫一篇科普衛教貼文"></textarea>
       <div class="files" id="fileList"></div>
       <div class="input-actions">
         <label class="attach">📎 加檔案
@@ -442,34 +506,35 @@
 <script>
 /* ============ 預設資料 ============ */
 const DEFAULTS = {
-  title:"彥彬 AI 一人公司",
-  context:"我經營傳直銷事業（康園國際 / 大地之粹的草本保健品），品牌精神是「相信自己，找回初心」。\n語氣真誠、生活化、貼近台灣讀者。\n嚴格遵守台灣《食品安全衛生管理法》：不得宣稱療效、根治、醫療效能，不用「世界第一／全球第一」等絕對誇大用語。\n目標：經營個人品牌、招募事業夥伴、留住回購客。",
+  title:"彥彬 健康戰役指揮部",
+  context:"我經營健康事業（草本保健），核心理念是『健康戰役』——把守護健康當成一場保衛戰，而不是賣產品。精神：讓每個家庭都有一個懂健康的人。\n【教育用核心比喻，不可宣稱療效】身體各器官像戰場，每天和病毒、代謝廢物作戰；氣血像把糧食武器送到前線的運輸車，氣是動力（汽油）、血是營養（糧食武器）。氣血不足，前線就吃不飽、戰力下降，身體用乾、癢、累、痛等訊號通知我們。\n【經營邏輯】先幫人看懂身體訊號、建立正確觀念與信任，把自己定位成『懂健康的人』；產品只是後勤補給、自然帶到，絕不硬推、不嚇唬、不誇大。\n【法規】嚴守台灣《食安法》：不得宣稱療效、根治、醫療效能、不得叫人停藥，不用絕對誇大用語。語氣真誠、溫暖、像家人。目標是長期陪伴與教育，再自然延伸到志同道合的夥伴。",
   apiKey:"",
   model:"gpt-4o-mini",
   autoAnalyze:true,
   departments:[
     { id:"collect", name:"收集部", emoji:"🔎", accent:"#C7902B", varName:"--c-collect",
-      tagline:"收集名單、痛點、市場聲量",
-      role:"你是『收集部』，負責情報與素材收集分析。把使用者給的資訊整理成結構化清單：客戶輪廓、常見痛點、競品話術、市場關鍵字、可用見證素材。輸出條列、可直接被下一個部門使用，不要空話。",
-      presets:["整理康園益生菌的目標客群輪廓與三大痛點","列出常見拒絕理由與背後真正的擔憂","盤點我手上可用的見證與素材類型","分析這份檔案裡的重點與可用素材"] },
+      tagline:"情報偵察 · 找出健康訊號",
+      role:"你是『健康戰役』的情報偵察。負責理解人們的『戰場狀況』：收集常見的健康困擾與生活訊號（失眠、易累、手腳冰冷、上火…）、大眾對保健的迷思與擔憂，整理成可拿來教育、引起共鳴的痛點清單。重點是看懂對方需要什麼陪伴，不是找推銷切入點。輸出條列、可直接給下一部門使用。",
+      presets:["整理上班族常見的氣血不足訊號與生活情境","列出大眾對保健最常見的迷思與擔憂","把氣血戰場素材整理成可教育的共鳴重點","盤點哪些族群最需要『一個懂健康的人』"] },
     { id:"plan", name:"策劃部", emoji:"🧭", accent:"#6B4E9E", varName:"--c-plan",
-      tagline:"規劃活動、跟進節奏、KPI",
-      role:"你是『策劃部』，負責策略規劃。依據需求規劃行銷／招募流程、貼文主題排程、跟進節奏（如 Day3／14／25／60）、轉介紹節點與可量化 KPI。產出要有明確步驟、時間點與負責動作。",
-      presets:["規劃新夥伴招募的 Day3/14/25/60 跟進節奏","排一週社群貼文主題表（健康+理念+商機）","設計一檔月底衝刺活動的流程與KPI","把上一部門的素材排成執行計畫"] },
+      tagline:"作戰參謀 · 規劃教育戰役",
+      role:"你是『健康戰役』的作戰參謀。規劃一場以教育與陪伴為主的健康戰役：衛教主題排程、信任養成步驟、關心跟進節奏，原則是『先給價值、後談支援』。產出明確步驟、時間點與每一步要做的動作，避免任何推銷感與恐嚇。",
+      presets:["規劃一週『健康戰役』衛教主題（先教育後支援）","設計陪伴新朋友的 Day3/7/14/30 關心節奏","把氣血戰場觀念排成循序漸進的教育流程","規劃一場線上健康分享會的流程"] },
     { id:"integrate", name:"整合部", emoji:"🧩", accent:"#1F8A72", varName:"--c-integrate",
-      tagline:"把零散素材整合成內容包",
-      role:"你是『整合部』，負責內容整合。把零散的產品資訊、見證、活動細節整合成一套可發布的內容包或簡報大綱：含主標、賣點順序、CTA。結構清楚、好交給貼文部直接寫稿。",
-      presets:["把產品資訊+見證整合成商機說明大綱","整理一套新人上手的內容包","把這份檔案整合成可發布的內容架構"] },
+      tagline:"補給整合 · 把健康講清楚",
+      role:"你是『健康戰役』的補給整合。把零散的衛教知識、比喻、見證整合成一套好懂的內容包或圖文大綱，善用『戰場／運輸車／糧食武器』的比喻把氣血與健康講得生動易懂。結構清楚、好交給下一部門寫稿，內容只談觀念與保養，不談療效。",
+      presets:["把氣血戰場比喻整合成好懂的衛教圖文大綱","整理一套『懂健康的人』新手教育內容包","把這份素材整合成 5 頁科普圖文架構","整合一份『身體訊號自我覺察』清單"] },
     { id:"post", name:"貼文部", emoji:"✍️", accent:"#E0613B", varName:"--c-post",
-      tagline:"產出社群貼文與文案",
-      role:"你是『貼文部』，負責社群文案。產出 LINE／FB／IG 貼文與限動文案，貼合品牌語氣『相信自己，找回初心』，生活化、有畫面、帶自然 CTA。嚴禁誇大療效與違法宣稱。一次可給 2–3 個版本。",
-      presets:["寫三則 LINE 限動推益生菌（含CTA）","用『相信自己，找回初心』寫一篇個人品牌貼文","把上一部門的內容改寫成 IG 圖文 5 頁","寫一篇分享個人轉變故事的招募貼文"] },
+      tagline:"號召宣傳 · 衛教為主的貼文",
+      role:"你是『健康戰役』的號召宣傳。寫以衛教與價值為主的社群貼文／限動，用故事與比喻打動人（如戰場運輸車、兩個哭泣孩子的故事），讓人想了解自己的健康，而不是覺得被推銷。溫暖、有畫面、像在關心家人；可自然帶一句溫和邀請，但不誇大療效、不嚇唬、不違規。一次給 2–3 個版本。",
+      presets:["用『身體像戰場、氣血像運輸車』寫一篇科普貼文","用兩個孩子哭的故事寫一篇有感衛教貼文","把上一部門的內容改寫成 IG 5 頁衛教圖文","寫一則關心長輩健康的溫暖限動（不推銷）"] },
     { id:"develop", name:"開發部", emoji:"🤝", accent:"#2E6FB0", varName:"--c-develop",
-      tagline:"開發新夥伴與客戶話術",
-      role:"你是『開發部』，負責開發與成交。產出冷／溫開發訊息、異議處理話術、商機說明腳本、邀約話術。口吻真誠不推銷感，符合法規，給對方下一步的低門檻行動。",
-      presets:["寫一段溫開發訊息，邀約老客戶聊商機","準備三種異議處理話術（沒時間/沒錢/沒興趣）","寫一段冷開發的自我介紹開場白","把上一部門的內容變成邀約對話腳本"] }
+      tagline:"招募結盟 · 邀人一起懂健康",
+      role:"你是『健康戰役』的招募結盟。在教育與信任的基礎上，自然邀請理念相同的人一起『成為懂健康的人』或加入事業夥伴。話術以理念、陪伴、利他為主，給對方低門檻的下一步，不施壓、不推銷感、符合法規。",
+      presets:["寫一段以『一起讓家人更健康』為出發的溫暖邀約","準備理念型的事業說明開場（非推銷）","把衛教互動自然延伸成『要不要一起學健康』的對話","三種柔性回應：沒時間／怕推銷／沒興趣"] }
   ],
-  tasks:[]  // {id, deptId, deptName, accent, input, output, time, fromDept}
+  tasks:[],  // {id, deptId, deptName, accent, input, output, time, fromDept}
+  library:[] // {id, name, kind:'text'|'image', content, url, active, size}
 };
 
 /* ============ 狀態 ============ */
@@ -487,6 +552,7 @@ function load(){
     const raw = localStorage.getItem("ai_company_v1");
     if(raw){ const s = JSON.parse(raw);
       const merged = {...structuredClone(DEFAULTS), ...s};
+      merged.library = Array.isArray(s.library)? s.library : [];
       // 補上範例詞（舊資料可能沒有），並保留使用者自訂的定位
       const def = structuredClone(DEFAULTS.departments);
       if(s.departments && s.departments.length===5){
@@ -553,7 +619,25 @@ function renderHome(){
       <span class="chev">›</span>
     </div>`;
   }).join("");
+  renderPipeSteps();
+  updateLibSummary();
   updateKeyStatus();
+}
+function renderPipeSteps(){
+  const box=document.getElementById("pipeSteps"); if(!box) return;
+  box.innerHTML=state.departments.map((d,i)=>{
+    const opts=(d.presets||[]).map((p,j)=>`<option value="${j}">${esc(p)}</option>`).join("")
+      +`<option value="-1">（用部門預設方式處理）</option>`;
+    return `<div class="ps-row">
+      <span class="ps-tagn"><span class="pin" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${d.accent}"></span>${esc(d.name)}</span>
+      <select id="pstep-${i}">${opts}</select>
+    </div>`;
+  }).join("");
+  // libPickBar
+  const lp=document.getElementById("libPickBar");
+  const act=state.library.filter(x=>x.active);
+  lp.innerHTML = act.length? `📎 已指定素材：${act.map(x=>esc(x.name)).join("、")}（會自動帶入每個部門）`
+    : `📎 尚未指定素材，可到下方「素材庫」勾選常用檔案。`;
 }
 function getIdByName(name){ const d=state.departments.find(x=>x.name===name); return d?d.id:""; }
 function hexA(hex,a){ const n=hex.replace("#",""); const r=parseInt(n.slice(0,2),16),g=parseInt(n.slice(2,4),16),b=parseInt(n.slice(4,6),16); return `rgba(${r},${g},${b},${a})`; }
@@ -579,8 +663,17 @@ function openDept(id){
   // 範例詞
   const pw=document.getElementById("presetWrap");
   pw.innerHTML=(d.presets||[]).map(p=>`<button class="preset-chip" onclick="usePreset(this)">${esc(p)}</button>`).join("");
+  renderWsLib();
   renderHistory();
   openView("dept");
+}
+function renderWsLib(){
+  const bar=document.getElementById("wsLibBar");
+  const act=state.library.filter(x=>x.active);
+  if(act.length===0){ bar.innerHTML=""; return; }
+  bar.innerHTML=`<div class="wslib"><span class="ttl">指定素材：</span>`+
+    act.map(x=>`<span class="f">${libIcon(x.kind)} ${esc(x.name)}</span>`).join("")+
+    `<span class="ttl" style="cursor:pointer;text-decoration:underline" onclick="openLibrary()">管理</span></div>`;
 }
 function usePreset(btn){
   document.getElementById("taskInput").value=btn.textContent;
@@ -724,6 +817,103 @@ function renderFiles(){
 }
 function rmFile(i){ pendingFiles.splice(i,1); renderFiles(); }
 
+/* ============ 共用解析 ============ */
+async function parseFile(f){
+  const isImg=f.type.startsWith("image/");
+  const isPdf=f.type==="application/pdf"||/\.pdf$/i.test(f.name);
+  const isDocx=f.type.includes("wordprocessingml")||/\.docx$/i.test(f.name);
+  if(isImg){
+    const url=await readAs(f,"dataURL");
+    return {name:f.name,isImage:true,kind:"image",url,size:url.length};
+  }
+  if(isPdf){
+    let text="";
+    try{ text=await extractPdf(await readAs(f,"arrayBuffer"))||"（此 PDF 無可擷取文字，可能是掃描檔）"; }
+    catch(err){ text="（PDF 解析失敗："+err.message+"）"; }
+    return {name:f.name,isImage:false,kind:"pdf",content:text,size:text.length};
+  }
+  if(isDocx){
+    let text="";
+    try{ text=await extractDocx(await readAs(f,"arrayBuffer"))||"（這份 Word 沒有可擷取文字）"; }
+    catch(err){ text="（Word 解析失敗："+err.message+"）"; }
+    return {name:f.name,isImage:false,kind:"doc",content:text,size:text.length};
+  }
+  if(/\.docx?$/i.test(f.name)){
+    return {name:f.name,isImage:false,kind:"doc",content:"（舊版 .doc 無法讀取，請另存為 .docx）",size:0};
+  }
+  const text=await readAs(f,"text");
+  return {name:f.name,isImage:false,kind:"text",content:text,size:text.length};
+}
+
+/* ============ 素材庫 ============ */
+function openLibrary(){ renderLibrary(); openView("library"); }
+async function handleLibUpload(e){
+  const files=[...e.target.files]; e.target.value="";
+  if(files.length===0) return;
+  for(const f of files){
+    const p=await parseFile(f);
+    state.library.push({ id:Date.now()+Math.random(), name:p.name, kind:p.kind,
+      content:p.content||"", url:p.url||"", size:p.size||0, active:true });
+  }
+  save(); renderLibrary(); toast("已存入素材庫並指定使用");
+}
+function libIcon(k){ return k==="image"?"🖼":(k==="pdf"?"📕":(k==="doc"?"📘":"📄")); }
+function fmtSize(n){ return n>1024?(n/1024).toFixed(0)+"K 字元":n+" 字元"; }
+function renderLibrary(){
+  const box=document.getElementById("libList");
+  if(state.library.length===0){
+    box.innerHTML='<div class="chain-empty">素材庫還是空的。上傳你的產品資料、見證、公司文件，之後就能重複指定使用。</div>';
+  }else{
+    box.innerHTML=state.library.map(x=>`<div class="lib-item">
+      <span class="li-ic">${libIcon(x.kind)}</span>
+      <div class="li-meta"><div class="li-name">${esc(x.name)}</div>
+      <div class="li-size">${x.kind==="image"?"圖片":fmtSize(x.size)}</div></div>
+      <button class="lib-toggle ${x.active?'on':''}" onclick="toggleLibActive('${x.id}')">${x.active?'✓ 指定使用':'指定使用'}</button>
+      <button class="lib-del" onclick="deleteLib('${x.id}')">🗑</button>
+    </div>`).join("");
+  }
+  updateLibSummary();
+}
+function toggleLibActive(id){
+  const x=state.library.find(v=>String(v.id)===String(id)); if(!x) return;
+  x.active=!x.active; save(); renderLibrary();
+}
+function deleteLib(id){
+  if(!confirm("從素材庫刪除這個檔案？")) return;
+  state.library=state.library.filter(v=>String(v.id)!==String(id)); save(); renderLibrary();
+}
+function updateLibSummary(){
+  const el=document.getElementById("libSummary"); if(!el) return;
+  const n=state.library.length, a=state.library.filter(x=>x.active).length;
+  el.textContent = n===0 ? "留存常用檔案，指定後各部門自動使用" : `共 ${n} 個檔案，已指定 ${a} 個使用中`;
+}
+function activeAttachments(){
+  return state.library.filter(x=>x.active).map(x=>({
+    name:x.name+"（庫）", isImage:x.kind==="image", content:x.content, url:x.url }));
+}
+
+/* ============ 組裝送出內容（含素材庫） ============ */
+function buildUserContent(baseText, extraFiles, opts){
+  opts=opts||{};
+  const totalChars=opts.totalChars||MAX_TOTAL_CHARS, perChars=opts.fileChars||MAX_FILE_CHARS;
+  const all=[...activeAttachments(), ...(extraFiles||[])];
+  const texts=all.filter(f=>!f.isImage), imgs=all.filter(f=>f.isImage);
+  let body=baseText, trimmed=false, budget=totalChars, parts=[];
+  for(const f of texts){
+    let c=f.content||"";
+    if(c.length>perChars){ c=c.slice(0,perChars); trimmed=true; }
+    if(c.length>budget){ c=c.slice(0,Math.max(0,budget)); trimmed=true; }
+    budget-=c.length;
+    parts.push(`---「${f.name}」---\n${c}`);
+    if(budget<=0) break;
+  }
+  if(parts.length) body+="\n\n【附加素材】\n"+parts.join("\n\n");
+  const content = imgs.length
+    ? [{type:"text",text:body}, ...imgs.map(f=>({type:"image_url",image_url:{url:f.url}}))]
+    : body;
+  return {content, trimmed};
+}
+
 /* ============ 交辦串聯 ============ */
 function handoff(fromDeptName, output, toId){
   openDept(toId);
@@ -754,27 +944,9 @@ async function runTask(){
   // 組 user content
   let textPart = input || "請依你的部門定位，仔細閱讀下方附件內容，直接完成分析並產出可立即使用的成果。";
   if(handoffFrom){ textPart = `【${handoffFrom.deptName} 交辦的素材】\n${clip(handoffFrom.output,MAX_CHAIN_CHARS)}\n\n【本次任務】\n${textPart}`; }
-  const textFiles = pendingFiles.filter(f=>!f.isImage);
-  let trimmed=false;
-  if(textFiles.length){
-    let budget=MAX_TOTAL_CHARS, parts=[];
-    for(const f of textFiles){
-      let c=f.content||"";
-      if(c.length>MAX_FILE_CHARS){ c=c.slice(0,MAX_FILE_CHARS); trimmed=true; }
-      if(c.length>budget){ c=c.slice(0,Math.max(0,budget)); trimmed=true; }
-      budget-=c.length;
-      parts.push(`---「${f.name}」---\n${c}`);
-      if(budget<=0) break;
-    }
-    textPart += "\n\n【附加檔案內容】\n"+parts.join("\n\n");
-  }
-  if(trimmed) toast("檔案過長，已自動截取重點送出");
-  const imgFiles = pendingFiles.filter(f=>f.isImage);
-
-  let userContent;
-  if(imgFiles.length){
-    userContent=[{type:"text",text:textPart}, ...imgFiles.map(f=>({type:"image_url",image_url:{url:f.url}}))];
-  }else{ userContent=textPart; }
+  const built=buildUserContent(textPart, pendingFiles);
+  if(built.trimmed) toast("素材過長，已自動截取重點送出");
+  const userContent=built.content;
 
   try{
     const out=await callOpenAI(sys,userContent);
@@ -817,7 +989,16 @@ async function runAllDepartments(){
   if(running) return;
   if(!state.apiKey){ toast("請先到設定填入 OpenAI 金鑰"); openView("settings"); return; }
   const goal=document.getElementById("pipeInput").value.trim();
-  if(!goal){ toast("請先輸入這次的主題或目標"); return; }
+  const order=state.departments;
+  // 取每個部門選定的任務
+  const stepTasks=order.map((d,i)=>{
+    const sel=document.getElementById("pstep-"+i);
+    const v=sel?sel.value:"0";
+    if(v==="-1") return "";  // 用部門預設方式
+    const idx=parseInt(v,10)||0;
+    return (d.presets&&d.presets[idx])?d.presets[idx]:"";
+  });
+  if(!goal && stepTasks.every(t=>!t)){ toast("請輸入共同主題，或為部門挑選建議任務"); return; }
 
   running=true;
   const btn=document.getElementById("pipeBtn");
@@ -825,41 +1006,42 @@ async function runAllDepartments(){
   const prog=document.getElementById("pipeProgress");
   const results=document.getElementById("pipeResults");
   results.innerHTML="";
-  const order=state.departments;
   prog.innerHTML=order.map((d,i)=>`<div class="pl-step" id="plstep-${i}"><span class="st">${i+1}</span>${esc(d.name)}</div>`).join("");
 
-  let prev="";   // 上一部門產出
-  let prevName="";
+  let prev="", prevName="", anyTrim=false;
   try{
     for(let i=0;i<order.length;i++){
       const d=order[i];
       document.getElementById("plstep-"+i).classList.add("run");
-      let user=`【本次共同目標】\n${goal}\n\n`;
-      if(prev){ user+=`【${prevName} 交辦給你的素材】\n${clip(prev,MAX_CHAIN_CHARS)}\n\n`; }
-      user+=`請以「${d.name}」的角色，完成你負責的部分，產出可直接使用的成果。`;
-      const out=await callOpenAI(buildSys(d),user);
+      let base="";
+      if(goal) base+=`【本次共同目標】\n${goal}\n\n`;
+      if(prev) base+=`【${prevName} 交辦給你的素材】\n${clip(prev,MAX_CHAIN_CHARS)}\n\n`;
+      base+= stepTasks[i]
+        ? `【你的任務】\n${stepTasks[i]}\n\n請完成並產出可直接使用的成果。`
+        : `請以「${d.name}」的角色，完成你負責的部分，產出可直接使用的成果。`;
+      // 帶入素材庫（每步預算小一點，避免重複放大）
+      const built=buildUserContent(base, [], {totalChars:4000, fileChars:4000});
+      if(built.trimmed) anyTrim=true;
+      const out=await callOpenAI(buildSys(d), built.content);
 
-      const task={ id:Date.now()+i, deptId:d.id, deptName:d.name, accent:d.accent,
-        input:`[一鍵運轉] ${goal}`, output:out, time:Date.now(),
-        fromDept: i>0?prevName:null };
-      state.tasks.push(task);
+      state.tasks.push({ id:Date.now()+i, deptId:d.id, deptName:d.name, accent:d.accent,
+        input:`[一鍵運轉] ${stepTasks[i]||goal}`, output:out, time:Date.now(),
+        fromDept: i>0?prevName:null });
 
-      // 顯示這部門結果
       results.insertAdjacentHTML("beforeend", resultCard(d,out));
       const step=document.getElementById("plstep-"+i);
       step.classList.remove("run"); step.classList.add("done"); step.querySelector(".st").textContent="✓";
       prev=out; prevName=d.name;
     }
-    save();
-    renderHome();
-    toast("五部門已全部完成");
+    save(); renderHome();
+    if(anyTrim) toast("素材過長已自動截取；五部門已完成"); else toast("五部門已全部完成");
     results.scrollIntoView({behavior:"smooth",block:"start"});
   }catch(err){
     results.insertAdjacentHTML("beforeend",
       `<div class="output-card"><div class="oc-head">⚠️ 運轉中斷</div><div class="output-body" style="color:#b33">${esc(err.message)}</div></div>`);
   }finally{
     running=false;
-    btn.disabled=false; btn.innerHTML="▶ 一次運轉五個部門";
+    btn.disabled=false; btn.innerHTML="▶ 發起健康戰役（全自動）";
   }
 }
 function resultCard(d,out){
