@@ -349,7 +349,7 @@
   <header class="topbar">
     <div class="brand-tag">AI ONE-PERSON COMPANY</div>
     <div class="row" style="margin-top:4px;">
-      <input id="titleInput" class="title-edit" value="彥彬 健康沙龍系統" maxlength="20" spellcheck="false">
+      <input id="titleInput" class="title-edit" value="彥彬 健康戰役經營台" maxlength="20" spellcheck="false">
       <button class="gear" onclick="openView('settings')" aria-label="設定">⚙︎</button>
     </div>
     <div class="status-line">
@@ -361,12 +361,12 @@
   <!-- HOME -->
   <section id="view-home" class="view active">
     <div class="pipeline">
-      <div class="pl-title">🎤 一鍵跑完整場沙龍</div>
-      <div class="pl-sub">三個階段依序接力：暖場開場 → 主題互動 → 收尾邀約，自動產出一整場沙龍逐字稿。主題可留空。</div>
-      <textarea id="pipeInput" placeholder="（可留空）今天沙龍主題，例如：如何一招幫家人戒掉冷飲"></textarea>
+      <div class="pl-title">🚀 一鍵跑完整套網路經營</div>
+      <div class="pl-sub">三個部門依序接力：內容創作 → 點評實戰 → 邀約陪跑，一次產出可直接用的網路經營素材。主題可留空。</div>
+      <textarea id="pipeInput" placeholder="（可留空）今天主題，例如：用氣血戰場觀念在朋友圈經營保養意識"></textarea>
       <div id="pipeSteps"></div>
       <div id="libPickBar"></div>
-      <button class="pl-run" id="pipeBtn" onclick="runAllDepartments()">▶ 跑完整場沙龍（全自動）</button>
+      <button class="pl-run" id="pipeBtn" onclick="runAllDepartments()">▶ 一鍵跑完整套（全自動）</button>
       <div id="pipeProgress"></div>
     </div>
     <div id="pipeResults"></div>
@@ -381,10 +381,10 @@
     </div>
 
     <div class="chain-wrap">
-      <div class="section-label">沙龍流程 · 最近接力</div>
+      <div class="section-label">流程串聯 · 最近接力</div>
       <div id="chainBox"></div>
     </div>
-    <div class="section-label">沙龍三階段（可單獨執行）</div>
+    <div class="section-label">三大部門（可單獨執行）</div>
     <div id="deptList"></div>
   </section>
 
@@ -430,7 +430,7 @@
     <div id="wsLibBar"></div>
 
     <div class="input-card">
-      <textarea id="taskInput" placeholder="交辦這個階段要做的事…例如：依資料寫戒冷飲三個實驗的互動逐字稿"></textarea>
+      <textarea id="taskInput" placeholder="交辦這個部門要做的事…例如：用氣血戰場比喻寫一篇朋友圈衛教貼文"></textarea>
       <div class="files" id="fileList"></div>
       <div class="input-actions">
         <label class="attach">📎 加檔案
@@ -506,25 +506,25 @@
 <script>
 /* ============ 預設資料 ============ */
 const DEFAULTS = {
-  schema:3,
-  title:"彥彬 健康沙龍系統",
-  context:"我用『健康沙龍』的方式分享健康（大春之道的觀念），核心理念：讓每個家庭都有一個懂健康的人。全程純公益、不推銷、不賣產品，先教育、先讓對方自己感受，再自然邀請。\n【沙龍流程】暖場開場（開心八式、深呼吸、強調不推銷）→ 親身故事破冰＋主題引入 → 互動規則 → 主題分享＋互動（提問戳痛點、小實驗或自檢表、深度解讀、核心結論）→ 收尾闭環＋持續學習邀約＋使命傳遞。\n【教育用比喻，不可宣稱療效】寒涼會降體溫、耗陽氣，路徑是『涼→疼→麻→大病』；身體的小症狀是求救信號（像儀表板警示燈）；病因多在生活習慣。氣血像運輸車，氣是動力、血是營養。\n【口吻】溫暖像家人、台灣用語、引導對方自己看見與填寫，不說教、不嚇唬。\n【法規】嚴守台灣《食安法》：不得宣稱療效、根治、醫療效能、不得叫人停藥、不用絕對誇大用語。",
+  schema:4,
+  title:"彥彬 健康戰役經營台",
+  context:"我主軸是『經營網路』（朋友圈／社群／短影音）來分享健康，品牌觀念是大春之道：讓每個家庭都有一個懂健康的人。全程先教育、先建立信任與關係，不推銷、不賣產品、不誇大療效，再自然邀請。\n【核心故事主軸：健康戰役】身體各器官像戰場，每天和病毒、代謝廢物作戰；氣血像把糧食武器（營養）送到前線的運輸車，氣是動力（汽油）、血是營養；車上的垃圾＝血脂黏稠，道路＝微循環，寒涼濕氣像冰雪嚴寒讓前線失守。氣血不足→前線吃不飽→戰力下降；寒涼路徑是『涼→疼→麻→大病』。身體的小症狀是求救信號（像兩個哭泣的孩子、像儀表板警示燈），要補氣血、改習慣，而不是讓身體閉嘴。\n【經營手法】用健康戰役的比喻與故事創作內容吸引人，再用『點評（不是點讚）』真誠互動建立關係，最後自然邀約一起學健康／陪跑。\n【口吻】溫暖像家人、台灣用語、真誠具體、利他，不說教、不嚇唬。\n【法規】嚴守台灣《食安法》：不得宣稱療效、根治、醫療效能、不得叫人停藥、不用絕對誇大用語。",
   apiKey:"",
   model:"gpt-4o-mini",
   autoAnalyze:true,
   departments:[
-    { id:"open", name:"暖場開場", emoji:"🎬", accent:"#C7902B", varName:"--c-collect",
-      tagline:"暖場 · 破冰 · 故事引入",
-      role:"你是健康沙龍的『暖場開場』主講。依大春之道沙龍流程，產出沙龍前段逐字稿：溫暖問候與暖場互動（開心八式拍腋窩肘窩腹股溝膝窩、深呼吸）、明確強調『今天不推銷、不賣產品、純公益分享』、用主講人親身故事破冰、自然引入今天主題、說明互動規則（手機靜音、全程互動、課後交流）。語氣像家人、台灣用語，不誇大療效、不嚇唬、不違規。直接給可照唸的逐字稿。",
-      presets:["依沙龍流程寫一段完整的暖場開場逐字稿","用親身故事破冰並引入今天主題","寫開場暖場＋規則說明（強調純公益不推銷）","把這份沙龍資料的開場改寫成我的口吻"] },
-    { id:"share", name:"主題互動", emoji:"🧪", accent:"#1F8A72", varName:"--c-integrate",
-      tagline:"衛教 · 實驗遊戲 · 自檢互動",
-      role:"你是健康沙龍的『主題互動』主講。產出沙龍核心段落逐字稿：先用互動提問戳中痛點 → 帶領小實驗或自檢（如降溫實驗、手握冰、血管油脂實驗、身體語言自檢表）→ 深度解讀（涼→疼→麻→大病、體溫與免疫、病因在習慣）→ 核心結論。全程引導參與者自己感受、自己填寫、自己說出，不說教、不推銷、不宣稱療效、不叫人停藥。含主持引導語與互動提問。",
-      presets:["依資料寫『戒冷飲三個實驗遊戲』的互動逐字稿","依資料寫『身體語言自檢表』帶填與解讀逐字稿","把一個健康觀念設計成現場互動小遊戲","整理今天主題的互動提問＋深度解讀重點"] },
-    { id:"close", name:"收尾邀約", emoji:"🌱", accent:"#2E6FB0", varName:"--c-develop",
-      tagline:"收尾 · 持續學習 · 使命傳遞",
-      role:"你是健康沙龍的『收尾邀約』主講。產出沙龍收尾逐字稿：總結今天的恍然大悟、強調『成為家裡懂健康的人、把健康主動權握在自己手裡』、邀約持續學習（約下次時間、還有十幾個小故事小遊戲）、使命傳遞（讓每個家庭都有一個懂健康的人、幸福五代人）。溫暖真誠、低壓力、不推銷、不誇大、不違規。",
-      presets:["依沙龍流程寫完整收尾＋持續學習邀約逐字稿","寫一段使命傳遞收尾（讓每個家庭有一個懂健康的人）","把今天主題自然收尾並約下一次沙龍時間","寫一段邀請家人一起學健康的溫暖結語"] }
+    { id:"content", name:"內容創作部", emoji:"✍️", accent:"#C7902B", varName:"--c-collect",
+      tagline:"健康戰役 · 經營網路內容",
+      role:"你是『內容創作部』，負責經營網路的內容。用『健康戰役／氣血戰場』的比喻與故事（運輸車＝氣血、戰場＝器官、寒涼＝冰雪嚴寒、兩個哭泣的孩子、涼→疼→麻→大病）創作朋友圈／社群貼文、限動、短影音腳本、圖文大綱。先教育、先給價值、有畫面、引發共鳴，結尾可帶一句溫和互動邀請，不推銷、不誇大療效、不違規。一次可給 2–3 個版本。",
+      presets:["用氣血戰場比喻寫一篇朋友圈衛教貼文","用兩個孩子哭的故事寫一篇有感貼文","排一週朋友圈內容主題（健康戰役）","把這份素材改寫成短影音腳本"] },
+    { id:"review", name:"點評實戰部", emoji:"💬", accent:"#1F8A72", varName:"--c-integrate",
+      tagline:"點評不是點讚 · 經營關係",
+      role:"你是『點評實戰部』，依點評實戰話術協助經營網路關係。核心：點評不是點讚。點評公式＝用心感受對方貼文＋這條吸引你的地方＋你是否做過類似的事。針對不同對象給真誠、具體（要有時間／地點／人物／事件）的點評與能量語言：朋友圈點評、常規式／寒暄式／辛苦式／道歉式點評；新顧客（感謝＋為什麼）、老顧客（信任＋未來）、流失顧客（經歷＋道歉＋一起學習）、轉介紹顧客（點評介紹人＋點評本人＋我的態度）、夥伴（放大優點、抓正面）。語氣真誠利他、不推銷、不誇大。",
+      presets:["幫我寫一則對某朋友圈的真誠點評","寫新顧客的感謝能量語言（線上沒店面）","寫流失顧客的道歉式點評話術","寫轉介紹顧客的點評＋老顧客的感謝話術"] },
+    { id:"invite", name:"邀約陪跑部", emoji:"🤝", accent:"#2E6FB0", varName:"--c-develop",
+      tagline:"自然邀約 · 一起學健康",
+      role:"你是『邀約陪跑部』，在內容與點評建立的信任之上，把線上互動自然延伸成邀約：邀請對方一起學健康、加入陪跑學習、成為家裡懂健康的人。話術以理念、陪伴、利他為主，給對方低門檻的下一步（先一起學一個小課程／小故事），不施壓、不推銷感、符合法規。",
+      presets:["把一段點評互動自然延伸成邀約","寫一段陪跑營邀請（純公益不推銷）","寫『成為懂健康的人』的溫暖邀約","三種柔性回應：沒時間／怕推銷／沒興趣"] }
   ],
   tasks:[],  // {id, deptId, deptName, accent, input, output, time, fromDept}
   library:[] // {id, name, kind:'text'|'image', content, url, active, size}
@@ -594,7 +594,7 @@ function renderHome(){
   const box=document.getElementById("chainBox");
   const links = state.tasks.filter(t=>t.fromDept).slice(-6);
   if(links.length===0){
-    box.innerHTML='<div class="chain-empty">用上方「跑完整場沙龍」或在任一階段按「交辦給」，這裡就會顯示流程串聯路線。</div>';
+    box.innerHTML='<div class="chain-empty">用上方「一鍵跑完整套」或在任一部門按「交辦給」，這裡就會顯示流程串聯路線。</div>';
   }else{
     box.innerHTML='<div class="chain-scroll">'+links.map(t=>{
       const a=dept(getIdByName(t.fromDept))||{accent:"#999"};
@@ -986,7 +986,7 @@ async function callOpenAI(sys,userContent){
   return (data.choices?.[0]?.message?.content||"").trim();
 }
 
-/* ============ 一鍵跑完整場沙龍 ============ */
+/* ============ 一鍵跑完整套網路經營 ============ */
 async function runAllDepartments(){
   if(running) return;
   if(!state.apiKey){ toast("請先到設定填入 OpenAI 金鑰"); openView("settings"); return; }
@@ -1036,14 +1036,14 @@ async function runAllDepartments(){
       prev=out; prevName=d.name;
     }
     save(); renderHome();
-    if(anyTrim) toast("素材過長已自動截取；整場沙龍已完成"); else toast("整場沙龍已完成");
+    if(anyTrim) toast("素材過長已自動截取；整套流程已完成"); else toast("整套流程已完成");
     results.scrollIntoView({behavior:"smooth",block:"start"});
   }catch(err){
     results.insertAdjacentHTML("beforeend",
       `<div class="output-card"><div class="oc-head">⚠️ 運轉中斷</div><div class="output-body" style="color:#b33">${esc(err.message)}</div></div>`);
   }finally{
     running=false;
-    btn.disabled=false; btn.innerHTML="▶ 跑完整場沙龍（全自動）";
+    btn.disabled=false; btn.innerHTML="▶ 一鍵跑完整套（全自動）";
   }
 }
 function resultCard(d,out){
