@@ -3,22 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title> 我的 AI 集團 </title>
+<title>AI 一人公司</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";}</script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <style>
   :root{
-    --paper:#F6F4EE;
+    --paper:#F3F0E8;
     --paper-2:#FFFFFF;
-    --ink:#1A1D29;
-    --ink-soft:#4A4F5E;
-    --ink-faint:#8A8F9C;
-    --line:rgba(26,29,41,.10);
-    --line-2:rgba(26,29,41,.06);
-    --shadow:0 1px 2px rgba(26,29,41,.04), 0 8px 24px rgba(26,29,41,.06);
-    --radius:18px;
-    --radius-sm:12px;
+    --ink:#17211D;
+    --ink-soft:#4B544F;
+    --ink-faint:#8B918C;
+    --line:rgba(23,33,29,.10);
+    --line-2:rgba(23,33,29,.05);
+    --accent:#1F8A72;
+    --shadow:0 2px 6px rgba(23,33,29,.05), 0 14px 34px rgba(23,33,29,.07);
+    --shadow-lg:0 10px 44px rgba(23,33,29,.14);
+    --radius:24px;
+    --radius-sm:16px;
+    --tap:54px;
     /* 部門色 */
     --c-post:#E0613B;
     --c-integrate:#1F8A72;
@@ -32,52 +35,56 @@
     font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
     background:var(--paper);
     color:var(--ink);
-    line-height:1.6;
+    line-height:1.62;
+    font-size:16px;
+    letter-spacing:.1px;
     -webkit-font-smoothing:antialiased;
   }
-  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--paper);position:relative;}
+  .app{max-width:500px;margin:0 auto;min-height:100vh;background:var(--paper);position:relative;padding-bottom:24px;}
   button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
   textarea,input,select{font-family:inherit;}
 
   /* ---------- Header ---------- */
   .topbar{
     position:sticky;top:0;z-index:50;
-    background:var(--ink);color:#fff;
-    padding:14px 16px 16px;
-    border-radius:0 0 22px 22px;
+    background:linear-gradient(165deg,#1F2C26 0%,#17211D 70%);color:#fff;
+    padding:20px 20px 22px;
+    border-radius:0 0 28px 28px;
+    box-shadow:0 8px 28px rgba(23,33,29,.18);
   }
-  .topbar .row{display:flex;align-items:center;gap:10px;}
+  .topbar .row{display:flex;align-items:center;gap:12px;}
   .brand-tag{
-    font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.55);
-    text-transform:uppercase;font-weight:600;
+    font-size:11px;letter-spacing:4px;color:rgba(255,255,255,.5);
+    text-transform:uppercase;font-weight:700;
   }
   .title-edit{
-    flex:1;font-size:21px;font-weight:800;letter-spacing:.5px;
+    flex:1;font-size:24px;font-weight:800;letter-spacing:.5px;
     background:transparent;border:none;color:#fff;outline:none;
-    border-bottom:1px dashed transparent;padding:2px 0;min-width:0;
+    border-bottom:1.5px dashed transparent;padding:3px 0;min-width:0;
   }
   .title-edit:focus{border-bottom-color:rgba(255,255,255,.4);}
   .gear{
-    width:38px;height:38px;border-radius:11px;flex:0 0 auto;
-    background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:18px;
-    transition:background .15s;
+    width:48px;height:48px;border-radius:15px;flex:0 0 auto;
+    background:rgba(255,255,255,.13);display:grid;place-items:center;font-size:21px;
+    transition:background .15s,transform .1s;
   }
-  .gear:active{background:rgba(255,255,255,.25);}
+  .gear:active{background:rgba(255,255,255,.26);transform:scale(.94);}
   .status-line{
-    margin-top:8px;font-size:12px;color:rgba(255,255,255,.6);
-    display:flex;align-items:center;gap:6px;
+    margin-top:12px;font-size:12.5px;color:rgba(255,255,255,.62);
+    display:flex;align-items:center;gap:7px;
+    background:rgba(255,255,255,.07);padding:9px 13px;border-radius:13px;
   }
-  .dot{width:7px;height:7px;border-radius:50%;background:#E0613B;flex:0 0 auto;}
-  .dot.on{background:#3FCF8E;}
+  .dot{width:8px;height:8px;border-radius:50%;background:#E0613B;flex:0 0 auto;}
+  .dot.on{background:#4ED9A0;box-shadow:0 0 0 3px rgba(78,217,160,.2);}
 
   /* ---------- Views ---------- */
-  .view{display:none;padding:16px 14px 40px;}
-  .view.active{display:block;animation:fade .25s ease;}
-  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .view{display:none;padding:20px 18px 48px;}
+  .view.active{display:block;animation:fade .28s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
 
   .section-label{
-    font-size:11px;letter-spacing:2px;color:var(--ink-faint);
-    font-weight:700;text-transform:uppercase;margin:6px 4px 10px;
+    font-size:12px;letter-spacing:2.5px;color:var(--ink-faint);
+    font-weight:800;text-transform:uppercase;margin:10px 4px 12px;
   }
 
   /* ---------- 任務鏈 ---------- */
@@ -106,126 +113,130 @@
   /* ---------- 部門列表 ---------- */
   .dept-card{
     background:var(--paper-2);border:1px solid var(--line);
-    border-radius:var(--radius);padding:16px;margin-bottom:12px;
-    box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;
+    border-radius:var(--radius);padding:20px;margin-bottom:14px;
+    box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;
     position:relative;overflow:hidden;transition:transform .12s;
+    min-height:84px;
   }
-  .dept-card:active{transform:scale(.985);}
-  .dept-card .bar{position:absolute;left:0;top:0;bottom:0;width:5px;}
+  .dept-card:active{transform:scale(.98);}
+  .dept-card .bar{position:absolute;left:0;top:0;bottom:0;width:6px;}
   .dept-ic{
-    width:46px;height:46px;border-radius:13px;flex:0 0 auto;
-    display:grid;place-items:center;font-size:22px;
+    width:56px;height:56px;border-radius:17px;flex:0 0 auto;
+    display:grid;place-items:center;font-size:27px;
   }
   .dept-meta{flex:1;min-width:0;}
-  .dept-name{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;}
-  .dept-tag{font-size:12.5px;color:var(--ink-soft);margin-top:2px;
+  .dept-name{font-size:18.5px;font-weight:800;display:flex;align-items:center;gap:8px;}
+  .dept-tag{font-size:13px;color:var(--ink-soft);margin-top:3px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .dept-count{
-    font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;
+    font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:20px;
     background:var(--ink);color:#fff;flex:0 0 auto;
   }
   .dept-count.zero{background:var(--line);color:var(--ink-faint);}
-  .chev{color:var(--ink-faint);font-size:18px;flex:0 0 auto;}
+  .chev{color:var(--ink-faint);font-size:22px;flex:0 0 auto;}
 
   /* ---------- 部門工作區 ---------- */
-  .ws-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px;}
+  .ws-head{display:flex;align-items:flex-start;gap:13px;margin-bottom:8px;}
   .back{
-    width:36px;height:36px;border-radius:11px;background:var(--paper-2);
-    border:1px solid var(--line);display:grid;place-items:center;font-size:18px;flex:0 0 auto;
+    width:48px;height:48px;border-radius:15px;background:var(--paper-2);
+    border:1px solid var(--line);display:grid;place-items:center;font-size:22px;flex:0 0 auto;
+    box-shadow:var(--shadow);transition:transform .1s;
   }
-  .ws-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:21px;flex:0 0 auto;}
-  .ws-title{flex:1;}
-  .ws-title h2{margin:0;font-size:19px;font-weight:800;}
-  .ws-title p{margin:1px 0 0;font-size:12.5px;color:var(--ink-soft);}
+  .back:active{transform:scale(.92);}
+  .ws-ic{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;font-size:25px;flex:0 0 auto;}
+  .ws-title{flex:1;padding-top:2px;}
+  .ws-title h2{margin:0;font-size:21px;font-weight:800;}
+  .ws-title p{margin:2px 0 0;font-size:13px;color:var(--ink-soft);}
 
   .role-box{
-    margin:14px 0;border:1px solid var(--line);border-radius:var(--radius-sm);
-    background:var(--paper-2);overflow:hidden;
+    margin:16px 0;border:1px solid var(--line);border-radius:var(--radius-sm);
+    background:var(--paper-2);overflow:hidden;box-shadow:var(--shadow);
   }
   .role-head{
     display:flex;align-items:center;justify-content:space-between;
-    padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;
+    padding:15px 16px;font-size:14px;font-weight:700;cursor:pointer;min-height:var(--tap);
   }
-  .role-head .lbl{display:flex;align-items:center;gap:7px;color:var(--ink-soft);}
-  .role-body{display:none;padding:0 12px 12px;}
+  .role-head .lbl{display:flex;align-items:center;gap:8px;color:var(--ink-soft);}
+  .role-body{display:none;padding:0 14px 14px;}
   .role-body.open{display:block;}
   .role-body textarea{
-    width:100%;min-height:120px;border:1px solid var(--line);border-radius:10px;
-    padding:10px;font-size:13px;resize:vertical;background:#fff;color:var(--ink);outline:none;
+    width:100%;min-height:130px;border:1px solid var(--line);border-radius:12px;
+    padding:12px;font-size:15px;resize:vertical;background:#fff;color:var(--ink);outline:none;
   }
-  .role-body textarea:focus{border-color:var(--ink-faint);}
+  .role-body textarea:focus{border-color:var(--accent);}
   .save-role{
-    margin-top:8px;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px;
-    background:var(--ink);color:#fff;
+    margin-top:10px;font-size:14px;font-weight:700;padding:12px 18px;border-radius:12px;
+    background:var(--ink);color:#fff;min-height:46px;
   }
 
   .handoff-banner{
-    display:flex;gap:9px;align-items:flex-start;
+    display:flex;gap:10px;align-items:flex-start;
     background:rgba(199,144,43,.10);border:1px solid rgba(199,144,43,.3);
-    border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:12px;font-size:12.5px;
+    border-radius:var(--radius-sm);padding:13px 15px;margin-bottom:14px;font-size:13px;
   }
-  .handoff-banner .x{margin-left:auto;color:var(--ink-faint);font-size:16px;flex:0 0 auto;}
+  .handoff-banner .x{margin-left:auto;color:var(--ink-faint);font-size:18px;flex:0 0 auto;padding:2px 6px;}
   .handoff-banner b{color:#9a6c12;}
 
   .input-card{
     background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
-    padding:13px;box-shadow:var(--shadow);margin-bottom:14px;
+    padding:16px;box-shadow:var(--shadow);margin-bottom:16px;
   }
   .input-card textarea{
-    width:100%;min-height:96px;border:none;outline:none;resize:vertical;
-    font-size:15px;background:transparent;color:var(--ink);line-height:1.55;
+    width:100%;min-height:108px;border:none;outline:none;resize:vertical;
+    font-size:16px;background:transparent;color:var(--ink);line-height:1.6;
   }
-  .files{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px;}
+  .files{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 2px;}
   .file-chip{
     display:inline-flex;align-items:center;gap:6px;background:var(--paper);
-    border:1px solid var(--line);border-radius:20px;padding:5px 8px 5px 10px;font-size:11.5px;
+    border:1px solid var(--line);border-radius:20px;padding:7px 11px 7px 13px;font-size:12.5px;
   }
-  .file-chip .rm{color:var(--ink-faint);font-size:14px;}
+  .file-chip .rm{color:var(--ink-faint);font-size:16px;padding:0 2px;}
   .mini-spin{display:inline-block;width:11px;height:11px;border:2px solid var(--line);
     border-top-color:var(--ink-soft);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px;}
-  .switch-row{display:flex;align-items:center;gap:11px;font-size:12.5px;color:var(--ink-soft);font-weight:400;line-height:1.5;}
-  .switch-row input{width:22px;height:22px;flex:0 0 auto;accent-color:var(--ink);}
+  .switch-row{display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--ink-soft);font-weight:400;line-height:1.5;}
+  .switch-row input{width:26px;height:26px;flex:0 0 auto;accent-color:var(--accent);}
   .input-actions{
-    display:flex;align-items:center;gap:10px;margin-top:10px;
-    border-top:1px solid var(--line-2);padding-top:11px;
+    display:flex;align-items:center;gap:11px;margin-top:13px;
+    border-top:1px solid var(--line-2);padding-top:14px;
   }
   .attach{
-    display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;
-    color:var(--ink-soft);padding:8px 12px;border-radius:10px;background:var(--paper);
-    border:1px solid var(--line);
+    display:inline-flex;align-items:center;gap:7px;font-size:14.5px;font-weight:700;
+    color:var(--ink-soft);padding:13px 17px;border-radius:14px;background:var(--paper);
+    border:1px solid var(--line);min-height:var(--tap);
   }
   .run-btn{
-    margin-left:auto;display:inline-flex;align-items:center;gap:8px;
-    font-size:14.5px;font-weight:800;color:#fff;padding:11px 20px;border-radius:12px;
-    box-shadow:0 4px 14px rgba(26,29,41,.18);transition:opacity .15s,transform .1s;
+    margin-left:auto;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    font-size:16px;font-weight:800;color:#fff;padding:0 26px;border-radius:16px;min-height:var(--tap);
+    box-shadow:0 6px 18px rgba(23,33,29,.22);transition:opacity .15s,transform .1s;
   }
-  .run-btn:active{transform:scale(.97);}
+  .run-btn:active{transform:scale(.96);}
   .run-btn:disabled{opacity:.55;}
   .spinner{
-    width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+    width:17px;height:17px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;
     border-radius:50%;animation:spin .7s linear infinite;
   }
   @keyframes spin{to{transform:rotate(360deg);}}
 
   .output-card{
     background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
-    box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;
+    box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;
   }
   .output-card .oc-head{
-    padding:10px 14px;border-bottom:1px solid var(--line-2);
-    display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--ink-soft);
+    padding:14px 16px;border-bottom:1px solid var(--line-2);
+    display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800;color:var(--ink-soft);
   }
-  .output-body{padding:14px;font-size:14.5px;white-space:pre-wrap;word-break:break-word;line-height:1.7;}
-  .oc-actions{padding:0 12px 12px;display:flex;flex-wrap:wrap;gap:8px;}
+  .output-body{padding:17px;font-size:15.5px;white-space:pre-wrap;word-break:break-word;line-height:1.75;}
+  .oc-actions{padding:0 15px 15px;display:flex;flex-wrap:wrap;gap:9px;}
   .mini{
-    font-size:12.5px;font-weight:700;padding:8px 13px;border-radius:10px;
+    font-size:14px;font-weight:700;padding:11px 16px;border-radius:13px;min-height:46px;
     border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);
+    display:inline-flex;align-items:center;gap:6px;
   }
-  .handoff-title{font-size:11px;color:var(--ink-faint);width:100%;font-weight:700;
-    letter-spacing:1px;margin:4px 2px 0;}
+  .handoff-title{font-size:11.5px;color:var(--ink-faint);width:100%;font-weight:800;
+    letter-spacing:1px;margin:6px 2px 2px;}
   .ho-btn{
-    font-size:12.5px;font-weight:700;padding:8px 12px;border-radius:10px;color:#fff;
-    display:inline-flex;align-items:center;gap:5px;
+    font-size:14px;font-weight:700;padding:11px 15px;border-radius:13px;color:#fff;min-height:46px;
+    display:inline-flex;align-items:center;gap:6px;
   }
 
   .hist-item{
@@ -240,24 +251,24 @@
   .tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--line);color:var(--ink-soft);}
 
   /* ---------- 設定 ---------- */
-  .field{margin-bottom:18px;}
-  .field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px;}
-  .field .hint{font-size:11.5px;color:var(--ink-faint);font-weight:400;margin-top:5px;line-height:1.5;}
+  .field{margin-bottom:22px;}
+  .field label{display:block;font-size:14px;font-weight:800;margin-bottom:9px;}
+  .field .hint{font-size:12.5px;color:var(--ink-faint);font-weight:400;margin-top:7px;line-height:1.5;}
   .field input[type=text],.field input[type=password],.field select,.field textarea{
-    width:100%;border:1px solid var(--line);border-radius:11px;padding:12px;
-    font-size:14px;background:var(--paper-2);color:var(--ink);outline:none;
+    width:100%;border:1.5px solid var(--line);border-radius:14px;padding:15px;
+    font-size:16px;background:var(--paper-2);color:var(--ink);outline:none;min-height:var(--tap);
   }
-  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink-faint);}
-  .field textarea{min-height:90px;resize:vertical;line-height:1.6;}
-  .key-row{display:flex;gap:8px;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+  .field textarea{min-height:100px;resize:vertical;line-height:1.6;}
+  .key-row{display:flex;gap:9px;}
   .key-row input{flex:1;}
-  .toggle-key{flex:0 0 auto;padding:0 14px;border:1px solid var(--line);border-radius:11px;
-    font-size:13px;font-weight:700;color:var(--ink-soft);background:var(--paper-2);}
+  .toggle-key{flex:0 0 auto;padding:0 18px;border:1.5px solid var(--line);border-radius:14px;min-height:var(--tap);
+    font-size:14px;font-weight:700;color:var(--ink-soft);background:var(--paper-2);}
   .save-bar{position:sticky;bottom:0;background:linear-gradient(transparent,var(--paper) 30%);
-    padding:14px 0 4px;margin-top:8px;}
-  .save-main{width:100%;padding:14px;border-radius:13px;background:var(--ink);color:#fff;
-    font-size:15px;font-weight:800;}
-  .danger{width:100%;margin-top:10px;padding:12px;border-radius:13px;font-size:13px;font-weight:700;
+    padding:16px 0 6px;margin-top:10px;}
+  .save-main{width:100%;padding:0;min-height:58px;border-radius:16px;background:var(--ink);color:#fff;
+    font-size:17px;font-weight:800;box-shadow:0 8px 22px rgba(23,33,29,.2);}
+  .danger{width:100%;margin-top:12px;padding:0;min-height:50px;border-radius:14px;font-size:14px;font-weight:700;
     color:#b33;background:rgba(204,51,51,.06);border:1px solid rgba(204,51,51,.2);}
 
   .note{font-size:12px;color:var(--ink-faint);background:var(--paper-2);border:1px solid var(--line);
@@ -272,74 +283,92 @@
   .hidden{display:none!important;}
 
   /* 一鍵運轉 */
-  .pipeline{background:var(--ink);color:#fff;border-radius:var(--radius);padding:16px;margin-bottom:16px;box-shadow:var(--shadow);}
-  .pl-title{font-size:16px;font-weight:800;letter-spacing:.5px;}
-  .pl-sub{font-size:12px;color:rgba(255,255,255,.6);margin:4px 0 11px;line-height:1.5;}
-  .pipeline textarea{width:100%;min-height:64px;border:none;border-radius:11px;padding:11px;font-size:14px;
-    background:rgba(255,255,255,.1);color:#fff;outline:none;resize:vertical;line-height:1.5;}
+  .pipeline{background:linear-gradient(165deg,#1F2C26 0%,#17211D 75%);color:#fff;border-radius:var(--radius);padding:22px;margin-bottom:18px;box-shadow:var(--shadow-lg);}
+  .pl-title{font-size:19px;font-weight:800;letter-spacing:.5px;}
+  .pl-sub{font-size:13px;color:rgba(255,255,255,.62);margin:6px 0 14px;line-height:1.55;}
+  .pipeline textarea{width:100%;min-height:72px;border:none;border-radius:14px;padding:14px;font-size:16px;
+    background:rgba(255,255,255,.1);color:#fff;outline:none;resize:vertical;line-height:1.55;}
   .pipeline textarea::placeholder{color:rgba(255,255,255,.45);}
-  .pl-run{width:100%;margin-top:10px;padding:13px;border-radius:12px;background:#fff;color:var(--ink);
-    font-size:14.5px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .pl-run{width:100%;margin-top:14px;padding:0;min-height:58px;border-radius:16px;background:#fff;color:var(--ink);
+    font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:9px;
+    box-shadow:0 8px 22px rgba(0,0,0,.22);transition:transform .1s;}
+  .pl-run:active{transform:scale(.98);}
   .pl-run:disabled{opacity:.6;}
-  .pl-run .spinner{border-color:rgba(26,29,41,.3);border-top-color:var(--ink);}
-  #pipeProgress{margin-top:10px;}
-  .pl-step{display:flex;align-items:center;gap:9px;font-size:12.5px;color:rgba(255,255,255,.85);padding:5px 2px;}
-  .pl-step .st{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;flex:0 0 auto;
-    background:rgba(255,255,255,.15);}
-  .pl-step.done .st{background:#3FCF8E;color:var(--ink);}
+  .pl-run .spinner{border-color:rgba(23,33,29,.3);border-top-color:var(--ink);}
+  #pipeProgress{margin-top:14px;}
+  .pl-step{display:flex;align-items:center;gap:11px;font-size:13.5px;color:rgba(255,255,255,.85);padding:8px 2px;}
+  .pl-step .st{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;flex:0 0 auto;
+    background:rgba(255,255,255,.15);font-weight:700;}
+  .pl-step.done .st{background:#4ED9A0;color:var(--ink);}
   .pl-step.run .st{background:#fff;color:var(--ink);}
 
   /* 範例詞 */
-  .preset-wrap{display:flex;gap:7px;overflow-x:auto;padding:0 2px 10px;scrollbar-width:none;}
+  .preset-wrap{display:flex;gap:9px;overflow-x:auto;padding:0 2px 12px;scrollbar-width:none;}
   .preset-wrap::-webkit-scrollbar{display:none;}
-  .preset-chip{flex:0 0 auto;font-size:12px;font-weight:600;padding:7px 12px;border-radius:20px;
-    background:var(--paper-2);border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap;}
-  .preset-chip:active{background:var(--paper);}
+  .preset-chip{flex:0 0 auto;font-size:13.5px;font-weight:600;padding:11px 16px;border-radius:22px;min-height:44px;
+    background:var(--paper-2);border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap;box-shadow:var(--shadow);}
+  .preset-chip:active{background:var(--paper);transform:scale(.96);}
+
+  /* 目標平台切換 */
+  .plat-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 2px 14px;}
+  .plat-lbl{font-size:12px;font-weight:800;color:var(--ink-faint);margin-right:4px;width:100%;letter-spacing:1px;}
+  .plat-chip{font-size:14px;font-weight:700;padding:11px 18px;border-radius:22px;min-height:46px;
+    background:var(--paper-2);border:1.5px solid var(--line);color:var(--ink-soft);box-shadow:var(--shadow);transition:transform .1s;}
+  .plat-chip:active{transform:scale(.95);}
+  .plat-chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .pl-plat{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 2px 2px;}
+  .pl-plat .plat-lbl{color:rgba(255,255,255,.55);}
+  .pl-plat .plat-chip{background:rgba(255,255,255,.1);color:#fff;border-color:transparent;box-shadow:none;}
+  .pl-plat .plat-chip.on{background:#fff;color:var(--ink);}
 
   /* 歷史按鈕 */
-  .hi-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-  .hi-btn{font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:9px;border:1px solid var(--line);
-    background:var(--paper);color:var(--ink-soft);}
+  .hi-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;}
+  .hi-btn{font-size:13px;font-weight:700;padding:10px 15px;border-radius:12px;border:1px solid var(--line);
+    background:var(--paper);color:var(--ink-soft);min-height:42px;}
   .hi-btn.del{color:#b33;border-color:rgba(204,51,51,.25);background:rgba(204,51,51,.05);}
   .hi-out.full{-webkit-line-clamp:unset;display:block;white-space:pre-wrap;}
 
+  /* 統整成品文章 */
+  .final-card{border:2px solid var(--ink);box-shadow:var(--shadow-lg);}
+  .final-head{background:var(--ink);color:#fff;font-size:14px;font-weight:800;letter-spacing:.5px;}
+
   /* 素材庫入口 */
-  .lib-entry{display:flex;align-items:center;gap:13px;background:var(--paper-2);border:1px solid var(--line);
-    border-radius:var(--radius);padding:14px 16px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .lib-entry{display:flex;align-items:center;gap:15px;background:var(--paper-2);border:1px solid var(--line);
+    border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;box-shadow:var(--shadow);min-height:80px;transition:transform .1s;}
   .lib-entry:active{transform:scale(.99);}
-  .le-ic{width:42px;height:42px;border-radius:12px;background:rgba(199,144,43,.13);color:#C7902B;
-    display:grid;place-items:center;font-size:20px;flex:0 0 auto;}
+  .le-ic{width:52px;height:52px;border-radius:16px;background:rgba(199,144,43,.14);color:#C7902B;
+    display:grid;place-items:center;font-size:24px;flex:0 0 auto;}
   .le-meta{flex:1;min-width:0;}
-  .le-name{font-size:16px;font-weight:800;}
-  .le-sub{font-size:12px;color:var(--ink-soft);margin-top:1px;}
-  .lib-upload{display:inline-flex;margin:6px 2px 14px;}
+  .le-name{font-size:17.5px;font-weight:800;}
+  .le-sub{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  .lib-upload{display:inline-flex;margin:6px 2px 16px;min-height:var(--tap);}
 
   /* 素材庫清單 */
-  .lib-item{display:flex;align-items:center;gap:11px;background:var(--paper-2);border:1px solid var(--line);
-    border-radius:var(--radius-sm);padding:12px;margin-bottom:9px;}
-  .lib-item .li-ic{font-size:20px;flex:0 0 auto;}
+  .lib-item{display:flex;align-items:center;gap:13px;background:var(--paper-2);border:1px solid var(--line);
+    border-radius:var(--radius-sm);padding:15px;margin-bottom:11px;box-shadow:var(--shadow);}
+  .lib-item .li-ic{font-size:23px;flex:0 0 auto;}
   .lib-item .li-meta{flex:1;min-width:0;}
-  .lib-item .li-name{font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .lib-item .li-size{font-size:11px;color:var(--ink-faint);margin-top:1px;}
-  .lib-toggle{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--ink-soft);
-    padding:7px 11px;border-radius:9px;border:1px solid var(--line);background:var(--paper);flex:0 0 auto;}
-  .lib-toggle.on{background:#1F8A72;color:#fff;border-color:#1F8A72;}
-  .lib-del{color:var(--ink-faint);font-size:18px;padding:4px 6px;flex:0 0 auto;}
+  .lib-item .li-name{font-size:14.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lib-item .li-size{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+  .lib-toggle{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink-soft);
+    padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);flex:0 0 auto;min-height:44px;}
+  .lib-toggle.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .lib-del{color:var(--ink-faint);font-size:20px;padding:8px 8px;flex:0 0 auto;}
 
   /* pipeline 步驟挑選 */
-  #pipeSteps{margin:4px 0 8px;}
-  .ps-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid rgba(255,255,255,.1);}
-  .ps-tagn{font-size:12.5px;font-weight:700;color:#fff;flex:0 0 92px;display:flex;align-items:center;gap:6px;}
-  .ps-row select{flex:1;min-width:0;background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:9px;
-    padding:8px 9px;font-size:12px;outline:none;-webkit-appearance:none;}
-  .ps-row select option{color:#1A1D29;}
-  #libPickBar{font-size:12px;color:rgba(255,255,255,.75);margin:4px 2px 2px;line-height:1.5;}
+  #pipeSteps{margin:6px 0 10px;}
+  .ps-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid rgba(255,255,255,.1);}
+  .ps-tagn{font-size:13.5px;font-weight:700;color:#fff;flex:0 0 100px;display:flex;align-items:center;gap:7px;}
+  .ps-row select{flex:1;min-width:0;background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:12px;
+    padding:13px 12px;font-size:14px;outline:none;-webkit-appearance:none;min-height:48px;}
+  .ps-row select option{color:#17211D;}
+  #libPickBar{font-size:13px;color:rgba(255,255,255,.72);margin:8px 2px 2px;line-height:1.5;}
 
   /* 指定素材列 */
-  .wslib{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 2px 10px;font-size:12px;color:var(--ink-soft);}
+  .wslib{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:0 2px 12px;font-size:13px;color:var(--ink-soft);}
   .wslib .ttl{font-weight:700;color:var(--ink-faint);}
-  .wslib .f{display:inline-flex;align-items:center;gap:4px;background:rgba(31,138,114,.1);
-    border:1px solid rgba(31,138,114,.3);color:#1F8A72;border-radius:16px;padding:4px 10px;font-weight:600;}
+  .wslib .f{display:inline-flex;align-items:center;gap:5px;background:rgba(31,138,114,.1);
+    border:1px solid rgba(31,138,114,.3);color:#1F8A72;border-radius:16px;padding:7px 12px;font-weight:600;}
 </style>
 </head>
 <body>
@@ -361,10 +390,11 @@
   <!-- HOME -->
   <section id="view-home" class="view active">
     <div class="pipeline">
-      <div class="pl-title">🚀 一鍵跑完整套網路經營</div>
-      <div class="pl-sub">三個部門依序接力：內容創作 → 點評實戰 → 邀約陪跑，一次產出可直接用的網路經營素材。主題可留空。</div>
-      <textarea id="pipeInput" placeholder="（可留空）今天主題，例如：用氣血戰場觀念在朋友圈經營保養意識"></textarea>
+      <div class="pl-title">🚀 一鍵跑完整套（多平台）</div>
+      <div class="pl-sub">三個部門輪流接力：內容創作 → 點評實戰 → 邀約陪跑，最後自動統整成一篇可直接發布的成品文章。主題可留空。</div>
+      <textarea id="pipeInput" placeholder="（可留空）今天主題，例如：用氣血戰場觀念在 Instagram／Threads 經營保養意識"></textarea>
       <div id="pipeSteps"></div>
+      <div class="pl-plat" id="pipePlatBar"></div>
       <div id="libPickBar"></div>
       <button class="pl-run" id="pipeBtn" onclick="runAllDepartments()">▶ 一鍵跑完整套（全自動）</button>
       <div id="pipeProgress"></div>
@@ -427,10 +457,12 @@
 
     <div class="preset-wrap" id="presetWrap"></div>
 
+    <div class="plat-bar" id="platBar"></div>
+
     <div id="wsLibBar"></div>
 
     <div class="input-card">
-      <textarea id="taskInput" placeholder="交辦這個部門要做的事…例如：用氣血戰場比喻寫一篇朋友圈衛教貼文"></textarea>
+      <textarea id="taskInput" placeholder="交辦這個部門要做的事…例如：用氣血戰場比喻寫一支 TikTok 短影音腳本"></textarea>
       <div class="files" id="fileList"></div>
       <div class="input-actions">
         <label class="attach">📎 加檔案
@@ -506,25 +538,25 @@
 <script>
 /* ============ 預設資料 ============ */
 const DEFAULTS = {
-  schema:4,
+  schema:6,
   title:"彥彬 健康戰役經營台",
-  context:"我主軸是『經營網路』（朋友圈／社群／短影音）來分享健康，品牌觀念是大春之道：讓每個家庭都有一個懂健康的人。全程先教育、先建立信任與關係，不推銷、不賣產品、不誇大療效，再自然邀請。\n【核心故事主軸：健康戰役】身體各器官像戰場，每天和病毒、代謝廢物作戰；氣血像把糧食武器（營養）送到前線的運輸車，氣是動力（汽油）、血是營養；車上的垃圾＝血脂黏稠，道路＝微循環，寒涼濕氣像冰雪嚴寒讓前線失守。氣血不足→前線吃不飽→戰力下降；寒涼路徑是『涼→疼→麻→大病』。身體的小症狀是求救信號（像兩個哭泣的孩子、像儀表板警示燈），要補氣血、改習慣，而不是讓身體閉嘴。\n【經營手法】用健康戰役的比喻與故事創作內容吸引人，再用『點評（不是點讚）』真誠互動建立關係，最後自然邀約一起學健康／陪跑。\n【口吻】溫暖像家人、台灣用語、真誠具體、利他，不說教、不嚇唬。\n【法規】嚴守台灣《食安法》：不得宣稱療效、根治、醫療效能、不得叫人停藥、不用絕對誇大用語。",
+  context:"我主軸是經營台灣的五大網路平台來分享健康：TikTok、Instagram、Threads、YouTube、Line。品牌觀念是大春之道：讓每個家庭都有一個懂健康的人。全程先教育、先建立信任與關係，不推銷、不賣產品、不誇大療效，再自然邀請。\n【核心故事主軸：健康戰役】身體各器官像戰場，每天和病毒、代謝廢物作戰；氣血像把糧食武器（營養）送到前線的運輸車，氣是動力（汽油）、血是營養；車上的垃圾＝血脂黏稠，道路＝微循環，寒涼濕氣像冰雪嚴寒讓前線失守。氣血不足→前線吃不飽→戰力下降；寒涼路徑是『涼→疼→麻→大病』。身體的小症狀是求救信號（像兩個哭泣的孩子、像儀表板警示燈），要補氣血、改習慣，而不是讓身體閉嘴。\n【各平台調性】TikTok／YouTube Shorts：短影音腳本（前 3 秒鉤子、口白、字幕）；Instagram：圖文貼文＋限動；Threads：短文、引發討論；YouTube：影片腳本／長文案；Line：圖文訊息、好友／群組分享。\n【口吻】台灣用語、溫暖像家人、真誠具體、利他，不說教、不嚇唬。\n【法規】嚴守台灣《食安法》：不得宣稱療效、根治、醫療效能、不得叫人停藥、不用絕對誇大用語。",
   apiKey:"",
   model:"gpt-4o-mini",
   autoAnalyze:true,
   departments:[
     { id:"content", name:"內容創作部", emoji:"✍️", accent:"#C7902B", varName:"--c-collect",
-      tagline:"健康戰役 · 經營網路內容",
-      role:"你是『內容創作部』，負責經營網路的內容。用『健康戰役／氣血戰場』的比喻與故事（運輸車＝氣血、戰場＝器官、寒涼＝冰雪嚴寒、兩個哭泣的孩子、涼→疼→麻→大病）創作朋友圈／社群貼文、限動、短影音腳本、圖文大綱。先教育、先給價值、有畫面、引發共鳴，結尾可帶一句溫和互動邀請，不推銷、不誇大療效、不違規。一次可給 2–3 個版本。",
-      presets:["用氣血戰場比喻寫一篇朋友圈衛教貼文","用兩個孩子哭的故事寫一篇有感貼文","排一週朋友圈內容主題（健康戰役）","把這份素材改寫成短影音腳本"] },
+      tagline:"健康戰役 · 五大平台",
+      role:"你是『內容創作部』，為台灣的 TikTok、Instagram、Threads、YouTube、Line 創作健康內容。用『健康戰役／氣血戰場』的比喻與故事（運輸車＝氣血、戰場＝器官、寒涼＝冰雪嚴寒、兩個哭泣的孩子、涼→疼→麻→大病）。依平台調整格式：短影音給腳本（前 3 秒鉤子＋口白＋字幕＋主題標籤）、Instagram 給圖文與限動、Threads 給引發討論的短文、YouTube 給影片腳本、Line 給好友／群組分享訊息。先教育、有畫面、台灣用語，結尾可帶溫和互動，不推銷、不誇大療效。",
+      presets:["用氣血戰場比喻寫一支 TikTok／YT Shorts 短影音腳本","寫一篇 Instagram 衛教圖文（6 頁）＋限動文案","寫一則 Threads 引發討論的短貼文","寫一則 Line 好友／群組的健康分享訊息","排一週 Instagram／Threads／TikTok 內容主題（健康戰役）"] },
     { id:"review", name:"點評實戰部", emoji:"💬", accent:"#1F8A72", varName:"--c-integrate",
       tagline:"點評不是點讚 · 經營關係",
-      role:"你是『點評實戰部』，依點評實戰話術協助經營網路關係。核心：點評不是點讚。點評公式＝用心感受對方貼文＋這條吸引你的地方＋你是否做過類似的事。針對不同對象給真誠、具體（要有時間／地點／人物／事件）的點評與能量語言：朋友圈點評、常規式／寒暄式／辛苦式／道歉式點評；新顧客（感謝＋為什麼）、老顧客（信任＋未來）、流失顧客（經歷＋道歉＋一起學習）、轉介紹顧客（點評介紹人＋點評本人＋我的態度）、夥伴（放大優點、抓正面）。語氣真誠利他、不推銷、不誇大。",
-      presets:["幫我寫一則對某朋友圈的真誠點評","寫新顧客的感謝能量語言（線上沒店面）","寫流失顧客的道歉式點評話術","寫轉介紹顧客的點評＋老顧客的感謝話術"] },
+      role:"你是『點評實戰部』，依點評實戰話術協助經營網路關係，用在 Instagram／Threads（Threads）的留言互動與 Line 私訊。核心：點評不是點讚。點評公式＝用心感受對方貼文＋這條吸引你的地方＋你是否做過類似的事。針對不同對象給真誠、具體（要有時間／地點／人物／事件）的點評與能量語言：一般留言、寒暄式、點評對方的辛苦、道歉式；新顧客（感謝＋為什麼）、老顧客（信任＋未來）、流失顧客（經歷＋道歉＋一起學習）、轉介紹（點評介紹人＋點評本人＋我的態度）、夥伴（放大優點、抓正面）。台灣用語、真誠利他、不推銷。",
+      presets:["幫我寫一則對某 Instagram／Threads貼文的真誠留言點評","寫新朋友的感謝能量語言（Line 私訊、沒店面）","寫流失顧客的道歉式訊息（Line）","寫轉介紹＋老顧客的感謝點評話術"] },
     { id:"invite", name:"邀約陪跑部", emoji:"🤝", accent:"#2E6FB0", varName:"--c-develop",
       tagline:"自然邀約 · 一起學健康",
-      role:"你是『邀約陪跑部』，在內容與點評建立的信任之上，把線上互動自然延伸成邀約：邀請對方一起學健康、加入陪跑學習、成為家裡懂健康的人。話術以理念、陪伴、利他為主，給對方低門檻的下一步（先一起學一個小課程／小故事），不施壓、不推銷感、符合法規。",
-      presets:["把一段點評互動自然延伸成邀約","寫一段陪跑營邀請（純公益不推銷）","寫『成為懂健康的人』的溫暖邀約","三種柔性回應：沒時間／怕推銷／沒興趣"] }
+      role:"你是『邀約陪跑部』，在內容與點評建立的信任之上，透過 Line／Instagram 私訊把互動自然延伸成邀約：邀請對方一起學健康、加入陪跑學習、成為家裡懂健康的人。話術以理念、陪伴、利他為主，給對方低門檻的下一步（先一起學一個小課程／小故事），台灣用語、不施壓、不推銷感、符合法規。",
+      presets:["把一段 Instagram／Threads留言互動延伸成 Line 邀約","寫一段陪跑營邀請（Line 私訊、純公益）","寫『成為懂健康的人』的溫暖邀約","三種柔性回應：沒時間／怕推銷／沒興趣"] }
   ],
   tasks:[],  // {id, deptId, deptName, accent, input, output, time, fromDept}
   library:[] // {id, name, kind:'text'|'image', content, url, active, size}
@@ -536,6 +568,22 @@ let current = null;        // 目前部門 id
 let pendingFiles = [];     // {name, type, content/url, isImage}
 let handoffFrom = null;    // {deptName, output}
 let running = false;       // 防止重複執行
+const PLATFORMS=[
+  {k:"tiktok",   label:"TikTok",   tip:"請輸出 TikTok 短影音腳本：前 3 秒要有強鉤子、口語節奏快、附口白與字幕、結尾一句行動呼籲，再給 3–5 個主題標籤。"},
+  {k:"instagram",label:"Instagram",tip:"請輸出 Instagram 內容：圖文貼文文案（可分頁）＋一則限動文案，視覺優先、精簡有共鳴，附 5–8 個相關主題標籤。"},
+  {k:"threads",  label:"Threads",  tip:"請輸出 Threads 短文：像聊天、口語、引發討論或共鳴，可拆成 2–3 則串文。"},
+  {k:"youtube",  label:"YouTube",  tip:"請輸出 YouTube 影片腳本／大綱：開場 15 秒留人、分章節、口白順、結尾導訂閱與下一支。"},
+  {k:"line",     label:"Line",     tip:"請輸出 Line 訊息：像一對一傳給朋友，親切、簡短、可直接複製傳送，不像廣告。"}
+];
+let currentPlatform="tiktok";
+function platTip(k){ const p=PLATFORMS.find(x=>x.k===k); return p?p.tip:""; }
+function platLabel(k){ const p=PLATFORMS.find(x=>x.k===k); return p?p.label:"全平台"; }
+function renderPlatBar(){
+  const bar=document.getElementById("platBar"); if(!bar) return;
+  bar.innerHTML='<span class="plat-lbl">目標平台</span>'+PLATFORMS.map(p=>
+    `<button class="plat-chip ${p.k===currentPlatform?'on':''}" onclick="selectPlatform('${p.k}')">${p.label}</button>`).join("");
+}
+function selectPlatform(k){ currentPlatform=k; renderPlatBar(); }
 const MAX_FILE_CHARS = 12000;   // 單一檔案上限
 const MAX_TOTAL_CHARS = 36000;  // 全部附件合計上限（避免超過模型上限）
 const MAX_CHAIN_CHARS = 2500;   // 串聯時帶給下一部門的素材上限
@@ -635,12 +683,18 @@ function renderPipeSteps(){
       <select id="pstep-${i}">${opts}</select>
     </div>`;
   }).join("");
+  // 平台列
+  const pb=document.getElementById("pipePlatBar");
+  if(pb){ pb.innerHTML='<span class="plat-lbl">目標平台</span>'+PLATFORMS.map(p=>
+    `<button class="plat-chip ${p.k===pipePlatform?'on':''}" onclick="selectPipePlatform('${p.k}')">${p.label}</button>`).join(""); }
   // libPickBar
   const lp=document.getElementById("libPickBar");
   const act=state.library.filter(x=>x.active);
   lp.innerHTML = act.length? `📎 已指定素材：${act.map(x=>esc(x.name)).join("、")}（會自動帶入每個部門）`
     : `📎 尚未指定素材，可到下方「素材庫」勾選常用檔案。`;
 }
+let pipePlatform="tiktok";
+function selectPipePlatform(k){ pipePlatform=k; renderPipeSteps(); }
 function getIdByName(name){ const d=state.departments.find(x=>x.name===name); return d?d.id:""; }
 function hexA(hex,a){ const n=hex.replace("#",""); const r=parseInt(n.slice(0,2),16),g=parseInt(n.slice(2,4),16),b=parseInt(n.slice(4,6),16); return `rgba(${r},${g},${b},${a})`; }
 
@@ -665,6 +719,7 @@ function openDept(id){
   // 範例詞
   const pw=document.getElementById("presetWrap");
   pw.innerHTML=(d.presets||[]).map(p=>`<button class="preset-chip" onclick="usePreset(this)">${esc(p)}</button>`).join("");
+  currentPlatform="tiktok"; renderPlatBar();
   renderWsLib();
   renderHistory();
   openView("dept");
@@ -941,7 +996,7 @@ async function runTask(){
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>分析中';
 
   // 組 system
-  const sys = `你是「${state.title}」的部門 AI 助理。\n\n【公司共用背景】\n${state.context}\n\n【你的部門定位】\n${d.role}\n\n請務必用繁體中文（台灣用語）回覆，內容要可以直接拿去用。`;
+  const sys = `你是「${state.title}」的部門 AI 助理。\n\n【公司共用背景】\n${state.context}\n\n【你的部門定位】\n${d.role}\n\n【本次目標平台：${platLabel(currentPlatform)}】${platTip(currentPlatform)}\n\n請務必用繁體中文（台灣用語）回覆，內容要可以直接拿去用。`;
 
   // 組 user content
   let textPart = input || "請依你的部門定位，仔細閱讀下方附件內容，直接完成分析並產出可立即使用的成果。";
@@ -970,11 +1025,11 @@ async function runTask(){
 
 function clip(s,n){ s=s||""; return s.length>n? s.slice(0,n)+"…（已截取）" : s; }
 function buildSys(d){ return `你是「${state.title}」的部門 AI 助理。\n\n【公司共用背景】\n${state.context}\n\n【你的部門定位】\n${d.role}\n\n請務必用繁體中文（台灣用語）回覆，內容要可以直接拿去用。`; }
-async function callOpenAI(sys,userContent){
+async function callOpenAI(sys,userContent,maxTokens){
   const res=await fetch("https://api.openai.com/v1/chat/completions",{
     method:"POST",
     headers:{ "Content-Type":"application/json","Authorization":"Bearer "+state.apiKey },
-    body:JSON.stringify({ model:state.model, temperature:0.75, max_tokens:1800,
+    body:JSON.stringify({ model:state.model, temperature:0.75, max_tokens:maxTokens||1800,
       messages:[ {role:"system",content:sys}, {role:"user",content:userContent} ] })
   });
   if(!res.ok){
@@ -1008,9 +1063,11 @@ async function runAllDepartments(){
   const prog=document.getElementById("pipeProgress");
   const results=document.getElementById("pipeResults");
   results.innerHTML="";
-  prog.innerHTML=order.map((d,i)=>`<div class="pl-step" id="plstep-${i}"><span class="st">${i+1}</span>${esc(d.name)}</div>`).join("");
+  prog.innerHTML=order.map((d,i)=>`<div class="pl-step" id="plstep-${i}"><span class="st">${i+1}</span>${esc(d.name)}</div>`).join("")
+    +`<div class="pl-step" id="plstep-final"><span class="st">📄</span>統整成品文章</div>`;
 
   let prev="", prevName="", anyTrim=false;
+  const collected=[];
   try{
     for(let i=0;i<order.length;i++){
       const d=order[i];
@@ -1021,10 +1078,12 @@ async function runAllDepartments(){
       base+= stepTasks[i]
         ? `【你的任務】\n${stepTasks[i]}\n\n請完成並產出可直接使用的成果。`
         : `請以「${d.name}」的角色，完成你負責的部分，產出可直接使用的成果。`;
+      base+=`\n\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}`;
       // 帶入素材庫（每步預算小一點，避免重複放大）
       const built=buildUserContent(base, [], {totalChars:4000, fileChars:4000});
       if(built.trimmed) anyTrim=true;
       const out=await callOpenAI(buildSys(d), built.content);
+      collected.push({name:d.name, out});
 
       state.tasks.push({ id:Date.now()+i, deptId:d.id, deptName:d.name, accent:d.accent,
         input:`[一鍵運轉] ${stepTasks[i]||goal}`, output:out, time:Date.now(),
@@ -1035,8 +1094,21 @@ async function runAllDepartments(){
       step.classList.remove("run"); step.classList.add("done"); step.querySelector(".st").textContent="✓";
       prev=out; prevName=d.name;
     }
+
+    // ===== 最後統整成一篇成品文章 =====
+    const fstep=document.getElementById("plstep-final"); fstep.classList.add("run");
+    const editorSys=`你是「${state.title}」的主編。請把三個部門（內容創作、點評實戰、邀約陪跑）的產出，統整成一份我可以『直接發布／直接使用』的完整成品。\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}\n【要求】保留健康戰役主軸與台灣用語；先教育、不推銷、不誇大療效、不違規；輸出乾淨、條理清楚、可直接複製貼上；不要出現部門名稱或製作過程說明；把『貼文內容、可搭配的留言互動、最後的邀約』自然編排在一起。`;
+    let comp=`【本次主題】\n${goal||"（依下方素材判斷）"}\n\n`;
+    collected.forEach(c=> comp+=`【${c.name} 的產出】\n${clip(c.out,1600)}\n\n`);
+    comp+="請統整成最終成品文章。";
+    const finalOut=await callOpenAI(editorSys, comp, 2600);
+    state.tasks.push({ id:Date.now()+99, deptId:"final", deptName:"統整成品", accent:"#1A1D29",
+      input:`[統整成品] ${goal||"一鍵運轉"}`, output:finalOut, time:Date.now(), fromDept:"三部門" });
+    results.insertAdjacentHTML("afterbegin", finalCard(finalOut));
+    fstep.classList.remove("run"); fstep.classList.add("done"); fstep.querySelector(".st").textContent="✓";
+
     save(); renderHome();
-    if(anyTrim) toast("素材過長已自動截取；整套流程已完成"); else toast("整套流程已完成");
+    if(anyTrim) toast("素材過長已自動截取；成品文章已完成"); else toast("成品文章已完成");
     results.scrollIntoView({behavior:"smooth",block:"start"});
   }catch(err){
     results.insertAdjacentHTML("beforeend",
@@ -1056,6 +1128,13 @@ function resultCard(d,out){
 function copyText(btn){
   const txt=btn.closest(".output-card").querySelector(".output-body").textContent;
   navigator.clipboard.writeText(txt).then(()=>toast("已複製"));
+}
+function finalCard(out){
+  return `<div class="output-card final-card">
+    <div class="oc-head final-head">📄 統整成品文章 · 可直接使用</div>
+    <div class="output-body">${esc(out)}</div>
+    <div class="oc-actions"><button class="mini" onclick="copyText(this)">📋 複製整篇</button></div>
+  </div>`;
 }
 
 function renderOutput(out, d){
