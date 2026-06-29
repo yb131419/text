@@ -64,17 +64,20 @@
   }
   .title-edit:focus{border-bottom-color:rgba(255,255,255,.4);}
   .gear{
-    width:48px;height:48px;border-radius:15px;flex:0 0 auto;
-    background:rgba(255,255,255,.13);display:grid;place-items:center;font-size:21px;
-    transition:background .15s,transform .1s;
+    width:46px;height:46px;border-radius:14px;flex:0 0 auto;
+    background:rgba(255,255,255,.13);display:grid;place-items:center;
+    transition:background .15s,transform .1s;color:#fff;
   }
+  .gear svg,.hdr-toggle svg{width:23px;height:23px;display:block;}
   .gear:active{background:rgba(255,255,255,.26);transform:scale(.94);}
   .hdr-toggle{
-    width:48px;height:48px;border-radius:15px;flex:0 0 auto;
-    background:rgba(255,255,255,.13);display:grid;place-items:center;font-size:18px;color:#fff;
+    width:46px;height:46px;border-radius:14px;flex:0 0 auto;
+    background:rgba(255,255,255,.13);display:grid;place-items:center;color:#fff;
     transition:background .15s,transform .1s;
   }
   .hdr-toggle:active{background:rgba(255,255,255,.26);transform:scale(.94);}
+  .chev-ic{transition:transform .2s;}
+  .topbar.min .chev-ic{transform:rotate(180deg);}
   /* 收合標題列 */
   .topbar.min{padding:8px 16px;border-radius:0 0 18px 18px;}
   .topbar.min .brand-tag,.topbar.min .status-line,.topbar.min .title-edit{display:none;}
@@ -315,12 +318,22 @@
   .pl-step.done .st{background:#4ED9A0;color:var(--ink);}
   .pl-step.run .st{background:#fff;color:var(--ink);}
 
+  /* 運作流程圖 */
+  .flow-strip{display:flex;align-items:flex-start;gap:4px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;}
+  .flow-strip::-webkit-scrollbar{display:none;}
+  .flow-node{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:74px;text-align:center;}
+  .flow-node:active{transform:scale(.95);}
+  .flow-ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:25px;box-shadow:var(--shadow);}
+  .flow-name{font-size:12px;font-weight:700;color:var(--ink-soft);line-height:1.25;}
+  .flow-arrow{flex:0 0 auto;align-self:center;color:var(--ink-faint);font-size:18px;margin-top:14px;}
+
   /* 範例詞 */
   .preset-wrap{display:flex;gap:9px;overflow-x:auto;padding:0 2px 12px;scrollbar-width:none;}
   .preset-wrap::-webkit-scrollbar{display:none;}
   .preset-chip{flex:0 0 auto;font-size:13.5px;font-weight:600;padding:11px 16px;border-radius:22px;min-height:44px;
     background:var(--paper-2);border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap;box-shadow:var(--shadow);}
   .preset-chip:active{background:var(--paper);transform:scale(.96);}
+  .ps-emo{font-size:17px;}
 
   /* 目標平台切換 */
   .plat-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 2px 14px;}
@@ -344,6 +357,19 @@
   /* 統整成品文章 */
   .final-card{border:2px solid var(--ink);box-shadow:var(--shadow-lg);}
   .final-head{background:var(--ink);color:#fff;font-size:14px;font-weight:800;letter-spacing:.5px;}
+
+  /* 成品庫 */
+  .results-entry .le-ic{background:rgba(46,111,176,.14);color:#2E6FB0;}
+  .res-item{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+  .res-top{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+  .res-plat{font-size:11.5px;font-weight:800;letter-spacing:.5px;color:#fff;background:#2E6FB0;
+    padding:4px 11px;border-radius:20px;}
+  .res-time{font-size:12px;color:var(--ink-faint);}
+  .res-goal{font-size:13.5px;font-weight:700;color:var(--ink-soft);margin-bottom:8px;}
+  .res-out{font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word;
+    -webkit-line-clamp:5;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden;}
+  .res-out.full{-webkit-line-clamp:unset;display:block;}
 
   /* 素材庫入口 */
   .lib-entry{display:flex;align-items:center;gap:15px;background:var(--paper-2);border:1px solid var(--line);
@@ -397,8 +423,12 @@
     <div class="row" style="margin-top:4px;">
       <span class="mini-title" id="miniTitle">彥彬 健康戰役經營台</span>
       <input id="titleInput" class="title-edit" value="彥彬 健康戰役經營台" maxlength="20" spellcheck="false">
-      <button class="hdr-toggle" onclick="toggleHeader()" id="hdrToggle" aria-label="收合標題">▴</button>
-      <button class="gear" onclick="openView('settings')" aria-label="設定">⚙︎</button>
+      <button class="hdr-toggle" onclick="toggleHeader()" id="hdrToggle" aria-label="收合標題">
+        <svg class="chev-ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+      </button>
+      <button class="gear" onclick="openView('settings')" aria-label="設定">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
     </div>
     <div class="status-line">
       <span class="dot" id="keyDot"></span>
@@ -420,6 +450,15 @@
     </div>
     <div id="pipeResults"></div>
 
+    <div class="lib-entry results-entry" onclick="openResults()">
+      <div class="le-ic" style="background:rgba(46,111,176,.14);color:#2E6FB0">📦</div>
+      <div class="le-meta">
+        <div class="le-name">成品庫</div>
+        <div class="le-sub" id="resSummary">一鍵流程的成品都會永久收存在這裡</div>
+      </div>
+      <span class="chev">›</span>
+    </div>
+
     <div class="lib-entry" onclick="openLibrary()">
       <div class="le-ic">📁</div>
       <div class="le-meta">
@@ -430,11 +469,20 @@
     </div>
 
     <div class="chain-wrap">
-      <div class="section-label">流程串聯 · 最近接力</div>
+      <div class="section-label">運作流程（點任一站可進入）</div>
       <div id="chainBox"></div>
     </div>
     <div class="section-label">三大部門（可單獨執行）</div>
     <div id="deptList"></div>
+  </section>
+
+  <!-- RESULTS 成品庫 -->
+  <section id="view-results" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-title"><h2>📦 成品庫</h2><p>一鍵流程的成品永久保存於此</p></div>
+    </div>
+    <div id="resList"></div>
   </section>
 
   <!-- LIBRARY -->
@@ -658,22 +706,20 @@ function openView(v){
 
 /* ============ Home ============ */
 function renderHome(){
-  // 任務鏈
+  // 流程圖：內容創作 → 點評實戰 → 邀約陪跑 → 成品
   const box=document.getElementById("chainBox");
-  const links = state.tasks.filter(t=>t.fromDept).slice(-6);
-  if(links.length===0){
-    box.innerHTML='<div class="chain-empty">用上方「一鍵跑完整套」或在任一部門按「交辦給」，這裡就會顯示流程串聯路線。</div>';
-  }else{
-    box.innerHTML='<div class="chain-scroll">'+links.map(t=>{
-      const a=dept(getIdByName(t.fromDept))||{accent:"#999"};
-      const b=dept(t.deptId)||{accent:"#999"};
-      return `<div class="chain-item">
-        <span class="chip"><span class="pin" style="background:${a.accent}"></span>${esc(t.fromDept)}</span>
-        <span class="arrow">→</span>
-        <span class="chip"><span class="pin" style="background:${b.accent}"></span>${esc(t.deptName)}</span>
-      </div>`;
-    }).join("")+'</div>';
-  }
+  const flow = state.departments.map(d=>
+    `<div class="flow-node" style="--fc:${d.accent}" onclick="openDept('${d.id}')">
+       <div class="flow-ic" style="background:${hexA(d.accent,.14)};color:${d.accent}">${d.emoji}</div>
+       <div class="flow-name">${esc(d.name)}</div>
+     </div>`
+  ).join('<div class="flow-arrow">→</div>');
+  const finalNode = `<div class="flow-arrow">→</div>
+    <div class="flow-node" onclick="openResults()">
+      <div class="flow-ic" style="background:rgba(46,111,176,.14);color:#2E6FB0">📦</div>
+      <div class="flow-name">成品庫</div>
+    </div>`;
+  box.innerHTML=`<div class="flow-strip">${flow}${finalNode}</div>`;
   // 部門列表
   const list=document.getElementById("deptList");
   list.innerHTML = state.departments.map(d=>{
@@ -691,15 +737,16 @@ function renderHome(){
   }).join("");
   renderPipeSteps();
   updateLibSummary();
+  updateResSummary();
   updateKeyStatus();
 }
 function renderPipeSteps(){
   const box=document.getElementById("pipeSteps"); if(!box) return;
   box.innerHTML=state.departments.map((d,i)=>{
-    const opts=(d.presets||[]).map((p,j)=>`<option value="${j}">${esc(p)}</option>`).join("")
-      +`<option value="-1">（用部門預設方式處理）</option>`;
+    const opts=`<option value="-1">✨ 依「${esc(d.name)}」專長自動發揮</option>`
+      +(d.presets||[]).map((p,j)=>`<option value="${j}">${esc(p)}</option>`).join("");
     return `<div class="ps-row">
-      <span class="ps-tagn"><span class="pin" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${d.accent}"></span>${esc(d.name)}</span>
+      <span class="ps-tagn"><span class="ps-emo">${d.emoji}</span>${esc(d.name)}</span>
       <select id="pstep-${i}">${opts}</select>
     </div>`;
   }).join("");
@@ -710,7 +757,7 @@ function renderPipeSteps(){
   // libPickBar
   const lp=document.getElementById("libPickBar");
   const act=state.library.filter(x=>x.active);
-  lp.innerHTML = act.length? `📎 已指定素材：${act.map(x=>esc(x.name)).join("、")}（會自動帶入每個部門）`
+  lp.innerHTML = act.length? `📎 已指定素材：${act.map(x=>esc(x.name)).join("、")}（會自動帶入各部門）`
     : `📎 尚未指定素材，可到下方「素材庫」勾選常用檔案。`;
 }
 let pipePlatform="all";
@@ -920,6 +967,50 @@ async function parseFile(f){
   }
   const text=await readAs(f,"text");
   return {name:f.name,isImage:false,kind:"text",content:text,size:text.length};
+}
+
+/* ============ 成品庫 ============ */
+function openResults(){ renderResults(); openView("results"); }
+function finalTasks(){ return state.tasks.filter(t=>t.deptId==="final").slice().reverse(); }
+function updateResSummary(){
+  const el=document.getElementById("resSummary"); if(!el) return;
+  const n=finalTasks().length;
+  el.textContent = n===0 ? "一鍵流程的成品都會永久收存在這裡" : `已收存 ${n} 篇成品（永久保存）`;
+}
+function renderResults(){
+  const box=document.getElementById("resList");
+  const items=finalTasks();
+  if(items.length===0){
+    box.innerHTML='<div class="chain-empty">還沒有成品。到首頁按「一鍵跑完整套」，完成的成品就會自動收存在這裡，關掉手機也不會不見。</div>';
+    updateResSummary(); return;
+  }
+  box.innerHTML=items.map(t=>`<div class="res-item" data-id="${t.id}">
+    <div class="res-top">
+      <span class="res-plat">${esc(t.platform||"成品")}</span>
+      <span class="res-time">${timeStr(t.time)}</span>
+    </div>
+    <div class="res-goal">${esc((t.input||"").replace(/^\[成品\]\s*/,""))}</div>
+    <div class="res-out" id="resout-${t.id}">${esc(t.output)}</div>
+    <div class="hi-actions">
+      <button class="hi-btn" onclick="toggleResExpand(${t.id},this)">展開全文</button>
+      <button class="hi-btn" onclick="copyResult(${t.id})">📋 複製整篇</button>
+      <button class="hi-btn del" onclick="deleteResult(${t.id})">刪除</button>
+    </div>
+  </div>`).join("");
+  updateResSummary();
+}
+function toggleResExpand(id,btn){
+  const el=document.getElementById("resout-"+id);
+  const open=el.classList.toggle("full"); btn.textContent=open?"收合":"展開全文";
+}
+function copyResult(id){
+  const t=state.tasks.find(x=>x.id===id); if(!t) return;
+  navigator.clipboard.writeText(t.output).then(()=>toast("已複製，可直接貼文"));
+}
+function deleteResult(id){
+  if(!confirm("刪除這篇成品？")) return;
+  state.tasks=state.tasks.filter(x=>x.id!==id); save(); renderResults(); renderHome();
+  toast("已刪除");
 }
 
 /* ============ 素材庫 ============ */
@@ -1171,18 +1262,19 @@ async function runAllDepartments(){
 
     // ===== 最後統整成一篇成品文章 =====
     const fstep=document.getElementById("plstep-final"); fstep.classList.add("run");
-    const editorSys=`你是「${state.title}」的主編。請把以下 ${order.length} 個部門（${order.map(d=>d.name).join("、")}）的產出，統整成一份我可以『直接發布／直接使用』的完整成品。\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}\n【要求】保留健康戰役主軸與台灣用語；先教育、不推銷、不誇大療效、不違規；輸出乾淨、條理清楚、可直接複製貼上；不要出現部門名稱或製作過程說明；把『貼文內容、可搭配的留言互動、最後的邀約』自然編排在一起。`;
+    const editorSys=`你是「${state.title}」的社群主編與貼文優化師。請把以下 ${order.length} 個部門（${order.map(d=>d.name).join("、")}）的產出，統整＋優化成『可以直接複製貼上、馬上發布』的成品貼文。\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}\n【優化要求】\n- 每篇都要可直接貼，不需我再改：含吸睛開頭鉤子、易讀分段（善用換行與表情符號但別過量）、自然的行動呼籲，平台合適的主題標籤。\n- 若為全平台，請依平台分段，每段最前面用【平台名稱】標示，彼此之間用一行「— — —」分隔，方便我分平台複製。\n- 保留健康戰役主軸與台灣用語；先教育、不推銷、不誇大療效、不違規。\n- 把『貼文正文、可搭配的留言互動、最後的邀約』自然編排好。\n- 只輸出成品本身，不要出現部門名稱、過程說明或開場白。`;
     let comp=`【本次主題】\n${goal||"（依下方素材判斷）"}\n\n`;
     collected.forEach(c=> comp+=`【${c.name} 的產出】\n${clip(c.out,1600)}\n\n`);
-    comp+="請統整成最終成品文章。";
-    const finalOut=await callOpenAI(editorSys, comp, 2600);
+    comp+="請統整並優化成可直接發布的最終成品貼文。";
+    const finalOut=await callOpenAI(editorSys, comp, pipePlatform==="all"?3200:2600);
     state.tasks.push({ id:Date.now()+99, deptId:"final", deptName:"統整成品", accent:"#1A1D29",
-      input:`[統整成品] ${goal||"一鍵運轉"}`, output:finalOut, time:Date.now(), fromDept:"三部門" });
+      input:`[成品] ${goal||"一鍵運轉"}`, output:finalOut, time:Date.now(),
+      fromDept:"三部門", platform:platLabel(pipePlatform) });
     results.insertAdjacentHTML("afterbegin", finalCard(finalOut));
     fstep.classList.remove("run"); fstep.classList.add("done"); fstep.querySelector(".st").textContent="✓";
 
     save(); renderHome();
-    if(anyTrim) toast("素材過長已自動截取；成品文章已完成"); else toast("成品文章已完成");
+    if(anyTrim) toast("素材過長已自動截取；成品已完成並存入成品庫"); else toast("成品已完成並存入成品庫");
     results.scrollIntoView({behavior:"smooth",block:"start"});
   }catch(err){
     results.insertAdjacentHTML("beforeend",
@@ -1282,15 +1374,13 @@ document.getElementById("titleInput").addEventListener("keydown",e=>{ if(e.key==
 
 function toggleHeader(){
   const tb=document.getElementById("topbar");
-  const min=tb.classList.toggle("min");
-  document.getElementById("hdrToggle").textContent=min?"▾":"▴";
-  state.headerMin=min; save();
+  state.headerMin=tb.classList.toggle("min"); save();
 }
 
 /* ============ 啟動 ============ */
 document.getElementById("titleInput").value=state.title;
 document.getElementById("miniTitle").textContent=state.title;
-if(state.headerMin){ document.getElementById("topbar").classList.add("min"); document.getElementById("hdrToggle").textContent="▾"; }
+if(state.headerMin){ document.getElementById("topbar").classList.add("min"); }
 renderHome();
 </script>
 </body>
