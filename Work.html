@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI 一人公司</title>
+<title>AI 集團</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";}</script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
@@ -376,7 +376,7 @@
 
   <!-- Header -->
   <header class="topbar">
-    <div class="brand-tag">AI ONE-PERSON COMPANY</div>
+    <div class="brand-tag">AI 集團 · GROUP</div>
     <div class="row" style="margin-top:4px;">
       <input id="titleInput" class="title-edit" value="彥彬 健康戰役經營台" maxlength="20" spellcheck="false">
       <button class="gear" onclick="openView('settings')" aria-label="設定">⚙︎</button>
@@ -569,13 +569,14 @@ let pendingFiles = [];     // {name, type, content/url, isImage}
 let handoffFrom = null;    // {deptName, output}
 let running = false;       // 防止重複執行
 const PLATFORMS=[
+  {k:"all",      label:"全平台",   tip:"請分別為 TikTok、Instagram、Threads、YouTube、Line 五個平台各產出一個版本，每個版本前面用【平台名稱】標明，並依該平台調性調整（短影音腳本／圖文限動／串文／影片腳本／Line 訊息）。"},
   {k:"tiktok",   label:"TikTok",   tip:"請輸出 TikTok 短影音腳本：前 3 秒要有強鉤子、口語節奏快、附口白與字幕、結尾一句行動呼籲，再給 3–5 個主題標籤。"},
   {k:"instagram",label:"Instagram",tip:"請輸出 Instagram 內容：圖文貼文文案（可分頁）＋一則限動文案，視覺優先、精簡有共鳴，附 5–8 個相關主題標籤。"},
   {k:"threads",  label:"Threads",  tip:"請輸出 Threads 短文：像聊天、口語、引發討論或共鳴，可拆成 2–3 則串文。"},
   {k:"youtube",  label:"YouTube",  tip:"請輸出 YouTube 影片腳本／大綱：開場 15 秒留人、分章節、口白順、結尾導訂閱與下一支。"},
   {k:"line",     label:"Line",     tip:"請輸出 Line 訊息：像一對一傳給朋友，親切、簡短、可直接複製傳送，不像廣告。"}
 ];
-let currentPlatform="tiktok";
+let currentPlatform="all";
 function platTip(k){ const p=PLATFORMS.find(x=>x.k===k); return p?p.tip:""; }
 function platLabel(k){ const p=PLATFORMS.find(x=>x.k===k); return p?p.label:"全平台"; }
 function renderPlatBar(){
@@ -693,7 +694,7 @@ function renderPipeSteps(){
   lp.innerHTML = act.length? `📎 已指定素材：${act.map(x=>esc(x.name)).join("、")}（會自動帶入每個部門）`
     : `📎 尚未指定素材，可到下方「素材庫」勾選常用檔案。`;
 }
-let pipePlatform="tiktok";
+let pipePlatform="all";
 function selectPipePlatform(k){ pipePlatform=k; renderPipeSteps(); }
 function getIdByName(name){ const d=state.departments.find(x=>x.name===name); return d?d.id:""; }
 function hexA(hex,a){ const n=hex.replace("#",""); const r=parseInt(n.slice(0,2),16),g=parseInt(n.slice(2,4),16),b=parseInt(n.slice(4,6),16); return `rgba(${r},${g},${b},${a})`; }
@@ -719,7 +720,7 @@ function openDept(id){
   // 範例詞
   const pw=document.getElementById("presetWrap");
   pw.innerHTML=(d.presets||[]).map(p=>`<button class="preset-chip" onclick="usePreset(this)">${esc(p)}</button>`).join("");
-  currentPlatform="tiktok"; renderPlatBar();
+  currentPlatform="all"; renderPlatBar();
   renderWsLib();
   renderHistory();
   openView("dept");
@@ -1006,7 +1007,7 @@ async function runTask(){
   const userContent=built.content;
 
   try{
-    const out=await callOpenAI(sys,userContent);
+    const out=await callOpenAI(sys,userContent,currentPlatform==="all"?3200:1800);
     const task={ id:Date.now(), deptId:current, deptName:d.name, accent:d.accent,
       input:input||"(附件處理)", output:out, time:Date.now(),
       fromDept:handoffFrom?handoffFrom.deptName:null };
@@ -1082,7 +1083,7 @@ async function runAllDepartments(){
       // 帶入素材庫（每步預算小一點，避免重複放大）
       const built=buildUserContent(base, [], {totalChars:4000, fileChars:4000});
       if(built.trimmed) anyTrim=true;
-      const out=await callOpenAI(buildSys(d), built.content);
+      const out=await callOpenAI(buildSys(d), built.content, pipePlatform==="all"?2600:1800);
       collected.push({name:d.name, out});
 
       state.tasks.push({ id:Date.now()+i, deptId:d.id, deptName:d.name, accent:d.accent,
@@ -1097,7 +1098,7 @@ async function runAllDepartments(){
 
     // ===== 最後統整成一篇成品文章 =====
     const fstep=document.getElementById("plstep-final"); fstep.classList.add("run");
-    const editorSys=`你是「${state.title}」的主編。請把三個部門（內容創作、點評實戰、邀約陪跑）的產出，統整成一份我可以『直接發布／直接使用』的完整成品。\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}\n【要求】保留健康戰役主軸與台灣用語；先教育、不推銷、不誇大療效、不違規；輸出乾淨、條理清楚、可直接複製貼上；不要出現部門名稱或製作過程說明；把『貼文內容、可搭配的留言互動、最後的邀約』自然編排在一起。`;
+    const editorSys=`你是「${state.title}」的主編。請把以下 ${order.length} 個部門（${order.map(d=>d.name).join("、")}）的產出，統整成一份我可以『直接發布／直接使用』的完整成品。\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}\n【要求】保留健康戰役主軸與台灣用語；先教育、不推銷、不誇大療效、不違規；輸出乾淨、條理清楚、可直接複製貼上；不要出現部門名稱或製作過程說明；把『貼文內容、可搭配的留言互動、最後的邀約』自然編排在一起。`;
     let comp=`【本次主題】\n${goal||"（依下方素材判斷）"}\n\n`;
     collected.forEach(c=> comp+=`【${c.name} 的產出】\n${clip(c.out,1600)}\n\n`);
     comp+="請統整成最終成品文章。";
@@ -1175,7 +1176,7 @@ function saveSettings(){
   state.apiKey=document.getElementById("apiKey").value.trim();
   state.model=document.getElementById("modelSel").value;
   state.autoAnalyze=document.getElementById("autoSet").checked;
-  state.title=document.getElementById("titleSet").value.trim()||"AI 一人公司";
+  state.title=document.getElementById("titleSet").value.trim()||"AI 集團";
   state.context=document.getElementById("contextSet").value.trim();
   save();
   document.getElementById("titleInput").value=state.title;
@@ -1200,7 +1201,7 @@ function updateKeyStatus(){
 
 /* ============ 標題即時編輯 ============ */
 document.getElementById("titleInput").addEventListener("change",e=>{
-  state.title=e.target.value.trim()||"AI 一人公司"; e.target.value=state.title; save();
+  state.title=e.target.value.trim()||"AI 集團"; e.target.value=state.title; save();
 });
 document.getElementById("titleInput").addEventListener("keydown",e=>{ if(e.key==="Enter") e.target.blur(); });
 
