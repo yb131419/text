@@ -69,6 +69,19 @@
     transition:background .15s,transform .1s;
   }
   .gear:active{background:rgba(255,255,255,.26);transform:scale(.94);}
+  .hdr-toggle{
+    width:48px;height:48px;border-radius:15px;flex:0 0 auto;
+    background:rgba(255,255,255,.13);display:grid;place-items:center;font-size:18px;color:#fff;
+    transition:background .15s,transform .1s;
+  }
+  .hdr-toggle:active{background:rgba(255,255,255,.26);transform:scale(.94);}
+  /* 收合標題列 */
+  .topbar.min{padding:8px 16px;border-radius:0 0 18px 18px;}
+  .topbar.min .brand-tag,.topbar.min .status-line,.topbar.min .title-edit{display:none;}
+  .topbar.min .row{margin-top:0!important;justify-content:flex-end;gap:8px;}
+  .topbar.min .mini-title{display:block;}
+  .mini-title{display:none;flex:1;font-size:15px;font-weight:800;color:#fff;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .status-line{
     margin-top:12px;font-size:12.5px;color:rgba(255,255,255,.62);
     display:flex;align-items:center;gap:7px;
@@ -286,8 +299,8 @@
   .pipeline{background:linear-gradient(165deg,#1F2C26 0%,#17211D 75%);color:#fff;border-radius:var(--radius);padding:22px;margin-bottom:18px;box-shadow:var(--shadow-lg);}
   .pl-title{font-size:19px;font-weight:800;letter-spacing:.5px;}
   .pl-sub{font-size:13px;color:rgba(255,255,255,.62);margin:6px 0 14px;line-height:1.55;}
-  .pipeline textarea{width:100%;min-height:72px;border:none;border-radius:14px;padding:14px;font-size:16px;
-    background:rgba(255,255,255,.1);color:#fff;outline:none;resize:vertical;line-height:1.55;}
+  .pipeline textarea{width:100%;min-height:120px;border:none;border-radius:14px;padding:15px;font-size:16px;
+    background:rgba(255,255,255,.1);color:#fff;outline:none;resize:vertical;line-height:1.6;}
   .pipeline textarea::placeholder{color:rgba(255,255,255,.45);}
   .pl-run{width:100%;margin-top:14px;padding:0;min-height:58px;border-radius:16px;background:#fff;color:var(--ink);
     font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:9px;
@@ -349,6 +362,10 @@
   .lib-item .li-ic{font-size:23px;flex:0 0 auto;}
   .lib-item .li-meta{flex:1;min-width:0;}
   .lib-item .li-name{font-size:14.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .li-row{margin-top:6px;}
+  .li-dept{font-size:12.5px;font-weight:600;color:var(--ink-soft);background:var(--paper);
+    border:1px solid var(--line);border-radius:10px;padding:7px 9px;outline:none;max-width:160px;}
+  .li-class{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-faint);font-weight:600;}
   .lib-item .li-size{font-size:12px;color:var(--ink-faint);margin-top:2px;}
   .lib-toggle{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink-soft);
     padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);flex:0 0 auto;min-height:44px;}
@@ -375,10 +392,12 @@
 <div class="app">
 
   <!-- Header -->
-  <header class="topbar">
+  <header class="topbar" id="topbar">
     <div class="brand-tag">AI 集團 · GROUP</div>
     <div class="row" style="margin-top:4px;">
+      <span class="mini-title" id="miniTitle">彥彬 健康戰役經營台</span>
       <input id="titleInput" class="title-edit" value="彥彬 健康戰役經營台" maxlength="20" spellcheck="false">
+      <button class="hdr-toggle" onclick="toggleHeader()" id="hdrToggle" aria-label="收合標題">▴</button>
       <button class="gear" onclick="openView('settings')" aria-label="設定">⚙︎</button>
     </div>
     <div class="status-line">
@@ -424,7 +443,7 @@
       <button class="back" onclick="openView('home')">‹</button>
       <div class="ws-title"><h2>📁 素材庫</h2><p>檔案留存一次，之後勾選即可使用</p></div>
     </div>
-    <div class="note">檔案存在你自己的瀏覽器。勾選「指定使用」的檔案，會在「一鍵運轉」與各部門執行時自動帶入，不必每次重新上傳。圖片建議精簡，避免佔太多空間。</div>
+    <div class="note">檔案存在你自己的瀏覽器。勾選「指定使用」的檔案，會在「一鍵運轉」與各部門執行時自動帶入，不必每次重新上傳。圖片會自動壓縮後保存（縮到適合的大小），上傳後 AI 會自動分類到所屬部門，你也可手動更改。</div>
     <label class="attach lib-upload">＋ 上傳檔案到素材庫
       <input type="file" id="libInput" multiple accept=".txt,.md,.csv,.json,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" class="hidden" onchange="handleLibUpload(event)">
     </label>
@@ -538,7 +557,7 @@
 <script>
 /* ============ 預設資料 ============ */
 const DEFAULTS = {
-  schema:6,
+  schema:7,
   title:"彥彬 健康戰役經營台",
   context:"我主軸是經營台灣的五大網路平台來分享健康：TikTok、Instagram、Threads、YouTube、Line。品牌觀念是大春之道：讓每個家庭都有一個懂健康的人。全程先教育、先建立信任與關係，不推銷、不賣產品、不誇大療效，再自然邀請。\n【核心故事主軸：健康戰役】身體各器官像戰場，每天和病毒、代謝廢物作戰；氣血像把糧食武器（營養）送到前線的運輸車，氣是動力（汽油）、血是營養；車上的垃圾＝血脂黏稠，道路＝微循環，寒涼濕氣像冰雪嚴寒讓前線失守。氣血不足→前線吃不飽→戰力下降；寒涼路徑是『涼→疼→麻→大病』。身體的小症狀是求救信號（像兩個哭泣的孩子、像儀表板警示燈），要補氣血、改習慣，而不是讓身體閉嘴。\n【各平台調性】TikTok／YouTube Shorts：短影音腳本（前 3 秒鉤子、口白、字幕）；Instagram：圖文貼文＋限動；Threads：短文、引發討論；YouTube：影片腳本／長文案；Line：圖文訊息、好友／群組分享。\n【口吻】台灣用語、溫暖像家人、真誠具體、利他，不說教、不嚇唬。\n【法規】嚴守台灣《食安法》：不得宣稱療效、根治、醫療效能、不得叫人停藥、不用絕對誇大用語。",
   apiKey:"",
@@ -727,9 +746,9 @@ function openDept(id){
 }
 function renderWsLib(){
   const bar=document.getElementById("wsLibBar");
-  const act=state.library.filter(x=>x.active);
+  const act=state.library.filter(x=>x.active && (!x.deptId || x.deptId===current));
   if(act.length===0){ bar.innerHTML=""; return; }
-  bar.innerHTML=`<div class="wslib"><span class="ttl">指定素材：</span>`+
+  bar.innerHTML=`<div class="wslib"><span class="ttl">本部門素材：</span>`+
     act.map(x=>`<span class="f">${libIcon(x.kind)} ${esc(x.name)}</span>`).join("")+
     `<span class="ttl" style="cursor:pointer;text-decoration:underline" onclick="openLibrary()">管理</span></div>`;
 }
@@ -910,28 +929,82 @@ async function handleLibUpload(e){
   if(files.length===0) return;
   for(const f of files){
     const p=await parseFile(f);
-    state.library.push({ id:Date.now()+Math.random(), name:p.name, kind:p.kind,
-      content:p.content||"", url:p.url||"", size:p.size||0, active:true });
+    let url=p.url||"";
+    if(p.isImage && url){ url=await compressImage(url); }
+    const item={ id:Date.now()+Math.random(), name:p.name, kind:p.kind,
+      content:p.content||"", url, size:(p.isImage?url.length:(p.size||0)),
+      active:true, deptId:"", classifying:!!state.apiKey };
+    state.library.push(item);
+    save(); renderLibrary();
+    // AI 自動分類到所屬部門
+    if(state.apiKey){
+      item.deptId = await classifyMaterial(item);
+      item.classifying=false; save(); renderLibrary();
+    }
   }
-  save(); renderLibrary(); toast("已存入素材庫並指定使用");
+  toast("已存入素材庫並自動分類");
+}
+// 圖片壓縮：縮到最長邊 1280、JPEG 0.82，避免 localStorage 爆量
+function compressImage(dataURL, maxDim, quality){
+  maxDim=maxDim||1280; quality=quality||0.82;
+  return new Promise((res)=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width, h=img.height;
+      if(w>maxDim||h>maxDim){ const r=Math.min(maxDim/w,maxDim/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      try{ res(c.toDataURL("image/jpeg",quality)); }catch(e){ res(dataURL); }
+    };
+    img.onerror=()=>res(dataURL);
+    img.src=dataURL;
+  });
+}
+async function classifyMaterial(item){
+  if(!state.apiKey) return "";
+  const list=state.departments.map(d=>`${d.id}：${d.name}（${d.tagline}）`).join("\n");
+  const sys=`你是素材分類助理。根據素材內容，判斷它最適合給哪一個部門使用。只能從下列 id 擇一，且只回 id 本身、不要任何其他文字：\n${list}`;
+  let user;
+  if(item.kind==="image" && item.url){
+    user=[{type:"text",text:"這張圖片素材最適合哪個部門？只回 id。"},{type:"image_url",image_url:{url:item.url}}];
+  }else{
+    user=`素材名稱：${item.name}\n內容片段：\n${(item.content||"").slice(0,1200)}\n\n只回最適合的部門 id。`;
+  }
+  try{
+    const r=await callOpenAI(sys,user,20);
+    const ans=(r||"").toLowerCase();
+    const hit=state.departments.find(d=>ans.includes(d.id));
+    return hit?hit.id:"";
+  }catch(e){ return ""; }
 }
 function libIcon(k){ return k==="image"?"🖼":(k==="pdf"?"📕":(k==="doc"?"📘":"📄")); }
 function fmtSize(n){ return n>1024?(n/1024).toFixed(0)+"K 字元":n+" 字元"; }
+function deptNameOf(id){ const d=state.departments.find(x=>x.id===id); return d?d.name:""; }
 function renderLibrary(){
   const box=document.getElementById("libList");
   if(state.library.length===0){
-    box.innerHTML='<div class="chain-empty">素材庫還是空的。上傳你的產品資料、見證、公司文件，之後就能重複指定使用。</div>';
+    box.innerHTML='<div class="chain-empty">素材庫還是空的。上傳你的產品資料、見證、圖片，AI 會自動分類到所屬部門，之後就能重複指定使用。</div>';
   }else{
-    box.innerHTML=state.library.map(x=>`<div class="lib-item">
-      <span class="li-ic">${libIcon(x.kind)}</span>
-      <div class="li-meta"><div class="li-name">${esc(x.name)}</div>
-      <div class="li-size">${x.kind==="image"?"圖片":fmtSize(x.size)}</div></div>
-      <button class="lib-toggle ${x.active?'on':''}" onclick="toggleLibActive('${x.id}')">${x.active?'✓ 指定使用':'指定使用'}</button>
-      <button class="lib-del" onclick="deleteLib('${x.id}')">🗑</button>
-    </div>`).join("");
+    box.innerHTML=state.library.map(x=>{
+      const opts=`<option value="">通用（全部部門）</option>`+state.departments.map(d=>
+        `<option value="${d.id}" ${x.deptId===d.id?'selected':''}>${esc(d.name)}</option>`).join("");
+      const deptSel = x.classifying
+        ? `<span class="li-class"><span class="mini-spin"></span> 分類中…</span>`
+        : `<select class="li-dept" onchange="assignLibDept('${x.id}',this.value)">${opts}</select>`;
+      return `<div class="lib-item">
+        <span class="li-ic">${libIcon(x.kind)}</span>
+        <div class="li-meta">
+          <div class="li-name">${esc(x.name)}</div>
+          <div class="li-row">${deptSel}</div>
+        </div>
+        <button class="lib-toggle ${x.active?'on':''}" onclick="toggleLibActive('${x.id}')">${x.active?'✓ 指定':'指定'}</button>
+        <button class="lib-del" onclick="deleteLib('${x.id}')">🗑</button>
+      </div>`;
+    }).join("");
   }
   updateLibSummary();
 }
+function assignLibDept(id,v){ const x=state.library.find(o=>String(o.id)===String(id)); if(x){ x.deptId=v; save(); } }
 function toggleLibActive(id){
   const x=state.library.find(v=>String(v.id)===String(id)); if(!x) return;
   x.active=!x.active; save(); renderLibrary();
@@ -943,10 +1016,10 @@ function deleteLib(id){
 function updateLibSummary(){
   const el=document.getElementById("libSummary"); if(!el) return;
   const n=state.library.length, a=state.library.filter(x=>x.active).length;
-  el.textContent = n===0 ? "留存常用檔案，指定後各部門自動使用" : `共 ${n} 個檔案，已指定 ${a} 個使用中`;
+  el.textContent = n===0 ? "留存常用檔案，AI 自動分類到部門" : `共 ${n} 個檔案，已指定 ${a} 個使用中`;
 }
-function activeAttachments(){
-  return state.library.filter(x=>x.active).map(x=>({
+function activeAttachments(deptId){
+  return state.library.filter(x=>x.active && (!deptId || !x.deptId || x.deptId===deptId)).map(x=>({
     name:x.name+"（庫）", isImage:x.kind==="image", content:x.content, url:x.url }));
 }
 
@@ -954,7 +1027,7 @@ function activeAttachments(){
 function buildUserContent(baseText, extraFiles, opts){
   opts=opts||{};
   const totalChars=opts.totalChars||MAX_TOTAL_CHARS, perChars=opts.fileChars||MAX_FILE_CHARS;
-  const all=[...activeAttachments(), ...(extraFiles||[])];
+  const all=[...activeAttachments(opts.deptId), ...(extraFiles||[])];
   const texts=all.filter(f=>!f.isImage), imgs=all.filter(f=>f.isImage);
   let body=baseText, trimmed=false, budget=totalChars, parts=[];
   for(const f of texts){
@@ -1002,7 +1075,7 @@ async function runTask(){
   // 組 user content
   let textPart = input || "請依你的部門定位，仔細閱讀下方附件內容，直接完成分析並產出可立即使用的成果。";
   if(handoffFrom){ textPart = `【${handoffFrom.deptName} 交辦的素材】\n${clip(handoffFrom.output,MAX_CHAIN_CHARS)}\n\n【本次任務】\n${textPart}`; }
-  const built=buildUserContent(textPart, pendingFiles);
+  const built=buildUserContent(textPart, pendingFiles, {deptId:current});
   if(built.trimmed) toast("素材過長，已自動截取重點送出");
   const userContent=built.content;
 
@@ -1081,7 +1154,7 @@ async function runAllDepartments(){
         : `請以「${d.name}」的角色，完成你負責的部分，產出可直接使用的成果。`;
       base+=`\n\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}`;
       // 帶入素材庫（每步預算小一點，避免重複放大）
-      const built=buildUserContent(base, [], {totalChars:4000, fileChars:4000});
+      const built=buildUserContent(base, [], {totalChars:4000, fileChars:4000, deptId:d.id});
       if(built.trimmed) anyTrim=true;
       const out=await callOpenAI(buildSys(d), built.content, pipePlatform==="all"?2600:1800);
       collected.push({name:d.name, out});
@@ -1180,6 +1253,7 @@ function saveSettings(){
   state.context=document.getElementById("contextSet").value.trim();
   save();
   document.getElementById("titleInput").value=state.title;
+  document.getElementById("miniTitle").textContent=state.title;
   toast("設定已儲存");
   updateKeyStatus();
   openView("home");
@@ -1202,11 +1276,21 @@ function updateKeyStatus(){
 /* ============ 標題即時編輯 ============ */
 document.getElementById("titleInput").addEventListener("change",e=>{
   state.title=e.target.value.trim()||"AI 集團"; e.target.value=state.title; save();
+  document.getElementById("miniTitle").textContent=state.title;
 });
 document.getElementById("titleInput").addEventListener("keydown",e=>{ if(e.key==="Enter") e.target.blur(); });
 
+function toggleHeader(){
+  const tb=document.getElementById("topbar");
+  const min=tb.classList.toggle("min");
+  document.getElementById("hdrToggle").textContent=min?"▾":"▴";
+  state.headerMin=min; save();
+}
+
 /* ============ 啟動 ============ */
 document.getElementById("titleInput").value=state.title;
+document.getElementById("miniTitle").textContent=state.title;
+if(state.headerMin){ document.getElementById("topbar").classList.add("min"); document.getElementById("hdrToggle").textContent="▾"; }
 renderHome();
 </script>
 </body>
