@@ -242,6 +242,10 @@
     display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800;color:var(--ink-soft);
   }
   .output-body{padding:17px;font-size:15.5px;white-space:pre-wrap;word-break:break-word;line-height:1.75;}
+  .output-body.clamp{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;}
+  .output-body.clamp.full{display:block;-webkit-line-clamp:unset;overflow:visible;}
+  .saved-tag{margin-left:auto;font-size:11px;font-weight:700;color:var(--accent);
+    background:rgba(31,138,114,.1);border:1px solid rgba(31,138,114,.28);padding:3px 9px;border-radius:20px;}
   .oc-actions{padding:0 15px 15px;display:flex;flex-wrap:wrap;gap:9px;}
   .mini{
     font-size:14px;font-weight:700;padding:11px 16px;border-radius:13px;min-height:46px;
@@ -1286,20 +1290,32 @@ async function runAllDepartments(){
 }
 function resultCard(d,out){
   return `<div class="output-card">
-    <div class="oc-head"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${d.accent}"></span>${d.emoji} ${esc(d.name)}</div>
-    <div class="output-body">${esc(out)}</div>
-    <div class="oc-actions"><button class="mini" onclick="copyText(this)">📋 複製</button></div>
+    <div class="oc-head"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${d.accent}"></span>${d.emoji} ${esc(d.name)}<span class="saved-tag">已存入此部門</span></div>
+    <div class="output-body clamp">${esc(out)}</div>
+    <div class="oc-actions">
+      <button class="mini" onclick="toggleClamp(this)">展開全文</button>
+      <button class="mini" onclick="copyText(this)">📋 複製</button>
+    </div>
   </div>`;
 }
 function copyText(btn){
   const txt=btn.closest(".output-card").querySelector(".output-body").textContent;
-  navigator.clipboard.writeText(txt).then(()=>toast("已複製"));
+  navigator.clipboard.writeText(txt).then(()=>toast("已複製，可直接貼文"));
+}
+function toggleClamp(btn){
+  const body=btn.closest(".output-card").querySelector(".output-body");
+  const open=body.classList.toggle("full");
+  btn.textContent=open?"收合":"展開全文";
 }
 function finalCard(out){
   return `<div class="output-card final-card">
-    <div class="oc-head final-head">📄 統整成品文章 · 可直接使用</div>
-    <div class="output-body">${esc(out)}</div>
-    <div class="oc-actions"><button class="mini" onclick="copyText(this)">📋 複製整篇</button></div>
+    <div class="oc-head final-head">📄 成品 · 可直接貼文（已存入成品庫）</div>
+    <div class="output-body clamp">${esc(out)}</div>
+    <div class="oc-actions">
+      <button class="mini" onclick="toggleClamp(this)">展開全文</button>
+      <button class="mini" onclick="copyText(this)">📋 複製整篇</button>
+      <button class="mini" onclick="openResults()">📦 前往成品庫</button>
+    </div>
   </div>`;
 }
 
@@ -1307,9 +1323,10 @@ function renderOutput(out, d){
   const others=state.departments.filter(x=>x.id!==d.id);
   document.getElementById("outputZone").innerHTML=
    `<div class="output-card">
-     <div class="oc-head"><span class="pin" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${d.accent}"></span>${esc(d.name)} 產出</div>
-     <div class="output-body" id="lastOut">${esc(out)}</div>
+     <div class="oc-head"><span class="pin" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${d.accent}"></span>${esc(d.name)} 產出<span class="saved-tag">已存入「${esc(d.name)}」紀錄</span></div>
+     <div class="output-body clamp" id="lastOut">${esc(out)}</div>
      <div class="oc-actions">
+       <button class="mini" onclick="toggleClamp(this)">展開全文</button>
        <button class="mini" onclick="copyOut()">📋 複製</button>
        <div class="handoff-title">交辦給下一個部門 ▸</div>
        ${others.map(o=>`<button class="ho-btn" style="background:${o.accent}" onclick="handoff('${d.name}', getLastOut(), '${o.id}')">${o.emoji} ${esc(o.name)}</button>`).join("")}
