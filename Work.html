@@ -300,6 +300,7 @@
     opacity:0;pointer-events:none;transition:.25s;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,.25);
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .build-tag{text-align:center;font-size:11.5px;color:var(--ink-faint);margin-top:16px;letter-spacing:.5px;}
   .hidden{display:none!important;}
 
   /* 一鍵運轉 */
@@ -669,6 +670,7 @@
       <button class="save-main" onclick="saveSettings()">儲存設定</button>
       <button class="danger" onclick="resetAll()">回復出廠預設（清空所有資料）</button>
     </div>
+    <div class="build-tag" id="buildTag">版本載入中…</div>
   </section>
 
 </div>
@@ -678,25 +680,26 @@
 <script>
 /* ============ 預設資料 ============ */
 const DEFAULTS = {
-  schema:7,
+  schema:8,
+  build:"2026.06.30-flow8",
   title:"彥彬 健康戰役經營台",
-  context:"我主軸是經營台灣的五大網路平台來分享健康：TikTok、Instagram、Threads、YouTube、Line。品牌觀念是大春之道：讓每個家庭都有一個懂健康的人。全程先教育、先建立信任與關係，不推銷、不賣產品、不誇大療效，再自然邀請。\n【核心故事主軸：健康戰役】身體各器官像戰場，每天和病毒、代謝廢物作戰；氣血像把糧食武器（營養）送到前線的運輸車，氣是動力（汽油）、血是營養；車上的垃圾＝血脂黏稠，道路＝微循環，寒涼濕氣像冰雪嚴寒讓前線失守。氣血不足→前線吃不飽→戰力下降；寒涼路徑是『涼→疼→麻→大病』。身體的小症狀是求救信號（像兩個哭泣的孩子、像儀表板警示燈），要補氣血、改習慣，而不是讓身體閉嘴。\n【各平台調性】TikTok／YouTube Shorts：短影音腳本（前 3 秒鉤子、口白、字幕）；Instagram：圖文貼文＋限動；Threads：短文、引發討論；YouTube：影片腳本／長文案；Line：圖文訊息、好友／群組分享。\n【口吻】台灣用語、溫暖像家人、真誠具體、利他，不說教、不嚇唬。\n【法規】嚴守台灣《食安法》：不得宣稱療效、根治、醫療效能、不得叫人停藥、不用絕對誇大用語。",
+  context:"我是台灣的健康內容創作者，主軸是經營自媒體六大平台：TikTok、Instagram、Threads、YouTube、Facebook、Line。品牌觀念是大春之道：讓每個家庭都有一個懂健康的人。\n【內容鐵則：先破冰 → 再講事情 → 最後邀約】每則內容都要先破冰（用生活情境、提問、小故事、同理，停下滑動、拉近距離、建立信任，先不衛教、不講道理、不推銷），再講事情（用健康戰役／氣血戰場比喻把今天的重點講清楚、講到有感），最後才自然邀約（搭配真誠留言互動＋一起學健康／陪跑）。\n【健康戰役比喻】身體＝戰場、氣血＝運輸車（氣＝動力、血＝營養）、車上垃圾＝血脂、道路＝微循環、寒涼＝冰雪嚴寒；寒涼路徑『涼→疼→麻→大病』；小症狀是身體的求救信號（像兩個哭泣的孩子）。\n【口吻】繁體台灣用語、溫暖像家人、真誠利他，不說教、不嚇唬。\n【法規】嚴守台灣《食安法》：不得宣稱療效、根治、醫療效能、不得叫人停藥、不用絕對誇大用語。",
   apiKey:"",
   model:"gpt-4o-mini",
   autoAnalyze:true,
   departments:[
-    { id:"content", name:"內容創作部", emoji:"✍️", accent:"#C7902B", varName:"--c-collect",
-      tagline:"健康戰役 · 五大平台",
-      role:"你是『內容創作部』，為台灣的 TikTok、Instagram、Threads、YouTube、Line 創作健康內容。用『健康戰役／氣血戰場』的比喻與故事（運輸車＝氣血、戰場＝器官、寒涼＝冰雪嚴寒、兩個哭泣的孩子、涼→疼→麻→大病）。依平台調整格式：短影音給腳本（前 3 秒鉤子＋口白＋字幕＋主題標籤）、Instagram 給圖文與限動、Threads 給引發討論的短文、YouTube 給影片腳本、Line 給好友／群組分享訊息。先教育、有畫面、台灣用語，結尾可帶溫和互動，不推銷、不誇大療效。",
-      presets:["用氣血戰場比喻寫一支 TikTok／YT Shorts 短影音腳本","寫一篇 Instagram 衛教圖文（6 頁）＋限動文案","寫一則 Threads 引發討論的短貼文","寫一則 Line 好友／群組的健康分享訊息","排一週 Instagram／Threads／TikTok 內容主題（健康戰役）"] },
-    { id:"review", name:"點評實戰部", emoji:"💬", accent:"#1F8A72", varName:"--c-integrate",
-      tagline:"點評不是點讚 · 經營關係",
-      role:"你是『點評實戰部』，依點評實戰話術協助經營網路關係，用在 Instagram／Threads（Threads）的留言互動與 Line 私訊。核心：點評不是點讚。點評公式＝用心感受對方貼文＋這條吸引你的地方＋你是否做過類似的事。針對不同對象給真誠、具體（要有時間／地點／人物／事件）的點評與能量語言：一般留言、寒暄式、點評對方的辛苦、道歉式；新顧客（感謝＋為什麼）、老顧客（信任＋未來）、流失顧客（經歷＋道歉＋一起學習）、轉介紹（點評介紹人＋點評本人＋我的態度）、夥伴（放大優點、抓正面）。台灣用語、真誠利他、不推銷。",
-      presets:["幫我寫一則對某 Instagram／Threads貼文的真誠留言點評","寫新朋友的感謝能量語言（Line 私訊、沒店面）","寫流失顧客的道歉式訊息（Line）","寫轉介紹＋老顧客的感謝點評話術"] },
-    { id:"invite", name:"邀約陪跑部", emoji:"🤝", accent:"#2E6FB0", varName:"--c-develop",
-      tagline:"自然邀約 · 一起學健康",
-      role:"你是『邀約陪跑部』，在內容與點評建立的信任之上，透過 Line／Instagram 私訊把互動自然延伸成邀約：邀請對方一起學健康、加入陪跑學習、成為家裡懂健康的人。話術以理念、陪伴、利他為主，給對方低門檻的下一步（先一起學一個小課程／小故事），台灣用語、不施壓、不推銷感、符合法規。",
-      presets:["把一段 Instagram／Threads留言互動延伸成 Line 邀約","寫一段陪跑營邀請（Line 私訊、純公益）","寫『成為懂健康的人』的溫暖邀約","三種柔性回應：沒時間／怕推銷／沒興趣"] }
+    { id:"icebreak", name:"破冰部", emoji:"🧊", accent:"#C7902B", varName:"--c-collect",
+      tagline:"先破冰 · 停下滑動建立共鳴",
+      role:"你是『破冰部』，負責每則內容的『先破冰』。產出能讓人停下滑動、覺得『這在說我』的開場：用生活情境、一句同理的話、提問、或小故事拉近距離、建立信任。先不衛教、不講大道理、不推銷、不誇大。依目標平台給最適合的開頭鉤子（TikTok 前 3 秒、IG 首句、Threads 一句話、YouTube 開場、Facebook 故事開頭、Line 親切開頭）。繁體台灣用語。",
+      presets:["用生活情境破冰（手腳冰冷／常感冒／一累就掛）","用一句同理的話開場引發共鳴","用提問破冰，讓人很想回答","把這個話題改成停下滑動的開場鉤子"] },
+    { id:"core", name:"重點部", emoji:"📣", accent:"#1F8A72", varName:"--c-integrate",
+      tagline:"再講事情 · 把重點講到有感",
+      role:"你是『重點部』，負責破冰之後的『講事情』。承接破冰的氣氛，用健康戰役／氣血戰場比喻把今天的重點講清楚、講到對方有感（運輸車＝氣血、寒涼路徑涼→疼→麻→大病、兩個哭泣的孩子＝身體訊號）。教育為主、有畫面、好懂，不誇大療效、不嚇唬、不違規。依平台調整深淺與長短。",
+      presets:["用氣血戰場比喻把今天的重點講清楚","用兩個孩子哭的故事說明身體訊號","把寒涼『涼→疼→麻→大病』講得有感","把這份素材整理成好懂的衛教重點"] },
+    { id:"invite", name:"互動邀約部", emoji:"🤝", accent:"#2E6FB0", varName:"--c-develop",
+      tagline:"留言互動＋自然邀約收尾",
+      role:"你是『互動邀約部』，負責收尾與關係。先給可搭配的真誠『留言互動』話術（點評不是點讚：用心感受＋吸引你的點＋你做過類似的事；含新／老／流失／轉介紹／夥伴的能量語言，要具體到時間地點人物事件），再把內容自然收尾成低門檻邀約（一起學健康、陪跑、成為懂健康的人）。台灣用語、不施壓、不推銷感、符合法規。",
+      presets:["寫可搭配的真誠留言（IG／Threads）","把內容自然收尾成 Line 邀約","三種柔性回應：沒時間／怕推銷／沒興趣","寫新／老／流失顧客的能量語言"] }
   ],
   tasks:[],  // {id, deptId, deptName, accent, input, output, time, fromDept}
   library:[],// {id, name, kind, content, url, active, size, deptId}
@@ -876,7 +879,11 @@ function openDept(id){
 }
 function renderWsLib(){
   const bar=document.getElementById("wsLibBar");
-  const act=state.library.filter(x=>x.active && (!x.deptId || x.deptId===current));
+  const act=state.library.filter(x=>{
+    if(!x.active) return false;
+    const valid = x.deptId && state.departments.some(d=>d.id===x.deptId);
+    return !valid || x.deptId===current;
+  });
   if(act.length===0){ bar.innerHTML=""; return; }
   bar.innerHTML=`<div class="wslib"><span class="ttl">本部門素材：</span>`+
     act.map(x=>`<span class="f">${libIcon(x.kind)} ${esc(x.name)}</span>`).join("")+
@@ -1188,7 +1195,7 @@ function useTopic(id){
 function topicToLibrary(id){
   const c=findTopic(id); if(!c) return;
   state.library.push({ id:Date.now()+Math.random(), name:"話題："+(c.topic.slice(0,18)), kind:"text",
-    content:`話題：${c.topic}\n切入角度：${c.angle}`, url:"", size:(c.topic+c.angle).length, active:true, deptId:"content" });
+    content:`話題：${c.topic}\n切入角度：${c.angle}`, url:"", size:(c.topic+c.angle).length, active:true, deptId:"" });
   c.used=true; save(); renderCollector();
   toast("已存入素材庫（內容創作部）");
 }
@@ -1300,8 +1307,11 @@ function updateLibSummary(){
   el.textContent = n===0 ? "留存常用檔案，AI 自動分類到部門" : `共 ${n} 個檔案，已指定 ${a} 個使用中`;
 }
 function activeAttachments(deptId){
-  return state.library.filter(x=>x.active && (!deptId || !x.deptId || x.deptId===deptId)).map(x=>({
-    name:x.name+"（庫）", isImage:x.kind==="image", content:x.content, url:x.url }));
+  return state.library.filter(x=>{
+    if(!x.active) return false;
+    const valid = x.deptId && state.departments.some(d=>d.id===x.deptId);
+    return !deptId || !valid || x.deptId===deptId;  // 無歸屬或歸屬已不存在→視為通用
+  }).map(x=>({ name:x.name+"（庫）", isImage:x.kind==="image", content:x.content, url:x.url }));
 }
 
 /* ============ 組裝送出內容（含素材庫） ============ */
@@ -1452,7 +1462,7 @@ async function runAllDepartments(){
 
     // ===== 最後統整成一篇成品文章 =====
     const fstep=document.getElementById("plstep-final"); fstep.classList.add("run");
-    const editorSys=`你是「${state.title}」的社群主編與貼文優化師。請把以下 ${order.length} 個部門（${order.map(d=>d.name).join("、")}）的產出，統整＋優化成『可以直接複製貼上、馬上發布』的成品貼文。\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}\n【優化要求】\n- 每篇都要可直接貼，不需我再改：含吸睛開頭鉤子、易讀分段（善用換行與表情符號但別過量）、自然的行動呼籲，平台合適的主題標籤。\n- 若為全平台，請依平台分段，每段最前面用【平台名稱】標示，彼此之間用一行「— — —」分隔，方便我分平台複製。\n- 保留健康戰役主軸與台灣用語；先教育、不推銷、不誇大療效、不違規。\n- 把『貼文正文、可搭配的留言互動、最後的邀約』自然編排好。\n- 只輸出成品本身，不要出現部門名稱、過程說明或開場白。`;
+    const editorSys=`你是「${state.title}」的社群主編與貼文優化師。請把以下 ${order.length} 個部門（${order.map(d=>d.name).join("、")}）的產出，統整＋優化成『可以直接複製貼上、馬上發布』的成品貼文。\n【鐵則：固定順序】每篇成品都要照這個結構：①先破冰（停下滑動、引發共鳴的開場）→ ②再講事情（健康戰役重點、講到有感）→ ③最後邀約（搭配真誠留言互動＋低門檻邀約）。破冰一定放最前面。\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}\n【優化要求】\n- 每篇都要可直接貼、不需我再改：開頭就是破冰鉤子、易讀分段（適量換行與表情符號）、自然的行動呼籲、平台合適的主題標籤。\n- 若為全平台，請依平台分段，每段最前面用【平台名稱】標示，彼此之間用一行「— — —」分隔，方便我分平台複製。\n- 保留健康戰役主軸與台灣用語；先教育、不推銷、不誇大療效、不違規。\n- 只輸出成品本身，不要出現部門名稱、過程說明或開場白。`;
     let comp=`【本次主題】\n${goal||"（依下方素材判斷）"}\n\n`;
     collected.forEach(c=> comp+=`【${c.name} 的產出】\n${clip(c.out,1600)}\n\n`);
     comp+="請統整並優化成可直接發布的最終成品貼文。";
@@ -1622,6 +1632,7 @@ function toggleHeader(){
 document.getElementById("titleInput").value=state.title;
 document.getElementById("miniTitle").textContent=state.title;
 if(state.headerMin){ document.getElementById("topbar").classList.add("min"); }
+document.getElementById("buildTag").textContent="版本 "+(DEFAULTS.build||"-")+"　先破冰→講事情→邀約";
 renderHome();
 checkAutoCollect();
 setInterval(checkAutoCollect, 15*60*1000);
