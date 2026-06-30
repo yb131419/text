@@ -301,6 +301,16 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .build-tag{text-align:center;font-size:11.5px;color:var(--ink-faint);margin-top:16px;letter-spacing:.5px;}
+  .derive-btn{width:100%;margin-top:10px;padding:13px;border-radius:13px;font-size:14px;font-weight:700;
+    color:var(--ink);background:var(--paper);border:1.5px solid var(--line);min-height:48px;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;}
+  .derive-btn:active{transform:scale(.98);}
+  .derive-btn:disabled{opacity:.6;}
+  .ind-pick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 12px;}
+  .ind-chip{font-size:13.5px;font-weight:700;padding:10px 15px;border-radius:20px;min-height:44px;
+    background:var(--paper-2);border:1.5px solid var(--line);color:var(--ink-soft);box-shadow:var(--shadow);}
+  .ind-chip:active{transform:scale(.95);background:var(--paper);}
+  .home-build{text-align:center;font-size:11px;color:var(--ink-faint);margin-top:22px;letter-spacing:.3px;opacity:.8;}
   .hidden{display:none!important;}
 
   /* 一鍵運轉 */
@@ -458,8 +468,8 @@
   <header class="topbar" id="topbar">
     <div class="brand-tag">AI 集團 · GROUP</div>
     <div class="row" style="margin-top:4px;">
-      <span class="mini-title" id="miniTitle">彥彬 健康戰役經營台</span>
-      <input id="titleInput" class="title-edit" value="彥彬 健康戰役經營台" maxlength="20" spellcheck="false">
+      <span class="mini-title" id="miniTitle">AI 內容集團</span>
+      <input id="titleInput" class="title-edit" value="AI 內容集團" maxlength="20" spellcheck="false">
       <button class="hdr-toggle" onclick="toggleHeader()" id="hdrToggle" aria-label="收合標題">
         <svg class="chev-ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
       </button>
@@ -478,7 +488,7 @@
     <div class="pipeline">
       <div class="pl-title">🚀 一鍵跑完整套（多平台）</div>
       <div class="pl-sub">三個部門輪流接力：內容創作 → 點評實戰 → 邀約陪跑，最後自動統整成一篇可直接發布的成品文章。主題可留空。</div>
-      <textarea id="pipeInput" placeholder="（可留空）今天主題，例如：用氣血戰場觀念在 Instagram／Threads 經營保養意識"></textarea>
+      <textarea id="pipeInput" placeholder="（可留空）今天主題，例如：母親節檔期 / 新品上市 / 客戶見證"></textarea>
       <div id="pipeSteps"></div>
       <div class="pl-plat" id="pipePlatBar"></div>
       <div id="libPickBar"></div>
@@ -520,6 +530,7 @@
     </div>
     <div class="section-label">三大部門（可單獨執行）</div>
     <div id="deptList"></div>
+    <div class="home-build" id="homeBuild"></div>
   </section>
 
   <!-- RESULTS 成品庫 -->
@@ -537,7 +548,7 @@
       <button class="back" onclick="openView('home')">‹</button>
       <div class="ws-title"><h2>🛰️ 資料收集部</h2><p>收集相關話題並存檔，串接到內容流程</p></div>
     </div>
-    <div class="note">收集會用 AI 依「健康戰役」主軸，產出此刻適合發文的相關話題與切入角度並存檔。自動／定時收集只會在你打開這個 App 時執行（網頁版無法在關閉後背景執行）。</div>
+    <div class="note">收集會用 AI 依你的「公司背景」（行業與定位）產出此刻適合發文的相關話題與切入角度並存檔。自動／定時收集只會在你打開這個 App 時執行（網頁版無法在關閉後背景執行）。</div>
 
     <div class="collect-set">
       <label class="switch-row"><input type="checkbox" id="collAutoSet" onchange="saveCollectorCfg()"><span>自動收集（打開 App 時依頻率自動執行）</span></label>
@@ -550,7 +561,7 @@
       </div>
       <div class="cfg-row">
         <span class="cfg-lbl">主題方向</span>
-        <input type="text" id="collHintSet" placeholder="可留空，例如：手腳冰冷、寒涼、上班族" oninput="saveCollectorCfg()">
+        <input type="text" id="collHintSet" placeholder="可留空，例如：母親節、夏季新品、某客群痛點" oninput="saveCollectorCfg()">
       </div>
     </div>
 
@@ -603,7 +614,7 @@
     <div id="wsLibBar"></div>
 
     <div class="input-card">
-      <textarea id="taskInput" placeholder="交辦這個部門要做的事…例如：用氣血戰場比喻寫一支 TikTok 短影音腳本"></textarea>
+      <textarea id="taskInput" placeholder="交辦這個部門要做的事…例如：依素材寫一支 TikTok 開場破冰腳本"></textarea>
       <div class="files" id="fileList"></div>
       <div class="input-actions">
         <label class="attach">📎 加檔案
@@ -656,9 +667,11 @@
     </div>
 
     <div class="field">
-      <label>公司背景 · 共用設定</label>
-      <textarea id="contextSet" placeholder="所有部門都會參考這段背景…"></textarea>
-      <div class="hint">寫你的事業、理念、目標對象與法規禁忌，所有階段都會自動套用。</div>
+      <label>公司背景 · 共用設定（決定你的行業與語氣）</label>
+      <div class="ind-pick" id="indPick"></div>
+      <textarea id="contextSet" placeholder="填你的行業、定位、客群、語氣、禁忌…所有部門都會依這段產出"></textarea>
+      <button class="derive-btn" id="deriveBtn" onclick="deriveBrand()">🪄 依素材自動產生品牌設定（AI 草擬）</button>
+      <div class="hint">換行業就改這裡即可，不用改程式。按上方按鈕可讓 AI 依「素材庫」裡勾選的素材，幫你草擬一份品牌設定。</div>
     </div>
 
     <div class="field">
@@ -680,26 +693,26 @@
 <script>
 /* ============ 預設資料 ============ */
 const DEFAULTS = {
-  schema:8,
-  build:"2026.06.30-flow8",
-  title:"彥彬 健康戰役經營台",
-  context:"我是台灣的健康內容創作者，主軸是經營自媒體六大平台：TikTok、Instagram、Threads、YouTube、Facebook、Line。品牌觀念是大春之道：讓每個家庭都有一個懂健康的人。\n【內容鐵則：先破冰 → 再講事情 → 最後邀約】每則內容都要先破冰（用生活情境、提問、小故事、同理，停下滑動、拉近距離、建立信任，先不衛教、不講道理、不推銷），再講事情（用健康戰役／氣血戰場比喻把今天的重點講清楚、講到有感），最後才自然邀約（搭配真誠留言互動＋一起學健康／陪跑）。\n【健康戰役比喻】身體＝戰場、氣血＝運輸車（氣＝動力、血＝營養）、車上垃圾＝血脂、道路＝微循環、寒涼＝冰雪嚴寒；寒涼路徑『涼→疼→麻→大病』；小症狀是身體的求救信號（像兩個哭泣的孩子）。\n【口吻】繁體台灣用語、溫暖像家人、真誠利他，不說教、不嚇唬。\n【法規】嚴守台灣《食安法》：不得宣稱療效、根治、醫療效能、不得叫人停藥、不用絕對誇大用語。",
+  schema:9,
+  build:"2026.06.30-flow9-generic",
+  title:"AI 內容集團",
+  context:"【行業／領域】（請填，例如：保健、餐飲、美業、房仲、教育、寵物、手作…）\n【品牌／個人定位】（你想被記得的一句話）\n【目標客群】（你最想打到的人）\n【語氣風格】（例如：溫暖像家人／專業俐落／幽默親切）\n【常用素材】到「素材庫」上傳產品資料、見證、文件，AI 會依這些素材產出。\n【禁忌／法規】（你這行不能說的話、要避免的字眼）\n\n內容鐵則（固定）：先破冰（停下滑動、引發共鳴）→ 再講事情（把重點／價值講清楚講到有感）→ 最後邀約（互動＋低門檻行動）。\n小提示：可到設定按「依素材自動產生品牌設定」，讓 AI 依你的素材幫你草擬以上內容。",
   apiKey:"",
   model:"gpt-4o-mini",
   autoAnalyze:true,
   departments:[
     { id:"icebreak", name:"破冰部", emoji:"🧊", accent:"#C7902B", varName:"--c-collect",
       tagline:"先破冰 · 停下滑動建立共鳴",
-      role:"你是『破冰部』，負責每則內容的『先破冰』。產出能讓人停下滑動、覺得『這在說我』的開場：用生活情境、一句同理的話、提問、或小故事拉近距離、建立信任。先不衛教、不講大道理、不推銷、不誇大。依目標平台給最適合的開頭鉤子（TikTok 前 3 秒、IG 首句、Threads 一句話、YouTube 開場、Facebook 故事開頭、Line 親切開頭）。繁體台灣用語。",
-      presets:["用生活情境破冰（手腳冰冷／常感冒／一累就掛）","用一句同理的話開場引發共鳴","用提問破冰，讓人很想回答","把這個話題改成停下滑動的開場鉤子"] },
+      role:"你是『破冰部』，負責每則內容的『先破冰』。依【公司背景】的行業與定位、以及【附加素材】，產出能讓目標客群停下滑動、覺得『這在說我』的開場：用生活情境、一句同理的話、提問或小故事拉近距離、建立信任。先不講賣點、不推銷、不誇大。依目標平台給最適合的開頭鉤子。繁體台灣用語。",
+      presets:["用一個生活情境破冰，引發目標客群共鳴","用一句同理的話開場","用提問破冰，讓人很想回答","把這個主題改成停下滑動的開場鉤子"] },
     { id:"core", name:"重點部", emoji:"📣", accent:"#1F8A72", varName:"--c-integrate",
       tagline:"再講事情 · 把重點講到有感",
-      role:"你是『重點部』，負責破冰之後的『講事情』。承接破冰的氣氛，用健康戰役／氣血戰場比喻把今天的重點講清楚、講到對方有感（運輸車＝氣血、寒涼路徑涼→疼→麻→大病、兩個哭泣的孩子＝身體訊號）。教育為主、有畫面、好懂，不誇大療效、不嚇唬、不違規。依平台調整深淺與長短。",
-      presets:["用氣血戰場比喻把今天的重點講清楚","用兩個孩子哭的故事說明身體訊號","把寒涼『涼→疼→麻→大病』講得有感","把這份素材整理成好懂的衛教重點"] },
+      role:"你是『重點部』，負責破冰之後的『講事情』。依【公司背景】與【附加素材】，把這次要傳達的重點／價值／賣點講清楚、講到對方有感，用具體例子、對比或故事讓人好懂、有畫面。不誇大、不違規。依目標平台調整深淺與長短。繁體台灣用語。",
+      presets:["把這次的重點／賣點講清楚講到有感","用具體例子或對比說明價值","把素材整理成好懂的重點","用一個小故事帶出核心訊息"] },
     { id:"invite", name:"互動邀約部", emoji:"🤝", accent:"#2E6FB0", varName:"--c-develop",
       tagline:"留言互動＋自然邀約收尾",
-      role:"你是『互動邀約部』，負責收尾與關係。先給可搭配的真誠『留言互動』話術（點評不是點讚：用心感受＋吸引你的點＋你做過類似的事；含新／老／流失／轉介紹／夥伴的能量語言，要具體到時間地點人物事件），再把內容自然收尾成低門檻邀約（一起學健康、陪跑、成為懂健康的人）。台灣用語、不施壓、不推銷感、符合法規。",
-      presets:["寫可搭配的真誠留言（IG／Threads）","把內容自然收尾成 Line 邀約","三種柔性回應：沒時間／怕推銷／沒興趣","寫新／老／流失顧客的能量語言"] }
+      role:"你是『互動邀約部』，負責收尾與關係。先給可搭配的真誠『留言互動』話術（用心感受對方內容＋吸引你的點＋你的相關經驗；含對新客／老客／流失客／轉介紹／夥伴的真誠用語，要具體），再把內容自然收尾成低門檻的邀約或行動呼籲。依【公司背景】的行業調整，不施壓、不推銷感、符合該行業規範。繁體台灣用語。",
+      presets:["寫可搭配的真誠留言（IG／Threads）","把內容自然收尾成 Line 邀約／行動呼籲","三種柔性回應：沒時間／沒興趣／再考慮","寫給新客／老客的真誠用語"] }
   ],
   tasks:[],  // {id, deptId, deptName, accent, input, output, time, fromDept}
   library:[],// {id, name, kind, content, url, active, size, deptId}
@@ -825,6 +838,8 @@ function renderHome(){
   updateResSummary();
   updateCollSummary();
   updateKeyStatus();
+  const hb=document.getElementById("homeBuild");
+  if(hb) hb.textContent="版本 "+(DEFAULTS.build||"-")+" · 通用模板（依資料整理，適合各行業）";
 }
 function renderPipeSteps(){
   const box=document.getElementById("pipeSteps"); if(!box) return;
@@ -1146,7 +1161,7 @@ async function collectTopics(silent){
   running=true;
   const btn=document.getElementById("collectBtn");
   if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 收集中…'; }
-  const sys=`你是健康內容的選題編輯。依「健康戰役／氣血戰場、寒涼傷害、大春之道：讓每個家庭都有一個懂健康的人」主軸，為台灣的 TikTok／Instagram／Threads／YouTube／Facebook／Line 產出此刻適合發文的相關話題。只回 JSON 陣列、長度 6，每個物件含 topic（吸睛話題標題）與 angle（一句話切入角度），不要任何其他文字、不要 markdown。`;
+  const sys=`你是內容選題編輯。依下方【公司背景】的行業與定位，為台灣的 TikTok／Instagram／Threads／YouTube／Facebook／Line 產出此刻適合發文的相關話題。只回 JSON 陣列、長度 6，每個物件含 topic（吸睛話題標題）與 angle（一句話切入角度），不要任何其他文字、不要 markdown。\n\n【公司背景】\n${(state.context||"").slice(0,800)}`;
   const hint=state.collector.topicHint?("主題方向："+state.collector.topicHint+"。"):"";
   try{
     const r=await callOpenAI(sys, hint+"請給 6 個話題的 JSON 陣列。", 900);
@@ -1462,7 +1477,7 @@ async function runAllDepartments(){
 
     // ===== 最後統整成一篇成品文章 =====
     const fstep=document.getElementById("plstep-final"); fstep.classList.add("run");
-    const editorSys=`你是「${state.title}」的社群主編與貼文優化師。請把以下 ${order.length} 個部門（${order.map(d=>d.name).join("、")}）的產出，統整＋優化成『可以直接複製貼上、馬上發布』的成品貼文。\n【鐵則：固定順序】每篇成品都要照這個結構：①先破冰（停下滑動、引發共鳴的開場）→ ②再講事情（健康戰役重點、講到有感）→ ③最後邀約（搭配真誠留言互動＋低門檻邀約）。破冰一定放最前面。\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}\n【優化要求】\n- 每篇都要可直接貼、不需我再改：開頭就是破冰鉤子、易讀分段（適量換行與表情符號）、自然的行動呼籲、平台合適的主題標籤。\n- 若為全平台，請依平台分段，每段最前面用【平台名稱】標示，彼此之間用一行「— — —」分隔，方便我分平台複製。\n- 保留健康戰役主軸與台灣用語；先教育、不推銷、不誇大療效、不違規。\n- 只輸出成品本身，不要出現部門名稱、過程說明或開場白。`;
+    const editorSys=`你是「${state.title}」的社群主編與貼文優化師。請把以下 ${order.length} 個部門（${order.map(d=>d.name).join("、")}）的產出，統整＋優化成『可以直接複製貼上、馬上發布』的成品貼文。\n【鐵則：固定順序】每篇成品都要照這個結構：①先破冰（停下滑動、引發共鳴的開場）→ ②再講事情（重點／價值講到有感）→ ③最後邀約（搭配真誠留言互動＋低門檻邀約）。破冰一定放最前面。\n【目標平台：${platLabel(pipePlatform)}】${platTip(pipePlatform)}\n【優化要求】\n- 每篇都要可直接貼、不需我再改：開頭就是破冰鉤子、易讀分段（適量換行與表情符號）、自然的行動呼籲、平台合適的主題標籤。\n- 若為全平台，請依平台分段，每段最前面用【平台名稱】標示，彼此之間用一行「— — —」分隔，方便我分平台複製。\n- 保留貼合【公司背景】的行業定位與語氣；不誇大、不違規、符合該行業規範。\n- 只輸出成品本身，不要出現部門名稱、過程說明或開場白。`;
     let comp=`【本次主題】\n${goal||"（依下方素材判斷）"}\n\n`;
     collected.forEach(c=> comp+=`【${c.name} 的產出】\n${clip(c.out,1600)}\n\n`);
     comp+="請統整並優化成可直接發布的最終成品貼文。";
@@ -1583,10 +1598,54 @@ function fillSettings(){
   document.getElementById("autoSet").checked=!!state.autoAnalyze;
   document.getElementById("titleSet").value=state.title;
   document.getElementById("contextSet").value=state.context;
+  renderIndPick();
+  const bt=document.getElementById("buildTag"); if(bt) bt.textContent="版本 "+(DEFAULTS.build||"-")+"　通用模板 · 依資料整理";
 }
 function toggleKey(){
   const i=document.getElementById("apiKey"); const b=document.getElementById("toggleKeyBtn");
   if(i.type==="password"){ i.type="text"; b.textContent="隱藏"; } else { i.type="password"; b.textContent="顯示"; }
+}
+const INDUSTRY_TEMPLATES={
+  "保健":"【行業／領域】保健／健康食品\n【品牌／個人定位】讓每個家庭都有一個懂健康的人\n【目標客群】注重保養、家中有長輩或小孩的人\n【語氣風格】溫暖像家人、真誠利他\n【常見賣點／重點】成分、見證、生活保養觀念\n【禁忌／法規】不得宣稱療效、根治、醫療效能，不叫人停藥、不誇大",
+  "餐飲":"【行業／領域】餐飲／餐廳小吃\n【品牌／個人定位】用一道菜留住一個回頭客\n【目標客群】附近上班族、家庭聚餐、想找好吃的人\n【語氣風格】親切、有溫度、會讓人肚子餓\n【常見賣點／重點】招牌菜、食材新鮮、用餐情境、優惠\n【禁忌／法規】不誇大食材功效、不造假評價",
+  "美業":"【行業／領域】美業／美容美髮美甲\n【品牌／個人定位】讓你變美也變有自信\n【目標客群】注重外表、想被好好照顧的客人\n【語氣風格】溫柔細緻、專業又貼心\n【常見賣點／重點】技術、前後對比、放鬆體驗、預約\n【禁忌／法規】不誇大療效、醫美需符合醫療廣告規範",
+  "房仲":"【行業／領域】房仲／不動產\n【品牌／個人定位】把買房這件大事變安心\n【目標客群】首購族、換屋族、投資置產的人\n【語氣風格】專業可靠、不推銷感、像朋友幫忙\n【常見賣點／重點】物件亮點、生活機能、購屋知識、看屋邀約\n【禁忌／法規】不誇大保證增值、資訊揭露要誠實",
+  "教育":"【行業／領域】教育／補教／課程\n【品牌／個人定位】讓學習變得有成就感\n【目標客群】家長、想進修的學生或成人\n【語氣風格】鼓勵、清楚、值得信賴\n【常見賣點／重點】教學成果、學員回饋、學習方法、體驗課\n【禁忌／法規】不誇大保證成績、不造假見證",
+  "寵物":"【行業／領域】寵物／寵物用品服務\n【品牌／個人定位】把毛孩當家人一樣照顧\n【目標客群】養貓養狗、把寵物當家人的飼主\n【語氣風格】溫暖、可愛、療癒\n【常見賣點／重點】產品安心、毛孩日常、照護知識、回購\n【禁忌／法規】不誇大療效、保健品不宣稱醫療效果",
+  "電商":"【行業／領域】電商／網路販售\n【品牌／個人定位】用對的東西解決你的小困擾\n【目標客群】愛網購、想找好物的人\n【語氣風格】生活化、實用、有說服力\n【常見賣點／重點】使用情境、痛點解法、評價、限時優惠\n【禁忌／法規】不誇大不實、符合消保與廣告規範"
+};
+const IND_RULE="\n內容鐵則（固定）：先破冰 → 再講事情 → 最後邀約。";
+function renderIndPick(){
+  const box=document.getElementById("indPick"); if(!box) return;
+  box.innerHTML='<span class="plat-lbl">行業快選（一鍵套版）</span>'+
+    Object.keys(INDUSTRY_TEMPLATES).map(k=>`<button class="ind-chip" onclick="pickIndustry('${k}')">${k}</button>`).join("")+
+    `<button class="ind-chip" onclick="document.getElementById('contextSet').focus()">自訂</button>`;
+}
+function pickIndustry(k){
+  const tpl=INDUSTRY_TEMPLATES[k]; if(!tpl) return;
+  document.getElementById("contextSet").value=tpl+IND_RULE;
+  toast(`已套用「${k}」範本，可微調後按儲存`);
+}
+async function deriveBrand(){
+  if(running){ toast("有任務進行中，請稍候"); return; }
+  if(running){ toast("有任務進行中，請稍候"); return; }
+  if(!state.apiKey){ toast("請先填入金鑰"); return; }
+  const mats=activeAttachments(); // 通用：所有已勾選素材
+  const texts=mats.filter(f=>!f.isImage).map(f=>f.content||"").join("\n").slice(0,6000);
+  const imgs=mats.filter(f=>f.isImage).slice(0,2);
+  if(!texts && imgs.length===0){ toast("請先到素材庫上傳並勾選一些素材"); return; }
+  running=true;
+  const btn=document.getElementById("deriveBtn");
+  btn.disabled=true; const old=btn.innerHTML; btn.innerHTML='<span class="spinner" style="border-color:rgba(23,33,29,.3);border-top-color:var(--ink)"></span> 草擬中…';
+  const sys="你是品牌策略顧問。根據使用者提供的素材，幫他草擬一份『品牌／行業設定』，純文字、可直接使用，依下列格式填寫：\n【行業／領域】\n【品牌／個人定位】（一句話）\n【目標客群】\n【語氣風格】\n【常見賣點／重點】\n【禁忌／法規】\n\n最後固定附上一行：『內容鐵則（固定）：先破冰 → 再講事情 → 最後邀約。』。用繁體台灣用語，只輸出設定本身。";
+  let user = texts? ("素材內容：\n"+texts) : "請依圖片素材判斷。";
+  let content = imgs.length ? [{type:"text",text:user}, ...imgs.map(f=>({type:"image_url",image_url:{url:f.url}}))] : user;
+  try{
+    const out=await callOpenAI(sys, content, 900);
+    document.getElementById("contextSet").value=out.trim();
+    toast("已草擬品牌設定，確認後按『儲存設定』");
+  }catch(e){ toast("草擬失敗："+e.message); }
+  finally{ running=false; btn.disabled=false; btn.innerHTML=old; }
 }
 function saveSettings(){
   state.apiKey=document.getElementById("apiKey").value.trim();
@@ -1632,7 +1691,7 @@ function toggleHeader(){
 document.getElementById("titleInput").value=state.title;
 document.getElementById("miniTitle").textContent=state.title;
 if(state.headerMin){ document.getElementById("topbar").classList.add("min"); }
-document.getElementById("buildTag").textContent="版本 "+(DEFAULTS.build||"-")+"　先破冰→講事情→邀約";
+document.getElementById("buildTag").textContent="版本 "+(DEFAULTS.build||"-")+"　通用模板 · 依資料整理";
 renderHome();
 checkAutoCollect();
 setInterval(checkAutoCollect, 15*60*1000);
