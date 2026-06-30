@@ -375,6 +375,38 @@
     -webkit-line-clamp:5;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden;}
   .res-out.full{-webkit-line-clamp:unset;display:block;}
 
+  /* 平台分塊顯示 */
+  .plat-blocks{padding:12px;display:flex;flex-direction:column;gap:11px;}
+  .plat-block{border:1px solid var(--line);border-radius:14px;background:var(--paper);overflow:hidden;}
+  .pb-head{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:10px 13px;background:var(--ink);color:#fff;font-size:13px;font-weight:800;}
+  .pb-name{letter-spacing:.5px;}
+  .pb-copy{font-size:12px;font-weight:700;color:var(--ink);background:#fff;padding:6px 12px;border-radius:9px;}
+  .pb-body{padding:13px;font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word;}
+  .pb-body.clamp{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;}
+  .pb-body.clamp.full{display:block;-webkit-line-clamp:unset;}
+  .pb-more{display:block;width:100%;padding:9px;font-size:12.5px;font-weight:700;color:var(--ink-soft);
+    background:var(--paper-2);border-top:1px solid var(--line);}
+  .block-more{margin:0 13px 13px;}
+
+  /* 資料收集部 */
+  .pl-run.dark{background:var(--ink);color:#fff;}
+  .pl-run.dark .spinner{border-color:rgba(255,255,255,.35);border-top-color:#fff;}
+  .collect-set{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;box-shadow:var(--shadow);margin-bottom:14px;}
+  .cfg-row{display:flex;align-items:center;gap:11px;margin-top:13px;}
+  .cfg-lbl{font-size:13px;font-weight:700;color:var(--ink-soft);flex:0 0 64px;}
+  .cfg-row select,.cfg-row input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:12px;
+    padding:11px 12px;font-size:15px;background:var(--paper);color:var(--ink);outline:none;min-height:46px;}
+  .coll-item{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:15px;margin-bottom:11px;box-shadow:var(--shadow);}
+  .coll-item.used{opacity:.72;}
+  .coll-top{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+  .coll-time{font-size:11.5px;color:var(--ink-faint);}
+  .coll-used{font-size:10.5px;font-weight:700;color:#6B4E9E;background:rgba(107,78,158,.12);padding:2px 8px;border-radius:12px;}
+  .coll-topic{font-size:15.5px;font-weight:800;line-height:1.4;}
+  .coll-angle{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
+
   /* 素材庫入口 */
   .lib-entry{display:flex;align-items:center;gap:15px;background:var(--paper-2);border:1px solid var(--line);
     border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;box-shadow:var(--shadow);min-height:80px;transition:transform .1s;}
@@ -463,6 +495,15 @@
       <span class="chev">›</span>
     </div>
 
+    <div class="lib-entry" onclick="openCollector()">
+      <div class="le-ic" style="background:rgba(107,78,158,.14);color:#6B4E9E">🛰️</div>
+      <div class="le-meta">
+        <div class="le-name">資料收集部</div>
+        <div class="le-sub" id="collSummary">每日收集相關話題並存檔，可手動／定時／自動</div>
+      </div>
+      <span class="chev">›</span>
+    </div>
+
     <div class="lib-entry" onclick="openLibrary()">
       <div class="le-ic">📁</div>
       <div class="le-meta">
@@ -487,6 +528,34 @@
       <div class="ws-title"><h2>📦 成品庫</h2><p>一鍵流程的成品永久保存於此</p></div>
     </div>
     <div id="resList"></div>
+  </section>
+
+  <!-- COLLECTOR 資料收集部 -->
+  <section id="view-collector" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-title"><h2>🛰️ 資料收集部</h2><p>收集相關話題並存檔，串接到內容流程</p></div>
+    </div>
+    <div class="note">收集會用 AI 依「健康戰役」主軸，產出此刻適合發文的相關話題與切入角度並存檔。自動／定時收集只會在你打開這個 App 時執行（網頁版無法在關閉後背景執行）。</div>
+
+    <div class="collect-set">
+      <label class="switch-row"><input type="checkbox" id="collAutoSet" onchange="saveCollectorCfg()"><span>自動收集（打開 App 時依頻率自動執行）</span></label>
+      <div class="cfg-row">
+        <span class="cfg-lbl">頻率</span>
+        <select id="collFreqSet" onchange="saveCollectorCfg()">
+          <option value="daily">每日一次</option>
+          <option value="open">每次開啟 App</option>
+        </select>
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-lbl">主題方向</span>
+        <input type="text" id="collHintSet" placeholder="可留空，例如：手腳冰冷、寒涼、上班族" oninput="saveCollectorCfg()">
+      </div>
+    </div>
+
+    <button class="pl-run dark" id="collectBtn" onclick="collectNow()">🛰️ 立即收集話題</button>
+    <div class="section-label" style="margin-top:18px;">已收集的話題（存檔）</div>
+    <div id="collectList"></div>
   </section>
 
   <!-- LIBRARY -->
@@ -630,7 +699,9 @@ const DEFAULTS = {
       presets:["把一段 Instagram／Threads留言互動延伸成 Line 邀約","寫一段陪跑營邀請（Line 私訊、純公益）","寫『成為懂健康的人』的溫暖邀約","三種柔性回應：沒時間／怕推銷／沒興趣"] }
   ],
   tasks:[],  // {id, deptId, deptName, accent, input, output, time, fromDept}
-  library:[] // {id, name, kind:'text'|'image', content, url, active, size}
+  library:[],// {id, name, kind, content, url, active, size, deptId}
+  collections:[], // {id, time, topic, angle, used}
+  collector:{ auto:false, freq:"daily", lastRun:0, topicHint:"" }
 };
 
 /* ============ 狀態 ============ */
@@ -640,11 +711,12 @@ let pendingFiles = [];     // {name, type, content/url, isImage}
 let handoffFrom = null;    // {deptName, output}
 let running = false;       // 防止重複執行
 const PLATFORMS=[
-  {k:"all",      label:"全平台",   tip:"請分別為 TikTok、Instagram、Threads、YouTube、Line 五個平台各產出一個版本，每個版本前面用【平台名稱】標明，並依該平台調性調整（短影音腳本／圖文限動／串文／影片腳本／Line 訊息）。"},
+  {k:"all",      label:"全平台",   tip:"請分別為 TikTok、Instagram、Threads、YouTube、Facebook、Line 六個平台各產出一個版本，每個版本最前面用【平台名稱】標明，彼此用一行「— — —」分隔，並依該平台調性調整（短影音腳本／圖文限動／串文／影片腳本／臉書貼文／Line 訊息）。"},
   {k:"tiktok",   label:"TikTok",   tip:"請輸出 TikTok 短影音腳本：前 3 秒要有強鉤子、口語節奏快、附口白與字幕、結尾一句行動呼籲，再給 3–5 個主題標籤。"},
   {k:"instagram",label:"Instagram",tip:"請輸出 Instagram 內容：圖文貼文文案（可分頁）＋一則限動文案，視覺優先、精簡有共鳴，附 5–8 個相關主題標籤。"},
   {k:"threads",  label:"Threads",  tip:"請輸出 Threads 短文：像聊天、口語、引發討論或共鳴，可拆成 2–3 則串文。"},
   {k:"youtube",  label:"YouTube",  tip:"請輸出 YouTube 影片腳本／大綱：開場 15 秒留人、分章節、口白順、結尾導訂閱與下一支。"},
+  {k:"facebook", label:"Facebook", tip:"請輸出 Facebook 貼文：可較長、說故事、段落分明、引發留言與分享，結尾一個互動提問或行動呼籲。"},
   {k:"line",     label:"Line",     tip:"請輸出 Line 訊息：像一對一傳給朋友，親切、簡短、可直接複製傳送，不像廣告。"}
 ];
 let currentPlatform="all";
@@ -667,6 +739,8 @@ function load(){
     if(raw){ const s = JSON.parse(raw);
       const merged = {...DEF, ...s};
       merged.library = Array.isArray(s.library)? s.library : [];
+      merged.collections = Array.isArray(s.collections)? s.collections : [];
+      merged.collector = {...DEF.collector, ...(s.collector||{})};
       const defDepts = structuredClone(DEFAULTS.departments);
       const sameStructure = (s.schema===DEFAULTS.schema)
         && Array.isArray(s.departments) && s.departments.length===defDepts.length
@@ -712,6 +786,10 @@ function openView(v){
 function renderHome(){
   // 流程圖：內容創作 → 點評實戰 → 邀約陪跑 → 成品
   const box=document.getElementById("chainBox");
+  const collectorNode = `<div class="flow-node" onclick="openCollector()">
+       <div class="flow-ic" style="background:rgba(107,78,158,.14);color:#6B4E9E">🛰️</div>
+       <div class="flow-name">資料收集</div>
+     </div><div class="flow-arrow">→</div>`;
   const flow = state.departments.map(d=>
     `<div class="flow-node" style="--fc:${d.accent}" onclick="openDept('${d.id}')">
        <div class="flow-ic" style="background:${hexA(d.accent,.14)};color:${d.accent}">${d.emoji}</div>
@@ -723,7 +801,7 @@ function renderHome(){
       <div class="flow-ic" style="background:rgba(46,111,176,.14);color:#2E6FB0">📦</div>
       <div class="flow-name">成品庫</div>
     </div>`;
-  box.innerHTML=`<div class="flow-strip">${flow}${finalNode}</div>`;
+  box.innerHTML=`<div class="flow-strip">${collectorNode}${flow}${finalNode}</div>`;
   // 部門列表
   const list=document.getElementById("deptList");
   list.innerHTML = state.departments.map(d=>{
@@ -742,6 +820,7 @@ function renderHome(){
   renderPipeSteps();
   updateLibSummary();
   updateResSummary();
+  updateCollSummary();
   updateKeyStatus();
 }
 function renderPipeSteps(){
@@ -988,20 +1067,37 @@ function renderResults(){
     box.innerHTML='<div class="chain-empty">還沒有成品。到首頁按「一鍵跑完整套」，完成的成品就會自動收存在這裡，關掉手機也不會不見。</div>';
     updateResSummary(); return;
   }
-  box.innerHTML=items.map(t=>`<div class="res-item" data-id="${t.id}">
-    <div class="res-top">
-      <span class="res-plat">${esc(t.platform||"成品")}</span>
-      <span class="res-time">${timeStr(t.time)}</span>
-    </div>
-    <div class="res-goal">${esc((t.input||"").replace(/^\[成品\]\s*/,""))}</div>
-    <div class="res-out" id="resout-${t.id}">${esc(t.output)}</div>
-    <div class="hi-actions">
-      <button class="hi-btn" onclick="toggleResExpand(${t.id},this)">展開全文</button>
-      <button class="hi-btn" onclick="copyResult(${t.id})">📋 複製整篇</button>
-      <button class="hi-btn del" onclick="deleteResult(${t.id})">刪除</button>
-    </div>
-  </div>`).join("");
+  box.innerHTML=items.map(t=>{
+    const blocks=splitPlatforms(t.output);
+    const body = blocks
+      ? `<div class="plat-blocks">`+blocks.map(b=>`
+          <div class="plat-block">
+            <div class="pb-head"><span class="pb-name">${esc(b.label)}</span>
+              <button class="pb-copy" onclick="copyBlock(this)">📋 複製</button></div>
+            <div class="pb-body clamp">${esc(b.body)}</div>
+            <button class="pb-more" onclick="toggleBlockBody(this)">展開</button>
+          </div>`).join("")+`</div>`
+      : `<div class="res-out clamp" id="resout-${t.id}">${esc(t.output)}</div>
+         <button class="hi-btn" onclick="toggleResExpand(${t.id},this)">展開全文</button>`;
+    return `<div class="res-item output-card" data-id="${t.id}" style="padding:16px;">
+      <div class="res-top">
+        <span class="res-plat">${esc(t.platform||"成品")}</span>
+        <span class="res-time">${timeStr(t.time)}</span>
+      </div>
+      <div class="res-goal">${esc((t.input||"").replace(/^\[成品\]\s*/,""))}</div>
+      ${body}
+      <div class="hi-actions">
+        <button class="hi-btn" onclick="copyResultWhole(this)">📋 複製整篇</button>
+        <button class="hi-btn del" onclick="deleteResult(${t.id})">刪除</button>
+      </div>
+    </div>`;
+  }).join("");
   updateResSummary();
+}
+function copyResultWhole(btn){
+  const card=btn.closest(".res-item");
+  const parts=[...card.querySelectorAll(".pb-body, .res-out")].map(b=>b.textContent);
+  navigator.clipboard.writeText(parts.join("\n\n")).then(()=>toast("已複製整篇，可直接貼文"));
 }
 function toggleResExpand(id,btn){
   const el=document.getElementById("resout-"+id);
@@ -1015,6 +1111,96 @@ function deleteResult(id){
   if(!confirm("刪除這篇成品？")) return;
   state.tasks=state.tasks.filter(x=>x.id!==id); save(); renderResults(); renderHome();
   toast("已刪除");
+}
+
+/* ============ 資料收集部 ============ */
+function openCollector(){ fillCollectorCfg(); renderCollector(); openView("collector"); }
+function fillCollectorCfg(){
+  document.getElementById("collAutoSet").checked=!!state.collector.auto;
+  document.getElementById("collFreqSet").value=state.collector.freq||"daily";
+  document.getElementById("collHintSet").value=state.collector.topicHint||"";
+}
+function saveCollectorCfg(){
+  state.collector.auto=document.getElementById("collAutoSet").checked;
+  state.collector.freq=document.getElementById("collFreqSet").value;
+  state.collector.topicHint=document.getElementById("collHintSet").value.trim();
+  save(); updateCollSummary();
+}
+function updateCollSummary(){
+  const el=document.getElementById("collSummary"); if(!el) return;
+  const n=state.collections.length;
+  el.textContent = (state.collector.auto?"自動收集中 · ":"")+(n?`已存 ${n} 則話題`:"每日收集話題，可手動／定時／自動");
+}
+function cleanJSON(s){ return (s||"").replace(/```json/gi,"").replace(/```/g,"").trim(); }
+async function collectNow(){ await collectTopics(false); }
+async function collectTopics(silent){
+  if(running){ if(!silent) toast("有任務進行中，請稍候"); return; }
+  if(!state.apiKey){ if(!silent){ toast("請先到設定填入金鑰"); openView("settings"); } return; }
+  running=true;
+  const btn=document.getElementById("collectBtn");
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 收集中…'; }
+  const sys=`你是健康內容的選題編輯。依「健康戰役／氣血戰場、寒涼傷害、大春之道：讓每個家庭都有一個懂健康的人」主軸，為台灣的 TikTok／Instagram／Threads／YouTube／Facebook／Line 產出此刻適合發文的相關話題。只回 JSON 陣列、長度 6，每個物件含 topic（吸睛話題標題）與 angle（一句話切入角度），不要任何其他文字、不要 markdown。`;
+  const hint=state.collector.topicHint?("主題方向："+state.collector.topicHint+"。"):"";
+  try{
+    const r=await callOpenAI(sys, hint+"請給 6 個話題的 JSON 陣列。", 900);
+    let arr=[]; try{ arr=JSON.parse(cleanJSON(r)); }catch(e){ arr=[]; }
+    if(!Array.isArray(arr)||arr.length===0) throw new Error("回傳格式無法解析，請再試一次");
+    const batch=arr.slice(0,8).map(o=>({ id:Date.now()+Math.random(), time:Date.now(),
+      topic:(o.topic||o.title||"").toString().trim(), angle:(o.angle||o.desc||"").toString().trim(), used:false }))
+      .filter(o=>o.topic);
+    state.collections=[...batch, ...state.collections].slice(0,120);
+    state.collector.lastRun=Date.now();
+    save(); renderCollector(); updateCollSummary();
+    if(!silent) toast(`已收集 ${batch.length} 則話題並存檔`);
+  }catch(err){ if(!silent) toast("收集失敗："+err.message); }
+  finally{
+    running=false;
+    if(btn){ btn.disabled=false; btn.innerHTML="🛰️ 立即收集話題"; }
+  }
+}
+function renderCollector(){
+  const box=document.getElementById("collectList"); if(!box) return;
+  if(state.collections.length===0){
+    box.innerHTML='<div class="chain-empty">還沒有收集任何話題。按上方「立即收集話題」，AI 會幫你找出此刻適合發文的相關話題並存檔。</div>';
+    updateCollSummary(); return;
+  }
+  box.innerHTML=state.collections.map(c=>`<div class="coll-item ${c.used?'used':''}">
+    <div class="coll-top"><span class="coll-time">${timeStr(c.time)}</span>${c.used?'<span class="coll-used">已用</span>':''}</div>
+    <div class="coll-topic">${esc(c.topic)}</div>
+    ${c.angle?`<div class="coll-angle">${esc(c.angle)}</div>`:''}
+    <div class="hi-actions">
+      <button class="hi-btn" onclick="useTopic('${c.id}')">▶ 用此主題跑流程</button>
+      <button class="hi-btn" onclick="topicToLibrary('${c.id}')">📁 存入素材庫</button>
+      <button class="hi-btn del" onclick="deleteTopic('${c.id}')">刪除</button>
+    </div>
+  </div>`).join("");
+  updateCollSummary();
+}
+function findTopic(id){ return state.collections.find(c=>String(c.id)===String(id)); }
+function useTopic(id){
+  const c=findTopic(id); if(!c) return;
+  c.used=true; save();
+  document.getElementById("pipeInput").value = c.topic + (c.angle?("（切入："+c.angle+"）"):"");
+  openView("home");
+  setTimeout(()=>{ const p=document.querySelector(".pipeline"); if(p) p.scrollIntoView({behavior:"smooth",block:"start"}); document.getElementById("pipeInput").focus(); },120);
+  toast("已帶入一鍵流程的主題");
+}
+function topicToLibrary(id){
+  const c=findTopic(id); if(!c) return;
+  state.library.push({ id:Date.now()+Math.random(), name:"話題："+(c.topic.slice(0,18)), kind:"text",
+    content:`話題：${c.topic}\n切入角度：${c.angle}`, url:"", size:(c.topic+c.angle).length, active:true, deptId:"content" });
+  c.used=true; save(); renderCollector();
+  toast("已存入素材庫（內容創作部）");
+}
+function deleteTopic(id){
+  state.collections=state.collections.filter(c=>String(c.id)!==String(id)); save(); renderCollector();
+}
+function checkAutoCollect(){
+  const c=state.collector; if(!c.auto||!state.apiKey||running) return;
+  let due=false;
+  if(c.freq==="open"){ due=(Date.now()-(c.lastRun||0))>30*60*1000; }
+  else { due = new Date().toDateString()!==new Date(c.lastRun||0).toDateString(); }
+  if(due) collectTopics(true);
 }
 
 /* ============ 素材庫 ============ */
@@ -1288,14 +1474,53 @@ async function runAllDepartments(){
     btn.disabled=false; btn.innerHTML="▶ 一鍵跑完整套（全自動）";
   }
 }
+// 把含【平台】標記的成品拆成各平台區塊
+function splitPlatforms(text){
+  text=text||"";
+  const re=/【([^】\n]{1,20})】/g; const marks=[]; let m;
+  while((m=re.exec(text))){ marks.push({label:m[1], start:m.index, cstart:re.lastIndex}); }
+  if(marks.length<2) return null;
+  const blocks=[];
+  for(let i=0;i<marks.length;i++){
+    const end=i+1<marks.length?marks[i+1].start:text.length;
+    let body=text.slice(marks[i].cstart,end).replace(/^[\s—–\-]+/,"").replace(/[\s—–\-]+$/,"").trim();
+    if(body) blocks.push({label:marks[i].label, body});
+  }
+  return blocks.length>=2?blocks:null;
+}
+// 內容區：有平台標記→分塊；否則→單一收合區
+function richBody(out){
+  const blocks=splitPlatforms(out);
+  if(blocks){
+    return `<div class="plat-blocks">`+blocks.map(b=>`
+      <div class="plat-block">
+        <div class="pb-head"><span class="pb-name">${esc(b.label)}</span>
+          <button class="pb-copy" onclick="copyBlock(this)">📋 複製</button></div>
+        <div class="pb-body clamp">${esc(b.body)}</div>
+        <button class="pb-more" onclick="toggleBlockBody(this)">展開</button>
+      </div>`).join("")+`</div>`;
+  }
+  return `<div class="output-body clamp">${esc(out)}</div>
+    <button class="mini block-more" onclick="toggleClamp(this)">展開全文</button>`;
+}
+function copyBlock(btn){
+  const txt=btn.closest(".plat-block").querySelector(".pb-body").textContent;
+  navigator.clipboard.writeText(txt).then(()=>toast("已複製這個平台，可直接貼文"));
+}
+function toggleBlockBody(btn){
+  const body=btn.closest(".plat-block").querySelector(".pb-body");
+  const open=body.classList.toggle("full"); btn.textContent=open?"收合":"展開";
+}
+function copyWhole(btn){
+  const card=btn.closest(".output-card");
+  const parts=[...card.querySelectorAll(".pb-body, .output-body")].map(b=>b.textContent);
+  navigator.clipboard.writeText(parts.join("\n\n")).then(()=>toast("已複製整篇，可直接貼文"));
+}
 function resultCard(d,out){
   return `<div class="output-card">
     <div class="oc-head"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${d.accent}"></span>${d.emoji} ${esc(d.name)}<span class="saved-tag">已存入此部門</span></div>
-    <div class="output-body clamp">${esc(out)}</div>
-    <div class="oc-actions">
-      <button class="mini" onclick="toggleClamp(this)">展開全文</button>
-      <button class="mini" onclick="copyText(this)">📋 複製</button>
-    </div>
+    ${richBody(out)}
+    <div class="oc-actions"><button class="mini" onclick="copyWhole(this)">📋 複製全部</button></div>
   </div>`;
 }
 function copyText(btn){
@@ -1310,10 +1535,9 @@ function toggleClamp(btn){
 function finalCard(out){
   return `<div class="output-card final-card">
     <div class="oc-head final-head">📄 成品 · 可直接貼文（已存入成品庫）</div>
-    <div class="output-body clamp">${esc(out)}</div>
+    ${richBody(out)}
     <div class="oc-actions">
-      <button class="mini" onclick="toggleClamp(this)">展開全文</button>
-      <button class="mini" onclick="copyText(this)">📋 複製整篇</button>
+      <button class="mini" onclick="copyWhole(this)">📋 複製整篇</button>
       <button class="mini" onclick="openResults()">📦 前往成品庫</button>
     </div>
   </div>`;
@@ -1324,14 +1548,14 @@ function renderOutput(out, d){
   document.getElementById("outputZone").innerHTML=
    `<div class="output-card">
      <div class="oc-head"><span class="pin" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${d.accent}"></span>${esc(d.name)} 產出<span class="saved-tag">已存入「${esc(d.name)}」紀錄</span></div>
-     <div class="output-body clamp" id="lastOut">${esc(out)}</div>
+     <div id="lastOutWrap">${richBody(out)}</div>
      <div class="oc-actions">
-       <button class="mini" onclick="toggleClamp(this)">展開全文</button>
-       <button class="mini" onclick="copyOut()">📋 複製</button>
+       <button class="mini" onclick="copyWhole(this)">📋 複製</button>
        <div class="handoff-title">交辦給下一個部門 ▸</div>
        ${others.map(o=>`<button class="ho-btn" style="background:${o.accent}" onclick="handoff('${d.name}', getLastOut(), '${o.id}')">${o.emoji} ${esc(o.name)}</button>`).join("")}
      </div>
    </div>`;
+  window._lastOut=out;
   document.getElementById("outputZone").scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 function renderError(msg){
@@ -1339,7 +1563,7 @@ function renderError(msg){
    `<div class="output-card"><div class="oc-head">⚠️ 執行失敗</div>
    <div class="output-body" style="color:#b33">${esc(msg)}<br><br>請檢查：金鑰是否正確、帳戶是否有額度、模型名稱是否可用。</div></div>`;
 }
-function getLastOut(){ return document.getElementById("lastOut")?.textContent||""; }
+function getLastOut(){ return window._lastOut||""; }
 function copyOut(){ navigator.clipboard.writeText(getLastOut()).then(()=>toast("已複製")); }
 
 /* ============ 設定 ============ */
@@ -1399,6 +1623,8 @@ document.getElementById("titleInput").value=state.title;
 document.getElementById("miniTitle").textContent=state.title;
 if(state.headerMin){ document.getElementById("topbar").classList.add("min"); }
 renderHome();
+checkAutoCollect();
+setInterval(checkAutoCollect, 15*60*1000);
 </script>
 </body>
 </html>
