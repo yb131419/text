@@ -7,7 +7,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 <div class="bg-darker border-b border-border p-4 text-center">
 <div class="text-xs text-gray-500 tracking-widest mb-1">AI · 技術分析 · 全商品偵測</div>
 <div class="text-xl font-bold">📊 全方位 AI 技術分析系統</div>
-<div class="text-xs text-gray-400 mt-1">EMA趨勢進場 · 亞當理論出場目標 · 兩階段停損 · 移動停利</div>
+<div class="text-xs text-gray-400 mt-1">15分K主趨勢 · EMA12黏著進場 · 1分K觸發點 · 亞當理論出場目標 · 兩階段停損</div>
 </div>
 <div id="content" class="max-w-sm mx-auto p-4 space-y-4 relative z-0"></div>
 <button id="aiButton" class="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-indigo shadow-lg flex items-center justify-center text-2xl z-[110] pointer-events-auto active:scale-95 transition-transform">🤖</button>
@@ -33,8 +33,8 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 <div>① 選擇商品類型（期貨/台股個股/台指期）</div>
 <div>② 上傳 K 線截圖（建議含日K）</div>
 <div>③ 點「開始 AI 技術分析」</div>
-<div>④ EMA趨勢決定進場方向與點位</div>
-<div>⑤ 亞當理論提供出場目標與停損參考</div>
+<div>④ 15分K 主趨勢決定方向，黏著 EMA12 等回踩</div>
+<div>⑤ 1分K 確認觸發點後進場，亞當理論提供出場目標</div>
 <div>⑥ 記錄交易結果到歷史紀錄</div>
 </div>
 <div id="imagePreview" class="mb-3 hidden grid grid-cols-2 gap-2">
@@ -48,13 +48,13 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 <button id="analyzeButton" class="w-full py-4 rounded-xl bg-indigo font-bold mb-3 text-base tracking-wide active:scale-95 transition-transform shadow-lg shadow-indigo/30">🔍 開始 AI 技術分析</button>
 <div id="aiResult" class="space-y-4 hidden">
 <div id="trendCard" class="rounded-xl p-4 border"><div class="text-lg font-bold text-center mb-2" id="productTitle"></div><div class="text-center text-sm text-gray-300 mb-1" id="productTypeLabel"></div><div class="text-center text-base font-bold mb-1" id="trendAdvice"></div><div class="text-center text-xs font-bold text-green mb-1" id="finalSuitability"></div><div class="text-center text-xs font-bold text-yellow mb-1" id="finalWinRate"></div><div class="text-center text-xs font-bold text-cyan" id="profitGuarantee"></div></div>
-<div id="trend5mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5"><div class="text-sm font-bold text-indigo mb-1">📈 大趨勢判斷 (15分K週期) · 進場依據</div>
-<div class="text-xs text-gray-500 mb-2">EMA12 在 EMA20 上方且角度向上為多頭，反之為空頭；角度 ≥ 25° 視為強趨勢。<span class="text-indigo">進場方向與點位完全由此判斷，不受亞當理論影響。</span></div><div id="trend5mContent"></div></div>
-<div id="dowCard" class="rounded-xl p-4 border border-emerald/30 bg-emerald/5"><div class="text-sm font-bold text-emerald mb-1">📐 亞當理論 · 出場目標參考</div>
-<div class="text-xs text-gray-500 mb-2">亞當理論不參與進場判斷，僅用於計算翻亞當目標價與停損參考位，輔助你判斷這筆趨勢的合理出場區間。</div><div id="dowContent"></div></div>
+<div id="trend5mCard" class="rounded-xl p-4 border border-indigo/30 bg-indigo/5"><div class="text-sm font-bold text-indigo mb-1">📈 15分K 主趨勢 · 進場依據</div>
+<div class="text-xs text-gray-500 mb-2">EMA12 在 EMA20 上方且角度 ≥ 15° 為多頭，反之為空頭。角度 ≥ 25° 為強趨勢盤。<span class="text-indigo">價格須回踩至 EMA12 附近後再找進場點，遠離 EMA12 時等待。</span></div><div id="trend5mContent"></div></div>
+<div id="dowCard" class="rounded-xl p-4 border border-emerald/30 bg-emerald/5"><div class="text-sm font-bold text-emerald mb-1">📐 亞當理論 · 出場目標參考（15分K / 日K）</div>
+<div class="text-xs text-gray-500 mb-2">以 15分K 為主計算翻亞當目標，日K 為大週期參考。出場目標不影響進場判斷。</div><div id="dowContent"></div></div>
 <div id="timeVerifyCard" class="rounded-xl p-4 border border-cyan/30 bg-cyan/5"><div class="text-sm font-bold text-cyan mb-2">⏱️ 分時圖輔助驗證 (精細擇時)</div><div id="timeVerifyContent"></div></div>
-<div id="entry1mCard" class="rounded-xl p-4 border border-green/30 bg-green/5"><div class="text-sm font-bold text-green mb-1">🎯 右邊進場點位 (1分K週期)</div>
-<div class="text-xs text-gray-500 mb-2">等待 1 分 K 實體突破進場點收線確認後再進場，避免假突破。進場點位純依 EMA + ATR 計算。</div><div id="entry1mContent"></div></div>
+<div id="entry1mCard" class="rounded-xl p-4 border border-green/30 bg-green/5"><div class="text-sm font-bold text-green mb-1">🎯 1分K 進場觸發點</div>
+<div class="text-xs text-gray-500 mb-2">1分K 只用來找精確進場觸發點。需等 15分K EMA12 回踩條件成立後，再看 1分K 實體突破確認收線才進場。</div><div id="entry1mContent"></div></div>
 <div id="slCard" class="rounded-xl p-4 border border-yellow/30 bg-yellow/5"><div class="text-sm font-bold text-yellow mb-2">🛡️ 兩階段停損機制</div><div id="slContent"></div></div>
 <div id="trailCard" class="rounded-xl p-4 border border-cyan/30 bg-cyan/5"><div class="text-sm font-bold text-cyan mb-1">📈 移動停利計劃</div><div id="trailContent"></div></div>
 <div id="levelsCard" class="rounded-xl p-4 border border-purple/30 bg-purple/5"><div class="text-sm font-bold text-purple mb-2">📊 關鍵支撐/阻力位</div><div id="levelsContent"></div></div>
@@ -256,38 +256,54 @@ const calculateTrailingStopPlan = (entry, tp1, tp2, stage2SL, isLong, profile) =
 };
 
 // ════════════════════════════════════════════════
-// 亞當理論：出場目標 / 停損參考引擎
-// 角色定位：完全不參與進場判斷，只計算翻亞當目標價與停損參考位
+// EMA12 黏著條件判斷（進場過濾核心）
+// 規則：
+//   多頭：價格須從下方回踩到 EMA12 附近（偏離 < 0.3%）且目前站在 EMA12 之上
+//   空頭：價格須從上方反彈到 EMA12 附近（偏離 < 0.3%）且目前壓在 EMA12 之下
+//   不符合 → emaStick = false → 進場點位不顯示（等待回踩）
 // ════════════════════════════════════════════════
-const checkEma12Pullback = (currentPrice, ema12, trend, highs = [], lows = []) => {
-  const diff = Math.abs(currentPrice - ema12) / ema12;
-  const isNearEma12 = diff <= PULLBACK_TOLERANCE;
-  let isPullbackValid = false;
-  let pullbackNote = '';
+const EMA12_STICK_TOLERANCE = 0.003; // 0.3% 以內算「黏著 EMA12」
 
-  if ((trend === 'long') && lows.length > 0) {
-    const lastLow = lows[lows.length - 1];
-    const lowNearEma = Math.abs(lastLow - ema12) / ema12 <= PULLBACK_TOLERANCE;
-    isPullbackValid = lowNearEma && currentPrice > lastLow && currentPrice >= ema12;
-    pullbackNote = isPullbackValid
-      ? '✅ 最近低點回踩EMA12後反彈，趨勢結構穩健'
-      : currentPrice < ema12
-        ? '⚠️ 價格跌破EMA12，注意趨勢可能轉弱'
-        : '參考用：尚未出現明顯回踩動作';
-  } else if ((trend === 'short') && highs.length > 0) {
-    const lastHigh = highs[highs.length - 1];
-    const highNearEma = Math.abs(lastHigh - ema12) / ema12 <= PULLBACK_TOLERANCE;
-    isPullbackValid = highNearEma && currentPrice < lastHigh && currentPrice <= ema12;
-    pullbackNote = isPullbackValid
-      ? '✅ 最近高點回踩EMA12後回落，趨勢結構穩健'
-      : currentPrice > ema12
-        ? '⚠️ 價格突破EMA12，注意趨勢可能轉弱'
-        : '參考用：尚未出現明顯回踩動作';
+const checkEma12Stick = (currentPrice, ema12, trend) => {
+  const diff = Math.abs(currentPrice - ema12) / ema12;
+  const isStick = diff <= EMA12_STICK_TOLERANCE;
+  let emaStick = false;
+  let stickNote = '';
+  let stickLevel = 'none'; // 'ideal' | 'ok' | 'far'
+
+  if (trend === 'long') {
+    if (currentPrice >= ema12 && diff <= 0.001) {
+      emaStick = true; stickLevel = 'ideal';
+      stickNote = '✅ 緊貼 EMA12 上方，黏著條件完美，可找 1分K 進場觸發點';
+    } else if (currentPrice >= ema12 && isStick) {
+      emaStick = true; stickLevel = 'ok';
+      stickNote = '✅ 接近 EMA12 上方（偏離 ' + (diff * 100).toFixed(2) + '%），黏著條件成立';
+    } else if (currentPrice < ema12) {
+      emaStick = false; stickLevel = 'far';
+      stickNote = '❌ 價格跌破 EMA12（偏離 ' + (diff * 100).toFixed(2) + '%），多頭趨勢待確認，等待重新站上';
+    } else {
+      emaStick = false; stickLevel = 'far';
+      stickNote = '⏳ 距離 EMA12 過遠（偏離 ' + (diff * 100).toFixed(2) + '%），等待價格回踩 EMA12 再找進場點';
+    }
+  } else if (trend === 'short') {
+    if (currentPrice <= ema12 && diff <= 0.001) {
+      emaStick = true; stickLevel = 'ideal';
+      stickNote = '✅ 緊貼 EMA12 下方，黏著條件完美，可找 1分K 進場觸發點';
+    } else if (currentPrice <= ema12 && isStick) {
+      emaStick = true; stickLevel = 'ok';
+      stickNote = '✅ 接近 EMA12 下方（偏離 ' + (diff * 100).toFixed(2) + '%），黏著條件成立';
+    } else if (currentPrice > ema12) {
+      emaStick = false; stickLevel = 'far';
+      stickNote = '❌ 價格突破 EMA12（偏離 ' + (diff * 100).toFixed(2) + '%），空頭趨勢待確認，等待重新壓回';
+    } else {
+      emaStick = false; stickLevel = 'far';
+      stickNote = '⏳ 距離 EMA12 過遠（偏離 ' + (diff * 100).toFixed(2) + '%），等待價格反彈至 EMA12 再找進場點';
+    }
   } else {
-    pullbackNote = '盤整行情，回踩參考意義不大';
+    stickNote = '盤整行情，EMA12 黏著條件無意義，不建議操作';
   }
 
-  return { isNearEma12, isPullbackValid, diffPercent: (diff * 100).toFixed(2), pullbackNote };
+  return { emaStick, stickLevel, stickNote, diffPercent: (diff * 100).toFixed(2) };
 };
 
 // ════════════════════════════════════════════════
@@ -496,14 +512,23 @@ ${a.trailPlan ? `
 </div>
 ${a.longEntry !== null ? `
 <div class="bg-green/10 rounded-xl p-3 border border-green/30">
-<div class="text-sm font-bold text-green mb-2">🎯 右邊進場點位 (1分K週期)</div>
+<div class="text-sm font-bold text-green mb-2">🎯 1分K 進場觸發點</div>
 <div class="text-center">
-<div class="text-base font-bold ${trendColor} mb-1">建議操作：${a.trend === 'long' ? '做多單' : '做空單'}</div>
+<div class="text-base font-bold ${trendColor} mb-1">方向：${a.trend === 'long' ? '做多單' : '做空單'}</div>
+${a.emaStickResult?.emaStick ? `
 <div class="text-sm text-gray-300 mb-1">進場點位：<span class="font-bold text-white">${fmt(a.trend === 'long' ? a.longEntry : a.shortEntry, a.decimals)}</span></div>
 <div class="text-sm font-bold text-green">預期目標獲利空間：${profitSpace} ${unit}</div>
 <div class="text-xs text-gray-500 mt-1">第一止盈TP1：${fmt(a.trend === 'long' ? a.longTp1 : a.shortTp1, a.decimals)} | 第二止盈TP2：${fmt(a.trend === 'long' ? a.longTp2 : a.shortTp2, a.decimals)}</div>
+<div class="text-xs text-green/80 mt-1">${a.emaStickResult.stickNote}</div>
+` : `
+<div class="bg-yellow/10 border border-yellow/30 rounded-lg p-3 mt-1">
+<div class="text-yellow font-bold text-xs mb-1">⏳ 等待 EMA12 黏著條件</div>
+<div class="text-xs text-gray-300">${a.emaStickResult?.stickNote || '等待價格回踩 EMA12 附近後再找 1分K 進場觸發點'}</div>
+<div class="text-xs text-gray-500 mt-1">進場點已計算（${fmt(a.trend === 'long' ? a.longEntry : a.shortEntry, a.decimals)}），待黏著條件成立後使用</div>
 </div>
-</div>` : `<div class="bg-yellow/10 rounded-xl p-3 border border-yellow/30"><div class="text-sm font-bold text-yellow mb-2">⚠️ 盤整行情 · EMA角度不足，不建議操作</div><div class="text-sm text-gray-300">${a.consolidationWarning || '當前處於盤整區間，等待明確趨勢確認後再評估進場'}</div></div>`}
+`}
+</div>
+</div>` : `<div class="bg-yellow/10 rounded-xl p-3 border border-yellow/30"><div class="text-sm font-bold text-yellow mb-2">⚠️ 盤整盤 · 不建議操作</div><div class="text-sm text-gray-300">${a.consolidationWarning || '15分K EMA角度不足，等待趨勢確立後再評估進場'}</div></div>`}
 </div>`;
 };
 
@@ -648,7 +673,7 @@ ${Object.entries(RISK_PROFILES).map(([key, prof]) => `
 <div class="text-xs text-gray-500 pt-1 border-t border-gray-700">💡 上方數值單位依商品類型自動切換（期貨/期指為「點」，個股為「元」）</div>
 </div>
 <button id="clearAllDataButton" class="w-full py-3 border border-red/30 text-red rounded-lg text-sm mb-4 active:bg-red/10 transition-colors">清除所有本地資料</button>
-<div class="text-xs text-gray-600 text-center">全方位 AI 技術分析系統 v3.1 · EMA進場 + 亞當出場分離 + 全商品支援</div>`;
+<div class="text-xs text-gray-600 text-center">全方位 AI 技術分析系統 v3.2 · 15分K主趨勢 + EMA12黏著進場 + 亞當出場 + 全商品支援</div>`;
 };
 
 const bindHomeEvents = () => {
@@ -719,10 +744,11 @@ const renderAiResult = () => {
   document.getElementById('profitSpace').textContent = a.longEntry !== null ? `${mainProfit} ${unit} (TP2)` : '盤整無獲利目標';
 
   document.getElementById('trend5mContent').innerHTML = `<div class="text-xs space-y-1">
-<div>📐 整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span></div>
+<div>📐 整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span> <span class="text-gray-500">（進場門檻 ≥ 15°，強趨勢 ≥ 25°）</span></div>
 <div>📈 趨勢方向：<span class="font-medium ${trendColor}">${trendText}</span></div>
 <div>📊 ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span></div>
-<div>💡 ${a.trend === 'long' ? '逢低佈局做多單為主' : a.trend === 'short' ? '逢高佈局做空單為主' : '觀望為主，等待明確方向'}</div>
+<div class="${a.emaStickResult?.emaStick ? 'text-green' : a.emaStickResult?.stickLevel === 'far' ? 'text-yellow' : 'text-gray-400'} font-medium">🔵 EMA12 黏著：${a.emaStickResult?.stickNote || '—'}</div>
+<div>💡 ${a.trend === 'long' ? '多頭趨勢：等 15分K 回踩 EMA12 後，再看 1分K 觸發點' : a.trend === 'short' ? '空頭趨勢：等 15分K 反彈至 EMA12 後，再看 1分K 觸發點' : '觀望為主，等待明確方向'}</div>
 ${strongTrend ? '<div class="text-yellow font-medium pt-1 border-t border-yellow/30">🏆 達成強趨勢門檻，啟動獲利保證機制</div>' : ''}
 </div>`;
 
@@ -767,17 +793,24 @@ ${a.riskNote ? `<div class="bg-black/30 p-2 rounded"><div class="font-medium tex
     trailCard.classList.remove('hidden');
 
     document.getElementById('entry1mContent').innerHTML = `<div class="text-xs space-y-2">
-<div class="bg-black/30 p-2 rounded border border-red/30"><div class="font-bold text-red mb-1">🔴 做多單進場</div>
-<div>進場點：<span class="font-bold text-white">${fmt(a.longEntry, a.decimals)}</span></div>
-<div>TP1：<span class="text-green">${fmt(a.longTp1, a.decimals)}</span></div>
-<div>TP2：<span class="text-green font-bold">${fmt(a.longTp2, a.decimals)}</span> · 獲利 ${longProfit} ${unit}</div>
+${a.emaStickResult?.emaStick ? `
+<div class="bg-green/10 border border-green/30 rounded-lg p-2 mb-1"><div class="text-green font-bold mb-1">${a.emaStickResult.stickNote}</div><div class="text-gray-400">EMA12 黏著條件成立，可觀察 1分K 進場觸發點</div></div>
+<div class="bg-black/30 p-2 rounded border border-red/30"><div class="font-bold text-red mb-1">🔴 做多單進場觸發點</div>
+<div>1分K 突破 <span class="font-bold text-white">${fmt(a.longEntry, a.decimals)}</span> 且收線確認</div>
+<div>TP1：<span class="text-green">${fmt(a.longTp1, a.decimals)}</span>　TP2：<span class="text-green font-bold">${fmt(a.longTp2, a.decimals)}</span> (+${longProfit} ${unit})</div>
 </div>
-<div class="bg-black/30 p-2 rounded border border-green/30"><div class="font-bold text-green mb-1">🟢 做空單進場</div>
-<div>進場點：<span class="font-bold text-white">${fmt(a.shortEntry, a.decimals)}</span></div>
-<div>TP1：<span class="text-green">${fmt(a.shortTp1, a.decimals)}</span></div>
-<div>TP2：<span class="text-green font-bold">${fmt(a.shortTp2, a.decimals)}</span> · 獲利 ${shortProfit} ${unit}</div>
+<div class="bg-black/30 p-2 rounded border border-green/30"><div class="font-bold text-green mb-1">🟢 做空單進場觸發點</div>
+<div>1分K 跌破 <span class="font-bold text-white">${fmt(a.shortEntry, a.decimals)}</span> 且收線確認</div>
+<div>TP1：<span class="text-green">${fmt(a.shortTp1, a.decimals)}</span>　TP2：<span class="text-green font-bold">${fmt(a.shortTp2, a.decimals)}</span> (+${shortProfit} ${unit})</div>
 </div>
-<div class="text-gray-400 pt-1 border-t border-gray-700">⚠️ 價格實體突破進場點收線確認後再進場，避免假突破</div>
+` : `
+<div class="bg-yellow/10 border border-yellow/30 rounded-lg p-3">
+<div class="text-yellow font-bold mb-1">⏳ EMA12 黏著條件尚未成立</div>
+<div class="text-gray-300">${a.emaStickResult?.stickNote || '等待價格回踩 EMA12 附近'}</div>
+<div class="text-gray-500 mt-1 pt-1 border-t border-gray-700">條件成立後再看 1分K 觸發點：<br>多單觸發 ${fmt(a.longEntry, a.decimals)} ｜ 空單觸發 ${fmt(a.shortEntry, a.decimals)}</div>
+</div>
+`}
+<div class="text-gray-400 pt-1 border-t border-gray-700">⚠️ 1分K 只用來確認觸發點，方向完全依照 15分K EMA 趨勢，不獨立判斷</div>
 </div>`;
 
     document.getElementById('slContent').innerHTML = `<div class="text-xs space-y-2">
@@ -849,8 +882,16 @@ const render = () => {
 const callOpenAI = async imgs => {
   const kind = PRODUCT_KINDS[state.productKind] || PRODUCT_KINDS.futures;
   const systemPrompt = `你是專業的全商品技術分析師。本系統的判斷邏輯分工如下，請務必遵守：
-【進場判斷】完全依據 EMA12/EMA20 角度與 ATR 計算，與亞當理論無關
-【出場判斷】完全依據亞當理論翻亞當點位計算，不影響是否進場
+
+【週期角色分工】
+- 日K（長週期）：大趨勢方向確認，亞當理論長週期出場目標計算
+- 15分K（主週期）：進場方向判斷依據（EMA12/EMA20），亞當理論中週期出場目標計算
+- 1分K（短週期）：【只用來找進場觸發點】，不計算亞當目標，不判斷趨勢方向
+
+【進場判斷】完全依據 15分K EMA12/EMA20 角度與 ATR 計算，角度需 ≥ 15° 才開進場點位
+【進場過濾】價格需在 EMA12 附近（偏離 0.3% 以內）才給具體進場觸發點，遠離 EMA12 時輸出等待訊號
+【出場判斷】依據 15分K 和日K 亞當理論翻亞當點位計算，1分K 亞當數據不需要也不使用
+【盤整盤】EMA 角度 < 15° 視為盤整，不給進場點位
 
 【目前選擇的商品類型】：${kind.label}
 ${kind.promptHint}
@@ -858,28 +899,22 @@ ${kind.promptHint}
 請嚴格按照以下規則分析：
 1. 從圖中提取當前價格、EMA12均線、EMA20均線、ATR(14)數值，價格精度務必符合上述商品類型的判讀提示
 2. 識別產品名稱（個股請含股票代號，如「台積電 2330」）、價格小數位數
-3. 判斷趨勢方向（此為進場依據）：EMA12在EMA20上方且角度向上為long(多頭)；EMA12在EMA20下方且角度向下為short(空頭)；否則sideways(盤整)
-4. 分別識別三個週期的擺動高低點（每個至少3個，按時間順序由舊到新排列），這些資料僅用於計算出場目標，不用於進場判斷：
-   - shortHighs/shortLows（短週期，1分K）
-   - midHighs/midLows（中週期，15分K）
-   - longHighs/longLows（長週期，日K；若無日K圖則省略）
-   同時保留 recentHighs/recentLows（以15分K為主）
-5. 亞當理論【出場目標計算，與進場判斷無關】，對每個有資料的週期填入 adamShort/adamMid/adamLong：
-   計算規則：
-   - 多頭出場目標：找出最近完整一段上漲波（從前低A到前高B），突破前高B後，出場目標 = B + (B - A)，停損參考 = A
-   - 空頭出場目標：找出最近完整一段下跌波（從前高A到前低B），跌破前低B後，出場目標 = B - (A - B)，停損參考 = A
-   每個週期必填以下欄位（數值必須從圖表精確讀取，不可估算）：
-   - direction: "long" / "short" / "neutral"
-   - swingHighA, swingLowA: 前段波幅起點
-   - breakoutPrice: 突破點
-   - swingSize: 波幅大小
-   - adamTarget: 出場目標價（與本次進場方向相同時才有參考意義）
-   - adamStop: 停損參考價
-   - note: 繁體中文說明
-6. 若圖中有分時走勢，分析分時趨勢與15分K趨勢的一致性，給出右邊進場時機建議與風控備註
-6b. 若圖中有日K走勢，分析日K大趨勢方向，結果填入 dailyTrend 與 dailyTrendNote 欄位
-7. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), shortHighs(可選), shortLows(可選), midHighs(可選), midLows(可選), longHighs(可選), longLows(可選), adamShort(可選), adamMid(可選), adamLong(可選), trendConsistency(可選), entryAdvice(可選), riskNote(可選), dailyTrend(可選), dailyTrendNote(可選)
-8. 【重要】所有文字欄位必須使用繁體中文，嚴禁出現任何英文句子`;
+3. 判斷主趨勢方向（依據 15分K EMA）：EMA12在EMA20上方且角度向上為long；EMA12在EMA20下方且角度向下為short；否則sideways(盤整)
+4. 分別識別高低點（每個至少3個，按時間順序由舊到新排列）：
+   - midHighs/midLows（主週期 15分K，必填，這是亞當計算的主要數據）
+   - longHighs/longLows（長週期 日K，若有日K圖則填入）
+   - recentHighs/recentLows（以15分K為主）
+   - shortHighs/shortLows 【可不填，1分K只用於找進場觸發點，不計算亞當】
+5. 亞當理論【出場目標，只用 15分K 和日K，不用 1分K】，填入 adamMid 和 adamLong：
+   - 多頭出場目標：最近完整上漲波（前低A→前高B），突破前高B後，出場目標=B+(B-A)，停損參考=A
+   - 空頭出場目標：最近完整下跌波（前高A→前低B），跌破前低B後，出場目標=B-(A-B)，停損參考=A
+   每個週期必填：direction / swingHighA / swingLowA / breakoutPrice / swingSize / adamTarget / adamStop / note（繁體中文）
+6. 1分K EMA 黏著狀態：根據圖中 1分K（若有上傳）的最新價格與 EMA12 的距離關係，判斷目前是否黏著 EMA12：
+   填入 ema12StickStatus：'ideal'（偏離<0.1%）/ 'ok'（偏離0.1-0.3%）/ 'far'（偏離>0.3%）/ 'broken'（價格穿越EMA12反方向）
+7. 若圖中有分時走勢，分析分時趨勢與 15分K 趨勢的一致性，給出右邊進場時機建議與風控備註
+8. 若圖中有日K走勢，分析日K大趨勢方向，結果填入 dailyTrend 與 dailyTrendNote 欄位
+9. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), midHighs, midLows, longHighs(可選), longLows(可選), adamMid(含direction/breakoutPrice/swingSize/adamTarget/adamStop/note), adamLong(可選), ema12StickStatus(可選), trendConsistency(可選), entryAdvice(可選), riskNote(可選), dailyTrend(可選), dailyTrendNote(可選)
+10. 【重要】所有文字欄位必須使用繁體中文，嚴禁出現任何英文句子`;
 
   const imageContents = imgs.map(imgDataUrl => ({
     type: 'image_url',
@@ -1059,12 +1094,7 @@ ${kind.promptHint}
              swingLowA, swingHighA, dataSource, note: autoNote, hasData: true };
   };
 
-  const adamShortCalc = buildAdamCalc(
-    parsedData.adamShort,
-    parsedData.shortHighs || parsedData.recentHighs,
-    parsedData.shortLows  || parsedData.recentLows,
-    '短週期(1分K)'
-  );
+  // 亞當計算：只用 15分K（mid）和 日K（long），1分K 不計算亞當目標
   const adamMidCalc = buildAdamCalc(
     parsedData.adamMid,
     parsedData.midHighs || parsedData.recentHighs,
@@ -1075,14 +1105,22 @@ ${kind.promptHint}
     ? buildAdamCalc(parsedData.adamLong, parsedData.longHighs, parsedData.longLows, '長週期(日K)')
     : null;
 
-  parsedData.adamShortCalc = adamShortCalc;
+  // 1分K 不計算亞當，設為 null（UI 不顯示短週期亞當欄）
+  parsedData.adamShortCalc = null;
   parsedData.adamMidCalc   = adamMidCalc;
   parsedData.adamLongCalc  = adamLongCalc;
 
   // ════════════════════════════════════════════════
-  // 計算流程：步驟三，純 EMA+ATR 計算進場（亞當不參與此步驟的任何判斷）
+  // 計算流程：步驟三，純 EMA+ATR 計算進場
+  // 盤整條件：趨勢為 sideways 或 EMA 角度 < 15°（不夠確定方向，不做）
+  // 進場顯示條件：需額外通過 EMA12 黏著檢查（不黏不給點位，等回踩）
   // ════════════════════════════════════════════════
-  const isConsolidation = parsedData.trend === 'sideways' || Math.abs(parsedData.emaAngle) < 9;
+  const ENTRY_ANGLE_MIN = 15; // 角度低於此值視為盤整，不開進場點位
+  const isConsolidation = parsedData.trend === 'sideways' || Math.abs(parsedData.emaAngle) < ENTRY_ANGLE_MIN;
+
+  // EMA12 黏著判斷（給所有情況都算，供 UI 顯示）
+  const emaStickResult = checkEma12Stick(num(parsedData.currentPrice), num(parsedData.ema12), parsedData.trend);
+  parsedData.emaStickResult = emaStickResult;
 
   if (!isConsolidation) {
     const entryData = calculateEntryAndSL(num(parsedData.currentPrice), parsedData.trend, num(parsedData.atr14), parsedData.emaAngle, profile);
@@ -1090,9 +1128,9 @@ ${kind.promptHint}
 
     const isTrend = isStrongTrend(parsedData.emaAngle);
 
-    // 取與進場方向（parsedData.trend）一致的亞當目標，優先使用中週期（15分K），其次短週期，最後長週期
+    // 亞當目標只從 15分K（優先）和 日K 中取，1分K 不參與
     const pickAdamTargetForDirection = (dir) => {
-      const candidates = [adamMidCalc, adamShortCalc, adamLongCalc].filter(c => c && c.hasData && c.direction === dir && c.adamTarget != null);
+      const candidates = [adamMidCalc, adamLongCalc].filter(c => c && c.hasData && c.direction === dir && c.adamTarget != null);
       return candidates.length ? candidates[0].adamTarget : null;
     };
 
@@ -1130,9 +1168,11 @@ ${kind.promptHint}
     parsedData.shortTp1 = null; parsedData.shortTp2 = null;
     parsedData.trailPlan = null;
     parsedData.adamTp2Source = null;
-    parsedData.consolidationWarning = 'EMA角度不足或盤整行情，無明確進場方向，請等待趨勢確立後再評估進場';
+    parsedData.consolidationWarning = `EMA角度 ${parsedData.emaAngle}°（需 ≥ ${ENTRY_ANGLE_MIN}°），15分K 趨勢不明確，此為盤整盤，不建議操作。等待角度確立後再評估。`;
   }
 
+  // 即使趨勢明確，若價格遠離 EMA12，也不顯示進場點（等黏著）
+  // longEntry / shortEntry 已算出，但 emaStick = false 時 UI 會隱藏進場區塊並顯示等待提示
   parsedData.time = new Date().toLocaleString('zh-TW');
 
   const normalizeZh = str => {
