@@ -92,6 +92,14 @@ const MIN_TREND_PROFIT = 50;
 const TREND_ANGLE_THRESHOLD = 25;
 const PULLBACK_TOLERANCE = 0.002;
 
+// ── ATR 相對能量門檻
+// 邏輯：當前 ATR ÷ 近期平均 ATR，比值 > 1 代表市場活躍
+// HIGH_ENERGY  ≥ 1.3 → 高能量，適合波段單，趨勢有驅動力
+// NORMAL_ENERGY ≥ 0.8 → 正常能量，可做但不追大波段
+// < 0.8         → 低能量，盤整縮量，不建議操作
+const ATR_ENERGY_HIGH   = 1.3;
+const ATR_ENERGY_NORMAL = 0.8;
+
 // ════════════════════════════════════════════════
 // 商品類型設定
 // ════════════════════════════════════════════════
@@ -331,6 +339,56 @@ const isNoVolatility = (atrValue, currentPrice, emaAngle) => {
 
 const isStrongTrend = emaAngle => Math.abs(emaAngle) >= TREND_ANGLE_THRESHOLD;
 
+// ── ATR 相對能量計算
+// AI 會回傳當前 ATR(14) 和近期多根 ATR 數值（recentAtrs 陣列）
+// 若 AI 只回傳單一 ATR 值，退回用 currentPrice 的比例估算做備援
+const calcAtrEnergy = (currentAtr, recentAtrs, currentPrice) => {
+  let avgAtr = null;
+  let source = '';
+
+  if (recentAtrs && Array.isArray(recentAtrs) && recentAtrs.length >= 3) {
+    const valid = recentAtrs.map(v => parseFloat(v)).filter(v => !isNaN(v) && v > 0);
+    if (valid.length >= 3) {
+      avgAtr = valid.reduce((a, b) => a + b, 0) / valid.length;
+      source = `近${valid.length}根平均ATR`;
+    }
+  }
+
+  // 備援：若 AI 沒給 recentAtrs，用 currentPrice × 0.002 作為「正常ATR」基準
+  // 這個比例基於 NQ/台指等商品的歷史波動率經驗值
+  if (!avgAtr && currentPrice > 0) {
+    avgAtr = currentPrice * 0.002;
+    source = '基準估算（無歷史ATR）';
+  }
+
+  if (!avgAtr || avgAtr === 0) return { ratio: null, level: 'unknown', label: '—', source: '無法計算' };
+
+  const atr = parseFloat(currentAtr);
+  if (isNaN(atr) || atr <= 0) return { ratio: null, level: 'unknown', label: '—', source };
+
+  const ratio = atr / avgAtr;
+  let level, label, color, advice;
+
+  if (ratio >= ATR_ENERGY_HIGH) {
+    level = 'high';
+    label = '🔥 高能量';
+    color = 'text-red';
+    advice = `當前波動是近期均值的 ${ratio.toFixed(2)}x，趨勢有驅動力，適合波段單持有至 TP2`;
+  } else if (ratio >= ATR_ENERGY_NORMAL) {
+    level = 'normal';
+    label = '✅ 正常能量';
+    color = 'text-green';
+    advice = `當前波動是近期均值的 ${ratio.toFixed(2)}x，可正常操作，不建議過度持倉`;
+  } else {
+    level = 'low';
+    label = '⚠️ 低能量';
+    color = 'text-yellow';
+    advice = `當前波動僅為近期均值的 ${ratio.toFixed(2)}x，市場縮量盤整，建議觀望或縮小部位`;
+  }
+
+  return { ratio: parseFloat(ratio.toFixed(2)), level, label, color, advice, avgAtr: parseFloat(avgAtr.toFixed(2)), source };
+};
+
 const num = v => parseFloat(v) || 0;
 const fmt = (n, d = 0) => !n || isNaN(n) || !isFinite(n) ? '—' : Number(n).toFixed(d);
 
@@ -438,6 +496,7 @@ const renderHome = () => {
   const winRate = getWinRateBySuitability(suitability, hasTimeVerify);
   const noVol = isNoVolatility(a.atr14, a.currentPrice, a.emaAngle);
   const strongTrend = isStrongTrend(a.emaAngle);
+  const energy = a.atrEnergy || { level: 'unknown', label: '—', color: 'text-gray-400', advice: '無能量數據' };
   const finalStatus = noVol ? '⚠️ 無波動盤 → 建議觀望' : suitability;
   const finalColor = noVol ? 'text-yellow' : 'text-green';
   const profitSpace = a.longEntry !== null ? (a.trend === 'long' ? Math.abs(a.longTp2 - a.longEntry) : Math.abs(a.shortTp2 - a.shortEntry)) : 0;
@@ -452,12 +511,26 @@ const renderHome = () => {
 <div class="text-xl font-bold ${trendColor} mb-2">${trendText}</div>
 <div class="text-base font-bold ${finalColor} mb-1">${finalStatus}</div>
 <div class="text-sm text-green font-medium mb-1">預期勝率：${winRate}</div>
+<div class="text-sm font-bold ${energy.color} mb-1">${energy.label}${energy.ratio ? ` · ${energy.ratio}x` : ''}</div>
 ${strongTrend ? `<div class="text-sm font-bold text-yellow">🏆 強趨勢盤認證 · 保證獲利 ≥ ${state.minTrendProfit} ${unit}</div>` : ''}
 <div class="text-xs text-gray-500 mt-2">偵測時間：${a.time}</div>
 </div>
 <div class="bg-indigo/10 rounded-xl p-3 border border-indigo/30 mb-3">
-<div class="text-sm font-bold text-indigo mb-2">📈 大趨勢判斷 (15分K) · 進場依據</div>
+<div class="text-sm font-bold text-indigo mb-2">📈 15分K 主趨勢 · 進場依據</div>
 <div class="text-sm text-gray-300">整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span><br>ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span><br>操作建議：<span class="font-medium">${a.trend === 'long' ? '逢低佈局做多單為主' : a.trend === 'short' ? '逢高佈局做空單為主' : '觀望為主，等待明確方向'}</span></div>
+</div>
+<div class="bg-${energy.level === 'high' ? 'red' : energy.level === 'normal' ? 'green' : energy.level === 'low' ? 'yellow' : 'gray'}/10 rounded-xl p-3 border border-${energy.level === 'high' ? 'red' : energy.level === 'normal' ? 'green' : energy.level === 'low' ? 'yellow' : 'gray'}/30 mb-3">
+<div class="text-sm font-bold ${energy.color} mb-2">⚡ 市場能量 · ATR相對強度</div>
+<div class="grid grid-cols-3 gap-2 text-xs mb-2">
+<div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 mb-1">當前ATR</div><div class="font-bold text-white">${a.atr14}</div></div>
+<div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 mb-1">近期均值</div><div class="font-bold text-white">${energy.avgAtr ?? '—'}</div></div>
+<div class="bg-black/30 p-2 rounded text-center"><div class="text-gray-400 mb-1">能量比值</div><div class="font-bold ${energy.color}">${energy.ratio ?? '—'}x</div></div>
+</div>
+<div class="text-xs ${energy.color} font-medium">${energy.label}</div>
+<div class="text-xs text-gray-300 mt-1">${energy.advice}</div>
+${energy.level === 'low' ? '<div class="text-xs text-yellow mt-1 pt-1 border-t border-yellow/30">💡 低能量盤即使方向正確，獲利空間也有限，建議縮小部位或等待能量回升</div>' : ''}
+${energy.level === 'high' ? '<div class="text-xs text-red/80 mt-1 pt-1 border-t border-red/30">💡 高能量盤波動大，停損距離需留足，但波段目標可以設更遠</div>' : ''}
+<div class="text-xs text-gray-600 mt-1">來源：${energy.source || '—'}</div>
 </div>
 <div class="bg-emerald/10 rounded-xl p-3 border border-emerald/30 mb-3">
 <div class="text-sm font-bold text-emerald mb-1">📐 亞當理論 · 出場目標參考</div>
@@ -577,6 +650,12 @@ const renderStats = () => {
   const trendWin = state.aiHistory.filter(r => Math.abs(r.emaAngle) >= TREND_ANGLE_THRESHOLD && r.result === 'win').length;
   const trendRealWinRate = trendMarked > 0 ? Math.round(trendWin / trendMarked * 100) + '%' : '—';
   const adamTp2Count = state.aiHistory.filter(r => r.adamTp2Source).length;
+  const energyCounts = { high: 0, normal: 0, low: 0, unknown: 0 };
+  state.aiHistory.forEach(r => {
+    const lvl = r.atrEnergy?.level || 'unknown';
+    if (energyCounts[lvl] !== undefined) energyCounts[lvl]++;
+    else energyCounts.unknown++;
+  });
   const profileCounts = { short: 0, medium: 0, long: 0 };
   state.aiHistory.forEach(r => { if (r.riskProfile && profileCounts[r.riskProfile] !== undefined) profileCounts[r.riskProfile]++; });
   const kindCounts = { futures: 0, tw_stock: 0, tw_index_futures: 0 };
@@ -601,6 +680,15 @@ const renderStats = () => {
 <div class="bg-black/30 p-2 rounded text-center"><div class="text-green mb-1">${PRODUCT_KINDS.tw_stock.icon} ${PRODUCT_KINDS.tw_stock.label}</div><div class="font-bold text-white">${kindCounts.tw_stock}</div></div>
 <div class="bg-black/30 p-2 rounded text-center"><div class="text-yellow mb-1">${PRODUCT_KINDS.tw_index_futures.icon} ${PRODUCT_KINDS.tw_index_futures.label}</div><div class="font-bold text-white">${kindCounts.tw_index_futures}</div></div>
 </div>
+</div>
+<div class="bg-card border border-red/40 rounded-xl p-4 space-y-2 text-sm mb-4 bg-red/5">
+<div class="font-bold mb-2 text-red">⚡ 市場能量分佈統計</div>
+<div class="grid grid-cols-3 gap-2 text-xs">
+<div class="bg-black/30 p-2 rounded text-center"><div class="text-red mb-1">🔥 高能量</div><div class="font-bold text-white">${energyCounts.high}</div></div>
+<div class="bg-black/30 p-2 rounded text-center"><div class="text-green mb-1">✅ 正常</div><div class="font-bold text-white">${energyCounts.normal}</div></div>
+<div class="bg-black/30 p-2 rounded text-center"><div class="text-yellow mb-1">⚠️ 低能量</div><div class="font-bold text-white">${energyCounts.low}</div></div>
+</div>
+<div class="text-xs text-gray-400 pt-1 border-t border-gray-700">💡 高能量盤趨勢驅動力強，波段目標設遠；低能量盤縮小部位或觀望</div>
 </div>
 <div class="bg-card border border-emerald/40 rounded-xl p-4 space-y-2 text-sm mb-4 bg-emerald/5">
 <div class="font-bold mb-2 text-emerald">📐 亞當理論出場依據統計</div>
@@ -673,7 +761,7 @@ ${Object.entries(RISK_PROFILES).map(([key, prof]) => `
 <div class="text-xs text-gray-500 pt-1 border-t border-gray-700">💡 上方數值單位依商品類型自動切換（期貨/期指為「點」，個股為「元」）</div>
 </div>
 <button id="clearAllDataButton" class="w-full py-3 border border-red/30 text-red rounded-lg text-sm mb-4 active:bg-red/10 transition-colors">清除所有本地資料</button>
-<div class="text-xs text-gray-600 text-center">全方位 AI 技術分析系統 v3.2 · 15分K主趨勢 + EMA12黏著進場 + 亞當出場 + 全商品支援</div>`;
+<div class="text-xs text-gray-600 text-center">全方位 AI 技術分析系統 v3.3 · 15分K主趨勢 + EMA12黏著 + ATR能量過濾 + 亞當出場</div>`;
 };
 
 const bindHomeEvents = () => {
@@ -723,6 +811,7 @@ const renderAiResult = () => {
   const winRate = getWinRateBySuitability(suitability, hasTimeVerify);
   const noVol = isNoVolatility(a.atr14, a.currentPrice, a.emaAngle);
   const strongTrend = isStrongTrend(a.emaAngle);
+  const energy = a.atrEnergy || { level: 'unknown', label: '—', color: 'text-gray-400', advice: '無能量數據', ratio: null };
   const longProfit  = a.longEntry  !== null ? Math.abs(a.longTp2  - a.longEntry)  : 0;
   const shortProfit = a.shortEntry !== null ? Math.abs(a.shortTp2 - a.shortEntry) : 0;
   const mainProfit = a.trend === 'long' ? longProfit : shortProfit;
@@ -738,7 +827,7 @@ const renderAiResult = () => {
   document.getElementById('productType').textContent = kind.label;
   document.getElementById('emaAngle').textContent = `${a.emaAngle}°`;
   document.getElementById('emaSuitable').textContent = suitability;
-  document.getElementById('atrValue').textContent = a.atr14 || '—';
+  document.getElementById('atrValue').textContent = `${a.atr14 || '—'}　${energy.label}${energy.ratio ? ' ' + energy.ratio + 'x' : ''}`;
   document.getElementById('currentPrice').textContent = fmt(a.currentPrice, a.decimals);
   document.getElementById('emaValues').textContent = `EMA12：${fmt(a.ema12, a.decimals)} / EMA20：${fmt(a.ema20, a.decimals)}`;
   document.getElementById('profitSpace').textContent = a.longEntry !== null ? `${mainProfit} ${unit} (TP2)` : '盤整無獲利目標';
@@ -746,7 +835,8 @@ const renderAiResult = () => {
   document.getElementById('trend5mContent').innerHTML = `<div class="text-xs space-y-1">
 <div>📐 整合EMA角度：<span class="font-bold text-white">${a.emaAngle}°</span> <span class="text-gray-500">（進場門檻 ≥ 15°，強趨勢 ≥ 25°）</span></div>
 <div>📈 趨勢方向：<span class="font-medium ${trendColor}">${trendText}</span></div>
-<div>📊 ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span></div>
+<div>📊 ATR(14)波動率：<span class="font-bold text-blue">${a.atr14}</span>　<span class="${energy.color} font-bold">${energy.label}${energy.ratio ? ' · ' + energy.ratio + 'x' : ''}</span></div>
+<div class="text-gray-300">${energy.advice}</div>
 <div class="${a.emaStickResult?.emaStick ? 'text-green' : a.emaStickResult?.stickLevel === 'far' ? 'text-yellow' : 'text-gray-400'} font-medium">🔵 EMA12 黏著：${a.emaStickResult?.stickNote || '—'}</div>
 <div>💡 ${a.trend === 'long' ? '多頭趨勢：等 15分K 回踩 EMA12 後，再看 1分K 觸發點' : a.trend === 'short' ? '空頭趨勢：等 15分K 反彈至 EMA12 後，再看 1分K 觸發點' : '觀望為主，等待明確方向'}</div>
 ${strongTrend ? '<div class="text-yellow font-medium pt-1 border-t border-yellow/30">🏆 達成強趨勢門檻，啟動獲利保證機制</div>' : ''}
@@ -913,7 +1003,7 @@ ${kind.promptHint}
    填入 ema12StickStatus：'ideal'（偏離<0.1%）/ 'ok'（偏離0.1-0.3%）/ 'far'（偏離>0.3%）/ 'broken'（價格穿越EMA12反方向）
 7. 若圖中有分時走勢，分析分時趨勢與 15分K 趨勢的一致性，給出右邊進場時機建議與風控備註
 8. 若圖中有日K走勢，分析日K大趨勢方向，結果填入 dailyTrend 與 dailyTrendNote 欄位
-9. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentHighs(數組,至少3個), recentLows(數組,至少3個), midHighs, midLows, longHighs(可選), longLows(可選), adamMid(含direction/breakoutPrice/swingSize/adamTarget/adamStop/note), adamLong(可選), ema12StickStatus(可選), trendConsistency(可選), entryAdvice(可選), riskNote(可選), dailyTrend(可選), dailyTrendNote(可選)
+9. 只返回標準JSON格式，不加任何說明或markdown，欄位包含：product, currentPrice, decimals, trend, advice, ema12, ema20, atr14, recentAtrs(數組,請提供圖中最近5-10根K棒各自的ATR或波動幅度估算值,用於計算ATR相對能量), recentHighs(數組,至少3個), recentLows(數組,至少3個), midHighs, midLows, longHighs(可選), longLows(可選), adamMid(含direction/breakoutPrice/swingSize/adamTarget/adamStop/note), adamLong(可選), ema12StickStatus(可選), trendConsistency(可選), entryAdvice(可選), riskNote(可選), dailyTrend(可選), dailyTrendNote(可選)
 10. 【重要】所有文字欄位必須使用繁體中文，嚴禁出現任何英文句子`;
 
   const imageContents = imgs.map(imgDataUrl => ({
@@ -991,6 +1081,9 @@ ${kind.promptHint}
   const levels = calculateMergedLevels(num(parsedData.currentPrice), num(parsedData.atr14), false);
   parsedData.support = levels.support;
   parsedData.resistance = levels.resistance;
+
+  // ── ATR 相對能量（進場前必看）
+  parsedData.atrEnergy = calcAtrEnergy(parsedData.atr14, parsedData.recentAtrs, num(parsedData.currentPrice));
 
   // ════════════════════════════════════════════════
   // 計算流程：步驟二，亞當理論計算出場目標（純參考，不影響進場）
