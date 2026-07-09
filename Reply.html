@@ -105,10 +105,10 @@ body{
 /* ── Topbar ── */
 .topbar{
   position:sticky;top:0;z-index:50;
-  height:62px;
-  padding:0 20px;
-  display:flex;align-items:center;gap:14px;
-  background:rgba(3,3,10,.72);
+  height:54px;
+  padding:0 14px;
+  display:flex;align-items:center;gap:10px;
+  background:rgba(6,14,12,.88);
   border-bottom:1px solid var(--border);
   backdrop-filter:blur(24px) saturate(180%);
   -webkit-backdrop-filter:blur(24px) saturate(180%);
@@ -116,21 +116,24 @@ body{
 
 /* Logo */
 .brand{
-  flex:1;
-  display:flex;align-items:baseline;gap:10px;
+  flex:1;min-width:0;
+  display:flex;align-items:center;gap:8px;
 }
 .brand-name{
   font-family:'Playfair Display',serif;
-  font-size:22px;font-weight:700;
+  font-size:17px;font-weight:700;
+  white-space:nowrap;
   background:linear-gradient(135deg, var(--gold) 0%, var(--gold-lt) 55%, var(--mint) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   background-clip:text;
-  letter-spacing:-.02em;
+  letter-spacing:-.01em;
 }
+.brand-sep{width:1px;height:14px;background:var(--border);flex:none;}
 .brand-tag{
-  font-size:10px;letter-spacing:.22em;
+  font-size:9.5px;letter-spacing:.18em;
   color:var(--muted);font-weight:400;
   text-transform:uppercase;
+  white-space:nowrap;
 }
 
 /* Device Toggle */
@@ -141,10 +144,10 @@ body{
   border-radius:12px;padding:4px;gap:3px;
 }
 .dev-btn{
-  display:flex;align-items:center;gap:5px;
-  padding:7px 13px;border:none;border-radius:9px;
+  display:flex;align-items:center;gap:4px;
+  padding:6px 10px;border:none;border-radius:8px;
   background:transparent;color:var(--muted);
-  font-family:'Inter',sans-serif;font-size:12px;font-weight:400;
+  font-family:'Inter',sans-serif;font-size:11.5px;font-weight:400;
   cursor:pointer;white-space:nowrap;
   transition:all .2s;
 }
@@ -157,12 +160,12 @@ body{
 
 /* Settings */
 .gear{
-  width:40px;height:40px;
+  width:36px;height:36px;
   border-radius:50%;
   background:rgba(255,255,255,.04);
   border:1px solid var(--border);
-  color:var(--muted);font-size:15px;
-  cursor:pointer;
+  color:var(--muted);font-size:14px;
+  cursor:pointer;flex:none;
   display:grid;place-items:center;
   transition:all .3s var(--spr);
 }
@@ -602,6 +605,22 @@ html[data-mode="desktop"] .r-placeholder.hide{display:none}
 }
 .mg:hover{border-color:var(--border2);color:var(--text)}
 
+/* ── Chip grid layout ── */
+.chips-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+.chips-grid .chip{
+  padding:10px 6px;
+  justify-content:center;
+  min-height:44px;
+  font-size:13px;
+}
+.chips-grid .chip-wide{
+  grid-column:span 4;
+}
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -630,6 +649,7 @@ html[data-mode="desktop"] .r-placeholder.hide{display:none}
   <header class="topbar">
     <div class="brand">
       <div class="brand-name">回覆靈感</div>
+      <div class="brand-sep"></div>
       <div class="brand-tag">AI Chat Reply</div>
     </div>
 
@@ -691,12 +711,12 @@ html[data-mode="desktop"] .r-placeholder.hide{display:none}
               <div class="sec-num">2</div>
               回覆語氣
             </div>
-            <div class="chips" id="toneChips">
+            <div class="chips chips-grid" id="toneChips">
               <button class="chip on" data-v="幽默風趣">幽默</button>
               <button class="chip"    data-v="溫柔體貼">溫柔</button>
               <button class="chip"    data-v="曖昧撩人但不油膩">曖昧</button>
               <button class="chip"    data-v="正式得體">正式</button>
-              <button class="chip"    data-v="高情商委婉拒絕">高情商拒絕</button>
+              <button class="chip chip-wide" data-v="高情商委婉拒絕">高情商拒絕</button>
             </div>
 
             <div class="gap"></div>
@@ -706,11 +726,11 @@ html[data-mode="desktop"] .r-placeholder.hide{display:none}
               <div class="sec-num">3</div>
               對方身分
             </div>
-            <div class="chips" id="relChips">
+            <div class="chips chips-grid" id="relChips">
               <button class="chip on" data-v="朋友">朋友</button>
-              <button class="chip"    data-v="曖昧對象">曖昧對象</button>
               <button class="chip"    data-v="客戶">客戶</button>
               <button class="chip"    data-v="同事">同事</button>
+              <button class="chip"    data-v="夫妻">夫妻</button>
             </div>
           </div>
 
