@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>回覆靈感 · AI 回覆工作室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ══ TOKENS ══════════════════════════════════════════ */
+:root {
+  --bg:      #07070E;
+  --sf1:     #0E0E18;
+  --sf2:     #141422;
+  --sf3:     #1C1C2C;
+  --gold:    #C0995A;
+  --gold-m:  #D4AE72;
+  --gold-lt: #E8CC90;
+  --ivory:   #EDE8DC;
+  --iv60:    rgba(237,232,220,.60);
+  --iv30:    rgba(237,232,220,.30);
+  --border:  rgba(192,153,90,.22);
+  --ok:      #7AB87F;
+  --err:     #CF7878;
+  --r:       18px;
+  --ease-out: cubic-bezier(.16,1,.3,1);
+  --ease-spr: cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ══ RESET ═══════════════════════════════════════════ */
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+/* ══ GUARANTEED DARK BG — triple-layer approach ═══════
+   Layer 1: html/body explicit colour
+   Layer 2: fixed #bg-fill div (paints over iframe bg)
+   Layer 3: canvas animated orbs                     */
+html, body { background:#07070E !important; color-scheme:dark; }
+html { height:100%; }
+body {
+  min-height:100vh; min-height:100dvh;
+  color:#EDE8DC;
+  font-family:'Noto Sans TC',sans-serif;
+  font-weight:300; font-size:15px; line-height:1.6; letter-spacing:0;
+  overflow-x:hidden;
+}
+
+/* Layer 2 — fixed fill div */
+#bgFill {
+  position:fixed; inset:0; z-index:0;
+  background:#07070E;
+  pointer-events:none;
+}
+
+/* Layer 3 — canvas orbs */
+#bgCanvas {
+  position:fixed; inset:0; z-index:1;
+  width:100%; height:100%;
+  pointer-events:none;
+}
+
+/* Film grain */
+.grain {
+  position:fixed; inset:-30%; width:160%; height:160%;
+  z-index:2; pointer-events:none; opacity:.025;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grn 10s steps(8) infinite;
+}
+@keyframes grn {
+  0%   { transform:translate(0,0) }       20% { transform:translate(-4%,-8%) }
+  40%  { transform:translate(6%,-20%) }   60% { transform:translate(-6%,18%) }
+  80%  { transform:translate(10%,4%) }    100%{ transform:translate(0,0) }
+}
+
+/* ══ WRAP ════════════════════════════════════════════ */
+.wrap {
+  position:relative; z-index:3;
+  max-width:680px; margin:0 auto;
+  padding:36px 18px 110px;
+}
+
+/* ══ ENTER ANIMATIONS ════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(22px); filter:blur(5px); }
+  to   { opacity:1; transform:translateY(0);    filter:blur(0);   }
+}
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.e0 { animation:fadeUp .7s var(--ease-out) .00s both; }
+.e1 { animation:fadeUp .7s var(--ease-out) .12s both; }
+.e2 { animation:fadeUp .7s var(--ease-out) .22s both; }
+.e3 { animation:fadeUp .7s var(--ease-out) .32s both; }
+
+/* ══ HEADER ══════════════════════════════════════════ */
+header {
+  display:flex; align-items:flex-start;
+  justify-content:space-between; gap:14px;
+  margin-bottom:38px;
+}
+.atelier-tag {
+  font-size:9.5px; letter-spacing:.24em;
+  color:var(--gold); margin-bottom:4px;
+}
+.brand-name {
+  font-family:'Cormorant Garamond',serif;
+  font-weight:600;
+  font-size:clamp(32px,9vw,44px);
+  line-height:1.0;
+  color:var(--gold-lt);
+  text-shadow:0 0 50px rgba(200,165,100,.28);
+}
+.brand-sub {
+  margin-top:6px; font-size:10px;
+  letter-spacing:.22em; color:var(--iv30);
+}
+.gear-btn {
+  flex:none; width:42px; height:42px; border-radius:50%;
+  border:1px solid var(--border);
+  background:var(--sf1); color:var(--gold);
+  font-size:17px; cursor:pointer;
+  display:grid; place-items:center;
+  transition:border-color .3s, box-shadow .3s, background .3s, transform .45s var(--ease-spr);
+}
+.gear-btn:hover {
+  border-color:var(--gold); background:var(--sf2);
+  box-shadow:0 0 20px rgba(192,153,90,.28);
+  transform:rotate(90deg);
+}
+
+/* ══ GLASS CARD ══════════════════════════════════════ */
+.card {
+  position:relative; overflow:hidden;
+  background:rgba(255,255,255,.038);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:22px 20px; margin-bottom:14px;
+  backdrop-filter:blur(28px) saturate(160%);
+  -webkit-backdrop-filter:blur(28px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -1px 0 rgba(0,0,0,.18),
+    0 28px 70px rgba(0,0,0,.60),
+    0 6px 20px rgba(0,0,0,.35);
+  transition:border-color .3s, box-shadow .3s;
+}
+/* top shimmer line */
+.card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(230,205,145,.45),transparent);
+}
+/* hover sweep glow */
+.card::after {
+  content:''; position:absolute;
+  top:0; left:-100%; width:60%; height:100%;
+  background:linear-gradient(105deg,transparent,rgba(200,165,100,.06),transparent);
+  transition:left .8s ease;
+}
+.card:hover { border-color:rgba(192,153,90,.38); }
+.card:hover::after { left:150%; }
+
+/* ══ SECTION LABEL ═══════════════════════════════════ */
+.sec-label {
+  font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:16px;
+  display:flex; align-items:center; gap:10px;
+}
+.sec-num {
+  font-family:'Cormorant Garamond',serif; font-style:italic;
+  font-size:15px; color:var(--gold-m); font-weight:500;
+}
+.sec-label::after {
+  content:''; flex:1; height:1px;
+  background:linear-gradient(90deg,rgba(192,153,90,.35),transparent);
+}
+
+/* ══ TABS ════════════════════════════════════════════ */
+.tabs {
+  display:flex; gap:5px;
+  background:rgba(0,0,0,.32);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:13px; padding:5px;
+  margin-bottom:18px;
+}
+.tab {
+  flex:1; padding:11px 6px;
+  border:none; border-radius:10px; cursor:pointer;
+  background:transparent; color:var(--iv60);
+  font-family:inherit; font-size:13.5px; font-weight:400;
+  transition:background .25s, color .25s, box-shadow .25s;
+}
+.tab.active {
+  background:linear-gradient(145deg,rgba(192,153,90,.20),rgba(192,153,90,.08));
+  color:var(--gold-lt);
+  box-shadow:0 0 0 1px rgba(192,153,90,.32), 0 3px 10px rgba(0,0,0,.30);
+}
+
+/* ══ PANE / DROP ═════════════════════════════════════ */
+.pane { display:none; }
+.pane.show { display:block; animation:fadeIn .3s ease both; }
+
+.drop-zone {
+  position:relative; overflow:hidden;
+  border:1.5px dashed rgba(192,153,90,.28);
+  border-radius:13px; padding:34px 16px;
+  text-align:center; cursor:pointer;
+  color:var(--iv60); font-size:14px; line-height:1.65;
+  transition:border-color .25s, color .25s;
+}
+.drop-zone::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at center,rgba(192,153,90,.07),transparent 72%);
+  opacity:0; transition:opacity .3s;
+}
+.drop-zone:hover::before,.drop-zone.over::before { opacity:1; }
+.drop-zone:hover,.drop-zone.over { border-color:var(--gold); color:var(--ivory); }
+.drop-icon {
+  font-size:32px; display:block; margin-bottom:10px;
+  transition:transform .4s var(--ease-spr);
+}
+.drop-zone:hover .drop-icon { transform:scale(1.12) translateY(-3px); }
+.drop-zone input { display:none; }
+
+.preview-wrap { display:none; margin-top:14px; position:relative; }
+.preview-wrap.show { display:block; animation:fadeIn .35s ease both; }
+.preview-wrap img {
+  width:100%; max-height:300px; object-fit:contain;
+  border-radius:12px; border:1px solid var(--border);
+  background:rgba(0,0,0,.45);
+}
+.rm-btn {
+  position:absolute; top:8px; right:8px;
+  width:30px; height:30px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.72); color:var(--ivory);
+  font-size:12px; cursor:pointer;
+  display:grid; place-items:center;
+  backdrop-filter:blur(8px);
+  transition:background .2s, border-color .2s;
+}
+.rm-btn:hover { background:rgba(70,20,20,.88); border-color:var(--err); }
+
+textarea {
+  width:100%; min-height:148px;
+  background:rgba(0,0,0,.30);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:12px;
+  color:var(--ivory);
+  font-family:inherit; font-size:14.5px; font-weight:300;
+  line-height:1.75; padding:14px 16px;
+  resize:vertical;
+  transition:border-color .25s, box-shadow .25s;
+}
+textarea:focus { outline:none; border-color:rgba(192,153,90,.55); box-shadow:0 0 0 3px rgba(192,153,90,.10); }
+textarea::placeholder { color:rgba(237,232,220,.22); }
+
+/* ══ CHIPS ═══════════════════════════════════════════ */
+.chips { display:flex; flex-wrap:wrap; gap:8px; }
+.chip {
+  padding:9px 18px; border-radius:999px;
+  border:1px solid rgba(255,255,255,.11);
+  background:rgba(255,255,255,.04);
+  color:rgba(237,232,220,.58);
+  font-family:inherit; font-size:13.5px; font-weight:300;
+  cursor:pointer;
+  transition:border-color .22s, color .22s, background .22s,
+             transform .3s var(--ease-spr), box-shadow .22s;
+}
+.chip:hover { border-color:rgba(192,153,90,.45); color:var(--ivory); transform:translateY(-1px); }
+.chip.on {
+  border-color:var(--gold);
+  background:linear-gradient(135deg,rgba(192,153,90,.22),rgba(192,153,90,.10));
+  color:var(--gold-lt);
+  box-shadow:0 0 18px rgba(192,153,90,.18), inset 0 0 0 1px rgba(192,153,90,.12);
+  transform:none;
+}
+.chip:active { transform:scale(.94); }
+.gap { height:18px; }
+
+/* ══ CTA BUTTON ══════════════════════════════════════ */
+.cta {
+  position:relative; overflow:hidden;
+  width:100%; margin-top:22px; padding:18px;
+  border:none; border-radius:15px; cursor:pointer;
+  font-family:inherit; font-size:15.5px; font-weight:500;
+  color:#1A1006;
+  background:linear-gradient(135deg,#E8CC90,#C4A45A 55%,#A07838);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    0 6px 28px rgba(192,153,90,.34),
+    0 2px 8px rgba(0,0,0,.22);
+  transition:box-shadow .3s, transform .2s, opacity .2s;
+}
+/* hover overlay */
+.cta::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,#EEDB9E,#D4AE72 55%,#B08848);
+  opacity:0; transition:opacity .3s;
+}
+/* shimmer sweep */
+.cta::after {
+  content:''; position:absolute;
+  top:0; left:-80%; width:50%; height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.52),transparent);
+  transform:skewX(-20deg);
+  transition:left .65s ease; z-index:1;
+}
+.cta-text { position:relative; z-index:2; }
+.cta:hover::before { opacity:1; }
+.cta:hover::after  { left:140%; }
+.cta:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.32),
+    0 10px 38px rgba(192,153,90,.46),
+    0 4px 14px rgba(0,0,0,.28);
+  transform:translateY(-2px);
+}
+.cta:active { transform:translateY(0) scale(.98); }
+.cta:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+.cta:disabled::before,.cta:disabled::after { display:none; }
+
+/* ══ LOADING ═════════════════════════════════════════ */
+.loading {
+  display:none; margin-top:34px;
+  justify-content:center; align-items:center; gap:10px;
+  font-size:13.5px; color:var(--iv60);
+}
+.loading.show { display:flex; animation:fadeIn .3s ease both; }
+.dots { display:flex; gap:5px; align-items:center; }
+.dots span {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--gold);
+  animation:pulse 1.3s ease-in-out infinite;
+}
+.dots span:nth-child(2) { animation-delay:.2s; }
+.dots span:nth-child(3) { animation-delay:.4s; }
+@keyframes pulse {
+  0%,100% { opacity:.2; transform:scale(.7); }
+  50%      { opacity:1;  transform:scale(1.1); }
+}
+
+/* ══ RESULTS ═════════════════════════════════════════ */
+#results { margin-top:30px; display:flex; flex-direction:column; gap:14px; }
+
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(24px) scale(.965); filter:blur(4px); }
+  to   { opacity:1; transform:translateY(0)    scale(1);    filter:blur(0);   }
+}
+.reply-card { animation:cardIn .58s var(--ease-out) both; }
+
+.reply-head {
+  display:flex; align-items:center;
+  justify-content:space-between; gap:10px;
+  margin-bottom:14px;
+}
+.reply-style {
+  font-family:'Cormorant Garamond',serif;
+  font-size:18px; font-weight:600; color:var(--gold-lt);
+}
+.copy-btn {
+  flex:none; padding:7px 17px; border-radius:999px;
+  border:1px solid rgba(192,153,90,.38); background:transparent;
+  color:var(--gold); font-family:inherit; font-size:12.5px;
+  cursor:pointer;
+  transition:background .2s, border-color .2s, color .2s,
+             transform .3s var(--ease-spr);
+}
+.copy-btn:hover { background:rgba(192,153,90,.12); border-color:var(--gold); transform:scale(1.05); }
+.copy-btn:active { transform:scale(.93); }
+.copy-btn.done {
+  border-color:var(--ok); color:var(--ok);
+  background:rgba(122,184,127,.10);
+  animation:pop .45s var(--ease-spr) both;
+}
+@keyframes pop {
+  0%  { transform:scale(1);    }
+  45% { transform:scale(1.18); }
+  100%{ transform:scale(1);    }
+}
+.reply-body { font-size:15px; line-height:1.9; color:var(--ivory); white-space:pre-wrap; }
+
+.again-btn {
+  width:100%; padding:14px; border-radius:13px;
+  background:transparent;
+  border:1px solid rgba(192,153,90,.30);
+  color:var(--gold); font-family:inherit; font-size:13.5px;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:border-color .25s, transform .25s var(--ease-spr);
+}
+.again-btn::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,rgba(192,153,90,.10),transparent);
+  opacity:0; transition:opacity .25s;
+}
+.again-btn:hover { border-color:var(--gold); transform:translateY(-1px); }
+.again-btn:hover::before { opacity:1; }
+.again-btn span { position:relative; z-index:1; }
+
+/* ══ ERROR ═══════════════════════════════════════════ */
+.err {
+  display:none; margin-top:16px;
+  padding:14px 16px; border-radius:13px;
+  background:rgba(207,120,120,.08);
+  border:1px solid rgba(207,120,120,.35);
+  color:var(--err); font-size:13.5px; line-height:1.7;
+}
+.err.show { display:block; animation:fadeIn .25s ease both; }
+
+/* ══ MODAL ═══════════════════════════════════════════ */
+.overlay {
+  position:fixed; inset:0; z-index:100;
+  display:none; align-items:center; justify-content:center; padding:20px;
+  background:rgba(3,3,8,.82);
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+}
+.overlay.show { display:flex; animation:fadeIn .2s ease both; }
+.modal {
+  width:100%; max-width:400px;
+  background:var(--sf2);
+  border:1px solid rgba(192,153,90,.30);
+  border-radius:var(--r); padding:28px 24px;
+  box-shadow:0 48px 120px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,255,255,.05);
+  animation:fadeUp .32s var(--ease-out) both;
+}
+.modal-title {
+  font-family:'Cormorant Garamond',serif;
+  font-size:24px; font-weight:600; color:var(--gold-lt); margin-bottom:8px;
+}
+.modal-desc { font-size:13px; color:var(--iv60); line-height:1.7; margin-bottom:18px; }
+.modal input {
+  width:100%; padding:13px 15px;
+  background:rgba(0,0,0,.40);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:11px; color:var(--ivory);
+  font-family:inherit; font-size:14px;
+  transition:border-color .2s;
+}
+.modal input:focus { outline:none; border-color:rgba(192,153,90,.55); }
+.modal-actions { display:flex; gap:10px; margin-top:18px; }
+.modal-cta {
+  flex:1; padding:13px; border:none; border-radius:11px; cursor:pointer;
+  background:linear-gradient(135deg,#E8CC90,#C4A45A);
+  color:#1A1006; font-family:inherit; font-size:14px; font-weight:500;
+  transition:opacity .2s, transform .2s;
+}
+.modal-cta:hover { opacity:.88; transform:translateY(-1px); }
+.modal-ghost {
+  flex:1; padding:13px; border-radius:11px; cursor:pointer;
+  background:transparent; border:1px solid rgba(255,255,255,.12);
+  color:var(--iv60); font-family:inherit; font-size:14px;
+  transition:border-color .2s, color .2s;
+}
+.modal-ghost:hover { border-color:rgba(255,255,255,.28); color:var(--ivory); }
+
+/* ══ FOOTER ══════════════════════════════════════════ */
+footer {
+  margin-top:62px; text-align:center;
+  font-size:10px; letter-spacing:.20em;
+  color:rgba(237,232,220,.16);
+}
+
+/* ══ RWD ═════════════════════════════════════════════ */
+@media (max-width:420px) {
+  .wrap { padding:28px 14px 90px; }
+  .card { padding:18px 14px; }
+  .brand-name { font-size:30px; }
+  .reply-head { flex-wrap:wrap; }
+}
+
+/* ══ REDUCED MOTION ══════════════════════════════════ */
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation:none!important; transition:none!important; }
+}
+</style>
+</head>
+<body>
+
+<!-- Layer 2: solid bg fill -->
+<div id="bgFill" aria-hidden="true"></div>
+
+<!-- Layer 3: animated canvas orbs -->
+<canvas id="bgCanvas" aria-hidden="true"></canvas>
+
+<!-- Film grain -->
+<div class="grain" aria-hidden="true"></div>
+
+<div class="wrap">
+
+  <!-- ── Header ── -->
+  <header class="e0">
+    <div>
+      <div class="atelier-tag">✦ ATELIER</div>
+      <div class="brand-name">回覆靈感</div>
+      <div class="brand-sub">AI CHAT REPLY STUDIO</div>
+    </div>
+    <button class="gear-btn" id="settingsBtn" title="設定 API Key" aria-label="設定">⚙</button>
+  </header>
+
+  <!-- ── Step 1 ── -->
+  <div class="card e1">
+    <div class="sec-label"><span class="sec-num">01</span> 提供對話</div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-pane="paneImg" role="tab">📷 上傳截圖</button>
+      <button class="tab"        data-pane="paneText" role="tab">📋 貼上文字</button>
+    </div>
+
+    <div class="pane show" id="paneImg">
+      <label class="drop-zone" id="dropZone">
+        <span class="drop-icon">🖼</span>
+        拖曳對話截圖到這裡，或點擊選取<br>
+        <span style="font-size:12px;opacity:.55">支援 JPG / PNG，過大自動壓縮</span>
+        <input type="file" id="fileInput" accept="image/*">
+      </label>
+      <div class="preview-wrap" id="previewWrap">
+        <img id="previewImg" alt="截圖預覽">
+        <button class="rm-btn" id="removeImg">✕</button>
+      </div>
+    </div>
+
+    <div class="pane" id="paneText">
+      <textarea id="convoText" placeholder="貼上對話內容，例如：&#10;&#10;對方：欸你週末有空嗎&#10;我：應該有 怎麼了&#10;對方：沒有啦 就想找你出來走走"></textarea>
+    </div>
+  </div>
+
+  <!-- ── Step 2 ── -->
+  <div class="card e2">
+    <div class="sec-label"><span class="sec-num">02</span> 回覆語氣</div>
+    <div class="chips" id="toneChips">
+      <button class="chip on" data-v="幽默風趣">幽默</button>
+      <button class="chip"    data-v="溫柔體貼">溫柔</button>
+      <button class="chip"    data-v="曖昧撩人但不油膩">曖昧</button>
+      <button class="chip"    data-v="正式得體">正式</button>
+      <button class="chip"    data-v="高情商委婉拒絕">高情商拒絕</button>
+    </div>
+    <div class="gap"></div>
+    <div class="sec-label"><span class="sec-num">03</span> 對方是誰</div>
+    <div class="chips" id="relChips">
+      <button class="chip on" data-v="朋友">朋友</button>
+      <button class="chip"    data-v="曖昧對象">曖昧對象</button>
+      <button class="chip"    data-v="客戶">客戶</button>
+      <button class="chip"    data-v="同事">同事</button>
+    </div>
+  </div>
+
+  <!-- ── CTA ── -->
+  <button class="cta e3" id="goBtn">
+    <span class="cta-text">✦ &nbsp;生成回覆建議</span>
+  </button>
+
+  <!-- ── Loading ── -->
+  <div class="loading" id="loading">
+    <span>AI 正在想最好的說法</span>
+    <div class="dots"><span></span><span></span><span></span></div>
+  </div>
+
+  <!-- ── Error ── -->
+  <div class="err" id="errBox"></div>
+
+  <!-- ── Results ── -->
+  <div id="results"></div>
+
+  <footer>POWERED BY GPT-4O-MINI &nbsp;·&nbsp; API KEY 僅存於本機瀏覽器</footer>
+</div>
+
+<!-- ── Modal ── -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-title">連接 OpenAI</div>
+    <div class="modal-desc">輸入你的 OpenAI API Key（以 sk- 開頭）。Key 只存在這台裝置的瀏覽器，不會上傳到任何伺服器。</div>
+    <input type="password" id="keyInput" placeholder="sk-...">
+    <div class="modal-actions">
+      <button class="modal-ghost" id="closeModal">取消</button>
+      <button class="modal-cta"   id="saveKey">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ CANVAS AMBIENT ORBS ════════════════════════════════════════════ */
+(function () {
+  const cv = document.getElementById('bgCanvas');
+  const ctx = cv.getContext('2d');
+  let W, H;
+  const resize = () => { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; };
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Three slow-moving warm orbs
+  const orbs = [
+    { rx: .50, ry: .02,  sxA: .10, syA: .06, size: .38, h:36,  s:50, l:16, speed: .00018, ph: 0   },
+    { rx: .88, ry: .92,  sxA: .06, syA: .08, size: .26, h:30,  s:42, l:12, speed: .00024, ph: 2.1 },
+    { rx: .12, ry: .58,  sxA: .07, syA: .05, size: .20, h:44,  s:36, l:10, speed: .00021, ph: 4.5 },
+  ];
+
+  let t = 0;
+  const tick = () => {
+    ctx.clearRect(0, 0, W, H);
+    orbs.forEach(o => {
+      const x = (o.rx + Math.sin(t * o.speed + o.ph) * o.sxA) * W;
+      const y = (o.ry + Math.cos(t * o.speed + o.ph * 1.4) * o.syA) * H;
+      const r = o.size * Math.max(W, H);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `hsla(${o.h},${o.s}%,${o.l}%,.52)`);
+      g.addColorStop(1, 'hsla(0,0%,0%,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    });
+    t += 16;
+    requestAnimationFrame(tick);
+  };
+  tick();
+})();
+
+/* ══ APP LOGIC ══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const KEY = 'rai_v3';
+  let imgData = null, imgMime = 'image/jpeg';
+
+  /* ── Settings ── */
+  $('settingsBtn').onclick = () => { $('keyInput').value = localStorage.getItem(KEY) || ''; $('overlay').classList.add('show'); };
+  $('closeModal').onclick  = () => $('overlay').classList.remove('show');
+  $('overlay').onclick     = e  => { if (e.target === $('overlay')) $('overlay').classList.remove('show'); };
+  $('saveKey').onclick     = () => {
+    const v = $('keyInput').value.trim();
+    if (v && !v.startsWith('sk-')) return showErr('Key 格式不對，OpenAI 的 Key 以 sk- 開頭。');
+    localStorage.setItem(KEY, v);
+    $('overlay').classList.remove('show');
+    clearErr();
+  };
+
+  /* ── Tabs ── */
+  document.querySelectorAll('.tab').forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.pane').forEach(x => x.classList.remove('show'));
+      t.classList.add('active');
+      $(t.dataset.pane).classList.add('show');
+    };
+  });
+
+  /* ── Chips ── */
+  ['toneChips', 'relChips'].forEach(id => {
+    $(id).querySelectorAll('.chip').forEach(c => {
+      c.onclick = () => {
+        $(id).querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+        c.classList.add('on');
+      };
+    });
+  });
+  const picked = id => $(id).querySelector('.chip.on').dataset.v;
+
+  /* ── Image Upload ── */
+  const dz = $('dropZone'), fi = $('fileInput');
+  ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+  dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadImg(f); });
+  fi.onchange = () => { if (fi.files[0]) loadImg(fi.files[0]); };
+  $('removeImg').onclick = ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    imgData = null; fi.value = '';
+    $('previewWrap').classList.remove('show');
+  };
+
+  function loadImg(file) {
+    if (!file.type.startsWith('image/')) return showErr('請上傳 JPG 或 PNG 格式的圖片。');
+    const r = new FileReader();
+    r.onerror = () => showErr('圖片讀取失敗，請換一張。');
+    r.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1600; let { width: w, height: h } = img;
+        if (w > MAX || h > MAX || file.size > 3 * 1024 * 1024) {
+          const s = Math.min(MAX / w, MAX / h, 1); w = Math.round(w * s); h = Math.round(h * s);
+          const cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          cv.getContext('2d').drawImage(img, 0, 0, w, h);
+          const url = cv.toDataURL('image/jpeg', .88);
+          imgData = url.split(',')[1]; imgMime = 'image/jpeg'; $('previewImg').src = url;
+        } else {
+          imgData = ev.target.result.split(',')[1]; imgMime = file.type; $('previewImg').src = ev.target.result;
+        }
+        $('previewWrap').classList.add('show'); clearErr();
+      };
+      img.onerror = () => showErr('無法解析圖片，請確認檔案沒有損壞。');
+      img.src = ev.target.result;
+    };
+    r.readAsDataURL(file);
+  }
+
+  /* ── Errors ── */
+  function showErr(msg) { const b = $('errBox'); b.textContent = msg; b.classList.add('show'); b.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  function clearErr() { $('errBox').classList.remove('show'); }
+
+  /* ── Generate ── */
+  $('goBtn').onclick = () => go(false);
+
+  async function go(retry) {
+    clearErr();
+    const key = localStorage.getItem(KEY);
+    if (!key) { $('overlay').classList.add('show'); return showErr('請先設定 OpenAI API Key。'); }
+    const usingImg = $('paneImg').classList.contains('show');
+    const txt = $('convoText').value.trim();
+    if (usingImg && !imgData) return showErr('請先上傳對話截圖，或切換到「貼上文字」模式。');
+    if (!usingImg && !txt) return showErr('請先貼上對話內容。');
+
+    const tone = picked('toneChips'), rel = picked('relChips');
+    const sys = `你是頂尖聊天回覆顧問，熟悉台灣日常繁體中文口語。對方身分：${rel}，語氣要求：${tone}。\n分析對話脈絡後產出 3 個風格略有差異的回覆建議，要自然像真人打字，不要 AI 腔。\n只輸出 JSON：{"replies":[{"style":"標籤","text":"回覆"},...共3個]}，不含其他文字或 markdown。`;
+    const content = usingImg
+      ? [{ type: 'text', text: '這是對話截圖，請辨識並給建議。' }, { type: 'image_url', image_url: { url: `data:${imgMime};base64,${imgData}` } }]
+      : [{ type: 'text', text: `對話內容：\n${txt}` }];
+
+    $('goBtn').disabled = true;
+    $('loading').classList.add('show');
+    if (!retry) $('results').innerHTML = '';
+
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({ model: 'gpt-4o-mini', temperature: .9, max_tokens: 900, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: sys }, { role: 'user', content }] })
+      });
+      if (!res.ok) {
+        if (res.status === 401) throw new Error('API Key 無效或過期，請重新輸入。');
+        if (res.status === 429) throw new Error('請求太頻繁或額度不足，請稍後再試。');
+        const e = await res.json().catch(() => null);
+        throw new Error(e?.error?.message || `API 錯誤（HTTP ${res.status}）`);
+      }
+      const data = await res.json();
+      const raw = data.choices?.[0]?.message?.content || '';
+      let parsed;
+      try { parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()); } catch { throw new Error('AI 回傳格式異常，請重新生成。'); }
+      const replies = parsed.replies;
+      if (!Array.isArray(replies) || !replies.length) throw new Error('沒有產出有效回覆，請重新生成。');
+      render(replies);
+    } catch (e) {
+      showErr(e.name === 'TypeError' ? '連不上 OpenAI，請確認網路正常。' : e.message);
+    } finally {
+      $('goBtn').disabled = false;
+      $('loading').classList.remove('show');
+    }
+  }
+
+  /* ── Render ── */
+  function render(replies) {
+    const box = $('results');
+    box.innerHTML = '';
+    replies.slice(0, 3).forEach((r, i) => {
+      const card = document.createElement('div');
+      card.className = 'card reply-card';
+      card.style.animationDelay = (i * .13) + 's';
+
+      const head = document.createElement('div'); head.className = 'reply-head';
+      const tag  = document.createElement('span'); tag.className = 'reply-style'; tag.textContent = r.style || `建議 ${i + 1}`;
+      const cp   = document.createElement('button'); cp.className = 'copy-btn'; cp.textContent = '複製';
+      head.append(tag, cp);
+
+      const body = document.createElement('p'); body.className = 'reply-body'; body.textContent = r.text || '';
+
+      cp.onclick = async () => {
+        try { await navigator.clipboard.writeText(body.textContent); }
+        catch {
+          const ta = document.createElement('textarea');
+          ta.value = body.textContent;
+          Object.assign(ta.style, { position: 'fixed', top: '-9999px' });
+          document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
+        }
+        cp.textContent = '✓ 已複製'; cp.classList.add('done');
+        if (navigator.vibrate) navigator.vibrate(28);
+        setTimeout(() => { cp.textContent = '複製'; cp.classList.remove('done'); }, 2000);
+      };
+
+      card.append(head, body);
+      box.append(card);
+    });
+
+    const ag = document.createElement('button'); ag.className = 'again-btn';
+    ag.innerHTML = '<span>↻ 換一批說法</span>'; ag.onclick = () => go(true);
+    box.append(ag);
+
+    setTimeout(() => box.firstChild?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+})();
+</script>
+</body>
+</html>
