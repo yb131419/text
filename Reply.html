@@ -605,6 +605,104 @@ html[data-mode="desktop"] .r-placeholder.hide{display:none}
 }
 .mg:hover{border-color:var(--border2);color:var(--text)}
 
+/* ═══════════════════════════════════════════════
+   APPRECIATE CARD
+═══════════════════════════════════════════════ */
+.card-appreciate{
+  border-color:rgba(196,146,42,.22);
+}
+.card-appreciate::before{
+  background:linear-gradient(135deg,rgba(196,146,42,.06) 0%,rgba(78,207,168,.03) 100%);
+}
+
+.sec-num-rose{
+  background:linear-gradient(135deg,#B87333,#D4813A) !important;
+  box-shadow:0 2px 8px rgba(212,129,58,.5) !important;
+}
+
+.sec-badge{
+  font-size:10px;letter-spacing:.12em;
+  padding:3px 10px;border-radius:999px;
+  background:rgba(212,168,67,.12);
+  border:1px solid rgba(212,168,67,.25);
+  color:var(--gold-lt);font-weight:400;
+  text-transform:none;
+}
+
+.appr-fields{display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
+
+.appr-field{display:flex;flex-direction:column;gap:6px}
+
+.appr-label{
+  font-size:12.5px;font-weight:500;
+  color:var(--gold-lt);
+  letter-spacing:.02em;
+}
+
+.appr-input{
+  width:100%;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(212,168,67,.18);
+  border-radius:10px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:300;
+  padding:11px 14px;
+  line-height:1.65;
+  transition:border-color .2s,box-shadow .2s;
+  resize:none;
+}
+.appr-input:focus{
+  outline:none;
+  border-color:rgba(212,168,67,.5);
+  box-shadow:0 0 0 3px rgba(212,168,67,.08);
+}
+.appr-input::placeholder{color:rgba(237,232,220,.2)}
+.appr-ta{min-height:90px;resize:vertical}
+
+/* Rose variant CTA */
+.cta-rose{
+  margin-top:4px;
+  background:linear-gradient(135deg,#B87333 0%,#D4813A 50%,#E89A52 100%);
+  box-shadow:0 4px 28px rgba(196,120,50,.38),0 1px 0 rgba(255,255,255,.18) inset;
+  color:#fff;
+}
+.cta-rose:hover{box-shadow:0 8px 36px rgba(196,120,50,.58) !important}
+
+/* Appreciate result */
+#apprResult .arc{
+  position:relative;
+  background:rgba(13,13,26,.75);
+  border:1px solid rgba(212,168,67,.25);
+  border-radius:18px;
+  padding:22px 20px;
+  margin-top:16px;
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  overflow:hidden;
+  animation:slideUp .45s var(--ease) both;
+}
+#apprResult .arc::after{
+  content:'';
+  position:absolute;top:0;left:20px;right:20px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  opacity:.5;
+}
+#apprResult .arc-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+#apprResult .arc-title{
+  font-family:'Playfair Display',serif;
+  font-size:15px;font-weight:500;
+  color:var(--gold-lt);
+}
+#apprResult .arc-body{
+  font-size:15px;line-height:2;
+  color:var(--text);white-space:pre-wrap;
+  font-weight:300;
+}
+#apprResult .again{margin-top:12px}
+
 /* ── Chip grid layout ── */
 .chips-grid{
   display:grid;
@@ -732,6 +830,41 @@ html[data-mode="desktop"] .r-placeholder.hide{display:none}
               <button class="chip"    data-v="同事">同事</button>
               <button class="chip"    data-v="夫妻">夫妻</button>
             </div>
+          </div>
+
+          <!-- Step 4: 點評示的回覆 -->
+          <div class="card card-appreciate">
+            <div class="sec">
+              <div class="sec-num sec-num-rose">4</div>
+              點評示的回覆 <span class="sec-badge">點評對方的辛苦</span>
+            </div>
+
+            <div class="appr-fields">
+              <div class="appr-field">
+                <label class="appr-label">① 你要給誰點評？</label>
+                <input class="appr-input" id="appr1" type="text" placeholder="例如：我媽、我老公、我同事小美…">
+              </div>
+              <div class="appr-field">
+                <label class="appr-label">② 什麼事情讓你感覺到他的辛苦和不容易？</label>
+                <input class="appr-input" id="appr2" type="text" placeholder="例如：每天早起送我上班、一個人扛家裡所有事…">
+              </div>
+              <div class="appr-field">
+                <label class="appr-label">③ 用一個具體的事來說明（時間、地點、人物、事件）</label>
+                <textarea class="appr-input appr-ta" id="appr3" placeholder="例如：上週三晚上快十一點，他還在廚房幫我準備隔天便當，我下班回來看到那個畫面…"></textarea>
+              </div>
+              <div class="appr-field">
+                <label class="appr-label">④ 過程中你有什麼情緒感受或心態變化？</label>
+                <input class="appr-input" id="appr4" type="text" placeholder="例如：又心疼又愧疚，但又不知道怎麼開口…">
+              </div>
+            </div>
+
+            <button class="cta cta-rose" id="apprBtn">❤ &nbsp;生成點評文字</button>
+            <div class="loading" id="apprLoading">
+              <span>正在用心撰寫中</span>
+              <div class="dots"><i></i><i></i><i></i></div>
+            </div>
+            <div class="err-box" id="apprErr"></div>
+            <div id="apprResult"></div>
           </div>
 
           <!-- CTA -->
@@ -1017,6 +1150,111 @@ function render(replies){
   targetBox.appendChild(frag);
   setTimeout(() => targetBox.firstChild?.scrollIntoView({behavior:'smooth',block:'start'}), 80);
 }
+/* ── Appreciate ── */
+$('apprBtn').onclick = () => goAppr(false);
+
+async function goAppr(retry){
+  const b = $('apprErr');
+  b.classList.remove('show');
+
+  const key = localStorage.getItem(KEY);
+  if(!key){ $('overlay').classList.add('show'); b.textContent='請先設定 API Key。'; b.classList.add('show'); return; }
+
+  const q1 = $('appr1').value.trim();
+  const q2 = $('appr2').value.trim();
+  const q3 = $('appr3').value.trim();
+  const q4 = $('appr4').value.trim();
+
+  if(!q1||!q2||!q3){ b.textContent='請至少填寫前三個問題。'; b.classList.add('show'); return; }
+
+  const sys = `你是一位擅長用文字表達情感的寫手，熟悉台灣繁體中文日常語氣。
+根據使用者提供的資訊，幫他寫一段發自內心、真誠感人的「點評文字」，用來對對方說出他的辛苦和不容易。
+要求：
+- 語氣自然溫暖，像真人說話，不要書面或說教
+- 要提到具體的那件事，要有畫面感
+- 情緒要真實，可以有起伏
+- 長度 150–250 字左右
+只輸出 JSON：{"title":"標題（10字以內）","text":"正文"}，不含其他文字。`;
+
+  const userMsg = `給誰：${q1}\n辛苦之處：${q2}\n具體事件：${q3}${q4?'\n情緒感受：'+q4:''}`;
+
+  $('apprBtn').disabled = true;
+  $('apprLoading').classList.add('show');
+  if(!retry) $('apprResult').innerHTML = '';
+
+  try{
+    const res = await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
+      body: JSON.stringify({
+        model:'gpt-4o-mini',
+        temperature:.85,
+        max_tokens:600,
+        response_format:{type:'json_object'},
+        messages:[{role:'system',content:sys},{role:'user',content:userMsg}]
+      })
+    });
+    if(!res.ok){
+      if(res.status===401) throw new Error('API Key 無效或過期。');
+      if(res.status===429) throw new Error('請求太頻繁，請稍後再試。');
+      const e = await res.json().catch(()=>null);
+      throw new Error(e?.error?.message||`API 錯誤（HTTP ${res.status}）`);
+    }
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content||'';
+    let parsed;
+    try{ parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+    catch{ throw new Error('AI 回傳格式異常，請重新生成。'); }
+
+    renderAppr(parsed);
+  }catch(e){
+    b.textContent = e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message;
+    b.classList.add('show');
+  }finally{
+    $('apprBtn').disabled = false;
+    $('apprLoading').classList.remove('show');
+  }
+}
+
+function renderAppr(parsed){
+  const box = $('apprResult');
+  box.innerHTML = '';
+
+  const arc = document.createElement('div'); arc.className = 'arc';
+  const head = document.createElement('div'); head.className = 'arc-head';
+  const title = document.createElement('span'); title.className = 'arc-title';
+  title.textContent = parsed.title || '點評文字';
+
+  const cp = document.createElement('button'); cp.className = 'cp';
+  cp.textContent = '複製';
+  head.append(title, cp);
+
+  const body = document.createElement('p'); body.className = 'arc-body';
+  body.textContent = parsed.text || '';
+
+  cp.onclick = async () => {
+    try{ await navigator.clipboard.writeText(body.textContent); }
+    catch{
+      const ta = document.createElement('textarea');
+      ta.value = body.textContent;
+      Object.assign(ta.style,{position:'fixed',top:'-9999px'});
+      document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+    cp.textContent = '✓ 已複製'; cp.classList.add('done');
+    if(navigator.vibrate) navigator.vibrate(28);
+    setTimeout(()=>{ cp.textContent='複製'; cp.classList.remove('done'); },2000);
+  };
+
+  arc.append(head, body);
+
+  const again = document.createElement('button'); again.className = 'again';
+  again.textContent = '↻ 換一個說法';
+  again.onclick = () => goAppr(true);
+
+  box.append(arc, again);
+  arc.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 })();
 </script>
 </body>
