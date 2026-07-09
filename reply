@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>回覆靈感 · AI 聊天回覆助手</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --obsidian:#0B0B0F;
+  --obsidian-2:#12121A;
+  --ivory:#F2EFE6;
+  --ivory-dim:rgba(242,239,230,.55);
+  --gold:#C9A96E;
+  --gold-bright:#E3C88F;
+  --glass:rgba(255,255,255,.045);
+  --glass-border:rgba(201,169,110,.22);
+  --danger:#E08A8A;
+  --ok:#9BC9A0;
+  --radius:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  background:var(--obsidian);
+  color:var(--ivory);
+  font-family:'Noto Sans TC',sans-serif;
+  font-weight:300;
+  min-height:100vh;
+  min-height:100dvh;
+  overflow-x:hidden;
+  letter-spacing:.02em;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -10%, rgba(201,169,110,.10), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 110%, rgba(120,100,60,.07), transparent 60%);
+}
+.wrap{position:relative;z-index:1;max-width:720px;margin:0 auto;padding:28px 20px 90px}
+
+/* ── 進場動畫 ── */
+.rise{opacity:0;transform:translateY(18px);animation:rise .7s cubic-bezier(.22,.8,.3,1) forwards}
+.rise.d1{animation-delay:.08s}.rise.d2{animation-delay:.18s}
+.rise.d3{animation-delay:.28s}.rise.d4{animation-delay:.38s}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ── 標頭 ── */
+header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:34px}
+.brand h1{
+  font-family:'Cormorant Garamond',serif;font-weight:600;
+  font-size:clamp(30px,7vw,40px);line-height:1.15;
+  background:linear-gradient(120deg,var(--ivory) 30%,var(--gold-bright) 70%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.brand p{margin-top:8px;font-size:13px;color:var(--ivory-dim);letter-spacing:.14em}
+.icon-btn{
+  width:42px;height:42px;border-radius:50%;flex:none;
+  background:var(--glass);border:1px solid var(--glass-border);
+  color:var(--gold);cursor:pointer;display:grid;place-items:center;
+  transition:.3s;font-size:17px;
+}
+.icon-btn:hover{border-color:var(--gold);box-shadow:0 0 18px rgba(201,169,110,.25);transform:rotate(30deg)}
+
+/* ── 玻璃卡片基底 ── */
+.card{
+  position:relative;background:var(--glass);
+  border:1px solid var(--glass-border);border-radius:var(--radius);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  padding:22px;
+}
+.card::before{
+  content:'';position:absolute;inset:0;border-radius:var(--radius);pointer-events:none;
+  padding:1px;background:linear-gradient(135deg,rgba(227,200,143,.35),transparent 40%,transparent 60%,rgba(227,200,143,.15));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+.section-label{
+  font-size:11px;letter-spacing:.28em;color:var(--gold);
+  margin:0 0 14px 2px;display:flex;align-items:center;gap:10px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(201,169,110,.35),transparent)}
+
+/* ── Tab 切換 ── */
+.tabs{display:flex;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:5px;margin-bottom:18px}
+.tab{
+  flex:1;padding:11px 8px;border:none;border-radius:10px;cursor:pointer;
+  background:transparent;color:var(--ivory-dim);
+  font-family:inherit;font-size:14px;font-weight:400;letter-spacing:.05em;
+  transition:.3s;
+}
+.tab.active{
+  background:linear-gradient(135deg,rgba(201,169,110,.22),rgba(201,169,110,.10));
+  color:var(--gold-bright);box-shadow:inset 0 0 0 1px rgba(201,169,110,.35);
+}
+
+/* ── 上傳區 ── */
+.pane{display:none}.pane.show{display:block;animation:fadein .35s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.drop{
+  border:1.5px dashed rgba(201,169,110,.35);border-radius:14px;
+  padding:34px 18px;text-align:center;cursor:pointer;transition:.3s;
+  color:var(--ivory-dim);font-size:14px;
+}
+.drop:hover,.drop.over{border-color:var(--gold);background:rgba(201,169,110,.06);color:var(--ivory)}
+.drop .big{font-size:30px;display:block;margin-bottom:10px;filter:grayscale(.2)}
+.drop input{display:none}
+.preview{display:none;margin-top:14px;position:relative}
+.preview.show{display:block}
+.preview img{width:100%;max-height:320px;object-fit:contain;border-radius:12px;border:1px solid var(--glass-border);background:#000}
+.preview .rm{
+  position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;
+  border:none;background:rgba(0,0,0,.65);color:var(--ivory);cursor:pointer;font-size:14px;
+}
+textarea{
+  width:100%;min-height:150px;resize:vertical;
+  background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.09);border-radius:14px;
+  color:var(--ivory);font-family:inherit;font-size:15px;font-weight:300;
+  line-height:1.7;padding:16px;transition:.3s;
+}
+textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,169,110,.12)}
+textarea::placeholder{color:rgba(242,239,230,.3)}
+
+/* ── 語氣選項 ── */
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{
+  padding:9px 17px;border-radius:999px;cursor:pointer;
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);
+  color:var(--ivory-dim);font-family:inherit;font-size:13.5px;font-weight:300;
+  letter-spacing:.06em;transition:.25s;
+}
+.chip:hover{border-color:rgba(201,169,110,.5);color:var(--ivory)}
+.chip.on{
+  background:linear-gradient(135deg,rgba(201,169,110,.28),rgba(201,169,110,.12));
+  border-color:var(--gold);color:var(--gold-bright);
+}
+.gap{height:20px}
+
+/* ── 主按鈕（光暈掃過） ── */
+.cta{
+  position:relative;overflow:hidden;width:100%;margin-top:26px;
+  padding:17px;border:none;border-radius:14px;cursor:pointer;
+  font-family:inherit;font-size:16px;font-weight:500;letter-spacing:.22em;
+  color:#1A1408;
+  background:linear-gradient(135deg,#E3C88F,#C9A96E 55%,#A98B52);
+  box-shadow:0 6px 26px rgba(201,169,110,.28);
+  transition:.3s;
+}
+.cta::after{
+  content:'';position:absolute;top:0;left:-80%;width:55%;height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.55),transparent);
+  transform:skewX(-20deg);transition:left .6s ease;
+}
+.cta:hover::after{left:130%}
+.cta:hover{box-shadow:0 8px 34px rgba(201,169,110,.45);transform:translateY(-1px)}
+.cta:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* ── 生成中指示 ── */
+.thinking{display:none;margin-top:34px;text-align:center;color:var(--ivory-dim);font-size:14px;letter-spacing:.1em}
+.thinking.show{display:block;animation:fadein .3s}
+.dots{display:inline-flex;gap:7px;margin-left:10px;vertical-align:middle}
+.dots span{
+  width:7px;height:7px;border-radius:50%;background:var(--gold);
+  animation:pulse 1.2s ease-in-out infinite;
+}
+.dots span:nth-child(2){animation-delay:.18s}
+.dots span:nth-child(3){animation-delay:.36s}
+@keyframes pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+
+/* ── 回覆結果卡片 ── */
+#results{margin-top:36px;display:flex;flex-direction:column;gap:16px}
+.reply{
+  opacity:0;transform:translateY(24px) scale(.98);
+  animation:cardin .6s cubic-bezier(.22,.8,.3,1) forwards;
+  transition:border-color .3s, box-shadow .3s;
+}
+.reply:hover{border-color:rgba(201,169,110,.55);box-shadow:0 10px 36px rgba(0,0,0,.45)}
+@keyframes cardin{to{opacity:1;transform:none}}
+.reply-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.reply-tag{
+  font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;
+  color:var(--gold-bright);letter-spacing:.06em;
+}
+.reply-body{font-size:15.5px;line-height:1.85;color:var(--ivory);white-space:pre-wrap;font-weight:400}
+.copy{
+  position:relative;padding:8px 18px;border-radius:999px;cursor:pointer;flex:none;
+  background:transparent;border:1px solid rgba(201,169,110,.45);
+  color:var(--gold);font-family:inherit;font-size:13px;letter-spacing:.1em;
+  transition:.25s;
+}
+.copy:hover{background:rgba(201,169,110,.14)}
+.copy.done{border-color:var(--ok);color:var(--ok);animation:pop .4s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.14)}100%{transform:scale(1)}}
+.again{
+  margin-top:6px;width:100%;padding:14px;border-radius:14px;cursor:pointer;
+  background:transparent;border:1px solid rgba(201,169,110,.4);
+  color:var(--gold);font-family:inherit;font-size:14px;letter-spacing:.18em;transition:.3s;
+}
+.again:hover{background:rgba(201,169,110,.1);border-color:var(--gold)}
+
+/* ── 錯誤提示 ── */
+.error{
+  display:none;margin-top:22px;padding:15px 18px;border-radius:12px;
+  background:rgba(224,138,138,.08);border:1px solid rgba(224,138,138,.4);
+  color:var(--danger);font-size:14px;line-height:1.7;
+}
+.error.show{display:block;animation:fadein .3s}
+
+/* ── 設定面板 ── */
+.overlay{
+  position:fixed;inset:0;z-index:50;display:none;
+  background:rgba(5,5,8,.7);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:20px;
+}
+.overlay.show{display:flex;animation:fadein .25s}
+.modal{width:100%;max-width:430px}
+.modal h2{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--gold-bright);margin-bottom:6px}
+.modal p{font-size:13px;color:var(--ivory-dim);line-height:1.7;margin-bottom:16px}
+.modal input{
+  width:100%;padding:14px 16px;border-radius:12px;
+  background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);
+  color:var(--ivory);font-family:inherit;font-size:14px;
+}
+.modal input:focus{outline:none;border-color:var(--gold)}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.modal-actions .cta{margin-top:0;padding:13px;font-size:14px}
+.ghost{
+  flex:1;padding:13px;border-radius:12px;cursor:pointer;
+  background:transparent;border:1px solid rgba(255,255,255,.15);
+  color:var(--ivory-dim);font-family:inherit;font-size:14px;letter-spacing:.1em;transition:.25s;
+}
+.ghost:hover{color:var(--ivory);border-color:rgba(255,255,255,.35)}
+
+footer{margin-top:60px;text-align:center;font-size:11.5px;color:rgba(242,239,230,.28);letter-spacing:.2em}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  .rise,.reply{opacity:1;transform:none}
+}
+@media (max-width:480px){
+  .wrap{padding:22px 15px 70px}
+  .card{padding:18px 16px}
+  .reply-head{flex-wrap:wrap;gap:10px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="rise">
+    <div class="brand">
+      <h1>回覆靈感</h1>
+      <p>AI CHAT REPLY ATELIER</p>
+    </div>
+    <button class="icon-btn" id="settingsBtn" title="設定 API Key" aria-label="設定">⚙</button>
+  </header>
+
+  <!-- 輸入區 -->
+  <section class="card rise d1">
+    <p class="section-label">第一步 · 提供對話</p>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-pane="paneImg" role="tab">📷 上傳截圖</button>
+      <button class="tab" data-pane="paneText" role="tab">📋 貼上文字</button>
+    </div>
+
+    <div class="pane show" id="paneImg">
+      <label class="drop" id="drop">
+        <span class="big">🖼️</span>
+        拖曳對話截圖到這裡，或點擊選擇圖片<br>
+        <span style="font-size:12px;opacity:.6">支援 JPG / PNG，過大會自動壓縮</span>
+        <input type="file" id="fileInput" accept="image/*">
+      </label>
+      <div class="preview" id="preview">
+        <img id="previewImg" alt="截圖預覽">
+        <button class="rm" id="removeImg" title="移除圖片">✕</button>
+      </div>
+    </div>
+
+    <div class="pane" id="paneText">
+      <textarea id="convoText" placeholder="把對話直接貼上來，例如：&#10;&#10;對方：欸 你週末有空嗎&#10;我：應該有 怎麼了&#10;對方：沒有啦 就想找你出來走走"></textarea>
+    </div>
+  </section>
+
+  <div class="gap"></div>
+
+  <!-- 語氣設定 -->
+  <section class="card rise d2">
+    <p class="section-label">第二步 · 想怎麼回</p>
+    <div class="chips" id="toneChips">
+      <button class="chip on" data-v="幽默風趣">幽默</button>
+      <button class="chip" data-v="溫柔體貼">溫柔</button>
+      <button class="chip" data-v="曖昧撩人但不油膩">曖昧</button>
+      <button class="chip" data-v="正式得體">正式</button>
+      <button class="chip" data-v="高情商地委婉拒絕">高情商拒絕</button>
+    </div>
+    <div class="gap"></div>
+    <p class="section-label">對方是誰</p>
+    <div class="chips" id="relChips">
+      <button class="chip on" data-v="朋友">朋友</button>
+      <button class="chip" data-v="曖昧對象">曖昧對象</button>
+      <button class="chip" data-v="客戶">客戶</button>
+      <button class="chip" data-v="同事">同事</button>
+    </div>
+  </section>
+
+  <button class="cta rise d3" id="goBtn">✦ 生成回覆建議</button>
+
+  <div class="thinking" id="thinking">
+    AI 正在琢磨最好的說法<span class="dots"><span></span><span></span><span></span></span>
+  </div>
+
+  <div class="error" id="errorBox"></div>
+
+  <div id="results"></div>
+
+  <footer class="rise d4">POWERED BY GPT-4O-MINI · 你的 API KEY 只存在本機瀏覽器</footer>
+</div>
+
+<!-- 設定面板 -->
+<div class="overlay" id="overlay">
+  <div class="card modal">
+    <h2>連接 OpenAI</h2>
+    <p>輸入你的 OpenAI API Key（sk- 開頭）。Key 只會儲存在你這台裝置的瀏覽器 localStorage，不會上傳到任何伺服器。</p>
+    <input type="password" id="keyInput" placeholder="sk-...">
+    <div class="modal-actions">
+      <button class="ghost" id="closeModal">取消</button>
+      <button class="cta" id="saveKey">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY_STORE = 'reply_atelier_key';
+let imageData = null;   // base64 (不含前綴)
+let imageMime = 'image/jpeg';
+let lastPayload = null; // 供「重新生成」
+
+/* ── 設定面板 ── */
+const overlay = $('overlay');
+$('settingsBtn').onclick = () => {
+  $('keyInput').value = localStorage.getItem(KEY_STORE) || '';
+  overlay.classList.add('show');
+};
+$('closeModal').onclick = () => overlay.classList.remove('show');
+overlay.onclick = e => { if(e.target === overlay) overlay.classList.remove('show'); };
+$('saveKey').onclick = () => {
+  const v = $('keyInput').value.trim();
+  if(v && !v.startsWith('sk-')) return showError('這個 Key 格式看起來不對，OpenAI 的 Key 通常以 sk- 開頭。');
+  localStorage.setItem(KEY_STORE, v);
+  overlay.classList.remove('show');
+  hideError();
+};
+
+/* ── Tab 切換 ── */
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(x => x.classList.remove('show'));
+    t.classList.add('active');
+    $(t.dataset.pane).classList.add('show');
+  };
+});
+
+/* ── 語氣 chips（單選） ── */
+function bindChips(boxId){
+  $(boxId).querySelectorAll('.chip').forEach(c => {
+    c.onclick = () => {
+      $(boxId).querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+      c.classList.add('on');
+    };
+  });
+}
+bindChips('toneChips'); bindChips('relChips');
+const picked = boxId => $(boxId).querySelector('.chip.on').dataset.v;
+
+/* ── 圖片上傳（拖曳 + 點擊 + 自動壓縮） ── */
+const drop = $('drop'), fileInput = $('fileInput');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if(f) loadImage(f); });
+fileInput.onchange = () => { if(fileInput.files[0]) loadImage(fileInput.files[0]); };
+$('removeImg').onclick = e => {
+  e.preventDefault(); e.stopPropagation();
+  imageData = null; fileInput.value = '';
+  $('preview').classList.remove('show');
+};
+
+function loadImage(file){
+  if(!file.type.startsWith('image/')) return showError('這不是圖片檔，請上傳 JPG 或 PNG 格式的對話截圖。');
+  const reader = new FileReader();
+  reader.onerror = () => showError('圖片讀取失敗，請換一張再試。');
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      // 超過 1600px 或 3MB 就用 canvas 壓縮
+      const MAX = 1600;
+      let { width:w, height:h } = img;
+      if(w > MAX || h > MAX || file.size > 3*1024*1024){
+        const s = Math.min(MAX/w, MAX/h, 1);
+        w = Math.round(w*s); h = Math.round(h*s);
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        const url = cv.toDataURL('image/jpeg', .88);
+        imageData = url.split(',')[1]; imageMime = 'image/jpeg';
+        $('previewImg').src = url;
+      } else {
+        imageData = e.target.result.split(',')[1];
+        imageMime = file.type;
+        $('previewImg').src = e.target.result;
+      }
+      $('preview').classList.add('show');
+      hideError();
+    };
+    img.onerror = () => showError('無法解析這張圖片，請確認檔案沒有損壞。');
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── 錯誤顯示 ── */
+function showError(msg){
+  const b = $('errorBox');
+  b.textContent = msg;
+  b.classList.add('show');
+  b.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+function hideError(){ $('errorBox').classList.remove('show'); }
+
+/* ── 生成 ── */
+$('goBtn').onclick = () => generate(false);
+
+async function generate(isRetry){
+  hideError();
+  const key = localStorage.getItem(KEY_STORE);
+  if(!key){ overlay.classList.add('show'); return showError('還沒設定 OpenAI API Key，請先在設定面板輸入。'); }
+
+  const usingImg = $('paneImg').classList.contains('show');
+  const text = $('convoText').value.trim();
+  if(usingImg && !imageData) return showError('請先上傳一張對話截圖，或切換到「貼上文字」模式。');
+  if(!usingImg && !text) return showError('請先貼上對話內容。');
+
+  const tone = picked('toneChips'), rel = picked('relChips');
+  const sys = `你是頂尖的聊天回覆顧問，擅長台灣的日常口語（繁體中文）。使用者會給你一段對話（文字或截圖），對方的身分是「${rel}」，希望用「${tone}」的方式回覆。
+請先理解對話脈絡與最後一則訊息，然後產出 3 個風格略有差異的回覆建議。回覆要自然、像真人打字，不要太長，不要有 AI 腔。
+只輸出 JSON，格式：{"replies":[{"style":"風格短標籤","text":"回覆內容"},...共3個]}，不要任何其他文字或 Markdown 符號。`;
+
+  const userContent = usingImg
+    ? [{ type:'text', text:'這是對話截圖，請辨識內容並給我回覆建議。' },
+       { type:'image_url', image_url:{ url:`data:${imageMime};base64,${imageData}` } }]
+    : [{ type:'text', text:`對話內容如下：\n${text}` }];
+
+  lastPayload = { sys, userContent };
+
+  const btn = $('goBtn');
+  btn.disabled = true;
+  $('thinking').classList.add('show');
+  if(!isRetry) $('results').innerHTML = '';
+
+  try{
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${key}` },
+      body: JSON.stringify({
+        model:'gpt-4o-mini',
+        temperature: 0.9,
+        max_tokens: 900,
+        response_format:{ type:'json_object' },
+        messages:[
+          { role:'system', content: sys },
+          { role:'user', content: userContent }
+        ]
+      })
+    });
+
+    if(!res.ok){
+      if(res.status === 401) throw new Error('API Key 無效或已過期，請到設定面板重新輸入。');
+      if(res.status === 429) throw new Error('請求太頻繁或額度不足，請稍後再試，或檢查 OpenAI 帳戶餘額。');
+      if(res.status === 413) throw new Error('圖片太大被伺服器拒絕了，請換一張較小的截圖。');
+      const err = await res.json().catch(()=>null);
+      throw new Error(err?.error?.message || `API 回應異常（HTTP ${res.status}），請稍後再試。`);
+    }
+
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+    let parsed;
+    try{ parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+    catch{ throw new Error('AI 回傳的格式無法解析，請按「重新生成」再試一次。'); }
+    const replies = parsed.replies;
+    if(!Array.isArray(replies) || !replies.length) throw new Error('AI 沒有產出有效的回覆，請重新生成。');
+
+    renderReplies(replies);
+  }catch(e){
+    if(e.name === 'TypeError') showError('連不上 OpenAI 伺服器，請確認網路連線正常後再試。');
+    else showError(e.message);
+  }finally{
+    btn.disabled = false;
+    $('thinking').classList.remove('show');
+  }
+}
+
+/* ── 渲染結果 ── */
+function renderReplies(replies){
+  const box = $('results');
+  box.innerHTML = '';
+  replies.slice(0,3).forEach((r,i) => {
+    const card = document.createElement('div');
+    card.className = 'card reply';
+    card.style.animationDelay = (i * .14) + 's';
+
+    const head = document.createElement('div');
+    head.className = 'reply-head';
+    const tag = document.createElement('span');
+    tag.className = 'reply-tag';
+    tag.textContent = r.style || `建議 ${i+1}`;
+    const btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.textContent = '複製';
+    head.append(tag, btn);
+
+    const body = document.createElement('p');
+    body.className = 'reply-body';
+    body.textContent = r.text || '';
+
+    btn.onclick = async () => {
+      try{
+        await navigator.clipboard.writeText(body.textContent);
+      }catch{
+        const ta = document.createElement('textarea');
+        ta.value = body.textContent;
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+      }
+      btn.textContent = '✓ 已複製';
+      btn.classList.add('done');
+      if(navigator.vibrate) navigator.vibrate(30);
+      setTimeout(() => { btn.textContent = '複製'; btn.classList.remove('done'); }, 1800);
+    };
+
+    card.append(head, body);
+    box.appendChild(card);
+  });
+
+  const again = document.createElement('button');
+  again.className = 'again';
+  again.textContent = '↻ 換一批說法';
+  again.onclick = () => generate(true);
+  box.appendChild(again);
+
+  box.firstChild.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+})();
+</script>
+</body>
+</html>
