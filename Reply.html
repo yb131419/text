@@ -113,7 +113,7 @@ html,body{
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   /* leave space for bottom tab bar + safe area */
-  padding-bottom:calc(var(--tab-h) + var(--safe-b) + 20px);
+  padding-bottom:calc(var(--tab-h) + var(--safe-b) + 60px);
 }
 
 /* ════════════════════════════
@@ -314,15 +314,10 @@ textarea::placeholder{color:var(--ink3)}
 .field-ta{resize:vertical;min-height:90px;line-height:1.7}
 
 /* ════════════════════════════
-   STICKY BOTTOM CTA
+   CTA BUTTON WRAPPER (inline)
 ════════════════════════════ */
-.bottom-cta{
-  position:fixed;
-  bottom:calc(var(--tab-h) + var(--safe-b));
-  left:0;right:0;
-  z-index:90;
-  padding:10px 14px;
-  background:linear-gradient(to top, var(--bg) 70%, transparent);
+.page-cta{
+  margin-top:14px;
 }
 .btn-primary{
   position:relative;overflow:hidden;
@@ -666,6 +661,9 @@ textarea::placeholder{color:var(--ink3)}
 
       </div>
 
+      <div class="page-cta">
+        <button class="btn-primary" id="goBtn">✦ 生成回覆建議</button>
+      </div>
       <div class="loading" id="loading">
         <div class="dots"><i></i><i></i><i></i></div>
         <span>AI 正在分析對話中…</span>
@@ -727,6 +725,9 @@ textarea::placeholder{color:var(--ink3)}
 
       </div>
 
+      <div class="page-cta">
+        <button class="btn-primary amber" id="apprBtn">❤ 生成點評感謝</button>
+      </div>
       <div class="loading amber" id="apprLoading">
         <div class="dots"><i></i><i></i><i></i></div>
         <span>正在用心撰寫中…</span>
@@ -736,11 +737,6 @@ textarea::placeholder{color:var(--ink3)}
     </div>
 
   </div><!-- /scroll -->
-
-  <!-- Sticky CTA (changes per page) -->
-  <div class="bottom-cta" id="bottomCta">
-    <button class="btn-primary" id="goBtn">✦ 生成回覆建議</button>
-  </div>
 
   <!-- Bottom Tab Bar -->
   <nav class="tabbar">
@@ -779,8 +775,6 @@ let imgData = null, imgMime = 'image/jpeg';
 let curPage = 'reply';
 
 /* ── Page switch ── */
-const pages = { reply: { btn:'goBtn', label:'✦ 生成回覆建議', cls:'' }, appreciate: { btn:'apprBtn', label:'❤ 生成點評感謝', cls:'amber' } };
-
 document.querySelectorAll('.tabitem').forEach(t => {
   t.onclick = () => switchPage(t.dataset.page);
 });
@@ -790,27 +784,11 @@ function switchPage(id){
   document.querySelectorAll('.tabitem').forEach(t => t.classList.toggle('on', t.dataset.page===id));
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('show', p.id==='page-'+id));
   $('scroll').scrollTo(0,0);
-
-  // swap CTA button
-  const cfg = pages[id];
-  const old = $('goBtn') || $('apprBtn');
-  if(old) old.remove();
-  const btn = document.createElement('button');
-  btn.className = 'btn-primary' + (cfg.cls ? ' '+cfg.cls : '');
-  btn.id = cfg.btn;
-  btn.textContent = cfg.label;
-  $('bottomCta').innerHTML = '';
-  $('bottomCta').appendChild(btn);
-  bindBtn(id, btn);
 }
 
-function bindBtn(id, btn){
-  if(id==='reply') btn.onclick = () => generateReply(false);
-  else btn.onclick = () => generateAppr(false);
-}
-
-// bind initial
+// bind static buttons
 $('goBtn').onclick = () => generateReply(false);
+$('apprBtn').onclick = () => generateAppr(false);
 
 /* ── Settings ── */
 $('settingsBtn').onclick = () => { $('keyIn').value=localStorage.getItem(STORE)||''; $('overlay').classList.add('show'); };
