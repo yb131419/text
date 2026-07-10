@@ -593,6 +593,35 @@ textarea::placeholder{color:var(--ink3)}
 }
 .model-tag.blue{background:#3B6FA8}
 
+/* ════════════════════════════
+   SAVED PAGE
+════════════════════════════ */
+.card-acts{display:flex;gap:6px;flex:none}
+.saved-empty{
+  padding:52px 16px;text-align:center;color:var(--ink3);
+  font-size:13.5px;display:flex;flex-direction:column;gap:10px;align-items:center;
+}
+.saved-empty i{font-style:normal;font-size:36px;opacity:.55}
+.saved-meta{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.saved-type{
+  flex:none;font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;
+  background:var(--green-bg);color:var(--green);
+}
+.saved-type.amber{background:var(--amber-bg);color:var(--amber)}
+.saved-time{font-size:11px;color:var(--ink3);white-space:nowrap;flex:none}
+.saved-label{
+  font-size:12px;font-weight:600;color:var(--ink2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.del-btn{
+  padding:7px 12px;border-radius:99px;
+  border:1px solid var(--border);background:var(--surface);
+  color:var(--ink3);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
+  cursor:pointer;min-height:34px;transition:all .15s;
+}
+.del-btn:active{background:var(--red-bg);color:var(--red);border-color:rgba(184,50,50,.25)}
+#clearSaved{display:none}
+
 ::-webkit-scrollbar{display:none}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
@@ -774,6 +803,16 @@ textarea::placeholder{color:var(--ink3)}
       <div class="results" id="apprResults"></div>
     </div>
 
+    <!-- ══ PAGE: 已儲存 ══ -->
+    <div class="page" id="page-saved">
+      <div class="page-head">
+        <div class="page-head-title">已儲存</div>
+        <div class="page-head-desc">收藏過的回覆與感謝文都在這裡，隨時複製使用。</div>
+      </div>
+      <div class="results" id="savedList" style="margin-top:0"></div>
+      <button class="btn-retry" id="clearSaved" style="margin-top:12px">🗑 清空全部</button>
+    </div>
+
   </div><!-- /scroll -->
 
   <!-- Bottom Tab Bar -->
@@ -785,6 +824,10 @@ textarea::placeholder{color:var(--ink3)}
     <button class="tabitem amber" data-page="appreciate" id="tab-appreciate">
       <span class="tabitem-icon">❤️</span>
       <span class="tabitem-label">點評感謝</span>
+    </button>
+    <button class="tabitem" data-page="saved" id="tab-saved">
+      <span class="tabitem-icon">🔖</span>
+      <span class="tabitem-label">已儲存</span>
     </button>
   </nav>
 
@@ -910,6 +953,7 @@ document.querySelectorAll('.tabitem').forEach(t => {
   t.onclick = () => {
     document.querySelectorAll('.tabitem').forEach(x => x.classList.toggle('on', x === t));
     document.querySelectorAll('.page').forEach(p => p.classList.toggle('show', p.id === 'page-' + t.dataset.page));
+    if(t.dataset.page === 'saved') renderSaved();
     $('scroll').scrollTo(0, 0);
   };
 });
@@ -1072,7 +1116,15 @@ function renderReplies(replies){
     const head=document.createElement('div');head.className='reply-head';
     const lbl=document.createElement('span');lbl.className='reply-label';lbl.innerHTML=`<span class="reply-dot"></span>${r.style||'建議'+(i+1)}`;
     const cp=document.createElement('button');cp.className='copy-btn';cp.textContent='複製';
-    head.append(lbl,cp);
+    const sv=document.createElement('button');sv.className='copy-btn';sv.textContent='☆ 儲存';
+    sv.onclick=()=>{
+      saveItem('reply', r.style||('建議'+(i+1)), r.text||'');
+      sv.textContent='★ 已存';sv.classList.add('done');
+      if(navigator.vibrate)navigator.vibrate(20);
+      setTimeout(()=>{sv.textContent='☆ 儲存';sv.classList.remove('done')},1600);
+    };
+    const acts=document.createElement('div');acts.className='card-acts';acts.append(sv,cp);
+    head.append(lbl,acts);
     const body=document.createElement('div');body.className='reply-body';body.textContent=r.text||'';
     cp.onclick=async()=>{
       try{await navigator.clipboard.writeText(body.textContent)}catch{const ta=document.createElement('textarea');ta.value=body.textContent;Object.assign(ta.style,{position:'fixed',top:'-9999px'});document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();}
@@ -1136,7 +1188,15 @@ function renderAppr(parsed){
   const head=document.createElement('div');head.className='appr-head';
   const lbl=document.createElement('span');lbl.className='appr-label';lbl.textContent=`❤ ${parsed.title||'點評感謝'}`;
   const cp=document.createElement('button');cp.className='copy-btn';cp.textContent='複製';
-  head.append(lbl,cp);
+  const sv=document.createElement('button');sv.className='copy-btn';sv.textContent='☆ 儲存';
+  sv.onclick=()=>{
+    saveItem('appr', parsed.title||'點評感謝', parsed.text||'');
+    sv.textContent='★ 已存';sv.classList.add('done-amber');
+    if(navigator.vibrate)navigator.vibrate(20);
+    setTimeout(()=>{sv.textContent='☆ 儲存';sv.classList.remove('done-amber')},1600);
+  };
+  const acts=document.createElement('div');acts.className='card-acts';acts.append(sv,cp);
+  head.append(lbl,acts);
   const body=document.createElement('div');body.className='appr-body';body.textContent=parsed.text||'';
   cp.onclick=async()=>{
     try{await navigator.clipboard.writeText(body.textContent)}catch{const ta=document.createElement('textarea');ta.value=body.textContent;Object.assign(ta.style,{position:'fixed',top:'-9999px'});document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();}
@@ -1148,6 +1208,110 @@ function renderAppr(parsed){
   box.append(card,rb);
   card.scrollIntoView({behavior:'smooth',block:'start'});
 }
+
+/* ══════════════════════════════════════════
+   已儲存（localStorage）
+══════════════════════════════════════════ */
+const K_SAVED = 'rai_saved';
+
+function loadSaved(){
+  try{ return JSON.parse(localStorage.getItem(K_SAVED)) || []; }
+  catch{ return []; }
+}
+function saveItem(type, label, text){
+  const list = loadSaved();
+  list.unshift({
+    id: Date.now() + '' + Math.floor(Math.random()*1e4),
+    type, label, text, ts: Date.now()
+  });
+  if(list.length > 100) list.length = 100; // 最多保留 100 筆
+  localStorage.setItem(K_SAVED, JSON.stringify(list));
+}
+function delItem(id){
+  localStorage.setItem(K_SAVED, JSON.stringify(loadSaved().filter(x => x.id !== id)));
+  renderSaved();
+}
+function fmtTs(ts){
+  return new Date(ts).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function copyText(t, btn, doneClass){
+  return (async()=>{
+    try{ await navigator.clipboard.writeText(t); }
+    catch{
+      const ta=document.createElement('textarea');
+      ta.value=t;Object.assign(ta.style,{position:'fixed',top:'-9999px'});
+      document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();
+    }
+    btn.textContent='✓ 已複製';btn.classList.add(doneClass);
+    if(navigator.vibrate)navigator.vibrate(28);
+    setTimeout(()=>{btn.textContent='複製';btn.classList.remove(doneClass)},2000);
+  })();
+}
+
+function renderSaved(){
+  const box = $('savedList');
+  const clearBtn = $('clearSaved');
+  const list = loadSaved();
+  box.innerHTML = '';
+
+  if(!list.length){
+    const empty = document.createElement('div');
+    empty.className = 'saved-empty';
+    empty.innerHTML = '<i>🔖</i>還沒有儲存任何內容<br>在生成結果按「☆ 儲存」就會出現在這裡';
+    box.appendChild(empty);
+    clearBtn.style.display = 'none';
+    return;
+  }
+  clearBtn.style.display = 'block';
+
+  list.forEach(item => {
+    const isAppr = item.type === 'appr';
+    const card = document.createElement('div');
+    card.className = isAppr ? 'appr-card' : 'reply-card';
+
+    const head = document.createElement('div');
+    head.className = isAppr ? 'appr-head' : 'reply-head';
+
+    const meta = document.createElement('div');
+    meta.className = 'saved-meta';
+    const typeTag = document.createElement('span');
+    typeTag.className = 'saved-type' + (isAppr ? ' amber' : '');
+    typeTag.textContent = isAppr ? '感謝' : '回覆';
+    const label = document.createElement('span');
+    label.className = 'saved-label';
+    label.textContent = item.label;
+    const time = document.createElement('span');
+    time.className = 'saved-time';
+    time.textContent = fmtTs(item.ts);
+    meta.append(typeTag, label, time);
+
+    const acts = document.createElement('div');
+    acts.className = 'card-acts';
+    const cp = document.createElement('button');
+    cp.className = 'copy-btn'; cp.textContent = '複製';
+    cp.onclick = () => copyText(item.text, cp, isAppr ? 'done-amber' : 'done');
+    const del = document.createElement('button');
+    del.className = 'del-btn'; del.textContent = '刪除';
+    del.onclick = () => delItem(item.id);
+    acts.append(cp, del);
+
+    head.append(meta, acts);
+
+    const body = document.createElement('div');
+    body.className = isAppr ? 'appr-body' : 'reply-body';
+    body.textContent = item.text;
+
+    card.append(head, body);
+    box.appendChild(card);
+  });
+}
+
+$('clearSaved').onclick = () => {
+  if(loadSaved().length && confirm('確定要清空所有儲存的內容嗎？此動作無法復原。')){
+    localStorage.removeItem(K_SAVED);
+    renderSaved();
+  }
+};
 
 })();
 </script>
