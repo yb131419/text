@@ -1,1319 +1,436 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>回覆靈感</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<title>初心系統 Banner</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@200;300;400;700&family=Cinzel:wght@300;400&display=swap" rel="stylesheet">
 <style>
-/* ── Reset ── */
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+* { margin:0; padding:0; box-sizing:border-box; }
 
-/* ── Tokens ── */
-:root{
-  --bg:       #F5F4F1;
-  --surface:  #FFFFFF;
-  --surface2: #EFEDE9;
-  --border:   #E2DFD8;
-  --border2:  #C5C1B8;
-  --ink:      #1A1916;
-  --ink2:     #4A4844;
-  --ink3:     #908D86;
-  --green:    #2A6644;
-  --green-bg: #E8F2EC;
-  --green-dk: #1F4F33;
-  --amber:    #A8720A;
-  --amber-bg: #FBF3E0;
-  --red:      #B83232;
-  --red-bg:   #FBEEEE;
-  --tab-h:    56px;
-  --nav-h:    52px;
-  --safe-b:   env(safe-area-inset-bottom, 0px);
-  --r:        14px;
-  --r-sm:     10px;
-  --ease:     cubic-bezier(.16,1,.3,1);
-  --shadow:   0 1px 6px rgba(0,0,0,.07);
-  --shadow-md:0 4px 20px rgba(0,0,0,.10);
+body {
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
 }
 
-/* ── Base ── */
-html,body{
-  background:var(--bg);
-  color:var(--ink);
-  font-family:'Inter',sans-serif;
-  font-size:15px;
-  line-height:1.6;
-  overflow-x:hidden;
-  -webkit-font-smoothing:antialiased;
+.banner {
+  width: 1200px;
+  height: 675px;
+  position: relative;
+  overflow: hidden;
+  background: #05080f;
 }
 
-/* ── App Shell ── */
-.app{
-  display:flex;flex-direction:column;
-  height:100vh;height:100dvh;
-  overflow:hidden;
+/* ── 背景：深邃星空漸層 ── */
+.bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 70% 50%, rgba(12,30,60,0.95) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 80% at 20% 50%, rgba(8,18,40,0.9) 0%, transparent 60%),
+    linear-gradient(135deg, #020510 0%, #060d1e 40%, #03070f 100%);
 }
 
-/* ════════════════════════════
-   TOP NAV
-════════════════════════════ */
-.topnav{
-  flex:none;
-  height:var(--nav-h);
-  padding:0 16px;
-  padding-top:env(safe-area-inset-top,0);
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:10px;
-  box-shadow:var(--shadow);
-  z-index:100;
-}
-.topnav-brand{
-  flex:1;min-width:0;
-  display:flex;align-items:center;gap:8px;
-}
-.topnav-icon{
-  width:32px;height:32px;border-radius:9px;
-  background:var(--green);
-  display:grid;place-items:center;flex:none;
-}
-.topnav-icon svg{width:17px;height:17px;fill:#fff}
-.topnav-title{
-  font-family:'Noto Serif TC',serif;
-  font-size:17px;font-weight:700;
-  color:var(--ink);letter-spacing:-.01em;
-  white-space:nowrap;
-}
-.topnav-sep{width:1px;height:14px;background:var(--border);flex:none}
-.model-pill{
-  font-size:10.5px;color:var(--ink3);
-  letter-spacing:.03em;white-space:nowrap;
-  padding:3px 9px;border-radius:99px;
-  background:var(--surface2);
-  border:1px solid var(--border);
-  cursor:pointer;
-  transition:background .15s;
-}
-.model-pill:active{background:var(--border)}
-.model-pill b{color:var(--green);font-weight:600}
-
-.settings-btn{
-  flex:none;
-  width:38px;height:38px;
-  border-radius:var(--r-sm);
-  border:1px solid var(--border);
-  background:var(--surface2);
-  color:var(--ink2);
-  font-size:17px;
-  display:grid;place-items:center;
-  cursor:pointer;
-  transition:background .15s;
-}
-.settings-btn:active{background:var(--border)}
-
-/* ════════════════════════════
-   SCROLL AREA
-════════════════════════════ */
-.scroll{
-  flex:1;
-  overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
-  padding-bottom:calc(var(--tab-h) + var(--safe-b) + 60px);
+/* ── 金色光暈 ── */
+.glow-gold {
+  position: absolute;
+  width: 500px;
+  height: 300px;
+  background: radial-gradient(ellipse, rgba(212,175,55,0.12) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  pointer-events: none;
 }
 
-/* ════════════════════════════
-   CONTENT
-════════════════════════════ */
-.page{display:none;padding:16px 14px 0}
-.page.show{display:block;animation:fadeUp .2s var(--ease) both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-
-.page-head{margin-bottom:16px}
-.page-head-title{
-  font-size:13px;font-weight:600;
-  color:var(--ink3);
-  letter-spacing:.06em;text-transform:uppercase;
-  margin-bottom:2px;
-}
-.page-head-desc{font-size:13px;color:var(--ink3);line-height:1.65}
-
-/* ════════════════════════════
-   STEP CARD
-════════════════════════════ */
-.steps{display:flex;flex-direction:column;gap:10px}
-
-.step{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--r);
-  overflow:hidden;
-  box-shadow:var(--shadow);
-}
-.step-head{
-  display:flex;align-items:center;gap:10px;
-  padding:13px 16px;
-  border-bottom:1px solid var(--border);
-}
-.step-num{
-  width:26px;height:26px;
-  border-radius:8px;
-  background:var(--green);
-  color:#fff;
-  font-size:12px;font-weight:700;
-  display:grid;place-items:center;
-  flex:none;
-}
-.step-num.amber{background:var(--amber)}
-.step-label{
-  font-size:14px;font-weight:600;
-  color:var(--ink);flex:1;min-width:0;
-}
-.step-badge{
-  flex:none;
-  font-size:11px;padding:2px 9px;border-radius:99px;
-  background:var(--green-bg);color:var(--green);
-  border:1px solid rgba(42,102,68,.15);font-weight:500;
-}
-.step-badge.amber{
-  background:var(--amber-bg);color:var(--amber);
-  border-color:rgba(168,114,10,.2);
-}
-.step-body{padding:14px 16px}
-
-/* ════════════════════════════
-   INPUT TABS
-════════════════════════════ */
-.itabs{
-  display:flex;
-  border-bottom:1px solid var(--border);
-  margin-bottom:14px;
-}
-.itab{
-  flex:1;
-  padding:9px 4px 10px;
-  border:none;border-bottom:2px solid transparent;
-  background:transparent;
-  color:var(--ink3);
-  font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;
-  cursor:pointer;
-  margin-bottom:-1px;
-  transition:color .15s,border-color .15s;
-}
-.itab.on{color:var(--green);border-bottom-color:var(--green)}
-.ipane{display:none}
-.ipane.show{display:block;animation:fadeUp .15s var(--ease) both}
-
-/* ════════════════════════════
-   DROP ZONE
-════════════════════════════ */
-.dropzone{
-  display:flex;flex-direction:column;align-items:center;
-  gap:10px;padding:28px 16px;
-  border:1.5px dashed var(--border2);
-  border-radius:var(--r-sm);
-  background:var(--surface2);
-  cursor:pointer;text-align:center;
-  transition:all .18s;
-}
-.dropzone:active,.dropzone.over{border-color:var(--green);background:var(--green-bg)}
-.dropzone input{display:none}
-.dz-icon{
-  width:48px;height:48px;border-radius:12px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  display:grid;place-items:center;
-  font-size:24px;box-shadow:var(--shadow);
-}
-.dz-main{font-size:14px;font-weight:500;color:var(--ink)}
-.dz-hint{font-size:12px;color:var(--ink3);line-height:1.7}
-.dz-tags{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:2px}
-.dz-tag{
-  font-size:11px;padding:2px 8px;border-radius:6px;
-  background:var(--border);color:var(--ink2);
+.glow-blue {
+  position: absolute;
+  width: 700px;
+  height: 500px;
+  background: radial-gradient(ellipse, rgba(30,80,180,0.08) 0%, transparent 65%);
+  bottom: -100px;
+  left: -100px;
+  pointer-events: none;
 }
 
-/* Preview */
-.prev-wrap{display:none;margin-top:12px;position:relative}
-.prev-wrap.show{display:block}
-.prev-wrap img{
-  width:100%;max-height:260px;object-fit:contain;
-  border-radius:var(--r-sm);
-  border:1px solid var(--border);
-  background:var(--surface2);
-  display:block;
+/* ── 微粒光點 ── */
+.particles {
+  position: absolute;
+  inset: 0;
 }
-.prev-rm{
-  position:absolute;top:8px;right:8px;
-  width:30px;height:30px;border-radius:50%;
-  background:rgba(255,255,255,.95);
-  border:1px solid var(--border);
-  color:var(--ink2);font-size:13px;
-  display:grid;place-items:center;
-  cursor:pointer;box-shadow:var(--shadow);
+.p {
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  animation: twinkle var(--d, 3s) ease-in-out infinite alternate;
 }
-.prev-rm:active{background:var(--red-bg);color:var(--red)}
-
-/* ════════════════════════════
-   TEXTAREA
-════════════════════════════ */
-textarea{
-  width:100%;min-height:130px;
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:var(--r-sm);
-  color:var(--ink);
-  font-family:'Inter',sans-serif;font-size:14px;
-  line-height:1.75;padding:12px 14px;
-  resize:vertical;
-  transition:border-color .15s;
-  -webkit-appearance:none;
-}
-textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(42,102,68,.10)}
-textarea::placeholder{color:var(--ink3)}
-
-/* ════════════════════════════
-   CHIPS
-════════════════════════════ */
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{
-  padding:9px 18px;
-  border-radius:99px;
-  border:1px solid var(--border);
-  background:var(--surface2);
-  color:var(--ink2);
-  font-family:'Inter',sans-serif;font-size:14px;font-weight:400;
-  cursor:pointer;min-height:44px;
-  display:inline-flex;align-items:center;
-  transition:all .15s;
-}
-.chip:active{transform:scale(.95)}
-.chip.on{
-  border-color:var(--green);
-  background:var(--green);
-  color:#fff;font-weight:500;
-}
-.chip.on.amber-chip{border-color:var(--amber);background:var(--amber)}
-
-/* ════════════════════════════
-   FORM FIELD
-════════════════════════════ */
-.field-input{
-  width:100%;
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:var(--r-sm);
-  color:var(--ink);
-  font-family:'Inter',sans-serif;font-size:14px;
-  padding:12px 14px;min-height:48px;
-  transition:border-color .15s;
-  -webkit-appearance:none;
-}
-.field-input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(168,114,10,.10)}
-.field-input::placeholder{color:var(--ink3)}
-.field-ta{resize:vertical;min-height:90px;line-height:1.7}
-
-/* ════════════════════════════
-   CTA
-════════════════════════════ */
-.page-cta{margin-top:14px}
-.btn-primary{
-  position:relative;overflow:hidden;
-  width:100%;padding:16px 24px;
-  border:none;border-radius:var(--r);cursor:pointer;
-  font-family:'Inter',sans-serif;font-size:15px;font-weight:600;
-  color:#fff;
-  background:var(--green);
-  min-height:54px;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  box-shadow:0 4px 18px rgba(42,102,68,.35);
-  transition:opacity .15s,transform .15s;
-  -webkit-appearance:none;
-}
-.btn-primary:active{transform:scale(.98);opacity:.9}
-.btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none}
-.btn-primary.amber{
-  background:var(--amber);
-  box-shadow:0 4px 18px rgba(168,114,10,.35);
-}
-.btn-primary::after{
-  content:'';position:absolute;
-  top:0;left:-80%;width:50%;height:100%;
-  background:linear-gradient(105deg,transparent,rgba(255,255,255,.18),transparent);
-  transform:skewX(-20deg);
-  transition:left .6s ease;
-}
-.btn-primary:hover:not(:disabled)::after{left:140%}
-
-/* ════════════════════════════
-   LOADING
-════════════════════════════ */
-.loading{
-  display:none;
-  align-items:center;gap:10px;
-  margin-top:12px;padding:13px 14px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--r-sm);
-  font-size:13px;color:var(--ink3);
-}
-.loading.show{display:flex}
-.dots{display:flex;gap:5px}
-.dots i{
-  width:6px;height:6px;border-radius:50%;
-  background:var(--green);display:block;
-  animation:blink 1.2s ease-in-out infinite;
-}
-.loading.amber .dots i{background:var(--amber)}
-.dots i:nth-child(2){animation-delay:.16s}
-.dots i:nth-child(3){animation-delay:.32s}
-@keyframes blink{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
-
-/* ════════════════════════════
-   ERROR
-════════════════════════════ */
-.err{
-  display:none;margin-top:10px;
-  padding:12px 14px;
-  background:var(--red-bg);
-  border:1px solid rgba(184,50,50,.18);
-  border-radius:var(--r-sm);
-  color:var(--red);font-size:13px;line-height:1.6;
-}
-.err.show{display:block}
-
-/* ════════════════════════════
-   RESULTS
-════════════════════════════ */
-.results{display:flex;flex-direction:column;gap:10px;margin-top:12px}
-
-.reply-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--r);
-  overflow:hidden;
-  box-shadow:var(--shadow);
-  animation:fadeUp .35s var(--ease) both;
-}
-.reply-head{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:11px 14px;
-  background:var(--surface2);
-  border-bottom:1px solid var(--border);
-}
-.reply-label{
-  font-size:12px;font-weight:600;
-  color:var(--green);letter-spacing:.04em;text-transform:uppercase;
-  display:flex;align-items:center;gap:6px;
-}
-.reply-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
-.reply-body{
-  padding:14px 16px;
-  font-size:15px;line-height:1.9;
-  color:var(--ink);white-space:pre-wrap;
-}
-.copy-btn{
-  padding:7px 14px;border-radius:99px;
-  border:1px solid var(--border);
-  background:var(--surface);
-  color:var(--ink2);
-  font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
-  cursor:pointer;min-height:34px;
-  transition:all .15s;
-  display:flex;align-items:center;gap:4px;
-}
-.copy-btn:active{transform:scale(.94)}
-.copy-btn.done{background:var(--green);color:#fff;border-color:transparent}
-.copy-btn.done-amber{background:var(--amber);color:#fff;border-color:transparent}
-
-.appr-card{
-  background:var(--surface);
-  border:1px solid rgba(168,114,10,.22);
-  border-radius:var(--r);
-  overflow:hidden;
-  box-shadow:var(--shadow);
-  animation:fadeUp .35s var(--ease) both;
-}
-.appr-head{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:11px 14px;
-  background:var(--amber-bg);
-  border-bottom:1px solid rgba(168,114,10,.15);
-}
-.appr-label{
-  font-size:13px;font-weight:600;
-  color:var(--amber);
-  display:flex;align-items:center;gap:6px;
-}
-.appr-body{
-  padding:14px 16px;
-  font-size:15px;line-height:2;
-  color:var(--ink);white-space:pre-wrap;
+@keyframes twinkle {
+  from { opacity: var(--lo, 0.1); }
+  to   { opacity: var(--hi, 0.5); }
 }
 
-.btn-retry{
-  width:100%;padding:13px;
-  border:1px solid var(--border);
-  border-radius:var(--r-sm);
-  background:var(--surface);
-  color:var(--ink2);
-  font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;
-  cursor:pointer;min-height:48px;
-  transition:all .15s;
-  margin-top:4px;
+/* ── 左側：黃金垂直線 ── */
+.gold-bar {
+  position: absolute;
+  left: 88px;
+  top: 80px;
+  bottom: 80px;
+  width: 2px;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(212,175,55,0.4) 20%,
+    rgba(212,175,55,0.9) 50%,
+    rgba(212,175,55,0.4) 80%,
+    transparent 100%
+  );
 }
-.btn-retry:active{background:var(--surface2)}
 
-/* ════════════════════════════
-   BOTTOM TAB BAR
-════════════════════════════ */
-.tabbar{
-  position:fixed;bottom:0;left:0;right:0;
-  z-index:100;
-  height:calc(var(--tab-h) + var(--safe-b));
-  padding-bottom:var(--safe-b);
-  background:var(--surface);
-  border-top:1px solid var(--border);
-  display:flex;
-  box-shadow:0 -2px 12px rgba(0,0,0,.06);
+/* ── 精緻外框 ── */
+.frame {
+  position: absolute;
+  top: 50px;
+  left: 56px;
+  right: 56px;
+  bottom: 50px;
+  pointer-events: none;
 }
-.tabitem{
-  flex:1;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;
-  border:none;background:transparent;
-  cursor:pointer;padding:8px 4px;
-  color:var(--ink3);
-  font-family:'Inter',sans-serif;font-size:10px;font-weight:500;
-  letter-spacing:.02em;
-  transition:color .15s;
-}
-.tabitem.on{color:var(--green)}
-.tabitem.on.amber{color:var(--amber)}
-.tabitem-icon{font-size:22px;line-height:1}
-.tabitem-label{line-height:1}
 
-/* ════════════════════════════
-   MODAL
-════════════════════════════ */
-.overlay{
-  position:fixed;inset:0;z-index:200;
-  display:none;align-items:flex-end;justify-content:center;
-  background:rgba(26,25,22,.5);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  padding:0;
+/* 四角 L型 */
+.frame::before, .frame::after,
+.frame .b::before, .frame .b::after {
+  content: '';
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: rgba(212,175,55,0.55);
+  border-style: solid;
 }
-.overlay.show{display:flex;animation:fadeUp .2s ease both}
-.modal{
-  width:100%;
-  background:var(--surface);
-  border-radius:20px 20px 0 0;
-  padding:20px 20px calc(20px + var(--safe-b));
-  box-shadow:var(--shadow-md);
-}
-.modal-handle{
-  width:36px;height:4px;border-radius:2px;
-  background:var(--border2);margin:0 auto 20px;
-}
-.modal-title{
-  font-family:'Noto Serif TC',serif;
-  font-size:19px;font-weight:700;
-  color:var(--ink);margin-bottom:6px;
-}
-.modal-desc{font-size:13px;color:var(--ink3);line-height:1.7;margin-bottom:16px}
-.modal-input{
-  width:100%;padding:13px 14px;
-  background:var(--surface2);
-  border:1px solid var(--border);border-radius:var(--r-sm);
-  color:var(--ink);font-family:'Inter',sans-serif;font-size:15px;
-  min-height:50px;transition:border-color .15s;
-  -webkit-appearance:none;
-}
-.modal-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(42,102,68,.10)}
-.modal-input::placeholder{color:var(--ink3)}
-.modal-row{display:flex;gap:10px;margin-top:14px}
-.modal-save{
-  flex:1;padding:14px;border-radius:var(--r-sm);
-  border:none;background:var(--green);color:#fff;
-  font-family:'Inter',sans-serif;font-size:15px;font-weight:600;
-  min-height:50px;cursor:pointer;
-  transition:opacity .15s;
-}
-.modal-save:active{opacity:.85}
-.modal-cancel{
-  flex:1;padding:14px;border-radius:var(--r-sm);
-  border:1px solid var(--border);background:var(--surface2);
-  color:var(--ink2);font-family:'Inter',sans-serif;font-size:15px;
-  min-height:50px;cursor:pointer;
-}
-.modal-cancel:active{background:var(--border)}
+.frame::before { top:0; left:0; border-width: 1.5px 0 0 1.5px; }
+.frame::after  { top:0; right:0; border-width: 1.5px 1.5px 0 0; }
+.frame .b::before { bottom:0; left:0; border-width: 0 0 1.5px 1.5px; }
+.frame .b::after  { bottom:0; right:0; border-width: 0 1.5px 1.5px 0; }
 
-/* ── Model selector in modal ── */
-.modal-sec{
-  font-size:12px;font-weight:600;color:var(--ink2);
-  margin:18px 0 8px;letter-spacing:.04em;
+/* 頂底細線 */
+.frame-line-top {
+  position: absolute;
+  top: 50px;
+  left: 100px;
+  right: 100px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(212,175,55,0.3) 30%, rgba(212,175,55,0.3) 70%, transparent);
 }
-.model-opts{display:flex;flex-direction:column;gap:8px}
-.model-opt{
-  display:flex;align-items:center;gap:12px;
-  padding:13px 14px;
-  border:1.5px solid var(--border);
-  border-radius:var(--r-sm);
-  background:var(--surface2);
-  cursor:pointer;
-  transition:border-color .15s,background .15s;
-  text-align:left;width:100%;
-  font-family:'Inter',sans-serif;
+.frame-line-bottom {
+  position: absolute;
+  bottom: 50px;
+  left: 100px;
+  right: 100px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(212,175,55,0.3) 30%, rgba(212,175,55,0.3) 70%, transparent);
 }
-.model-opt.on{border-color:var(--green);background:var(--green-bg)}
-.model-radio{
-  width:18px;height:18px;border-radius:50%;flex:none;
-  border:2px solid var(--border2);
-  display:grid;place-items:center;
-  transition:border-color .15s;
-}
-.model-opt.on .model-radio{border-color:var(--green)}
-.model-radio::after{
-  content:'';width:9px;height:9px;border-radius:50%;
-  background:var(--green);transform:scale(0);
-  transition:transform .15s var(--ease);
-}
-.model-opt.on .model-radio::after{transform:scale(1)}
-.model-info{flex:1;min-width:0}
-.model-name{font-size:14px;font-weight:600;color:var(--ink);line-height:1.3}
-.model-desc{font-size:11.5px;color:var(--ink3);line-height:1.5;margin-top:1px}
-.model-tag{
-  flex:none;font-size:10px;font-weight:600;
-  padding:3px 8px;border-radius:6px;
-  background:var(--green);color:#fff;
-}
-.model-tag.blue{background:#3B6FA8}
 
-/* ════════════════════════════
-   SAVED PAGE
-════════════════════════════ */
-.card-acts{display:flex;gap:6px;flex:none}
-.saved-empty{
-  padding:52px 16px;text-align:center;color:var(--ink3);
-  font-size:13.5px;display:flex;flex-direction:column;gap:10px;align-items:center;
+/* ── 右側：蓮花水墨圖形 ── */
+.lotus-wrap {
+  position: absolute;
+  right: 90px;
+  top: 50%;
+  transform: translateY(-52%);
+  width: 260px;
+  height: 260px;
 }
-.saved-empty i{font-style:normal;font-size:36px;opacity:.55}
-.saved-meta{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
-.saved-type{
-  flex:none;font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;
-  background:var(--green-bg);color:var(--green);
-}
-.saved-type.amber{background:var(--amber-bg);color:var(--amber)}
-.saved-time{font-size:11px;color:var(--ink3);white-space:nowrap;flex:none}
-.saved-label{
-  font-size:12px;font-weight:600;color:var(--ink2);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
-}
-.del-btn{
-  padding:7px 12px;border-radius:99px;
-  border:1px solid var(--border);background:var(--surface);
-  color:var(--ink3);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
-  cursor:pointer;min-height:34px;transition:all .15s;
-}
-.del-btn:active{background:var(--red-bg);color:var(--red);border-color:rgba(184,50,50,.25)}
-#clearSaved{display:none}
 
-::-webkit-scrollbar{display:none}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.lotus-wrap svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 30px rgba(212,175,55,0.15));
+  animation: lotusBreath 5s ease-in-out infinite alternate;
+}
+@keyframes lotusBreath {
+  from { opacity: 0.22; transform: scale(1); }
+  to   { opacity: 0.30; transform: scale(1.03); }
+}
+
+/* 蓮花下方水波 */
+.water-lines {
+  position: absolute;
+  bottom: 115px;
+  right: 68px;
+  width: 305px;
+}
+.water-lines svg { width: 100%; opacity: 0.15; }
+
+/* ── 主要內容 ── */
+.content {
+  position: absolute;
+  top: 50%;
+  left: 130px;
+  transform: translateY(-50%);
+  max-width: 680px;
+}
+
+/* 頂部標籤 */
+.tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.tag-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #d4af37;
+  box-shadow: 0 0 8px rgba(212,175,55,0.8);
+}
+.tag-text {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 5px;
+  color: rgba(212,175,55,0.75);
+  text-transform: uppercase;
+}
+.tag-line {
+  flex: 1;
+  max-width: 60px;
+  height: 1px;
+  background: linear-gradient(to right, rgba(212,175,55,0.5), transparent);
+}
+
+/* 主標題 */
+.title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.char-chuxin {
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 200;
+  font-size: 100px;
+  color: #d4af37;
+  letter-spacing: 6px;
+  text-shadow:
+    0 0 40px rgba(212,175,55,0.35),
+    0 0 80px rgba(212,175,55,0.15),
+    0 2px 0 rgba(0,0,0,0.5);
+  line-height: 1;
+}
+
+.char-system {
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 200;
+  font-size: 100px;
+  color: rgba(230,238,255,0.92);
+  letter-spacing: 6px;
+  text-shadow: 0 2px 20px rgba(80,120,220,0.2), 0 2px 0 rgba(0,0,0,0.4);
+  line-height: 1;
+}
+
+/* 金色分隔 */
+.ornament {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 24px 0 22px;
+}
+.orn-line {
+  height: 1px;
+  width: 50px;
+  background: linear-gradient(to right, rgba(212,175,55,0.6), rgba(212,175,55,0.1));
+}
+.orn-line-r {
+  height: 1px;
+  width: 160px;
+  background: linear-gradient(to right, rgba(212,175,55,0.1), transparent);
+}
+.orn-diamond {
+  width: 7px; height: 7px;
+  background: rgba(212,175,55,0.7);
+  transform: rotate(45deg);
+}
+.orn-dot {
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(212,175,55,0.4);
+}
+
+/* 副標語 */
+.subtitle {
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 200;
+  font-size: 28px;
+  color: rgba(200,215,245,0.78);
+  letter-spacing: 10px;
+  text-shadow: 0 1px 12px rgba(80,100,200,0.2);
+}
+
+/* 底部資訊 */
+.bottom-info {
+  position: absolute;
+  bottom: 68px;
+  left: 130px;
+  right: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bottom-left {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: rgba(212,175,55,0.4);
+}
+
+.bottom-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.br-dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: rgba(212,175,55,0.3);
+}
+.br-text {
+  font-family: 'Noto Serif TC', serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: rgba(200,215,245,0.35);
+}
 </style>
 </head>
-
 <body>
-<div class="app">
+<div class="banner">
 
-  <!-- Top Nav -->
-  <nav class="topnav">
-    <div class="topnav-brand">
-      <div class="topnav-icon">
-        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-      </div>
-      <span class="topnav-title">回覆靈感</span>
-      <div class="topnav-sep"></div>
-      <button class="model-pill" id="modelPill">模型 <b id="modelPillName">4o mini</b></button>
-    </div>
-    <button class="settings-btn" id="settingsBtn">⚙</button>
-  </nav>
+  <!-- 背景層 -->
+  <div class="bg"></div>
+  <div class="glow-gold"></div>
+  <div class="glow-blue"></div>
 
-  <!-- Scrollable content -->
-  <div class="scroll" id="scroll">
+  <!-- 微粒 -->
+  <div class="particles">
+    <div class="p" style="--d:2.8s;--lo:0.08;--hi:0.45;width:2px;height:2px;top:9%;left:18%"></div>
+    <div class="p" style="--d:3.5s;--lo:0.05;--hi:0.3;width:1px;height:1px;top:22%;left:55%"></div>
+    <div class="p" style="--d:4s;--lo:0.1;--hi:0.5;width:2px;height:2px;top:6%;left:72%"></div>
+    <div class="p" style="--d:2.2s;--lo:0.06;--hi:0.35;width:1px;height:1px;top:38%;left:82%"></div>
+    <div class="p" style="--d:5s;--lo:0.05;--hi:0.28;width:2px;height:2px;top:72%;left:30%"></div>
+    <div class="p" style="--d:3.1s;--lo:0.08;--hi:0.4;width:1px;height:1px;top:15%;left:42%"></div>
+    <div class="p" style="--d:4.4s;--lo:0.04;--hi:0.22;width:3px;height:3px;top:85%;left:62%"></div>
+    <div class="p" style="--d:2.6s;--lo:0.07;--hi:0.38;width:1px;height:1px;top:50%;left:10%"></div>
+    <div class="p" style="--d:3.8s;--lo:0.05;--hi:0.3;width:2px;height:2px;top:28%;left:91%"></div>
+    <div class="p" style="--d:4.7s;--lo:0.06;--hi:0.32;width:1px;height:1px;top:60%;left:48%"></div>
+    <div class="p" style="--d:2.4s;--lo:0.08;--hi:0.42;width:1px;height:1px;top:78%;left:78%"></div>
+    <div class="p" style="--d:3.3s;--lo:0.05;--hi:0.25;width:2px;height:2px;top:45%;left:67%"></div>
+  </div>
 
-    <!-- ══ PAGE: 回覆建議 ══ -->
-    <div class="page show" id="page-reply">
-      <div class="page-head">
-        <div class="page-head-title">回覆建議</div>
-        <div class="page-head-desc">貼入截圖或文字，AI 根據語氣和關係給出 3 個自然回覆。</div>
-      </div>
+  <!-- 框架 -->
+  <div class="frame"><div class="b"></div></div>
+  <div class="frame-line-top"></div>
+  <div class="frame-line-bottom"></div>
 
-      <div class="steps">
+  <!-- 左側金條 -->
+  <div class="gold-bar"></div>
 
-        <!-- Step 1 -->
-        <div class="step">
-          <div class="step-head">
-            <div class="step-num">1</div>
-            <span class="step-label">對話內容</span>
-          </div>
-          <div class="step-body">
-            <div class="itabs">
-              <button class="itab on" data-ip="ip-img">📷 上傳截圖</button>
-              <button class="itab" data-ip="ip-txt">📋 貼上文字</button>
-            </div>
+  <!-- 右側蓮花 -->
+  <div class="lotus-wrap">
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- 外層大花瓣 12片 -->
+      <g opacity="0.85">
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(0 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(30 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(60 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(90 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(120 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(150 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(180 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(210 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(240 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(270 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(300 100 100)"/>
+        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(330 100 100)"/>
+      </g>
+      <!-- 內層花瓣 -->
+      <g opacity="0.6">
+        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(15 100 100)"/>
+        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(75 100 100)"/>
+        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(135 100 100)"/>
+        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(195 100 100)"/>
+        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(255 100 100)"/>
+        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(315 100 100)"/>
+      </g>
+      <!-- 花心圓環 -->
+      <circle cx="100" cy="100" r="18" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"/>
+      <circle cx="100" cy="100" r="12" fill="rgba(212,175,55,0.5)"/>
+      <circle cx="100" cy="100" r="6"  fill="rgba(255,240,180,0.9)"/>
+      <!-- 蓮莖 -->
+      <path d="M100 148 Q102 165 100 180" stroke="rgba(180,220,200,0.6)" stroke-width="2" fill="none"/>
+      <!-- 蓮葉 -->
+      <ellipse cx="82" cy="172" rx="22" ry="8" fill="rgba(100,170,140,0.5)" transform="rotate(-25 82 172)"/>
+      <ellipse cx="120" cy="176" rx="20" ry="7" fill="rgba(100,170,140,0.4)" transform="rotate(18 120 176)"/>
+      <!-- 八芒星光環 -->
+      <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(212,175,55,0.12)" stroke-width="0.8"/>
+      <circle cx="100" cy="100" r="70" fill="none" stroke="rgba(212,175,55,0.07)" stroke-width="0.5"/>
+      <defs>
+        <linearGradient id="petalGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="rgba(220,235,255,0.9)"/>
+          <stop offset="50%"  stop-color="rgba(180,210,240,0.7)"/>
+          <stop offset="100%" stop-color="rgba(150,190,220,0.4)"/>
+        </linearGradient>
+        <linearGradient id="petalInner" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="rgba(245,230,200,0.8)"/>
+          <stop offset="100%" stop-color="rgba(212,175,55,0.3)"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
 
-            <div class="ipane show" id="ip-img">
-              <label class="dropzone" id="dropZone">
-                <input type="file" id="fileIn" accept="image/*">
-                <div class="dz-icon">🖼</div>
-                <div class="dz-main">點擊選取或拖曳截圖</div>
-                <div class="dz-hint">超過 3MB / 1600px 自動壓縮</div>
-                <div class="dz-tags">
-                  <span class="dz-tag">JPG</span>
-                  <span class="dz-tag">PNG</span>
-                  <span class="dz-tag">WEBP</span>
-                </div>
-              </label>
-              <div class="prev-wrap" id="prevWrap">
-                <img id="prevImg" alt="截圖預覽">
-                <button class="prev-rm" id="rmImg">✕</button>
-              </div>
-            </div>
+  <!-- 水波紋 -->
+  <div class="water-lines">
+    <svg viewBox="0 0 305 40" fill="none">
+      <ellipse cx="152" cy="20" rx="140" ry="12" stroke="rgba(100,160,220,1)" stroke-width="0.8"/>
+      <ellipse cx="152" cy="20" rx="110" ry="9" stroke="rgba(100,160,220,1)" stroke-width="0.6"/>
+      <ellipse cx="152" cy="20" rx="80" ry="6" stroke="rgba(100,160,220,1)" stroke-width="0.5"/>
+    </svg>
+  </div>
 
-            <div class="ipane" id="ip-txt">
-              <textarea id="txtIn" placeholder="貼上對話，例如：&#10;&#10;對方：欸你週末有空嗎&#10;我：應該有 怎麼了&#10;對方：沒有啦 就想找你出來走走"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 2 -->
-        <div class="step">
-          <div class="step-head">
-            <div class="step-num">2</div>
-            <span class="step-label">回覆語氣</span>
-          </div>
-          <div class="step-body">
-            <div class="chips" id="toneChips">
-              <button class="chip on" data-v="幽默風趣">幽默風趣</button>
-              <button class="chip" data-v="溫柔體貼">溫柔體貼</button>
-              <button class="chip" data-v="曖昧撩人">曖昧撩人</button>
-              <button class="chip" data-v="正式得體">正式得體</button>
-              <button class="chip" data-v="高情商拒絕">高情商拒絕</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 3 -->
-        <div class="step">
-          <div class="step-head">
-            <div class="step-num">3</div>
-            <span class="step-label">對方身分</span>
-          </div>
-          <div class="step-body">
-            <div class="chips" id="relChips">
-              <button class="chip on" data-v="朋友">朋友</button>
-              <button class="chip" data-v="客戶">客戶</button>
-              <button class="chip" data-v="同事">同事</button>
-              <button class="chip" data-v="夫妻">夫妻</button>
-              <button class="chip" data-v="父母">父母</button>
-              <button class="chip" data-v="陌生人">陌生人</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="page-cta">
-        <button class="btn-primary" id="goBtn">✦ 生成回覆建議</button>
-      </div>
-      <div class="loading" id="loading">
-        <div class="dots"><i></i><i></i><i></i></div>
-        <span>AI 正在分析對話中…</span>
-      </div>
-      <div class="err" id="errBox"></div>
-      <div class="results" id="results"></div>
+  <!-- 主內容 -->
+  <div class="content">
+    <div class="tag">
+      <div class="tag-dot"></div>
+      <span class="tag-text">Official Channel</span>
+      <div class="tag-line"></div>
     </div>
 
-    <!-- ══ PAGE: 點評感謝 ══ -->
-    <div class="page" id="page-appreciate">
-      <div class="page-head">
-        <div class="page-head-title">點評感謝</div>
-        <div class="page-head-desc">四個問題引導你，AI 幫你把那份情感變成真誠有畫面的文字。</div>
-      </div>
-
-      <div class="steps">
-
-        <div class="step">
-          <div class="step-head">
-            <div class="step-num amber">1</div>
-            <span class="step-label">你要感謝誰？</span>
-          </div>
-          <div class="step-body">
-            <input class="field-input" id="appr1" type="text" placeholder="例如：我媽、我老公、我同事小美…">
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-head">
-            <div class="step-num amber">2</div>
-            <span class="step-label">讓你感覺到他辛苦的是什麼？</span>
-          </div>
-          <div class="step-body">
-            <input class="field-input" id="appr2" type="text" placeholder="例如：每天早起送我上班、一個人扛家裡所有事…">
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-head">
-            <div class="step-num amber">3</div>
-            <span class="step-label">說一件具體的事</span>
-            <span class="step-badge amber">越具體越感人</span>
-          </div>
-          <div class="step-body">
-            <textarea class="field-input field-ta" id="appr3" placeholder="時間、地點、人物、事件&#10;&#10;例如：上週三晚上快十一點，他還在廚房幫我準備隔天便當，我下班回來看到那個畫面…"></textarea>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-head">
-            <div class="step-num amber">4</div>
-            <span class="step-label">當時你有什麼感受？</span>
-            <span class="step-badge amber">選填</span>
-          </div>
-          <div class="step-body">
-            <input class="field-input" id="appr4" type="text" placeholder="例如：又心疼又愧疚，不知道怎麼開口…">
-          </div>
-        </div>
-
-      </div>
-
-      <div class="page-cta">
-        <button class="btn-primary amber" id="apprBtn">❤ 生成點評感謝</button>
-      </div>
-      <div class="loading amber" id="apprLoading">
-        <div class="dots"><i></i><i></i><i></i></div>
-        <span>正在用心撰寫中…</span>
-      </div>
-      <div class="err" id="apprErr"></div>
-      <div class="results" id="apprResults"></div>
+    <div class="title-row">
+      <span class="char-chuxin">初心</span>
+      <span class="char-system">系統</span>
     </div>
 
-    <!-- ══ PAGE: 已儲存 ══ -->
-    <div class="page" id="page-saved">
-      <div class="page-head">
-        <div class="page-head-title">已儲存</div>
-        <div class="page-head-desc">收藏過的回覆與感謝文都在這裡，隨時複製使用。</div>
-      </div>
-      <div class="results" id="savedList" style="margin-top:0"></div>
-      <button class="btn-retry" id="clearSaved" style="margin-top:12px">🗑 清空全部</button>
+    <div class="ornament">
+      <div class="orn-line"></div>
+      <div class="orn-dot"></div>
+      <div class="orn-diamond"></div>
+      <div class="orn-dot"></div>
+      <div class="orn-line-r"></div>
     </div>
 
-  </div><!-- /scroll -->
+    <div class="subtitle">願世間無苦難</div>
+  </div>
 
-  <!-- Bottom Tab Bar -->
-  <nav class="tabbar">
-    <button class="tabitem on" data-page="reply" id="tab-reply">
-      <span class="tabitem-icon">💬</span>
-      <span class="tabitem-label">回覆建議</span>
-    </button>
-    <button class="tabitem amber" data-page="appreciate" id="tab-appreciate">
-      <span class="tabitem-icon">❤️</span>
-      <span class="tabitem-label">點評感謝</span>
-    </button>
-    <button class="tabitem" data-page="saved" id="tab-saved">
-      <span class="tabitem-icon">🔖</span>
-      <span class="tabitem-label">已儲存</span>
-    </button>
-  </nav>
-
-</div><!-- /app -->
-
-<!-- Settings Sheet -->
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">設定</div>
-    <div class="modal-desc">API Key 只存在你的瀏覽器，不會上傳到任何伺服器。</div>
-    <input class="modal-input" type="password" id="keyIn" placeholder="sk-...">
-
-    <div class="modal-sec">AI 模型</div>
-    <div class="model-opts" id="modelOpts">
-      <button class="model-opt on" data-model="gpt-4o-mini">
-        <span class="model-radio"></span>
-        <span class="model-info">
-          <span class="model-name">GPT-4o mini</span>
-          <span class="model-desc">速度快、成本低，日常回覆的首選</span>
-        </span>
-        <span class="model-tag">快速</span>
-      </button>
-      <button class="model-opt" data-model="gpt-5-mini">
-        <span class="model-radio"></span>
-        <span class="model-info">
-          <span class="model-name">GPT-5 mini</span>
-          <span class="model-desc">理解力更好，適合複雜對話與細膩語氣</span>
-        </span>
-        <span class="model-tag blue">聰明</span>
-      </button>
-    </div>
-
-    <div class="modal-row">
-      <button class="modal-cancel" id="closeModal">取消</button>
-      <button class="modal-save" id="saveKey">儲存</button>
+  <!-- 底部資訊 -->
+  <div class="bottom-info">
+    <span class="bottom-left">CHUXIN SYSTEM · LINE</span>
+    <div class="bottom-right">
+      <div class="br-dot"></div>
+      <span class="br-text">初心・慈悲・智慧</span>
+      <div class="br-dot"></div>
     </div>
   </div>
+
 </div>
-
-<script>
-(function(){
-'use strict';
-const $ = id => document.getElementById(id);
-const K_KEY   = 'rai_key';
-const K_MODEL = 'rai_model';
-let imgData = null, imgMime = 'image/jpeg';
-
-/* ══════════════════════════════════════════
-   模型管理（4o mini / 5 mini 參數不同）
-══════════════════════════════════════════ */
-const MODELS = {
-  'gpt-4o-mini': { label:'4o mini' },
-  'gpt-5-mini':  { label:'5 mini'  },
-};
-function curModel(){
-  const m = localStorage.getItem(K_MODEL);
-  return MODELS[m] ? m : 'gpt-4o-mini';
-}
-function setModel(m){
-  localStorage.setItem(K_MODEL, m);
-  $('modelPillName').textContent = MODELS[m].label;
-  $('modelOpts').querySelectorAll('.model-opt').forEach(o =>
-    o.classList.toggle('on', o.dataset.model === m));
-}
-/* GPT-5 系列：用 max_completion_tokens、不支援自訂 temperature
-   GPT-4o 系列：用 max_tokens + temperature                     */
-function buildBody(model, sys, userContent, maxTok, temp){
-  const body = {
-    model,
-    response_format: { type:'json_object' },
-    messages: [
-      { role:'system', content: sys },
-      { role:'user',   content: userContent }
-    ]
-  };
-  if (model.startsWith('gpt-5')) {
-    body.max_completion_tokens = maxTok;
-  } else {
-    body.max_tokens = maxTok;
-    body.temperature = temp;
-  }
-  return body;
-}
-
-/* ══════════════════════════════════════════
-   語言模組 — 台灣口語核心（共用）
-══════════════════════════════════════════ */
-const LANG_CORE = `【語言規則 — 必須嚴格遵守】
-你寫的每一個字都必須像台灣人在手機上打的訊息。
-
-1. 用台灣日常口語與語助詞：欸、啦、耶、喔、蛤、齁、好喔、真的假的、笑死、傻眼、是說、對啊
-2. 句子要短，像 LINE 訊息的節奏，可以省略主詞，一則回覆可拆成 1-3 個短句
-3. 標點自然：可用空格代替逗號、結尾不一定要句號，「～」可偶爾出現
-4. 禁用中國用語：視頻、立馬、給力、寶寶、閨蜜、走心、內卷、聊天記錄
-5. 禁止 AI 腔：不說「當然可以！」「希望能幫到你」「以下是我的建議」，不用過多驚嘆號，不過度熱情
-6. emoji 最多 1 個，能不用就不用
-7. 不解釋、不加前後綴，直接就是那句要傳出去的話`;
-
-/* 各語氣的細部指引 */
-const TONE_GUIDE = {
-  '幽默風趣':   '用自嘲或輕吐槽製造笑點，時機準、不尬。可以裝傻、可以反轉，但不酸人。',
-  '溫柔體貼':   '先接住對方的情緒再回應內容。用字放軟，讓人感覺被在乎，但不肉麻。',
-  '曖昧撩人':   '輕輕推進、留想像空間。半開玩笑半認真，讓對方心跳但抓不到把柄。絕對不油膩、不噁心、不直球到嚇人。',
-  '正式得體':   '禮貌、清楚、有分寸，適合工作場合。友善但不裝熟，句子完整一點。',
-  '高情商拒絕': '三步驟：先肯定對方或表達感謝 → 委婉說明無法配合 → 給台階或替代方案。讓對方完全不難堪。'
-};
-
-/* 各關係的分寸指引 */
-const REL_GUIDE = {
-  '朋友':   '可以損、可以鬧，講話直接沒關係，重點是自然。',
-  '客戶':   '要穩、要專業，但不僵硬。讓對方感覺被重視。',
-  '同事':   '友善中留餘地，不過度熟，也不冷淡。辦公室安全範圍。',
-  '夫妻':   '要暖、要有生活感，可以撒嬌或互虧，是最親密的頻道。',
-  '父母':   '語氣放軟、帶點孩子氣的親暱，報平安式的安心感。',
-  '陌生人': '禮貌、簡潔、保持適當距離，不自來熟。'
-};
-
-/* ══════════════════════════════════════════
-   頁面切換
-══════════════════════════════════════════ */
-document.querySelectorAll('.tabitem').forEach(t => {
-  t.onclick = () => {
-    document.querySelectorAll('.tabitem').forEach(x => x.classList.toggle('on', x === t));
-    document.querySelectorAll('.page').forEach(p => p.classList.toggle('show', p.id === 'page-' + t.dataset.page));
-    if(t.dataset.page === 'saved') renderSaved();
-    $('scroll').scrollTo(0, 0);
-  };
-});
-$('goBtn').onclick   = () => generateReply(false);
-$('apprBtn').onclick = () => generateAppr(false);
-
-/* ══════════════════════════════════════════
-   設定面板
-══════════════════════════════════════════ */
-function openSettings(){
-  $('keyIn').value = localStorage.getItem(K_KEY) || '';
-  setModel(curModel());
-  $('overlay').classList.add('show');
-}
-$('settingsBtn').onclick = openSettings;
-$('modelPill').onclick   = openSettings;
-$('closeModal').onclick  = () => $('overlay').classList.remove('show');
-$('overlay').onclick     = e => { if(e.target === $('overlay')) $('overlay').classList.remove('show'); };
-$('modelOpts').querySelectorAll('.model-opt').forEach(o => {
-  o.onclick = () => setModel(o.dataset.model);
-});
-$('saveKey').onclick = () => {
-  const v = $('keyIn').value.trim();
-  if(v && !v.startsWith('sk-')){ alert('Key 格式不對，應以 sk- 開頭。'); return; }
-  localStorage.setItem(K_KEY, v);
-  $('overlay').classList.remove('show');
-};
-// init pill
-setModel(curModel());
-
-/* ══════════════════════════════════════════
-   輸入 Tabs / Chips
-══════════════════════════════════════════ */
-document.querySelectorAll('.itab').forEach(t => {
-  t.onclick = () => {
-    document.querySelectorAll('.itab').forEach(x => x.classList.remove('on'));
-    document.querySelectorAll('.ipane').forEach(x => x.classList.remove('show'));
-    t.classList.add('on');
-    $(t.dataset.ip).classList.add('show');
-  };
-});
-['toneChips','relChips'].forEach(id => {
-  $(id).querySelectorAll('.chip').forEach(c => {
-    c.onclick = () => { $(id).querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); };
-  });
-});
-const picked = id => $(id).querySelector('.chip.on')?.dataset.v || '';
-
-/* ══════════════════════════════════════════
-   圖片上傳
-══════════════════════════════════════════ */
-const dz=$('dropZone'), fi=$('fileIn');
-['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('over')}));
-['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('over')}));
-dz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadImg(f)});
-fi.onchange=()=>{if(fi.files[0])loadImg(fi.files[0])};
-$('rmImg').onclick=ev=>{ev.preventDefault();ev.stopPropagation();imgData=null;fi.value='';$('prevWrap').classList.remove('show')};
-
-function loadImg(file){
-  if(!file.type.startsWith('image/')) return showErr('請上傳 JPG、PNG 或 WEBP 圖片。');
-  const r=new FileReader();
-  r.onerror=()=>showErr('圖片讀取失敗。');
-  r.onload=ev=>{
-    const img=new Image();
-    img.onload=()=>{
-      const MAX=1600;let{width:w,height:h}=img;
-      if(w>MAX||h>MAX||file.size>3*1024*1024){
-        const s=Math.min(MAX/w,MAX/h,1);w=Math.round(w*s);h=Math.round(h*s);
-        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
-        cv.getContext('2d').drawImage(img,0,0,w,h);
-        const url=cv.toDataURL('image/jpeg',.88);
-        imgData=url.split(',')[1];imgMime='image/jpeg';$('prevImg').src=url;
-      }else{imgData=ev.target.result.split(',')[1];imgMime=file.type;$('prevImg').src=ev.target.result;}
-      $('prevWrap').classList.add('show');clearErr();
-    };
-    img.onerror=()=>showErr('無法解析圖片。');
-    img.src=ev.target.result;
-  };
-  r.readAsDataURL(file);
-}
-
-function showErr(msg){const b=$('errBox');b.textContent=msg;b.classList.add('show');b.scrollIntoView({behavior:'smooth',block:'nearest'})}
-function clearErr(){$('errBox').classList.remove('show')}
-
-/* ══════════════════════════════════════════
-   共用 API 呼叫
-══════════════════════════════════════════ */
-async function callAPI(body, key){
-  const res = await fetch('https://api.openai.com/v1/chat/completions',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
-    body:JSON.stringify(body)
-  });
-  if(!res.ok){
-    if(res.status===401) throw new Error('API Key 無效或過期，請重新輸入。');
-    if(res.status===404) throw new Error(`你的帳號可能還沒有 ${body.model} 的使用權限，請到設定切換另一個模型。`);
-    if(res.status===429) throw new Error('請求太頻繁或額度不足，請稍後再試。');
-    const e=await res.json().catch(()=>null);
-    throw new Error(e?.error?.message||`API 錯誤 ${res.status}`);
-  }
-  const data = await res.json();
-  const raw = data.choices?.[0]?.message?.content || '';
-  try{ return JSON.parse(raw.replace(/```json|```/g,'').trim()); }
-  catch{ throw new Error('AI 回傳格式異常，請再試一次。'); }
-}
-
-/* ══════════════════════════════════════════
-   生成回覆建議
-══════════════════════════════════════════ */
-async function generateReply(retry){
-  clearErr();
-  const key=localStorage.getItem(K_KEY);
-  if(!key){ openSettings(); return showErr('請先設定 OpenAI API Key。'); }
-  const usingImg=$('ip-img').classList.contains('show');
-  const txt=$('txtIn').value.trim();
-  if(usingImg&&!imgData) return showErr('請先上傳截圖，或切換到貼上文字。');
-  if(!usingImg&&!txt) return showErr('請先貼上對話內容。');
-
-  const tone=picked('toneChips'), rel=picked('relChips');
-  const sys=`你是台灣人聊天回覆專家，回覆將直接複製傳送，所以必須像真人。
-
-${LANG_CORE}
-
-【這次的任務】
-對方身分：${rel} — ${REL_GUIDE[rel]||''}
-語氣要求：${tone} — ${TONE_GUIDE[tone]||''}
-
-先讀懂對話脈絡與對方最後一句話的真正意圖（字面下的情緒或試探），再產出 3 個彼此有差異的回覆：
-- 第 1 個：最安全自然的回法
-- 第 2 個：更有記憶點、稍微大膽一點的回法
-- 第 3 個：不同角度切入的回法（例如反問、轉移、或推進話題）
-
-只輸出 JSON：{"replies":[{"style":"4-6字風格標籤","text":"回覆內容"},{"style":"...","text":"..."},{"style":"...","text":"..."}]}`;
-
-  const content=usingImg
-    ?[{type:'text',text:'對話截圖如下。請先辨識誰是我、誰是對方（我的訊息通常在右側），再給回覆建議。'},{type:'image_url',image_url:{url:`data:${imgMime};base64,${imgData}`}}]
-    :[{type:'text',text:`對話：\n${txt}`}];
-
-  const btn=$('goBtn');
-  btn.disabled=true;
-  $('loading').classList.add('show');
-  if(!retry)$('results').innerHTML='';
-
-  try{
-    const parsed = await callAPI(buildBody(curModel(), sys, content, 1200, .9), key);
-    if(!Array.isArray(parsed.replies)||!parsed.replies.length) throw new Error('沒有取得回覆，請重試。');
-    renderReplies(parsed.replies);
-  }catch(e){
-    showErr(e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message);
-  }finally{
-    btn.disabled=false;
-    $('loading').classList.remove('show');
-  }
-}
-
-function renderReplies(replies){
-  const box=$('results');box.innerHTML='';
-  replies.slice(0,3).forEach((r,i)=>{
-    const card=document.createElement('div');card.className='reply-card';card.style.animationDelay=(i*.1)+'s';
-    const head=document.createElement('div');head.className='reply-head';
-    const lbl=document.createElement('span');lbl.className='reply-label';lbl.innerHTML=`<span class="reply-dot"></span>${r.style||'建議'+(i+1)}`;
-    const cp=document.createElement('button');cp.className='copy-btn';cp.textContent='複製';
-    const sv=document.createElement('button');sv.className='copy-btn';sv.textContent='☆ 儲存';
-    sv.onclick=()=>{
-      saveItem('reply', r.style||('建議'+(i+1)), r.text||'');
-      sv.textContent='★ 已存';sv.classList.add('done');
-      if(navigator.vibrate)navigator.vibrate(20);
-      setTimeout(()=>{sv.textContent='☆ 儲存';sv.classList.remove('done')},1600);
-    };
-    const acts=document.createElement('div');acts.className='card-acts';acts.append(sv,cp);
-    head.append(lbl,acts);
-    const body=document.createElement('div');body.className='reply-body';body.textContent=r.text||'';
-    cp.onclick=async()=>{
-      try{await navigator.clipboard.writeText(body.textContent)}catch{const ta=document.createElement('textarea');ta.value=body.textContent;Object.assign(ta.style,{position:'fixed',top:'-9999px'});document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();}
-      cp.textContent='✓ 已複製';cp.classList.add('done');if(navigator.vibrate)navigator.vibrate(28);
-      setTimeout(()=>{cp.textContent='複製';cp.classList.remove('done')},2000);
-    };
-    card.append(head,body);box.appendChild(card);
-  });
-  const rb=document.createElement('button');rb.className='btn-retry';rb.textContent='↻ 換一批說法';rb.onclick=()=>generateReply(true);box.appendChild(rb);
-  setTimeout(()=>box.firstChild?.scrollIntoView({behavior:'smooth',block:'start'}),80);
-}
-
-/* ══════════════════════════════════════════
-   生成點評感謝
-══════════════════════════════════════════ */
-async function generateAppr(retry){
-  const errB=$('apprErr');
-  errB.classList.remove('show');
-  const key=localStorage.getItem(K_KEY);
-  if(!key){ openSettings(); errB.textContent='請先設定 API Key。'; errB.classList.add('show'); return; }
-  const q1=$('appr1').value.trim(),q2=$('appr2').value.trim(),q3=$('appr3').value.trim(),q4=$('appr4').value.trim();
-  if(!q1||!q2||!q3){ errB.textContent='請至少填寫前三題。'; errB.classList.add('show'); return; }
-
-  const sys=`你是最會用文字表達感謝的台灣寫手。你寫的文字會被本人直接傳給對方或發到社群，所以必須 100% 像本人親手寫的。
-
-${LANG_CORE}
-
-【寫作要求】
-- 以第一人稱寫，收件人就是被感謝的那個人
-- 具體事件是靈魂：把提供的那件事寫出畫面感（時間、動作、細節），不要只是抽象地說「你辛苦了」
-- 情緒要真實有層次：可以有一點愧疚、心疼、說不出口的彆扭，最後落在感謝與愛
-- 避免成語堆疊與八股感謝文的套路（「感恩的心」「沒有你就沒有我」這類陳腔濫調禁用）
-- 結尾輕輕收，不要喊口號
-- 長度 150-250 字，分 2-3 段
-
-只輸出 JSON：{"title":"溫暖的標題，10字以內","text":"正文，段落之間用\\n\\n分隔"}`;
-
-  const msg=`感謝對象：${q1}\n辛苦之處：${q2}\n具體事件：${q3}${q4?'\n當時感受：'+q4:''}`;
-
-  const btn=$('apprBtn');
-  btn.disabled=true;
-  $('apprLoading').classList.add('show');
-  if(!retry)$('apprResults').innerHTML='';
-
-  try{
-    const parsed = await callAPI(buildBody(curModel(), sys, [{type:'text',text:msg}], 900, .85), key);
-    if(!parsed.text) throw new Error('沒有取得內容，請重試。');
-    renderAppr(parsed);
-  }catch(e){
-    errB.textContent=e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message;
-    errB.classList.add('show');
-  }finally{
-    btn.disabled=false;
-    $('apprLoading').classList.remove('show');
-  }
-}
-
-function renderAppr(parsed){
-  const box=$('apprResults');box.innerHTML='';
-  const card=document.createElement('div');card.className='appr-card';
-  const head=document.createElement('div');head.className='appr-head';
-  const lbl=document.createElement('span');lbl.className='appr-label';lbl.textContent=`❤ ${parsed.title||'點評感謝'}`;
-  const cp=document.createElement('button');cp.className='copy-btn';cp.textContent='複製';
-  const sv=document.createElement('button');sv.className='copy-btn';sv.textContent='☆ 儲存';
-  sv.onclick=()=>{
-    saveItem('appr', parsed.title||'點評感謝', parsed.text||'');
-    sv.textContent='★ 已存';sv.classList.add('done-amber');
-    if(navigator.vibrate)navigator.vibrate(20);
-    setTimeout(()=>{sv.textContent='☆ 儲存';sv.classList.remove('done-amber')},1600);
-  };
-  const acts=document.createElement('div');acts.className='card-acts';acts.append(sv,cp);
-  head.append(lbl,acts);
-  const body=document.createElement('div');body.className='appr-body';body.textContent=parsed.text||'';
-  cp.onclick=async()=>{
-    try{await navigator.clipboard.writeText(body.textContent)}catch{const ta=document.createElement('textarea');ta.value=body.textContent;Object.assign(ta.style,{position:'fixed',top:'-9999px'});document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();}
-    cp.textContent='✓ 已複製';cp.classList.add('done-amber');if(navigator.vibrate)navigator.vibrate(28);
-    setTimeout(()=>{cp.textContent='複製';cp.classList.remove('done-amber')},2000);
-  };
-  card.append(head,body);
-  const rb=document.createElement('button');rb.className='btn-retry';rb.textContent='↻ 換一個說法';rb.onclick=()=>generateAppr(true);
-  box.append(card,rb);
-  card.scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-/* ══════════════════════════════════════════
-   已儲存（localStorage）
-══════════════════════════════════════════ */
-const K_SAVED = 'rai_saved';
-
-function loadSaved(){
-  try{ return JSON.parse(localStorage.getItem(K_SAVED)) || []; }
-  catch{ return []; }
-}
-function saveItem(type, label, text){
-  const list = loadSaved();
-  list.unshift({
-    id: Date.now() + '' + Math.floor(Math.random()*1e4),
-    type, label, text, ts: Date.now()
-  });
-  if(list.length > 100) list.length = 100; // 最多保留 100 筆
-  localStorage.setItem(K_SAVED, JSON.stringify(list));
-}
-function delItem(id){
-  localStorage.setItem(K_SAVED, JSON.stringify(loadSaved().filter(x => x.id !== id)));
-  renderSaved();
-}
-function fmtTs(ts){
-  return new Date(ts).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
-}
-function copyText(t, btn, doneClass){
-  return (async()=>{
-    try{ await navigator.clipboard.writeText(t); }
-    catch{
-      const ta=document.createElement('textarea');
-      ta.value=t;Object.assign(ta.style,{position:'fixed',top:'-9999px'});
-      document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();
-    }
-    btn.textContent='✓ 已複製';btn.classList.add(doneClass);
-    if(navigator.vibrate)navigator.vibrate(28);
-    setTimeout(()=>{btn.textContent='複製';btn.classList.remove(doneClass)},2000);
-  })();
-}
-
-function renderSaved(){
-  const box = $('savedList');
-  const clearBtn = $('clearSaved');
-  const list = loadSaved();
-  box.innerHTML = '';
-
-  if(!list.length){
-    const empty = document.createElement('div');
-    empty.className = 'saved-empty';
-    empty.innerHTML = '<i>🔖</i>還沒有儲存任何內容<br>在生成結果按「☆ 儲存」就會出現在這裡';
-    box.appendChild(empty);
-    clearBtn.style.display = 'none';
-    return;
-  }
-  clearBtn.style.display = 'block';
-
-  list.forEach(item => {
-    const isAppr = item.type === 'appr';
-    const card = document.createElement('div');
-    card.className = isAppr ? 'appr-card' : 'reply-card';
-
-    const head = document.createElement('div');
-    head.className = isAppr ? 'appr-head' : 'reply-head';
-
-    const meta = document.createElement('div');
-    meta.className = 'saved-meta';
-    const typeTag = document.createElement('span');
-    typeTag.className = 'saved-type' + (isAppr ? ' amber' : '');
-    typeTag.textContent = isAppr ? '感謝' : '回覆';
-    const label = document.createElement('span');
-    label.className = 'saved-label';
-    label.textContent = item.label;
-    const time = document.createElement('span');
-    time.className = 'saved-time';
-    time.textContent = fmtTs(item.ts);
-    meta.append(typeTag, label, time);
-
-    const acts = document.createElement('div');
-    acts.className = 'card-acts';
-    const cp = document.createElement('button');
-    cp.className = 'copy-btn'; cp.textContent = '複製';
-    cp.onclick = () => copyText(item.text, cp, isAppr ? 'done-amber' : 'done');
-    const del = document.createElement('button');
-    del.className = 'del-btn'; del.textContent = '刪除';
-    del.onclick = () => delItem(item.id);
-    acts.append(cp, del);
-
-    head.append(meta, acts);
-
-    const body = document.createElement('div');
-    body.className = isAppr ? 'appr-body' : 'reply-body';
-    body.textContent = item.text;
-
-    card.append(head, body);
-    box.appendChild(card);
-  });
-}
-
-$('clearSaved').onclick = () => {
-  if(loadSaved().length && confirm('確定要清空所有儲存的內容嗎？此動作無法復原。')){
-    localStorage.removeItem(K_SAVED);
-    renderSaved();
-  }
-};
-
-})();
-</script>
 </body>
 </html>
