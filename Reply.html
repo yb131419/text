@@ -1,911 +1,819 @@
 <!DOCTYPE html>
-<html lang="zh-Hant" data-mode="mobile">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="color-scheme" content="dark">
 <title>回覆靈感 · AI Chat Reply</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-/* ═══════════════════════════════════════════════
-   RESET
-═══════════════════════════════════════════════ */
+/* ── Reset ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{background:#060E0C;color-scheme:dark}
 
-/* ═══════════════════════════════════════════════
-   TOKENS
-═══════════════════════════════════════════════ */
+/* ── Tokens ── */
 :root{
-  --bg:       #060E0C;
-  --s1:       #0E1C18;
-  --s2:       #152720;
-  --s3:       #1C3329;
-  --border:   rgba(212,168,67,.16);
-  --border2:  rgba(212,168,67,.32);
-  --gold:     #D4A843;
-  --gold-lt:  #F2DFA0;
-  --mint:     #4ECFA8;
-  --text:     #EDE8DC;
-  --muted:    rgba(237,232,220,.45);
-  --faint:    rgba(237,232,220,.10);
-  --faintest: rgba(237,232,220,.05);
-  --r:        16px;
-  --ease:     cubic-bezier(.16,1,.3,1);
-  --spr:      cubic-bezier(.34,1.56,.64,1);
+  --bg:        #F7F6F3;
+  --surface:   #FFFFFF;
+  --surface2:  #F2F1EE;
+  --border:    #E4E2DC;
+  --border2:   #C8C5BC;
+  --ink:       #1A1916;
+  --ink2:      #4A4844;
+  --ink3:      #8A8780;
+  --accent:    #2C6E49;        /* forest green */
+  --accent-lt: #3D8F60;
+  --accent-bg: #EBF4EE;
+  --amber:     #B5830A;
+  --amber-bg:  #FDF6E3;
+  --amber-lt:  #E8A80F;
+  --red:       #C0392B;
+  --red-bg:    #FDF0EE;
+  --r-sm:      8px;
+  --r:         12px;
+  --r-lg:      16px;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.06);
+  --shadow:    0 2px 12px rgba(0,0,0,.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
+  --ease:      cubic-bezier(.16,1,.3,1);
 }
 
-/* ═══════════════════════════════════════════════
-   BASE
-═══════════════════════════════════════════════ */
-body{
-  min-height:100vh;
-  color:var(--text);
-  font-family:'Inter',sans-serif;
-  font-weight:300;
-  font-size:14.5px;
-  line-height:1.65;
-  overflow-x:hidden;
-}
+/* ── Base ── */
+html,body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;overflow-x:hidden}
 
-/* ═══════════════════════════════════════════════
-   AURORA BACKGROUND
-═══════════════════════════════════════════════ */
-.aurora{
-  position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
-}
-.aurora-orb{
-  position:absolute;
-  border-radius:50%;
-  filter:blur(120px);
-  opacity:.28;
-  will-change:transform;
-}
-.aurora-orb.a{
-  width:700px;height:700px;
-  top:-200px;left:-150px;
-  background:radial-gradient(circle, #2A6E4E 0%, transparent 70%);
-  animation:floatA 14s ease-in-out infinite;
-}
-.aurora-orb.b{
-  width:600px;height:600px;
-  top:30%;right:-200px;
-  background:radial-gradient(circle, #8A6010 0%, transparent 70%);
-  animation:floatB 18s ease-in-out infinite;
-}
-.aurora-orb.c{
-  width:500px;height:500px;
-  bottom:-100px;left:30%;
-  background:radial-gradient(circle, #1A5240 0%, transparent 70%);
-  animation:floatC 22s ease-in-out infinite;
-}
-.aurora-orb.d{
-  width:350px;height:350px;
-  top:50%;left:45%;
-  background:radial-gradient(circle, #C47C10 0%, transparent 70%);
-  animation:floatD 16s ease-in-out infinite;
-  opacity:.20;
-}
-@keyframes floatA{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,80px) scale(1.1)}}
-@keyframes floatB{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-80px,60px) scale(1.15)}}
-@keyframes floatC{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,-60px) scale(1.08)}}
-@keyframes floatD{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-55%,-45%) scale(1.2)}}
+/* ── App Shell ── */
+.app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
 
-/* ═══════════════════════════════════════════════
-   LAYOUT
-═══════════════════════════════════════════════ */
-.page{
-  position:relative;z-index:1;
-  display:flex;flex-direction:column;
-  min-height:100vh;min-height:100dvh;
-}
-
-/* ── Topbar ── */
-.topbar{
-  position:sticky;top:0;z-index:50;
-  height:54px;
-  padding:0 14px;
-  display:flex;align-items:center;gap:10px;
-  background:rgba(6,14,12,.88);
+/* ════════════════════════════════
+   TOP NAV
+════════════════════════════════ */
+.nav{
+  position:sticky;top:0;z-index:100;
+  height:56px;
+  background:var(--surface);
   border-bottom:1px solid var(--border);
-  backdrop-filter:blur(24px) saturate(180%);
-  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  display:flex;align-items:center;
+  padding:0 20px;gap:16px;
+  box-shadow:var(--shadow-sm);
 }
+.nav-brand{
+  display:flex;align-items:center;gap:8px;flex:none;
+}
+.nav-logo{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--accent);
+  display:grid;place-items:center;
+  flex:none;
+}
+.nav-logo svg{width:16px;height:16px;fill:#fff}
+.nav-name{
+  font-family:'Noto Serif TC',serif;
+  font-size:16px;font-weight:700;
+  color:var(--ink);letter-spacing:-.01em;
+}
+.nav-sep{width:1px;height:16px;background:var(--border);flex:none}
+.nav-sub{font-size:11px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase}
+.nav-fill{flex:1}
 
-/* Logo */
-.brand{
-  flex:1;min-width:0;
-  display:flex;align-items:center;gap:8px;
-}
-.brand-name{
-  font-family:'Playfair Display',serif;
-  font-size:17px;font-weight:700;
-  white-space:nowrap;
-  background:linear-gradient(135deg, var(--gold) 0%, var(--gold-lt) 55%, var(--mint) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
-  letter-spacing:-.01em;
-}
-.brand-sep{width:1px;height:14px;background:var(--border);flex:none;}
-.brand-tag{
-  font-size:9.5px;letter-spacing:.18em;
-  color:var(--muted);font-weight:400;
-  text-transform:uppercase;
-  white-space:nowrap;
-}
-
-/* Device Toggle */
-.dev-toggle{
+/* Feature tabs in nav */
+.nav-tabs{
   display:flex;
-  background:rgba(255,255,255,.04);
+  background:var(--surface2);
   border:1px solid var(--border);
-  border-radius:12px;padding:4px;gap:3px;
+  border-radius:var(--r);
+  padding:3px;gap:2px;
 }
-.dev-btn{
-  display:flex;align-items:center;gap:4px;
-  padding:6px 10px;border:none;border-radius:8px;
-  background:transparent;color:var(--muted);
-  font-family:'Inter',sans-serif;font-size:11.5px;font-weight:400;
-  cursor:pointer;white-space:nowrap;
-  transition:all .2s;
+.nav-tab{
+  padding:6px 16px;border:none;border-radius:var(--r-sm);
+  background:transparent;
+  color:var(--ink3);
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;white-space:nowrap;min-height:34px;
+  transition:all .18s;
 }
-.dev-btn svg{width:12px;height:12px;flex:none;fill:currentColor}
-.dev-btn.on{
-  background:linear-gradient(135deg,#B8872A,#D4A843);
-  color:#060E0C;font-weight:600;
-  box-shadow:0 2px 12px rgba(212,168,67,.4);
+.nav-tab.on{
+  background:var(--surface);
+  color:var(--ink);
+  box-shadow:var(--shadow-sm);
+  border:1px solid var(--border);
 }
 
-/* Settings */
-.gear{
-  width:36px;height:36px;
-  border-radius:50%;
-  background:rgba(255,255,255,.04);
+/* Settings button */
+.nav-settings{
+  width:34px;height:34px;border-radius:var(--r-sm);
   border:1px solid var(--border);
-  color:var(--muted);font-size:14px;
-  cursor:pointer;flex:none;
+  background:var(--surface);
+  color:var(--ink2);
+  font-size:15px;cursor:pointer;
   display:grid;place-items:center;
-  transition:all .3s var(--spr);
+  transition:all .2s;flex:none;
 }
-.gear:hover{
-  border-color:var(--gold);
-  color:var(--gold-lt);
-  background:rgba(212,168,67,.10);
-  transform:rotate(90deg);
-}
+.nav-settings:hover{background:var(--surface2);border-color:var(--border2);color:var(--ink)}
 
-/* ── Scroll ── */
-.scroll{flex:1;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)}
+/* ════════════════════════════════
+   MAIN LAYOUT
+════════════════════════════════ */
+.main{flex:1;overflow-y:auto;padding:24px 16px 80px}
+.container{max-width:780px;margin:0 auto}
 
-/* ── Wrap ── */
-.wrap{
-  max-width:520px;margin:0 auto;
-  padding:28px 18px 100px;
-  transition:max-width .4s var(--ease);
-}
-html[data-mode="desktop"] .wrap{max-width:1020px;padding:32px 28px 60px}
-html[data-mode="desktop"] .layout{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:24px;
-  align-items:start;
-}
-html[data-mode="desktop"] #results{margin-top:0}
+/* Feature pages */
+.feature-page{display:none}
+.feature-page.show{display:block;animation:fadeUp .22s var(--ease) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-/* ═══════════════════════════════════════════════
-   GLASS CARD
-═══════════════════════════════════════════════ */
-.card{
-  position:relative;
-  background:rgba(13,13,26,.7);
+/* ════════════════════════════════
+   PAGE HEADER
+════════════════════════════════ */
+.page-head{
+  margin-bottom:24px;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--border);
+}
+.page-title{
+  font-family:'Noto Serif TC',serif;
+  font-size:22px;font-weight:700;
+  color:var(--ink);
+  margin-bottom:4px;
+}
+.page-desc{font-size:13px;color:var(--ink3);line-height:1.7}
+
+/* ════════════════════════════════
+   STEP SYSTEM
+════════════════════════════════ */
+.steps{display:flex;flex-direction:column;gap:16px}
+
+.step{
+  background:var(--surface);
   border:1px solid var(--border);
-  border-radius:20px;
-  padding:22px 20px;
-  margin-bottom:14px;
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
+  border-radius:var(--r-lg);
   overflow:hidden;
-  transition:border-color .3s, box-shadow .3s;
-}
-.card::before{
-  content:'';
-  position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(212,168,67,.04) 0%,transparent 60%);
-  pointer-events:none;
-  border-radius:inherit;
-}
-.card:hover{
-  border-color:var(--border2);
-  box-shadow:0 8px 40px rgba(0,0,0,.4), 0 0 0 1px rgba(212,168,67,.06) inset;
+  box-shadow:var(--shadow-sm);
 }
 
-/* ═══════════════════════════════════════════════
-   SECTION LABEL
-═══════════════════════════════════════════════ */
-.sec{
-  display:flex;align-items:center;gap:10px;
-  font-size:10px;letter-spacing:.22em;
-  color:var(--muted);text-transform:uppercase;
-  margin-bottom:16px;
+.step-head{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
 }
-.sec-num{
-  width:22px;height:22px;
-  border-radius:6px;
-  background:linear-gradient(135deg,#B8872A,#D4A843);
+
+.step-num{
+  width:28px;height:28px;border-radius:8px;
+  background:var(--accent);
   display:grid;place-items:center;
-  font-size:10px;font-weight:700;color:#060E0C;flex:none;
-  box-shadow:0 2px 8px rgba(212,168,67,.4);
+  font-size:12px;font-weight:700;color:#fff;
+  flex:none;letter-spacing:-.01em;
 }
-.sec::after{content:'';flex:1;height:1px;background:var(--border)}
+.step-num.amber{background:var(--amber)}
 
-/* ═══════════════════════════════════════════════
-   TABS
-═══════════════════════════════════════════════ */
-.tabs{
+.step-label{
+  font-size:13.5px;font-weight:600;
+  color:var(--ink);
+}
+.step-badge{
+  margin-left:auto;
+  font-size:11px;
+  padding:3px 10px;
+  border-radius:999px;
+  background:var(--accent-bg);
+  color:var(--accent);
+  font-weight:500;
+  border:1px solid rgba(44,110,73,.15);
+}
+.step-badge.amber{
+  background:var(--amber-bg);
+  color:var(--amber);
+  border-color:rgba(181,131,10,.2);
+}
+
+.step-body{padding:20px}
+
+/* ════════════════════════════════
+   INPUT TABS
+════════════════════════════════ */
+.input-tabs{
   display:flex;gap:4px;
-  background:rgba(255,255,255,.03);
-  border:1px solid var(--border);
-  border-radius:12px;padding:4px;
-  margin-bottom:18px;
+  margin-bottom:16px;
+  border-bottom:1px solid var(--border);
+  padding-bottom:0;
 }
-.tab{
-  flex:1;padding:11px 8px;border:none;border-radius:9px;
-  background:transparent;color:var(--muted);
-  font-family:'Inter',sans-serif;font-size:13px;font-weight:400;
-  cursor:pointer;min-height:44px;
-  transition:all .2s;
+.itab{
+  padding:8px 16px 10px;
+  border:none;border-bottom:2px solid transparent;
+  background:transparent;
+  color:var(--ink3);
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;margin-bottom:-1px;
+  transition:all .18s;
 }
-.tab.on{
-  background:linear-gradient(135deg,rgba(212,168,67,.20),rgba(212,168,67,.08));
-  color:var(--gold-lt);font-weight:500;
-  border:1px solid rgba(212,168,67,.28);
-  box-shadow:0 2px 12px rgba(212,168,67,.15);
+.itab.on{
+  color:var(--accent);
+  border-bottom-color:var(--accent);
 }
+.itab:hover{color:var(--ink2)}
 
-/* ── Pane ── */
-.pane{display:none}
-.pane.show{display:block;animation:fadeIn .25s ease both}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ipane{display:none}
+.ipane.show{display:block;animation:fadeUp .18s var(--ease) both}
 
-/* ═══════════════════════════════════════════════
-   DROP ZONE
-═══════════════════════════════════════════════ */
-.drop{
-  border:1.5px dashed rgba(212,168,67,.30);
-  border-radius:12px;
-  padding:32px 16px;text-align:center;
-  color:var(--muted);font-size:14px;line-height:1.7;
+/* ════════════════════════════════
+   DROP ZONE (Fixed)
+════════════════════════════════ */
+.dropzone{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  padding:32px 20px;
+  border:1.5px dashed var(--border2);
+  border-radius:var(--r);
+  background:var(--surface2);
   cursor:pointer;
-  transition:all .25s;
-  background:rgba(212,168,67,.02);
+  transition:all .2s;
+  text-align:center;
 }
-.drop:hover,.drop.over{
-  border-color:var(--gold);
-  color:var(--gold-lt);
-  background:rgba(212,168,67,.07);
+.dropzone:hover,.dropzone.over{
+  border-color:var(--accent);
+  background:var(--accent-bg);
 }
-.drop-ico{
-  font-size:30px;display:block;margin-bottom:10px;
-  filter:drop-shadow(0 0 12px rgba(212,168,67,.45));
-}
-.drop input{display:none}
-
-.prev{display:none;margin-top:14px;position:relative}
-.prev.show{display:block}
-.prev img{
-  width:100%;max-height:280px;object-fit:contain;
-  border-radius:12px;border:1px solid var(--border);background:#000;
-}
-.rm{
-  position:absolute;top:10px;right:10px;
-  width:30px;height:30px;border-radius:50%;
-  background:rgba(3,3,10,.9);border:1px solid var(--border);
-  color:var(--text);font-size:12px;cursor:pointer;
+.dropzone input{display:none}
+.dropzone-icon{
+  width:44px;height:44px;border-radius:12px;
+  background:var(--surface);
+  border:1px solid var(--border);
   display:grid;place-items:center;
+  font-size:22px;
+  box-shadow:var(--shadow-sm);
+  flex:none;
+}
+.dropzone-main{
+  font-size:14px;font-weight:500;
+  color:var(--ink);
+}
+.dropzone-hint{
+  font-size:12px;color:var(--ink3);
+  line-height:1.6;
+}
+.dropzone-hint span{
+  display:inline-block;
+  background:var(--border);
+  border-radius:4px;
+  padding:1px 6px;
+  font-size:11px;
+  color:var(--ink2);
+  margin:2px;
+}
+
+/* Preview */
+.preview-wrap{display:none;margin-top:14px;position:relative}
+.preview-wrap.show{display:block}
+.preview-wrap img{
+  width:100%;max-height:300px;object-fit:contain;
+  border-radius:var(--r);
+  border:1px solid var(--border);
+  background:var(--surface2);
+}
+.preview-rm{
+  position:absolute;top:8px;right:8px;
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,.95);
+  border:1px solid var(--border);
+  color:var(--ink2);font-size:12px;cursor:pointer;
+  display:grid;place-items:center;
+  box-shadow:var(--shadow-sm);
   transition:all .2s;
 }
-.rm:hover{background:rgba(204,60,60,.3);border-color:rgba(204,60,60,.5)}
+.preview-rm:hover{background:var(--red-bg);color:var(--red);border-color:rgba(192,57,43,.3)}
 
-/* ═══════════════════════════════════════════════
+/* ════════════════════════════════
    TEXTAREA
-═══════════════════════════════════════════════ */
+════════════════════════════════ */
 textarea{
-  width:100%;min-height:148px;
-  background:rgba(255,255,255,.03);
-  border:1px solid var(--border);border-radius:12px;
-  color:var(--text);font-family:'Inter',sans-serif;
-  font-size:14px;font-weight:300;line-height:1.8;
+  width:100%;min-height:140px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:400;
+  line-height:1.75;
   padding:14px 16px;resize:vertical;
-  transition:border-color .2s,box-shadow .2s;
+  transition:border-color .18s,box-shadow .18s;
 }
-textarea:focus{
-  outline:none;
-  border-color:rgba(212,168,67,.50);
-  box-shadow:0 0 0 3px rgba(212,168,67,.08);
-}
-textarea::placeholder{color:rgba(247,240,232,.2)}
+textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(44,110,73,.10)}
+textarea::placeholder{color:var(--ink3)}
 
-/* ═══════════════════════════════════════════════
+/* ════════════════════════════════
    CHIPS
-═══════════════════════════════════════════════ */
+════════════════════════════════ */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{
-  padding:9px 18px;border-radius:999px;
+  padding:7px 16px;
+  border-radius:999px;
   border:1px solid var(--border);
-  background:rgba(255,255,255,.03);
-  color:var(--muted);
+  background:var(--surface2);
+  color:var(--ink2);
   font-family:'Inter',sans-serif;font-size:13px;font-weight:400;
-  cursor:pointer;min-height:42px;
+  cursor:pointer;min-height:38px;
   display:inline-flex;align-items:center;
-  transition:all .25s var(--spr);
+  transition:all .18s;
 }
-.chip:hover{
-  border-color:rgba(212,168,67,.45);
-  color:var(--gold-lt);
-  background:rgba(212,168,67,.07);
-}
+.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
 .chip.on{
-  border-color:var(--gold);
-  background:linear-gradient(135deg,rgba(212,168,67,.22),rgba(212,168,67,.08));
-  color:var(--gold-lt);font-weight:500;
-  box-shadow:0 2px 14px rgba(212,168,67,.20);
+  border-color:var(--accent);
+  background:var(--accent);
+  color:#fff;
+  font-weight:500;
 }
-.chip:active{transform:scale(.93)}
-.gap{height:18px}
-.divider{height:1px;background:var(--border);margin:0 0 18px}
 
-/* ═══════════════════════════════════════════════
-   CTA BUTTON
-═══════════════════════════════════════════════ */
-.cta{
+/* ════════════════════════════════
+   FORM FIELDS (for 點評)
+════════════════════════════════ */
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+.field-label{
+  display:block;
+  font-size:12.5px;font-weight:600;
+  color:var(--ink2);
+  margin-bottom:6px;
+  letter-spacing:.01em;
+}
+.field-label em{
+  font-style:normal;
+  display:inline-block;
+  width:18px;height:18px;line-height:18px;
+  text-align:center;border-radius:50%;
+  background:var(--amber);color:#fff;
+  font-size:10px;font-weight:700;
+  margin-right:6px;
+}
+.field-input{
+  width:100%;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;font-size:14px;
+  padding:11px 14px;
+  transition:border-color .18s,box-shadow .18s;
+}
+.field-input:focus{outline:none;border-color:var(--amber-lt);box-shadow:0 0 0 3px rgba(181,131,10,.10)}
+.field-input::placeholder{color:var(--ink3)}
+.field-ta{resize:vertical;min-height:88px;line-height:1.7}
+
+/* ════════════════════════════════
+   BUTTONS
+════════════════════════════════ */
+.btn-primary{
   position:relative;overflow:hidden;
-  width:100%;margin-top:20px;padding:18px;
+  width:100%;padding:15px 24px;
   border:none;border-radius:var(--r);cursor:pointer;
-  font-family:'Inter',sans-serif;font-size:15px;font-weight:600;
-  letter-spacing:.04em;
-  color:#060E0C;
-  background:linear-gradient(135deg, #C4922A 0%, #D4A843 45%, #E8C96A 100%);
-  box-shadow:0 4px 32px rgba(212,168,67,.35), 0 1px 0 rgba(255,255,255,.20) inset;
-  min-height:58px;
-  transition:opacity .2s,transform .2s,box-shadow .3s;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+  letter-spacing:.02em;
+  color:#fff;
+  background:var(--accent);
+  min-height:52px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 2px 16px rgba(44,110,73,.30);
+  transition:opacity .18s,transform .18s,box-shadow .18s;
 }
-.cta::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 50%);
-  pointer-events:none;
-}
-.cta::after{
+.btn-primary:hover{opacity:.92;box-shadow:0 4px 24px rgba(44,110,73,.40)}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* Shimmer */
+.btn-primary::after{
   content:'';position:absolute;
   top:0;left:-80%;width:50%;height:100%;
-  background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.22),transparent);
   transform:skewX(-20deg);
-  transition:left .7s ease;
+  transition:left .65s ease;
 }
-.cta:hover::after{left:140%}
-.cta:hover{box-shadow:0 8px 40px rgba(212,168,67,.55);opacity:.96}
-.cta:active{transform:scale(.98)}
-.cta:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-primary:hover:not(:disabled)::after{left:140%}
 
-/* ═══════════════════════════════════════════════
+.btn-amber{
+  background:var(--amber);
+  box-shadow:0 2px 16px rgba(181,131,10,.28);
+}
+.btn-amber:hover{box-shadow:0 4px 24px rgba(181,131,10,.42)}
+
+.btn-secondary{
+  width:100%;padding:13px 24px;
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  background:var(--surface);
+  color:var(--ink2);
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;min-height:46px;
+  transition:all .18s;
+}
+.btn-secondary:hover{border-color:var(--border2);background:var(--surface2);color:var(--ink)}
+
+/* ════════════════════════════════
    LOADING
-═══════════════════════════════════════════════ */
+════════════════════════════════ */
 .loading{
-  display:none;margin-top:28px;
-  justify-content:center;align-items:center;gap:12px;
-  font-size:13px;color:var(--muted);
-  letter-spacing:.06em;
+  display:none;
+  align-items:center;gap:10px;
+  margin-top:16px;padding:14px 16px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  font-size:13px;color:var(--ink3);
 }
 .loading.show{display:flex}
-.dots{display:flex;gap:6px}
+.dots{display:flex;gap:5px}
 .dots i{
-  width:7px;height:7px;border-radius:50%;
-  background:linear-gradient(135deg,var(--gold),var(--mint));
-  display:block;
-  animation:pulse 1.3s ease-in-out infinite;
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent);display:block;
+  animation:blink 1.2s ease-in-out infinite;
 }
-.dots i:nth-child(2){animation-delay:.18s}
-.dots i:nth-child(3){animation-delay:.36s}
-@keyframes pulse{0%,100%{opacity:.2;transform:scale(.6)}50%{opacity:1;transform:scale(1)}}
+.dots i:nth-child(2){animation-delay:.16s}
+.dots i:nth-child(3){animation-delay:.32s}
+@keyframes blink{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
 
-/* ═══════════════════════════════════════════════
+.loading-amber .dots i{background:var(--amber)}
+
+/* ════════════════════════════════
    ERROR
-═══════════════════════════════════════════════ */
-.err-box{
-  display:none;margin-top:14px;
-  padding:14px 16px;border-radius:12px;
-  background:rgba(255,60,100,.07);
-  border:1px solid rgba(255,60,100,.25);
-  color:#FF7096;font-size:13px;line-height:1.7;
+════════════════════════════════ */
+.error-box{
+  display:none;margin-top:12px;
+  padding:12px 16px;
+  background:var(--red-bg);
+  border:1px solid rgba(192,57,43,.2);
+  border-radius:var(--r);
+  color:var(--red);font-size:13px;line-height:1.6;
 }
-.err-box.show{display:block}
+.error-box.show{display:block}
 
-/* ═══════════════════════════════════════════════
-   RESULTS
-═══════════════════════════════════════════════ */
-#results-mobile{margin-top:28px;display:flex;flex-direction:column;gap:14px}
-#results-desktop{display:flex;flex-direction:column;gap:14px}
+/* ════════════════════════════════
+   RESULTS AREA
+════════════════════════════════ */
+.results{margin-top:20px;display:flex;flex-direction:column;gap:12px}
 
-/* Desktop placeholder */
-.r-placeholder{
-  display:none;
-  min-height:320px;
-  border:1.5px dashed rgba(212,168,67,.16);
-  border-radius:20px;
-  flex-direction:column;
-  align-items:center;justify-content:center;gap:14px;
-  color:rgba(237,232,220,.2);font-size:13px;
-  background:rgba(212,168,67,.015);
-}
-.r-placeholder svg{width:38px;height:38px;fill:rgba(212,168,67,.28)}
-html[data-mode="desktop"] .r-placeholder{display:flex}
-html[data-mode="desktop"] .r-placeholder.hide{display:none}
-
-/* Result card */
-.rc{
-  position:relative;
-  background:rgba(13,13,26,.75);
+/* ── Reply Card ── */
+.reply-card{
+  background:var(--surface);
   border:1px solid var(--border);
-  border-radius:20px;
-  padding:22px 20px;
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
+  border-radius:var(--r-lg);
   overflow:hidden;
-  animation:slideUp .45s var(--ease) both;
-  transition:border-color .3s,box-shadow .3s;
+  box-shadow:var(--shadow-sm);
+  animation:fadeUp .4s var(--ease) both;
+  transition:box-shadow .2s,border-color .2s;
 }
-.rc::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(212,168,67,.05) 0%,transparent 55%);
-  pointer-events:none;
-}
-.rc:hover{
-  border-color:var(--border2);
-  box-shadow:0 8px 40px rgba(0,0,0,.5),0 0 0 1px rgba(212,168,67,.08) inset;
-}
-@keyframes slideUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.reply-card:hover{box-shadow:var(--shadow);border-color:var(--border2)}
 
-/* Result card — top accent line */
-.rc::after{
-  content:'';
-  position:absolute;top:0;left:20px;right:20px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--gold),transparent);
-  opacity:.5;
+.reply-tag{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  background:var(--surface2);
+  border-bottom:1px solid var(--border);
 }
-
-.rh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
-
-.rt{
-  font-family:'Playfair Display',serif;
-  font-size:16px;font-weight:500;
-  color:var(--gold-lt);
-  letter-spacing:-.01em;
-}
-
-.cp{
-  flex:none;padding:8px 18px;border-radius:999px;
-  border:1px solid var(--border);
-  background:rgba(212,168,67,.06);
-  color:var(--muted);
-  font-family:'Inter',sans-serif;font-size:12px;font-weight:400;
-  cursor:pointer;min-height:36px;
-  transition:all .25s var(--spr);
-}
-.cp:hover{
-  border-color:var(--gold);
-  color:var(--gold-lt);
-  background:rgba(212,168,67,.12);
-}
-.cp.done{
-  background:linear-gradient(135deg,var(--mint),#3AB896);
-  color:#060E0C;border-color:transparent;font-weight:600;
-  animation:pop .4s var(--spr) both;
-}
-@keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.1)}100%{transform:scale(1)}}
-
-.rb{
-  font-size:15px;line-height:1.95;
-  color:var(--text);
-  white-space:pre-wrap;
-  font-family:'Inter',sans-serif;font-weight:300;
-}
-
-.again{
-  width:100%;padding:15px;border-radius:var(--r);
-  background:transparent;
-  border:1px solid var(--border);
-  color:var(--muted);
-  font-family:'Inter',sans-serif;font-size:13.5px;font-weight:400;
-  cursor:pointer;min-height:50px;
-  transition:all .25s;
+.reply-label{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:600;
+  color:var(--accent);
   letter-spacing:.04em;
-}
-.again:hover{
-  border-color:rgba(212,168,67,.45);
-  color:var(--gold-lt);
-  background:rgba(212,168,67,.06);
-}
-
-/* ═══════════════════════════════════════════════
-   FOOTER
-═══════════════════════════════════════════════ */
-.wrap-footer{
-  padding-top:20px;text-align:center;
-  font-size:10px;letter-spacing:.2em;color:rgba(247,240,232,.18);
   text-transform:uppercase;
 }
+.reply-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
 
-/* ═══════════════════════════════════════════════
-   MODAL
-═══════════════════════════════════════════════ */
-.overlay{
-  position:fixed;inset:0;z-index:200;
-  display:none;align-items:center;justify-content:center;padding:20px;
-  background:rgba(0,0,0,.88);
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
+.copy-btn{
+  padding:6px 14px;border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--ink2);
+  font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
+  cursor:pointer;min-height:32px;
+  transition:all .18s;
+  display:flex;align-items:center;gap:4px;
 }
-.overlay.show{display:flex;animation:fadeIn .2s ease both}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.copy-btn.done{
+  background:var(--accent);color:#fff;border-color:transparent;
+  animation:pop .35s var(--ease) both;
+}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
+
+.reply-body{
+  padding:16px 18px;
+  font-size:14.5px;line-height:1.9;
+  color:var(--ink);
+  white-space:pre-wrap;
+  font-weight:400;
+}
+
+/* ── Appreciate result ── */
+.appr-card{
+  background:var(--surface);
+  border:1px solid rgba(181,131,10,.25);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+  box-shadow:var(--shadow-sm);
+  animation:fadeUp .4s var(--ease) both;
+}
+.appr-card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  background:var(--amber-bg);
+  border-bottom:1px solid rgba(181,131,10,.15);
+}
+.appr-card-label{
+  font-size:13px;font-weight:600;
+  color:var(--amber);
+  display:flex;align-items:center;gap:8px;
+}
+.appr-card-body{
+  padding:18px;
+  font-size:14.5px;line-height:2;
+  color:var(--ink);
+  white-space:pre-wrap;
+}
+.copy-btn-amber:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-bg)}
+.copy-btn-amber.done{background:var(--amber);color:#fff;border-color:transparent}
+
+/* ════════════════════════════════
+   MODAL
+════════════════════════════════ */
+.overlay{
+  position:fixed;inset:0;z-index:300;
+  display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(26,25,22,.6);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+.overlay.show{display:flex;animation:fadeUp .18s ease both}
 
 .modal{
   width:100%;max-width:400px;
-  background:rgba(13,13,26,.95);
-  border:1px solid var(--border2);
-  border-radius:24px;
-  padding:32px 26px;
-  box-shadow:0 40px 100px rgba(0,0,0,.9),0 0 60px rgba(124,106,247,.15);
-  position:relative;overflow:hidden;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:28px 24px;
+  box-shadow:var(--shadow-lg);
 }
-.modal::before{
-  content:'';position:absolute;top:-80px;right:-80px;
-  width:250px;height:250px;border-radius:50%;
-  background:radial-gradient(circle,rgba(212,168,67,.15) 0%,transparent 70%);
-  pointer-events:none;
+.modal-title{
+  font-family:'Noto Serif TC',serif;
+  font-size:20px;font-weight:700;
+  color:var(--ink);margin-bottom:6px;
+}
+.modal-desc{font-size:13px;color:var(--ink3);line-height:1.7;margin-bottom:18px}
+.modal-input{
+  width:100%;padding:12px 14px;
+  background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--r);
+  color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;
+  min-height:48px;
+  transition:all .18s;
+}
+.modal-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(44,110,73,.10)}
+.modal-input::placeholder{color:var(--ink3)}
+.modal-actions{display:flex;gap:10px;margin-top:16px}
+.modal-save{
+  flex:1;padding:12px;border-radius:var(--r);cursor:pointer;
+  background:var(--accent);color:#fff;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+  border:none;min-height:46px;
+  box-shadow:0 2px 12px rgba(44,110,73,.30);
+  transition:opacity .18s;
+}
+.modal-save:hover{opacity:.9}
+.modal-cancel{
+  flex:1;padding:12px;border-radius:var(--r);cursor:pointer;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--ink2);font-family:'Inter',sans-serif;font-size:14px;
+  min-height:46px;transition:all .18s;
+}
+.modal-cancel:hover{border-color:var(--border2);color:var(--ink)}
+
+/* ════════════════════════════════
+   DIVIDER with label
+════════════════════════════════ */
+.section-div{
+  height:1px;background:var(--border);margin:0;
 }
 
-.modal h2{
-  font-family:'Playfair Display',serif;
-  font-size:24px;font-weight:700;
-  color:var(--text);margin-bottom:8px;
-  letter-spacing:-.02em;
-}
-.modal p{font-size:13px;color:var(--muted);line-height:1.75;margin-bottom:20px}
-
-.modal input{
-  width:100%;padding:14px 16px;
-  background:rgba(255,255,255,.04);
-  border:1px solid var(--border);border-radius:12px;
-  color:var(--text);font-family:'Inter',sans-serif;font-size:14px;
-  min-height:50px;
-  transition:all .2s;
-}
-.modal input:focus{
-  outline:none;
-  border-color:rgba(212,168,67,.55);
-  box-shadow:0 0 0 3px rgba(212,168,67,.10);
-}
-.modal input::placeholder{color:rgba(247,240,232,.2)}
-
-.ma{display:flex;gap:10px;margin-top:16px}
-.ms{
-  flex:1;padding:14px;border-radius:12px;cursor:pointer;
-  background:linear-gradient(135deg,#C4922A,#D4A843);
-  color:#060E0C;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;
-  border:none;min-height:50px;
-  box-shadow:0 4px 20px rgba(212,168,67,.35);
-  transition:opacity .2s,box-shadow .2s;
-}
-.ms:hover{opacity:.9;box-shadow:0 6px 28px rgba(212,168,67,.5)}
-.mg{
-  flex:1;padding:14px;border-radius:12px;cursor:pointer;
-  background:rgba(255,255,255,.04);border:1px solid var(--border);
-  color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;
-  min-height:50px;transition:all .2s;
-}
-.mg:hover{border-color:var(--border2);color:var(--text)}
-
-/* ═══════════════════════════════════════════════
-   APPRECIATE CARD
-═══════════════════════════════════════════════ */
-.card-appreciate{
-  border-color:rgba(196,146,42,.22);
-}
-.card-appreciate::before{
-  background:linear-gradient(135deg,rgba(196,146,42,.06) 0%,rgba(78,207,168,.03) 100%);
-}
-
-.sec-num-rose{
-  background:linear-gradient(135deg,#B87333,#D4813A) !important;
-  box-shadow:0 2px 8px rgba(212,129,58,.5) !important;
-}
-
-.sec-badge{
-  font-size:10px;letter-spacing:.12em;
-  padding:3px 10px;border-radius:999px;
-  background:rgba(212,168,67,.12);
-  border:1px solid rgba(212,168,67,.25);
-  color:var(--gold-lt);font-weight:400;
-  text-transform:none;
-}
-
-.appr-fields{display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
-
-.appr-field{display:flex;flex-direction:column;gap:6px}
-
-.appr-label{
-  font-size:12.5px;font-weight:500;
-  color:var(--gold-lt);
-  letter-spacing:.02em;
-}
-
-.appr-input{
-  width:100%;
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(212,168,67,.18);
-  border-radius:10px;
-  color:var(--text);
-  font-family:'Inter',sans-serif;font-size:14px;font-weight:300;
-  padding:11px 14px;
-  line-height:1.65;
-  transition:border-color .2s,box-shadow .2s;
-  resize:none;
-}
-.appr-input:focus{
-  outline:none;
-  border-color:rgba(212,168,67,.5);
-  box-shadow:0 0 0 3px rgba(212,168,67,.08);
-}
-.appr-input::placeholder{color:rgba(237,232,220,.2)}
-.appr-ta{min-height:90px;resize:vertical}
-
-/* Rose variant CTA */
-.cta-rose{
-  margin-top:4px;
-  background:linear-gradient(135deg,#B87333 0%,#D4813A 50%,#E89A52 100%);
-  box-shadow:0 4px 28px rgba(196,120,50,.38),0 1px 0 rgba(255,255,255,.18) inset;
-  color:#fff;
-}
-.cta-rose:hover{box-shadow:0 8px 36px rgba(196,120,50,.58) !important}
-
-/* Appreciate result */
-#apprResult .arc{
-  position:relative;
-  background:rgba(13,13,26,.75);
-  border:1px solid rgba(212,168,67,.25);
-  border-radius:18px;
-  padding:22px 20px;
-  margin-top:16px;
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  overflow:hidden;
-  animation:slideUp .45s var(--ease) both;
-}
-#apprResult .arc::after{
-  content:'';
-  position:absolute;top:0;left:20px;right:20px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--gold),transparent);
-  opacity:.5;
-}
-#apprResult .arc-head{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:14px;
-}
-#apprResult .arc-title{
-  font-family:'Playfair Display',serif;
-  font-size:15px;font-weight:500;
-  color:var(--gold-lt);
-}
-#apprResult .arc-body{
-  font-size:15px;line-height:2;
-  color:var(--text);white-space:pre-wrap;
-  font-weight:300;
-}
-#apprResult .again{margin-top:12px}
-
-/* ── Chip grid layout ── */
-.chips-grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:8px;
-}
-.chips-grid .chip{
-  padding:10px 6px;
-  justify-content:center;
-  min-height:44px;
-  font-size:13px;
-}
-.chips-grid .chip-wide{
-  grid-column:span 4;
-}
-
-/* ─── Scrollbar ─── */
-::-webkit-scrollbar{width:6px}
+/* ════════════════════════════════
+   Scrollbar
+════════════════════════════════ */
+::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(212,168,67,.25);border-radius:99px}
-::-webkit-scrollbar-thumb:hover{background:rgba(212,168,67,.45)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:var(--ink3)}
 
-/* ─── Reduced motion ─── */
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation:none!important;transition:none!important}
-}
+/* ════════════════════════════════
+   Reduced motion
+════════════════════════════════ */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ════════════════════════════════
+   Utility
+════════════════════════════════ */
+.mt8{margin-top:8px}
+.mt12{margin-top:12px}
+.mt16{margin-top:16px}
 </style>
 </head>
 
 <body>
-<!-- Aurora Background -->
-<div class="aurora" aria-hidden="true">
-  <div class="aurora-orb a"></div>
-  <div class="aurora-orb b"></div>
-  <div class="aurora-orb c"></div>
-  <div class="aurora-orb d"></div>
-</div>
+<div class="app">
 
-<div class="page">
-
-  <!-- Topbar -->
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-name">回覆靈感</div>
-      <div class="brand-sep"></div>
-      <div class="brand-tag">AI Chat Reply</div>
+  <!-- ── Navigation ── -->
+  <nav class="nav">
+    <div class="nav-brand">
+      <div class="nav-logo">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+      </div>
+      <span class="nav-name">回覆靈感</span>
+      <div class="nav-sep"></div>
+      <span class="nav-sub">AI Chat Reply</span>
     </div>
 
-    <div class="dev-toggle" id="devToggle" role="group" aria-label="切換版型">
-      <button class="dev-btn on" data-m="mobile">
-        <svg viewBox="0 0 24 24"><path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H7V4h10v12zm-5 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
-        手機
-      </button>
-      <button class="dev-btn" data-m="desktop">
-        <svg viewBox="0 0 24 24"><path d="M20 3H4C2.9 3 2 3.9 2 5v11c0 1.1.9 2 2 2h7v2H9v2h6v-2h-2v-2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/></svg>
-        電腦
-      </button>
+    <div class="nav-fill"></div>
+
+    <div class="nav-tabs" id="navTabs" role="tablist">
+      <button class="nav-tab on" data-page="reply" role="tab">💬 回覆建議</button>
+      <button class="nav-tab" data-page="appreciate" role="tab">❤️ 點評感謝</button>
     </div>
 
-    <button class="gear" id="settingsBtn" title="設定 API Key" aria-label="設定">⚙</button>
-  </header>
+    <button class="nav-settings" id="settingsBtn" title="設定 API Key">⚙</button>
+  </nav>
 
-  <!-- Main -->
-  <main class="scroll">
-    <div class="wrap">
-      <div class="layout">
+  <!-- ── Main ── -->
+  <main class="main">
+    <div class="container">
 
-        <!-- Left col -->
-        <div class="col-l">
+      <!-- ════════ PAGE: 回覆建議 ════════ -->
+      <div class="feature-page show" id="page-reply">
+        <div class="page-head">
+          <h1 class="page-title">回覆建議</h1>
+          <p class="page-desc">貼入對話截圖或文字，AI 根據你設定的語氣和關係，給出 3 個自然的回覆方向。</p>
+        </div>
+
+        <div class="steps">
 
           <!-- Step 1 -->
-          <div class="card">
-            <div class="sec">
-              <div class="sec-num">1</div>
-              提供對話內容
+          <div class="step">
+            <div class="step-head">
+              <div class="step-num">1</div>
+              <span class="step-label">提供對話內容</span>
             </div>
-
-            <div class="tabs" role="tablist">
-              <button class="tab on" data-pane="pImg" role="tab">📷 上傳截圖</button>
-              <button class="tab"    data-pane="pTxt" role="tab">📋 貼上文字</button>
-            </div>
-
-            <div class="pane show" id="pImg">
-              <label class="drop" id="dropZone">
-                <span class="drop-ico">🖼</span>
-                拖曳對話截圖，或點擊選取<br>
-                <span style="font-size:12px;opacity:.5">JPG / PNG · 過大自動壓縮</span>
-                <input type="file" id="fi" accept="image/*">
-              </label>
-              <div class="prev" id="prevBox">
-                <img id="prevImg" alt="截圖預覽">
-                <button class="rm" id="rmImg">✕</button>
+            <div class="step-body">
+              <div class="input-tabs">
+                <button class="itab on" data-ipane="ip-img">📷 上傳截圖</button>
+                <button class="itab" data-ipane="ip-txt">📋 貼上文字</button>
               </div>
-            </div>
 
-            <div class="pane" id="pTxt">
-              <textarea id="txtIn" placeholder="貼上對話，例如：&#10;&#10;對方：欸你週末有空嗎&#10;我：應該有 怎麼了&#10;對方：沒有啦 就想找你出來走走"></textarea>
+              <div class="ipane show" id="ip-img">
+                <label class="dropzone" id="dropZone">
+                  <input type="file" id="fileIn" accept="image/*">
+                  <div class="dropzone-icon">🖼</div>
+                  <div class="dropzone-main">點擊選取，或直接拖曳圖片進來</div>
+                  <div class="dropzone-hint">
+                    支援格式：<span>JPG</span><span>PNG</span><span>WEBP</span><br>
+                    超過 3MB 或 1600px 會自動壓縮
+                  </div>
+                </label>
+
+                <div class="preview-wrap" id="prevWrap">
+                  <img id="prevImg" alt="截圖預覽">
+                  <button class="preview-rm" id="rmImg">✕</button>
+                </div>
+              </div>
+
+              <div class="ipane" id="ip-txt">
+                <textarea id="txtIn" placeholder="貼上對話紀錄，例如：&#10;&#10;對方：欸你週末有空嗎&#10;我：應該有 怎麼了&#10;對方：沒有啦 就想找你出來走走"></textarea>
+              </div>
             </div>
           </div>
 
-          <!-- Step 2+3 -->
-          <div class="card">
-            <div class="sec">
-              <div class="sec-num">2</div>
-              回覆語氣
+          <!-- Step 2 -->
+          <div class="step">
+            <div class="step-head">
+              <div class="step-num">2</div>
+              <span class="step-label">選擇回覆語氣</span>
             </div>
-            <div class="chips chips-grid" id="toneChips">
-              <button class="chip on" data-v="幽默風趣">幽默</button>
-              <button class="chip"    data-v="溫柔體貼">溫柔</button>
-              <button class="chip"    data-v="曖昧撩人但不油膩">曖昧</button>
-              <button class="chip"    data-v="正式得體">正式</button>
-              <button class="chip chip-wide" data-v="高情商委婉拒絕">高情商拒絕</button>
-            </div>
-
-            <div class="gap"></div>
-            <div class="divider"></div>
-
-            <div class="sec">
-              <div class="sec-num">3</div>
-              對方身分
-            </div>
-            <div class="chips chips-grid" id="relChips">
-              <button class="chip on" data-v="朋友">朋友</button>
-              <button class="chip"    data-v="客戶">客戶</button>
-              <button class="chip"    data-v="同事">同事</button>
-              <button class="chip"    data-v="夫妻">夫妻</button>
+            <div class="step-body">
+              <div class="chips" id="toneChips">
+                <button class="chip on" data-v="幽默風趣">幽默風趣</button>
+                <button class="chip" data-v="溫柔體貼">溫柔體貼</button>
+                <button class="chip" data-v="曖昧撩人但不油膩">曖昧撩人</button>
+                <button class="chip" data-v="正式得體">正式得體</button>
+                <button class="chip" data-v="高情商委婉拒絕">高情商拒絕</button>
+              </div>
             </div>
           </div>
 
-          <!-- Step 4: 點評示的回覆 -->
-          <div class="card card-appreciate">
-            <div class="sec">
-              <div class="sec-num sec-num-rose">4</div>
-              點評示的回覆 <span class="sec-badge">點評對方的辛苦</span>
+          <!-- Step 3 -->
+          <div class="step">
+            <div class="step-head">
+              <div class="step-num">3</div>
+              <span class="step-label">選擇對方身分</span>
             </div>
-
-            <div class="appr-fields">
-              <div class="appr-field">
-                <label class="appr-label">① 你要給誰點評？</label>
-                <input class="appr-input" id="appr1" type="text" placeholder="例如：我媽、我老公、我同事小美…">
-              </div>
-              <div class="appr-field">
-                <label class="appr-label">② 什麼事情讓你感覺到他的辛苦和不容易？</label>
-                <input class="appr-input" id="appr2" type="text" placeholder="例如：每天早起送我上班、一個人扛家裡所有事…">
-              </div>
-              <div class="appr-field">
-                <label class="appr-label">③ 用一個具體的事來說明（時間、地點、人物、事件）</label>
-                <textarea class="appr-input appr-ta" id="appr3" placeholder="例如：上週三晚上快十一點，他還在廚房幫我準備隔天便當，我下班回來看到那個畫面…"></textarea>
-              </div>
-              <div class="appr-field">
-                <label class="appr-label">④ 過程中你有什麼情緒感受或心態變化？</label>
-                <input class="appr-input" id="appr4" type="text" placeholder="例如：又心疼又愧疚，但又不知道怎麼開口…">
+            <div class="step-body">
+              <div class="chips" id="relChips">
+                <button class="chip on" data-v="朋友">朋友</button>
+                <button class="chip" data-v="客戶">客戶</button>
+                <button class="chip" data-v="同事">同事</button>
+                <button class="chip" data-v="夫妻">夫妻</button>
+                <button class="chip" data-v="父母">父母</button>
+                <button class="chip" data-v="陌生人">陌生人</button>
               </div>
             </div>
-
-            <button class="cta cta-rose" id="apprBtn">❤ &nbsp;生成點評文字</button>
-            <div class="loading" id="apprLoading">
-              <span>正在用心撰寫中</span>
-              <div class="dots"><i></i><i></i><i></i></div>
-            </div>
-            <div class="err-box" id="apprErr"></div>
-            <div id="apprResult"></div>
           </div>
 
-          <!-- CTA -->
-          <button class="cta" id="goBtn">✦ &nbsp;生成回覆建議</button>
+          <!-- Action -->
+          <button class="btn-primary" id="goBtn">✦ 生成回覆建議</button>
 
-          <!-- Loading & Error -->
           <div class="loading" id="loading">
-            <span>AI 正在思考中</span>
             <div class="dots"><i></i><i></i><i></i></div>
+            <span>AI 正在分析對話，思考最適合的說法…</span>
           </div>
-          <div class="err-box" id="errBox"></div>
+          <div class="error-box" id="errBox"></div>
 
-          <!-- Mobile results -->
-          <div id="results-mobile"></div>
+          <!-- Results -->
+          <div class="results" id="results"></div>
+
         </div>
-
-        <!-- Right col (desktop) -->
-        <div class="col-r">
-          <div class="r-placeholder" id="placeholder">
-            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-            <span>回覆建議會顯示在這裡</span>
-          </div>
-          <div id="results-desktop"></div>
-        </div>
-
       </div>
 
-      <div class="wrap-footer">Powered by GPT-4o-mini &nbsp;·&nbsp; API Key 僅存於本機，不會上傳</div>
+      <!-- ════════ PAGE: 點評感謝 ════════ -->
+      <div class="feature-page" id="page-appreciate">
+        <div class="page-head">
+          <h1 class="page-title">點評感謝</h1>
+          <p class="page-desc">四個問題引導你說出心中對對方的感謝，AI 幫你把那份情感轉化成真誠、有畫面感的文字。</p>
+        </div>
+
+        <div class="steps">
+
+          <div class="step">
+            <div class="step-head">
+              <div class="step-num amber">1</div>
+              <span class="step-label">你要感謝誰？</span>
+            </div>
+            <div class="step-body">
+              <input class="field-input" id="appr1" type="text" placeholder="例如：我媽、我老公、我同事小美…">
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-head">
+              <div class="step-num amber">2</div>
+              <span class="step-label">讓你感覺到辛苦和不容易的是什麼事？</span>
+            </div>
+            <div class="step-body">
+              <input class="field-input" id="appr2" type="text" placeholder="例如：每天早起送我上班、一個人扛家裡所有事…">
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-head">
+              <div class="step-num amber">3</div>
+              <span class="step-label">說一件具體的事（時間、地點、人物、事件）</span>
+              <span class="step-badge amber">越具體越感人</span>
+            </div>
+            <div class="step-body">
+              <textarea class="field-input field-ta" id="appr3" placeholder="例如：上週三晚上快十一點，他還在廚房幫我準備隔天便當，我下班回來看到那個畫面…"></textarea>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-head">
+              <div class="step-num amber">4</div>
+              <span class="step-label">當時你有什麼情緒或感受？</span>
+              <span class="step-badge amber">選填</span>
+            </div>
+            <div class="step-body">
+              <input class="field-input" id="appr4" type="text" placeholder="例如：又心疼又愧疚，但又不知道怎麼開口…">
+            </div>
+          </div>
+
+          <!-- Action -->
+          <button class="btn-primary btn-amber" id="apprBtn">❤ 生成點評感謝文字</button>
+
+          <div class="loading loading-amber" id="apprLoading">
+            <div class="dots"><i></i><i></i><i></i></div>
+            <span>正在用心撰寫中，請稍候…</span>
+          </div>
+          <div class="error-box" id="apprErr"></div>
+
+          <div class="results" id="apprResults"></div>
+
+        </div>
+      </div>
+
     </div>
   </main>
 </div>
 
-<!-- Modal -->
+<!-- ── Settings Modal ── -->
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h2>連接 OpenAI</h2>
-    <p>輸入你的 OpenAI API Key（以 sk- 開頭）。Key 只存於你的瀏覽器，不會上傳到任何伺服器。</p>
-    <input type="password" id="keyIn" placeholder="sk-...">
-    <div class="ma">
-      <button class="mg" id="closeModal">取消</button>
-      <button class="ms" id="saveKey">儲存</button>
+    <h2 class="modal-title">連接 OpenAI</h2>
+    <p class="modal-desc">輸入你的 OpenAI API Key（以 sk- 開頭）。Key 只儲存在你的瀏覽器本機，不會上傳到任何伺服器。</p>
+    <input class="modal-input" type="password" id="keyIn" placeholder="sk-...">
+    <div class="modal-actions">
+      <button class="modal-cancel" id="closeModal">取消</button>
+      <button class="modal-save" id="saveKey">儲存</button>
     </div>
   </div>
 </div>
@@ -914,97 +822,82 @@ html[data-mode="desktop"] .r-placeholder.hide{display:none}
 (function(){
 'use strict';
 const $ = id => document.getElementById(id);
-const KEY = 'rai_v4';
+const KEY_STORE = 'rai_v5';
 let imgData = null, imgMime = 'image/jpeg';
 
-/* ── Device Toggle ── */
-let curMode = 'mobile';
-$('devToggle').querySelectorAll('.dev-btn').forEach(b => {
-  b.onclick = () => {
-    curMode = b.dataset.m;
-    document.documentElement.dataset.mode = curMode;
-    $('devToggle').querySelectorAll('.dev-btn').forEach(x => x.classList.remove('on'));
-    b.classList.add('on');
-    syncResults();
+/* ── Page Navigation ── */
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('on'));
+    document.querySelectorAll('.feature-page').forEach(p => p.classList.remove('show'));
+    tab.classList.add('on');
+    $('page-' + tab.dataset.page).classList.add('show');
   };
 });
 
-function syncResults(){
-  const mBox = $('results-mobile');
-  const dBox = $('results-desktop');
-  const ph   = $('placeholder');
-  if(curMode === 'desktop'){
-    Array.from(mBox.children).forEach(c => dBox.appendChild(c));
-    ph.classList.toggle('hide', dBox.children.length > 0);
-  } else {
-    Array.from(dBox.children).forEach(c => mBox.appendChild(c));
-  }
-}
-
 /* ── Settings ── */
 $('settingsBtn').onclick = () => {
-  $('keyIn').value = localStorage.getItem(KEY)||'';
+  $('keyIn').value = localStorage.getItem(KEY_STORE) || '';
   $('overlay').classList.add('show');
 };
 $('closeModal').onclick = () => $('overlay').classList.remove('show');
-$('overlay').onclick = e => { if(e.target===$('overlay')) $('overlay').classList.remove('show'); };
+$('overlay').onclick = e => { if(e.target === $('overlay')) $('overlay').classList.remove('show'); };
 $('saveKey').onclick = () => {
   const v = $('keyIn').value.trim();
-  if(v && !v.startsWith('sk-')) return showErr('Key 格式不對，OpenAI 的 Key 以 sk- 開頭。');
-  localStorage.setItem(KEY, v);
+  if(v && !v.startsWith('sk-')) { alert('Key 格式不對，OpenAI 的 Key 以 sk- 開頭。'); return; }
+  localStorage.setItem(KEY_STORE, v);
   $('overlay').classList.remove('show');
-  clearErr();
 };
 
-/* ── Tabs ── */
-document.querySelectorAll('.tab').forEach(t => {
-  t.onclick = () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
-    document.querySelectorAll('.pane').forEach(x => x.classList.remove('show'));
-    t.classList.add('on');
-    $(t.dataset.pane).classList.add('show');
+/* ── Input Tabs ── */
+document.querySelectorAll('.itab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.itab').forEach(t => t.classList.remove('on'));
+    document.querySelectorAll('.ipane').forEach(p => p.classList.remove('show'));
+    tab.classList.add('on');
+    $(tab.dataset.ipane).classList.add('show');
   };
 });
 
 /* ── Chips ── */
 ['toneChips','relChips'].forEach(id => {
-  $(id).querySelectorAll('.chip').forEach(c => {
-    c.onclick = () => {
-      $(id).querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
-      c.classList.add('on');
+  $(id).querySelectorAll('.chip').forEach(chip => {
+    chip.onclick = () => {
+      $(id).querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+      chip.classList.add('on');
     };
   });
 });
-const picked = id => $(id).querySelector('.chip.on').dataset.v;
+const pickedChip = id => $(id).querySelector('.chip.on')?.dataset.v || '';
 
 /* ── Image Upload ── */
-const dz = $('dropZone'), fi = $('fi');
+const dz = $('dropZone'), fi = $('fileIn');
 ['dragenter','dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('over'); }));
 ['dragleave','drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('over'); }));
-dz.addEventListener('drop', e => { const f=e.dataTransfer.files[0]; if(f) loadImg(f); });
+dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if(f) loadImg(f); });
 fi.onchange = () => { if(fi.files[0]) loadImg(fi.files[0]); };
 $('rmImg').onclick = ev => {
   ev.preventDefault(); ev.stopPropagation();
   imgData = null; fi.value = '';
-  $('prevBox').classList.remove('show');
+  $('prevWrap').classList.remove('show');
 };
 
 function loadImg(file){
-  if(!file.type.startsWith('image/')) return showErr('請上傳 JPG 或 PNG 圖片。');
+  if(!file.type.startsWith('image/')) return showErr('請上傳 JPG、PNG 或 WEBP 圖片。');
   const r = new FileReader();
-  r.onerror = () => showErr('圖片讀取失敗。');
+  r.onerror = () => showErr('圖片讀取失敗，請換一張試試。');
   r.onload = ev => {
     const img = new Image();
     img.onload = () => {
       const MAX = 1600;
       let {width:w, height:h} = img;
-      if(w>MAX || h>MAX || file.size>3*1024*1024){
+      if(w > MAX || h > MAX || file.size > 3*1024*1024){
         const s = Math.min(MAX/w, MAX/h, 1);
         w = Math.round(w*s); h = Math.round(h*s);
         const cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
-        cv.getContext('2d').drawImage(img,0,0,w,h);
-        const url = cv.toDataURL('image/jpeg',.88);
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        const url = cv.toDataURL('image/jpeg', .88);
         imgData = url.split(',')[1]; imgMime = 'image/jpeg';
         $('prevImg').src = url;
       } else {
@@ -1012,50 +905,46 @@ function loadImg(file){
         imgMime = file.type;
         $('prevImg').src = ev.target.result;
       }
-      $('prevBox').classList.add('show'); clearErr();
+      $('prevWrap').classList.add('show');
+      clearErr();
     };
-    img.onerror = () => showErr('無法解析圖片。');
+    img.onerror = () => showErr('無法解析圖片，請換一張試試。');
     img.src = ev.target.result;
   };
   r.readAsDataURL(file);
 }
 
-/* ── Error ── */
-function showErr(msg){
-  const b = $('errBox');
-  b.textContent = msg;
-  b.classList.add('show');
-  b.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
+/* ── Error helpers ── */
+function showErr(msg){ const b=$('errBox'); b.textContent=msg; b.classList.add('show'); b.scrollIntoView({behavior:'smooth',block:'nearest'}); }
 function clearErr(){ $('errBox').classList.remove('show'); }
 
-/* ── Generate ── */
-$('goBtn').onclick = () => go(false);
+/* ── Generate Reply ── */
+$('goBtn').onclick = () => generateReply(false);
 
-async function go(retry){
+async function generateReply(isRetry){
   clearErr();
-  const key = localStorage.getItem(KEY);
-  if(!key){ $('overlay').classList.add('show'); return showErr('請先設定 OpenAI API Key。'); }
+  const key = localStorage.getItem(KEY_STORE);
+  if(!key){ $('overlay').classList.add('show'); return showErr('請先點右上角 ⚙ 設定 OpenAI API Key。'); }
 
-  const usingImg = $('pImg').classList.contains('show');
+  const usingImg = $('ip-img').classList.contains('show');
   const txt = $('txtIn').value.trim();
-  if(usingImg && !imgData) return showErr('請先上傳對話截圖，或切換到「貼上文字」。');
+  if(usingImg && !imgData) return showErr('請先上傳一張對話截圖，或切換到「貼上文字」。');
   if(!usingImg && !txt) return showErr('請先貼上對話內容。');
 
-  const tone = picked('toneChips'), rel = picked('relChips');
-  const sys = `你是頂尖聊天回覆顧問，熟悉台灣日常繁體中文口語。對方身分：${rel}，語氣要求：${tone}。\n分析對話脈絡後產出 3 個風格略有差異的回覆建議，要自然像真人打字，不要 AI 腔。\n只輸出 JSON：{"replies":[{"style":"標籤","text":"回覆"},...共3個]}，不含其他文字。`;
+  const tone = pickedChip('toneChips'), rel = pickedChip('relChips');
+
+  const sys = `你是頂尖聊天回覆顧問，熟悉台灣日常繁體中文口語。
+對方身分：${rel}。回覆語氣要求：${tone}。
+任務：分析對話脈絡，給出 3 個風格略有差異的回覆建議，要自然像真人打字，不要 AI 腔調。
+只輸出 JSON：{"replies":[{"style":"風格標籤（4-6字）","text":"回覆內容"},...共3個]}，不含任何其他說明。`;
+
   const content = usingImg
-    ? [{type:'text',text:'這是對話截圖，請辨識並給建議。'},{type:'image_url',image_url:{url:`data:${imgMime};base64,${imgData}`}}]
-    : [{type:'text',text:`對話內容：\n${txt}`}];
+    ? [{type:'text',text:'以下是對話截圖，請辨識內容並給出回覆建議。'},{type:'image_url',image_url:{url:`data:${imgMime};base64,${imgData}`}}]
+    : [{type:'text',text:`對話內容如下：\n${txt}`}];
 
   $('goBtn').disabled = true;
   $('loading').classList.add('show');
-  if(!retry){
-    $('results-mobile').innerHTML = '';
-    $('results-desktop').innerHTML = '';
-  }
-  const ph = $('placeholder');
-  if(ph) ph.classList.remove('hide');
+  if(!isRetry) $('results').innerHTML = '';
 
   try{
     const res = await fetch('https://api.openai.com/v1/chat/completions',{
@@ -1070,7 +959,7 @@ async function go(retry){
       })
     });
     if(!res.ok){
-      if(res.status===401) throw new Error('API Key 無效或過期，請重新輸入。');
+      if(res.status===401) throw new Error('API Key 無效或已過期，請重新設定。');
       if(res.status===429) throw new Error('請求太頻繁或額度不足，請稍後再試。');
       const e = await res.json().catch(()=>null);
       throw new Error(e?.error?.message || `API 錯誤（HTTP ${res.status}）`);
@@ -1079,50 +968,44 @@ async function go(retry){
     const raw = data.choices?.[0]?.message?.content || '';
     let parsed;
     try{ parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
-    catch{ throw new Error('AI 回傳格式異常，請重新生成。'); }
-    const replies = parsed.replies;
-    if(!Array.isArray(replies)||!replies.length) throw new Error('沒有有效回覆，請重新生成。');
-    render(replies);
+    catch{ throw new Error('AI 回傳格式異常，請再試一次。'); }
+    if(!Array.isArray(parsed.replies) || !parsed.replies.length) throw new Error('沒有取得有效回覆，請重新生成。');
+    renderReplies(parsed.replies, isRetry);
   } catch(e){
-    showErr(e.name==='TypeError' ? '連不上 OpenAI，請確認網路正常。' : e.message);
+    showErr(e.name === 'TypeError' ? '連不上 OpenAI，請確認網路連線正常。' : e.message);
   } finally{
     $('goBtn').disabled = false;
     $('loading').classList.remove('show');
   }
 }
 
-/* ── Render ── */
-function render(replies){
-  $('results-mobile').innerHTML = '';
-  $('results-desktop').innerHTML = '';
-  const ph = $('placeholder');
-  if(ph) ph.classList.add('hide');
+function renderReplies(replies, append){
+  const box = $('results');
+  if(!append) box.innerHTML = '';
 
-  const frag = document.createDocumentFragment();
-
-  replies.slice(0,3).forEach((r,i) => {
+  replies.slice(0,3).forEach((r, i) => {
     const card = document.createElement('div');
-    card.className = 'rc';
-    card.style.animationDelay = (i * .12) + 's';
+    card.className = 'reply-card';
+    card.style.animationDelay = (i * .10) + 's';
 
-    const head = document.createElement('div');
-    head.className = 'rh';
+    const tag = document.createElement('div');
+    tag.className = 'reply-tag';
 
-    const tag = document.createElement('span');
-    tag.className = 'rt';
-    tag.textContent = r.style || `建議 ${i+1}`;
+    const label = document.createElement('span');
+    label.className = 'reply-label';
+    label.innerHTML = `<span class="reply-dot"></span>${r.style || '建議 '+(i+1)}`;
 
-    const cp = document.createElement('button');
-    cp.className = 'cp';
-    cp.textContent = '複製';
+    const cpBtn = document.createElement('button');
+    cpBtn.className = 'copy-btn';
+    cpBtn.innerHTML = '複製';
 
-    head.append(tag, cp);
+    tag.append(label, cpBtn);
 
-    const body = document.createElement('p');
-    body.className = 'rb';
+    const body = document.createElement('div');
+    body.className = 'reply-body';
     body.textContent = r.text || '';
 
-    cp.onclick = async () => {
+    cpBtn.onclick = async () => {
       try{ await navigator.clipboard.writeText(body.textContent); }
       catch{
         const ta = document.createElement('textarea');
@@ -1130,57 +1013,59 @@ function render(replies){
         Object.assign(ta.style,{position:'fixed',top:'-9999px'});
         document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
       }
-      cp.textContent = '✓ 已複製';
-      cp.classList.add('done');
+      cpBtn.textContent = '✓ 已複製';
+      cpBtn.classList.add('done');
       if(navigator.vibrate) navigator.vibrate(28);
-      setTimeout(() => { cp.textContent = '複製'; cp.classList.remove('done'); }, 2000);
+      setTimeout(() => { cpBtn.innerHTML = '複製'; cpBtn.classList.remove('done'); }, 2000);
     };
 
-    card.append(head, body);
-    frag.appendChild(card);
+    card.append(tag, body);
+    box.appendChild(card);
   });
 
-  const again = document.createElement('button');
-  again.className = 'again';
-  again.textContent = '↻ 換一批說法';
-  again.onclick = () => go(true);
-  frag.appendChild(again);
+  // Retry button
+  const retryBtn = document.createElement('button');
+  retryBtn.className = 'btn-secondary mt12';
+  retryBtn.textContent = '↻ 換一批說法';
+  retryBtn.onclick = () => generateReply(true);
+  box.appendChild(retryBtn);
 
-  const targetBox = curMode === 'desktop' ? $('results-desktop') : $('results-mobile');
-  targetBox.appendChild(frag);
-  setTimeout(() => targetBox.firstChild?.scrollIntoView({behavior:'smooth',block:'start'}), 80);
+  setTimeout(() => box.firstChild?.scrollIntoView({behavior:'smooth',block:'start'}), 80);
 }
-/* ── Appreciate ── */
-$('apprBtn').onclick = () => goAppr(false);
 
-async function goAppr(retry){
-  const b = $('apprErr');
-  b.classList.remove('show');
+/* ── Generate Appreciate ── */
+$('apprBtn').onclick = () => generateAppr(false);
 
-  const key = localStorage.getItem(KEY);
-  if(!key){ $('overlay').classList.add('show'); b.textContent='請先設定 API Key。'; b.classList.add('show'); return; }
+async function generateAppr(isRetry){
+  $('apprErr').classList.remove('show');
+  const key = localStorage.getItem(KEY_STORE);
+  if(!key){ $('overlay').classList.add('show'); $('apprErr').textContent='請先設定 API Key。'; $('apprErr').classList.add('show'); return; }
 
   const q1 = $('appr1').value.trim();
   const q2 = $('appr2').value.trim();
   const q3 = $('appr3').value.trim();
   const q4 = $('appr4').value.trim();
 
-  if(!q1||!q2||!q3){ b.textContent='請至少填寫前三個問題。'; b.classList.add('show'); return; }
+  if(!q1 || !q2 || !q3){
+    $('apprErr').textContent = '請至少填寫前三個問題，第四題可以跳過。';
+    $('apprErr').classList.add('show');
+    return;
+  }
 
-  const sys = `你是一位擅長用文字表達情感的寫手，熟悉台灣繁體中文日常語氣。
-根據使用者提供的資訊，幫他寫一段發自內心、真誠感人的「點評文字」，用來對對方說出他的辛苦和不容易。
+  const sys = `你是一位擅長用文字表達情感的寫手，熟悉台灣繁體中文的日常語氣。
+根據使用者提供的資訊，幫他寫一段發自內心、真誠感人的「點評感謝文字」。
 要求：
-- 語氣自然溫暖，像真人說話，不要書面或說教
-- 要提到具體的那件事，要有畫面感
-- 情緒要真實，可以有起伏
+- 語氣自然溫暖，像真人說話，不要書面腔或說教
+- 一定要提到那件具體的事，要有畫面感
+- 情緒要真實，可以有起伏，但不要過度煽情
 - 長度 150–250 字左右
-只輸出 JSON：{"title":"標題（10字以內）","text":"正文"}，不含其他文字。`;
+只輸出 JSON：{"title":"標題（10字以內）","text":"正文內容"}，不含任何其他說明。`;
 
-  const userMsg = `給誰：${q1}\n辛苦之處：${q2}\n具體事件：${q3}${q4?'\n情緒感受：'+q4:''}`;
+  const userMsg = `感謝對象：${q1}\n辛苦之處：${q2}\n具體事件：${q3}${q4 ? '\n當時情緒：'+q4 : ''}`;
 
   $('apprBtn').disabled = true;
   $('apprLoading').classList.add('show');
-  if(!retry) $('apprResult').innerHTML = '';
+  if(!isRetry) $('apprResults').innerHTML = '';
 
   try{
     const res = await fetch('https://api.openai.com/v1/chat/completions',{
@@ -1195,44 +1080,51 @@ async function goAppr(retry){
       })
     });
     if(!res.ok){
-      if(res.status===401) throw new Error('API Key 無效或過期。');
+      if(res.status===401) throw new Error('API Key 無效或已過期。');
       if(res.status===429) throw new Error('請求太頻繁，請稍後再試。');
       const e = await res.json().catch(()=>null);
-      throw new Error(e?.error?.message||`API 錯誤（HTTP ${res.status}）`);
+      throw new Error(e?.error?.message || `API 錯誤（HTTP ${res.status}）`);
     }
     const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content||'';
+    const raw = data.choices?.[0]?.message?.content || '';
     let parsed;
     try{ parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
-    catch{ throw new Error('AI 回傳格式異常，請重新生成。'); }
-
+    catch{ throw new Error('AI 回傳格式異常，請再試一次。'); }
     renderAppr(parsed);
-  }catch(e){
-    b.textContent = e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message;
-    b.classList.add('show');
-  }finally{
+  } catch(e){
+    $('apprErr').textContent = e.name==='TypeError' ? '連不上 OpenAI，請確認網路連線正常。' : e.message;
+    $('apprErr').classList.add('show');
+  } finally{
     $('apprBtn').disabled = false;
     $('apprLoading').classList.remove('show');
   }
 }
 
 function renderAppr(parsed){
-  const box = $('apprResult');
+  const box = $('apprResults');
   box.innerHTML = '';
 
-  const arc = document.createElement('div'); arc.className = 'arc';
-  const head = document.createElement('div'); head.className = 'arc-head';
-  const title = document.createElement('span'); title.className = 'arc-title';
-  title.textContent = parsed.title || '點評文字';
+  const card = document.createElement('div');
+  card.className = 'appr-card';
 
-  const cp = document.createElement('button'); cp.className = 'cp';
-  cp.textContent = '複製';
-  head.append(title, cp);
+  const head = document.createElement('div');
+  head.className = 'appr-card-head';
 
-  const body = document.createElement('p'); body.className = 'arc-body';
+  const label = document.createElement('span');
+  label.className = 'appr-card-label';
+  label.innerHTML = `❤ ${parsed.title || '點評感謝文字'}`;
+
+  const cpBtn = document.createElement('button');
+  cpBtn.className = 'copy-btn copy-btn-amber';
+  cpBtn.textContent = '複製';
+
+  head.append(label, cpBtn);
+
+  const body = document.createElement('div');
+  body.className = 'appr-card-body';
   body.textContent = parsed.text || '';
 
-  cp.onclick = async () => {
+  cpBtn.onclick = async () => {
     try{ await navigator.clipboard.writeText(body.textContent); }
     catch{
       const ta = document.createElement('textarea');
@@ -1240,19 +1132,21 @@ function renderAppr(parsed){
       Object.assign(ta.style,{position:'fixed',top:'-9999px'});
       document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
     }
-    cp.textContent = '✓ 已複製'; cp.classList.add('done');
+    cpBtn.textContent = '✓ 已複製';
+    cpBtn.classList.add('done');
     if(navigator.vibrate) navigator.vibrate(28);
-    setTimeout(()=>{ cp.textContent='複製'; cp.classList.remove('done'); },2000);
+    setTimeout(() => { cpBtn.textContent = '複製'; cpBtn.classList.remove('done'); }, 2000);
   };
 
-  arc.append(head, body);
+  card.append(head, body);
 
-  const again = document.createElement('button'); again.className = 'again';
-  again.textContent = '↻ 換一個說法';
-  again.onclick = () => goAppr(true);
+  const retryBtn = document.createElement('button');
+  retryBtn.className = 'btn-secondary mt12';
+  retryBtn.textContent = '↻ 換一個說法';
+  retryBtn.onclick = () => generateAppr(true);
 
-  box.append(arc, again);
-  arc.scrollIntoView({behavior:'smooth',block:'start'});
+  box.append(card, retryBtn);
+  card.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 })();
