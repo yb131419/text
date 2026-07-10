@@ -922,7 +922,7 @@ async function generateAppr(retry){
   if(!retry)$('apprResults').innerHTML='';
 
   try{
-    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:'gpt-4o-mini',temperature:.85,max_tokens:600,response_format:{type:'json_object'},messages:[{role:'system',content:sys},{role:'user',content:msg}]})});
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:'gpt-5.5',temperature:.85,max_tokens:600,response_format:{type:'json_object'},messages:[{role:'system',content:sys},{role:'user',content:msg}]})});
     if(!res.ok){if(res.status===401)throw new Error('API Key 無效或過期。');if(res.status===429)throw new Error('請求太頻繁。');const e=await res.json().catch(()=>null);throw new Error(e?.error?.message||`API 錯誤 ${res.status}`);}
     const data=await res.json();
     const raw=data.choices?.[0]?.message?.content||'';
