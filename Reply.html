@@ -2,816 +2,768 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>回覆靈感 · AI Chat Reply</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>回覆靈感</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ── Reset ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 
 /* ── Tokens ── */
 :root{
-  --bg:        #F7F6F3;
-  --surface:   #FFFFFF;
-  --surface2:  #F2F1EE;
-  --border:    #E4E2DC;
-  --border2:   #C8C5BC;
-  --ink:       #1A1916;
-  --ink2:      #4A4844;
-  --ink3:      #8A8780;
-  --accent:    #2C6E49;        /* forest green */
-  --accent-lt: #3D8F60;
-  --accent-bg: #EBF4EE;
-  --amber:     #B5830A;
-  --amber-bg:  #FDF6E3;
-  --amber-lt:  #E8A80F;
-  --red:       #C0392B;
-  --red-bg:    #FDF0EE;
-  --r-sm:      8px;
-  --r:         12px;
-  --r-lg:      16px;
-  --shadow-sm: 0 1px 4px rgba(0,0,0,.06);
-  --shadow:    0 2px 12px rgba(0,0,0,.08);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
-  --ease:      cubic-bezier(.16,1,.3,1);
+  --bg:       #F5F4F1;
+  --surface:  #FFFFFF;
+  --surface2: #EFEDE9;
+  --border:   #E2DFD8;
+  --border2:  #C5C1B8;
+  --ink:      #1A1916;
+  --ink2:     #4A4844;
+  --ink3:     #908D86;
+  --green:    #2A6644;
+  --green-bg: #E8F2EC;
+  --green-dk: #1F4F33;
+  --amber:    #A8720A;
+  --amber-bg: #FBF3E0;
+  --red:      #B83232;
+  --red-bg:   #FBEEEe;
+  --tab-h:    56px;   /* bottom tab bar height */
+  --nav-h:    52px;   /* top nav height */
+  --safe-b:   env(safe-area-inset-bottom, 0px);
+  --r:        14px;
+  --r-sm:     10px;
+  --ease:     cubic-bezier(.16,1,.3,1);
+  --shadow:   0 1px 6px rgba(0,0,0,.07);
+  --shadow-md:0 4px 20px rgba(0,0,0,.10);
 }
 
 /* ── Base ── */
-html,body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;overflow-x:hidden}
+html,body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  font-size:15px;
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
 
 /* ── App Shell ── */
-.app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+.app{
+  display:flex;flex-direction:column;
+  height:100vh;height:100dvh;
+  overflow:hidden;
+}
 
-/* ════════════════════════════════
-   TOP NAV
-════════════════════════════════ */
-.nav{
-  position:sticky;top:0;z-index:100;
-  height:56px;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;
-  padding:0 20px;gap:16px;
-  box-shadow:var(--shadow-sm);
-}
-.nav-brand{
-  display:flex;align-items:center;gap:8px;flex:none;
-}
-.nav-logo{
-  width:30px;height:30px;border-radius:8px;
-  background:var(--accent);
-  display:grid;place-items:center;
+/* ════════════════════════════
+   TOP NAV  (compact mobile)
+════════════════════════════ */
+.topnav{
   flex:none;
-}
-.nav-logo svg{width:16px;height:16px;fill:#fff}
-.nav-name{
-  font-family:'Noto Serif TC',serif;
-  font-size:16px;font-weight:700;
-  color:var(--ink);letter-spacing:-.01em;
-}
-.nav-sep{width:1px;height:16px;background:var(--border);flex:none}
-.nav-sub{font-size:11px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase}
-.nav-fill{flex:1}
-
-/* Feature tabs in nav */
-.nav-tabs{
-  display:flex;
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:var(--r);
-  padding:3px;gap:2px;
-}
-.nav-tab{
-  padding:6px 16px;border:none;border-radius:var(--r-sm);
-  background:transparent;
-  color:var(--ink3);
-  font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
-  cursor:pointer;white-space:nowrap;min-height:34px;
-  transition:all .18s;
-}
-.nav-tab.on{
+  height:var(--nav-h);
+  padding:0 16px;
+  padding-top:env(safe-area-inset-top,0);
   background:var(--surface);
-  color:var(--ink);
-  box-shadow:var(--shadow-sm);
-  border:1px solid var(--border);
-}
-
-/* Settings button */
-.nav-settings{
-  width:34px;height:34px;border-radius:var(--r-sm);
-  border:1px solid var(--border);
-  background:var(--surface);
-  color:var(--ink2);
-  font-size:15px;cursor:pointer;
-  display:grid;place-items:center;
-  transition:all .2s;flex:none;
-}
-.nav-settings:hover{background:var(--surface2);border-color:var(--border2);color:var(--ink)}
-
-/* ════════════════════════════════
-   MAIN LAYOUT
-════════════════════════════════ */
-.main{flex:1;overflow-y:auto;padding:24px 16px 80px}
-.container{max-width:780px;margin:0 auto}
-
-/* Feature pages */
-.feature-page{display:none}
-.feature-page.show{display:block;animation:fadeUp .22s var(--ease) both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-
-/* ════════════════════════════════
-   PAGE HEADER
-════════════════════════════════ */
-.page-head{
-  margin-bottom:24px;
-  padding-bottom:20px;
   border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+  box-shadow:var(--shadow);
+  z-index:100;
 }
-.page-title{
+.topnav-brand{
+  flex:1;min-width:0;
+  display:flex;align-items:center;gap:8px;
+}
+.topnav-icon{
+  width:32px;height:32px;border-radius:9px;
+  background:var(--green);
+  display:grid;place-items:center;flex:none;
+}
+.topnav-icon svg{width:17px;height:17px;fill:#fff}
+.topnav-title{
   font-family:'Noto Serif TC',serif;
-  font-size:22px;font-weight:700;
-  color:var(--ink);
-  margin-bottom:4px;
+  font-size:17px;font-weight:700;
+  color:var(--ink);letter-spacing:-.01em;
+  white-space:nowrap;
 }
-.page-desc{font-size:13px;color:var(--ink3);line-height:1.7}
+.topnav-sep{width:1px;height:14px;background:var(--border);flex:none}
+.topnav-sub{font-size:11px;color:var(--ink3);letter-spacing:.06em;white-space:nowrap}
 
-/* ════════════════════════════════
-   STEP SYSTEM
-════════════════════════════════ */
-.steps{display:flex;flex-direction:column;gap:16px}
+.settings-btn{
+  flex:none;
+  width:38px;height:38px;
+  border-radius:var(--r-sm);
+  border:1px solid var(--border);
+  background:var(--surface2);
+  color:var(--ink2);
+  font-size:17px;
+  display:grid;place-items:center;
+  cursor:pointer;
+  transition:background .15s;
+}
+.settings-btn:active{background:var(--border)}
+
+/* ════════════════════════════
+   SCROLL AREA
+════════════════════════════ */
+.scroll{
+  flex:1;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  /* leave space for bottom tab bar + safe area */
+  padding-bottom:calc(var(--tab-h) + var(--safe-b) + 20px);
+}
+
+/* ════════════════════════════
+   CONTENT
+════════════════════════════ */
+.page{display:none;padding:16px 14px 0}
+.page.show{display:block;animation:fadeUp .2s var(--ease) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Page header */
+.page-head{margin-bottom:16px}
+.page-head-title{
+  font-size:13px;font-weight:600;
+  color:var(--ink3);
+  letter-spacing:.06em;text-transform:uppercase;
+  margin-bottom:2px;
+}
+.page-head-desc{font-size:13px;color:var(--ink3);line-height:1.65}
+
+/* ════════════════════════════
+   STEP CARD
+════════════════════════════ */
+.steps{display:flex;flex-direction:column;gap:10px}
 
 .step{
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:var(--r-lg);
+  border-radius:var(--r);
   overflow:hidden;
-  box-shadow:var(--shadow-sm);
+  box-shadow:var(--shadow);
 }
-
 .step-head{
-  display:flex;align-items:center;gap:12px;
-  padding:16px 20px;
+  display:flex;align-items:center;gap:10px;
+  padding:13px 16px;
   border-bottom:1px solid var(--border);
-  background:var(--surface);
 }
-
 .step-num{
-  width:28px;height:28px;border-radius:8px;
-  background:var(--accent);
+  width:26px;height:26px;
+  border-radius:8px;
+  background:var(--green);
+  color:#fff;
+  font-size:12px;font-weight:700;
   display:grid;place-items:center;
-  font-size:12px;font-weight:700;color:#fff;
-  flex:none;letter-spacing:-.01em;
+  flex:none;
 }
 .step-num.amber{background:var(--amber)}
-
 .step-label{
-  font-size:13.5px;font-weight:600;
-  color:var(--ink);
+  font-size:14px;font-weight:600;
+  color:var(--ink);flex:1;min-width:0;
 }
 .step-badge{
-  margin-left:auto;
-  font-size:11px;
-  padding:3px 10px;
-  border-radius:999px;
-  background:var(--accent-bg);
-  color:var(--accent);
-  font-weight:500;
-  border:1px solid rgba(44,110,73,.15);
+  flex:none;
+  font-size:11px;padding:2px 9px;border-radius:99px;
+  background:var(--green-bg);color:var(--green);
+  border:1px solid rgba(42,102,68,.15);font-weight:500;
 }
 .step-badge.amber{
-  background:var(--amber-bg);
-  color:var(--amber);
-  border-color:rgba(181,131,10,.2);
+  background:var(--amber-bg);color:var(--amber);
+  border-color:rgba(168,114,10,.2);
 }
+.step-body{padding:14px 16px}
 
-.step-body{padding:20px}
-
-/* ════════════════════════════════
-   INPUT TABS
-════════════════════════════════ */
-.input-tabs{
-  display:flex;gap:4px;
-  margin-bottom:16px;
+/* ════════════════════════════
+   INPUT TABS  (underline style)
+════════════════════════════ */
+.itabs{
+  display:flex;
   border-bottom:1px solid var(--border);
-  padding-bottom:0;
+  margin-bottom:14px;
 }
 .itab{
-  padding:8px 16px 10px;
+  flex:1;
+  padding:9px 4px 10px;
   border:none;border-bottom:2px solid transparent;
   background:transparent;
   color:var(--ink3);
-  font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
-  cursor:pointer;margin-bottom:-1px;
+  font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;
+  cursor:pointer;
+  margin-bottom:-1px;
+  transition:color .15s,border-color .15s;
+}
+.itab.on{color:var(--green);border-bottom-color:var(--green)}
+.ipane{display:none}
+.ipane.show{display:block;animation:fadeUp .15s var(--ease) both}
+
+/* ════════════════════════════
+   DROP ZONE
+════════════════════════════ */
+.dropzone{
+  display:flex;flex-direction:column;align-items:center;
+  gap:10px;padding:28px 16px;
+  border:1.5px dashed var(--border2);
+  border-radius:var(--r-sm);
+  background:var(--surface2);
+  cursor:pointer;text-align:center;
   transition:all .18s;
 }
-.itab.on{
-  color:var(--accent);
-  border-bottom-color:var(--accent);
-}
-.itab:hover{color:var(--ink2)}
-
-.ipane{display:none}
-.ipane.show{display:block;animation:fadeUp .18s var(--ease) both}
-
-/* ════════════════════════════════
-   DROP ZONE (Fixed)
-════════════════════════════════ */
-.dropzone{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:12px;
-  padding:32px 20px;
-  border:1.5px dashed var(--border2);
-  border-radius:var(--r);
-  background:var(--surface2);
-  cursor:pointer;
-  transition:all .2s;
-  text-align:center;
-}
-.dropzone:hover,.dropzone.over{
-  border-color:var(--accent);
-  background:var(--accent-bg);
-}
+.dropzone:active,.dropzone.over{border-color:var(--green);background:var(--green-bg)}
 .dropzone input{display:none}
-.dropzone-icon{
-  width:44px;height:44px;border-radius:12px;
+.dz-icon{
+  width:48px;height:48px;border-radius:12px;
   background:var(--surface);
   border:1px solid var(--border);
   display:grid;place-items:center;
-  font-size:22px;
-  box-shadow:var(--shadow-sm);
-  flex:none;
+  font-size:24px;box-shadow:var(--shadow);
 }
-.dropzone-main{
-  font-size:14px;font-weight:500;
-  color:var(--ink);
-}
-.dropzone-hint{
-  font-size:12px;color:var(--ink3);
-  line-height:1.6;
-}
-.dropzone-hint span{
-  display:inline-block;
-  background:var(--border);
-  border-radius:4px;
-  padding:1px 6px;
-  font-size:11px;
-  color:var(--ink2);
-  margin:2px;
+.dz-main{font-size:14px;font-weight:500;color:var(--ink)}
+.dz-hint{font-size:12px;color:var(--ink3);line-height:1.7}
+.dz-tags{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:2px}
+.dz-tag{
+  font-size:11px;padding:2px 8px;border-radius:6px;
+  background:var(--border);color:var(--ink2);
 }
 
 /* Preview */
-.preview-wrap{display:none;margin-top:14px;position:relative}
-.preview-wrap.show{display:block}
-.preview-wrap img{
-  width:100%;max-height:300px;object-fit:contain;
-  border-radius:var(--r);
+.prev-wrap{display:none;margin-top:12px;position:relative}
+.prev-wrap.show{display:block}
+.prev-wrap img{
+  width:100%;max-height:260px;object-fit:contain;
+  border-radius:var(--r-sm);
   border:1px solid var(--border);
   background:var(--surface2);
+  display:block;
 }
-.preview-rm{
+.prev-rm{
   position:absolute;top:8px;right:8px;
-  width:28px;height:28px;border-radius:50%;
+  width:30px;height:30px;border-radius:50%;
   background:rgba(255,255,255,.95);
   border:1px solid var(--border);
-  color:var(--ink2);font-size:12px;cursor:pointer;
+  color:var(--ink2);font-size:13px;
   display:grid;place-items:center;
-  box-shadow:var(--shadow-sm);
-  transition:all .2s;
+  cursor:pointer;box-shadow:var(--shadow);
 }
-.preview-rm:hover{background:var(--red-bg);color:var(--red);border-color:rgba(192,57,43,.3)}
+.prev-rm:active{background:var(--red-bg);color:var(--red)}
 
-/* ════════════════════════════════
+/* ════════════════════════════
    TEXTAREA
-════════════════════════════════ */
+════════════════════════════ */
 textarea{
-  width:100%;min-height:140px;
+  width:100%;min-height:130px;
   background:var(--surface2);
   border:1px solid var(--border);
-  border-radius:var(--r);
+  border-radius:var(--r-sm);
   color:var(--ink);
-  font-family:'Inter',sans-serif;font-size:14px;font-weight:400;
-  line-height:1.75;
-  padding:14px 16px;resize:vertical;
-  transition:border-color .18s,box-shadow .18s;
+  font-family:'Inter',sans-serif;font-size:14px;
+  line-height:1.75;padding:12px 14px;
+  resize:vertical;
+  transition:border-color .15s;
+  -webkit-appearance:none;
 }
-textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(44,110,73,.10)}
+textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(42,102,68,.10)}
 textarea::placeholder{color:var(--ink3)}
 
-/* ════════════════════════════════
-   CHIPS
-════════════════════════════════ */
+/* ════════════════════════════
+   CHIPS  (touch-friendly)
+════════════════════════════ */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{
-  padding:7px 16px;
-  border-radius:999px;
+  padding:9px 18px;
+  border-radius:99px;
   border:1px solid var(--border);
   background:var(--surface2);
   color:var(--ink2);
-  font-family:'Inter',sans-serif;font-size:13px;font-weight:400;
-  cursor:pointer;min-height:38px;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:400;
+  cursor:pointer;min-height:44px;
   display:inline-flex;align-items:center;
-  transition:all .18s;
+  transition:all .15s;
 }
-.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.chip:active{transform:scale(.95)}
 .chip.on{
-  border-color:var(--accent);
-  background:var(--accent);
-  color:#fff;
-  font-weight:500;
+  border-color:var(--green);
+  background:var(--green);
+  color:#fff;font-weight:500;
 }
 
-/* ════════════════════════════════
-   FORM FIELDS (for 點評)
-════════════════════════════════ */
-.field{margin-bottom:16px}
+/* ════════════════════════════
+   FORM FIELD
+════════════════════════════ */
+.field{margin-bottom:14px}
 .field:last-child{margin-bottom:0}
 .field-label{
-  display:block;
-  font-size:12.5px;font-weight:600;
-  color:var(--ink2);
-  margin-bottom:6px;
-  letter-spacing:.01em;
-}
-.field-label em{
-  font-style:normal;
-  display:inline-block;
-  width:18px;height:18px;line-height:18px;
-  text-align:center;border-radius:50%;
-  background:var(--amber);color:#fff;
-  font-size:10px;font-weight:700;
-  margin-right:6px;
+  display:block;font-size:13px;font-weight:600;
+  color:var(--ink2);margin-bottom:6px;
 }
 .field-input{
   width:100%;
   background:var(--surface2);
   border:1px solid var(--border);
-  border-radius:var(--r);
+  border-radius:var(--r-sm);
   color:var(--ink);
   font-family:'Inter',sans-serif;font-size:14px;
-  padding:11px 14px;
-  transition:border-color .18s,box-shadow .18s;
+  padding:12px 14px;min-height:48px;
+  transition:border-color .15s;
+  -webkit-appearance:none;
 }
-.field-input:focus{outline:none;border-color:var(--amber-lt);box-shadow:0 0 0 3px rgba(181,131,10,.10)}
+.field-input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(168,114,10,.10)}
 .field-input::placeholder{color:var(--ink3)}
-.field-ta{resize:vertical;min-height:88px;line-height:1.7}
+.field-ta{resize:vertical;min-height:90px;line-height:1.7}
 
-/* ════════════════════════════════
-   BUTTONS
-════════════════════════════════ */
+/* ════════════════════════════
+   STICKY BOTTOM CTA
+════════════════════════════ */
+.bottom-cta{
+  position:fixed;
+  bottom:calc(var(--tab-h) + var(--safe-b));
+  left:0;right:0;
+  z-index:90;
+  padding:10px 14px;
+  background:linear-gradient(to top, var(--bg) 70%, transparent);
+}
 .btn-primary{
   position:relative;overflow:hidden;
-  width:100%;padding:15px 24px;
+  width:100%;padding:16px 24px;
   border:none;border-radius:var(--r);cursor:pointer;
-  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
-  letter-spacing:.02em;
+  font-family:'Inter',sans-serif;font-size:15px;font-weight:600;
   color:#fff;
-  background:var(--accent);
-  min-height:52px;
+  background:var(--green);
+  min-height:54px;
   display:flex;align-items:center;justify-content:center;gap:8px;
-  box-shadow:0 2px 16px rgba(44,110,73,.30);
-  transition:opacity .18s,transform .18s,box-shadow .18s;
+  box-shadow:0 4px 18px rgba(42,102,68,.35);
+  transition:opacity .15s,transform .15s;
+  -webkit-appearance:none;
 }
-.btn-primary:hover{opacity:.92;box-shadow:0 4px 24px rgba(44,110,73,.40)}
-.btn-primary:active{transform:scale(.98)}
-.btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-primary:active{transform:scale(.98);opacity:.9}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none}
+
+.btn-primary.amber{
+  background:var(--amber);
+  box-shadow:0 4px 18px rgba(168,114,10,.35);
+}
 
 /* Shimmer */
 .btn-primary::after{
   content:'';position:absolute;
   top:0;left:-80%;width:50%;height:100%;
-  background:linear-gradient(105deg,transparent,rgba(255,255,255,.22),transparent);
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.18),transparent);
   transform:skewX(-20deg);
-  transition:left .65s ease;
+  transition:left .6s ease;
 }
 .btn-primary:hover:not(:disabled)::after{left:140%}
 
-.btn-amber{
-  background:var(--amber);
-  box-shadow:0 2px 16px rgba(181,131,10,.28);
-}
-.btn-amber:hover{box-shadow:0 4px 24px rgba(181,131,10,.42)}
-
-.btn-secondary{
-  width:100%;padding:13px 24px;
-  border:1px solid var(--border);
-  border-radius:var(--r);
-  background:var(--surface);
-  color:var(--ink2);
-  font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
-  cursor:pointer;min-height:46px;
-  transition:all .18s;
-}
-.btn-secondary:hover{border-color:var(--border2);background:var(--surface2);color:var(--ink)}
-
-/* ════════════════════════════════
+/* ════════════════════════════
    LOADING
-════════════════════════════════ */
+════════════════════════════ */
 .loading{
   display:none;
   align-items:center;gap:10px;
-  margin-top:16px;padding:14px 16px;
+  margin-top:12px;padding:13px 14px;
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:var(--r);
+  border-radius:var(--r-sm);
   font-size:13px;color:var(--ink3);
 }
 .loading.show{display:flex}
 .dots{display:flex;gap:5px}
 .dots i{
   width:6px;height:6px;border-radius:50%;
-  background:var(--accent);display:block;
+  background:var(--green);display:block;
   animation:blink 1.2s ease-in-out infinite;
 }
+.loading.amber .dots i{background:var(--amber)}
 .dots i:nth-child(2){animation-delay:.16s}
 .dots i:nth-child(3){animation-delay:.32s}
 @keyframes blink{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
 
-.loading-amber .dots i{background:var(--amber)}
-
-/* ════════════════════════════════
+/* ════════════════════════════
    ERROR
-════════════════════════════════ */
-.error-box{
-  display:none;margin-top:12px;
-  padding:12px 16px;
+════════════════════════════ */
+.err{
+  display:none;margin-top:10px;
+  padding:12px 14px;
   background:var(--red-bg);
-  border:1px solid rgba(192,57,43,.2);
-  border-radius:var(--r);
+  border:1px solid rgba(184,50,50,.18);
+  border-radius:var(--r-sm);
   color:var(--red);font-size:13px;line-height:1.6;
 }
-.error-box.show{display:block}
+.err.show{display:block}
 
-/* ════════════════════════════════
-   RESULTS AREA
-════════════════════════════════ */
-.results{margin-top:20px;display:flex;flex-direction:column;gap:12px}
+/* ════════════════════════════
+   RESULTS
+════════════════════════════ */
+.results{display:flex;flex-direction:column;gap:10px;margin-top:12px}
 
-/* ── Reply Card ── */
 .reply-card{
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:var(--r-lg);
+  border-radius:var(--r);
   overflow:hidden;
-  box-shadow:var(--shadow-sm);
-  animation:fadeUp .4s var(--ease) both;
-  transition:box-shadow .2s,border-color .2s;
+  box-shadow:var(--shadow);
+  animation:fadeUp .35s var(--ease) both;
 }
-.reply-card:hover{box-shadow:var(--shadow);border-color:var(--border2)}
-
-.reply-tag{
+.reply-head{
   display:flex;align-items:center;justify-content:space-between;
-  padding:12px 16px;
+  padding:11px 14px;
   background:var(--surface2);
   border-bottom:1px solid var(--border);
 }
 .reply-label{
-  display:flex;align-items:center;gap:8px;
   font-size:12px;font-weight:600;
-  color:var(--accent);
-  letter-spacing:.04em;
-  text-transform:uppercase;
+  color:var(--green);letter-spacing:.04em;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;
 }
-.reply-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
-
+.reply-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
+.reply-body{
+  padding:14px 16px;
+  font-size:15px;line-height:1.9;
+  color:var(--ink);white-space:pre-wrap;
+}
 .copy-btn{
-  padding:6px 14px;border-radius:999px;
+  padding:7px 14px;border-radius:99px;
   border:1px solid var(--border);
   background:var(--surface);
   color:var(--ink2);
   font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
-  cursor:pointer;min-height:32px;
-  transition:all .18s;
+  cursor:pointer;min-height:34px;
+  transition:all .15s;
   display:flex;align-items:center;gap:4px;
 }
-.copy-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-.copy-btn.done{
-  background:var(--accent);color:#fff;border-color:transparent;
-  animation:pop .35s var(--ease) both;
-}
-@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
+.copy-btn:active{transform:scale(.94)}
+.copy-btn.done{background:var(--green);color:#fff;border-color:transparent}
+.copy-btn.done-amber{background:var(--amber);color:#fff;border-color:transparent}
 
-.reply-body{
-  padding:16px 18px;
-  font-size:14.5px;line-height:1.9;
-  color:var(--ink);
-  white-space:pre-wrap;
-  font-weight:400;
-}
-
-/* ── Appreciate result ── */
 .appr-card{
   background:var(--surface);
-  border:1px solid rgba(181,131,10,.25);
-  border-radius:var(--r-lg);
+  border:1px solid rgba(168,114,10,.22);
+  border-radius:var(--r);
   overflow:hidden;
-  box-shadow:var(--shadow-sm);
-  animation:fadeUp .4s var(--ease) both;
+  box-shadow:var(--shadow);
+  animation:fadeUp .35s var(--ease) both;
 }
-.appr-card-head{
+.appr-head{
   display:flex;align-items:center;justify-content:space-between;
-  padding:12px 16px;
+  padding:11px 14px;
   background:var(--amber-bg);
-  border-bottom:1px solid rgba(181,131,10,.15);
+  border-bottom:1px solid rgba(168,114,10,.15);
 }
-.appr-card-label{
+.appr-label{
   font-size:13px;font-weight:600;
   color:var(--amber);
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:6px;
 }
-.appr-card-body{
-  padding:18px;
-  font-size:14.5px;line-height:2;
-  color:var(--ink);
-  white-space:pre-wrap;
+.appr-body{
+  padding:14px 16px;
+  font-size:15px;line-height:2;
+  color:var(--ink);white-space:pre-wrap;
 }
-.copy-btn-amber:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-bg)}
-.copy-btn-amber.done{background:var(--amber);color:#fff;border-color:transparent}
 
-/* ════════════════════════════════
-   MODAL
-════════════════════════════════ */
-.overlay{
-  position:fixed;inset:0;z-index:300;
-  display:none;align-items:center;justify-content:center;padding:20px;
-  background:rgba(26,25,22,.6);
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-}
-.overlay.show{display:flex;animation:fadeUp .18s ease both}
-
-.modal{
-  width:100%;max-width:400px;
-  background:var(--surface);
+.btn-retry{
+  width:100%;padding:13px;
   border:1px solid var(--border);
-  border-radius:20px;
-  padding:28px 24px;
-  box-shadow:var(--shadow-lg);
+  border-radius:var(--r-sm);
+  background:var(--surface);
+  color:var(--ink2);
+  font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;
+  cursor:pointer;min-height:48px;
+  transition:all .15s;
+  margin-top:4px;
+}
+.btn-retry:active{background:var(--surface2)}
+
+/* ════════════════════════════
+   BOTTOM TAB BAR
+════════════════════════════ */
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;
+  z-index:100;
+  height:calc(var(--tab-h) + var(--safe-b));
+  padding-bottom:var(--safe-b);
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;
+  box-shadow:0 -2px 12px rgba(0,0,0,.06);
+}
+.tabitem{
+  flex:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;
+  border:none;background:transparent;
+  cursor:pointer;padding:8px 4px;
+  color:var(--ink3);
+  font-family:'Inter',sans-serif;font-size:10px;font-weight:500;
+  letter-spacing:.02em;
+  transition:color .15s;
+}
+.tabitem.on{color:var(--green)}
+.tabitem.on.amber{color:var(--amber)}
+.tabitem-icon{font-size:22px;line-height:1}
+.tabitem-label{line-height:1}
+
+/* ════════════════════════════
+   MODAL
+════════════════════════════ */
+.overlay{
+  position:fixed;inset:0;z-index:200;
+  display:none;align-items:flex-end;justify-content:center;
+  background:rgba(26,25,22,.5);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  padding:0;
+}
+.overlay.show{display:flex;animation:fadeUp .2s ease both}
+.modal{
+  width:100%;
+  background:var(--surface);
+  border-radius:20px 20px 0 0;
+  padding:20px 20px calc(20px + var(--safe-b));
+  box-shadow:var(--shadow-md);
+}
+.modal-handle{
+  width:36px;height:4px;border-radius:2px;
+  background:var(--border2);margin:0 auto 20px;
 }
 .modal-title{
   font-family:'Noto Serif TC',serif;
-  font-size:20px;font-weight:700;
+  font-size:19px;font-weight:700;
   color:var(--ink);margin-bottom:6px;
 }
-.modal-desc{font-size:13px;color:var(--ink3);line-height:1.7;margin-bottom:18px}
+.modal-desc{font-size:13px;color:var(--ink3);line-height:1.7;margin-bottom:16px}
 .modal-input{
-  width:100%;padding:12px 14px;
+  width:100%;padding:13px 14px;
   background:var(--surface2);
-  border:1px solid var(--border);border-radius:var(--r);
-  color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;
-  min-height:48px;
-  transition:all .18s;
+  border:1px solid var(--border);border-radius:var(--r-sm);
+  color:var(--ink);font-family:'Inter',sans-serif;font-size:15px;
+  min-height:50px;transition:border-color .15s;
+  -webkit-appearance:none;
 }
-.modal-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(44,110,73,.10)}
+.modal-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(42,102,68,.10)}
 .modal-input::placeholder{color:var(--ink3)}
-.modal-actions{display:flex;gap:10px;margin-top:16px}
+.modal-row{display:flex;gap:10px;margin-top:14px}
 .modal-save{
-  flex:1;padding:12px;border-radius:var(--r);cursor:pointer;
-  background:var(--accent);color:#fff;
-  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
-  border:none;min-height:46px;
-  box-shadow:0 2px 12px rgba(44,110,73,.30);
-  transition:opacity .18s;
+  flex:1;padding:14px;border-radius:var(--r-sm);
+  border:none;background:var(--green);color:#fff;
+  font-family:'Inter',sans-serif;font-size:15px;font-weight:600;
+  min-height:50px;cursor:pointer;
+  transition:opacity .15s;
 }
-.modal-save:hover{opacity:.9}
+.modal-save:active{opacity:.85}
 .modal-cancel{
-  flex:1;padding:12px;border-radius:var(--r);cursor:pointer;
-  background:var(--surface2);border:1px solid var(--border);
-  color:var(--ink2);font-family:'Inter',sans-serif;font-size:14px;
-  min-height:46px;transition:all .18s;
+  flex:1;padding:14px;border-radius:var(--r-sm);
+  border:1px solid var(--border);background:var(--surface2);
+  color:var(--ink2);font-family:'Inter',sans-serif;font-size:15px;
+  min-height:50px;cursor:pointer;
 }
-.modal-cancel:hover{border-color:var(--border2);color:var(--ink)}
+.modal-cancel:active{background:var(--border)}
 
-/* ════════════════════════════════
-   DIVIDER with label
-════════════════════════════════ */
-.section-div{
-  height:1px;background:var(--border);margin:0;
-}
-
-/* ════════════════════════════════
-   Scrollbar
-════════════════════════════════ */
-::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
-::-webkit-scrollbar-thumb:hover{background:var(--ink3)}
-
-/* ════════════════════════════════
-   Reduced motion
-════════════════════════════════ */
+/* misc */
+::-webkit-scrollbar{display:none}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-
-/* ════════════════════════════════
-   Utility
-════════════════════════════════ */
-.mt8{margin-top:8px}
-.mt12{margin-top:12px}
-.mt16{margin-top:16px}
 </style>
 </head>
 
 <body>
 <div class="app">
 
-  <!-- ── Navigation ── -->
-  <nav class="nav">
-    <div class="nav-brand">
-      <div class="nav-logo">
+  <!-- Top Nav -->
+  <nav class="topnav">
+    <div class="topnav-brand">
+      <div class="topnav-icon">
         <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
       </div>
-      <span class="nav-name">回覆靈感</span>
-      <div class="nav-sep"></div>
-      <span class="nav-sub">AI Chat Reply</span>
+      <span class="topnav-title">回覆靈感</span>
+      <div class="topnav-sep"></div>
+      <span class="topnav-sub">AI Reply</span>
     </div>
-
-    <div class="nav-fill"></div>
-
-    <div class="nav-tabs" id="navTabs" role="tablist">
-      <button class="nav-tab on" data-page="reply" role="tab">💬 回覆建議</button>
-      <button class="nav-tab" data-page="appreciate" role="tab">❤️ 點評感謝</button>
-    </div>
-
-    <button class="nav-settings" id="settingsBtn" title="設定 API Key">⚙</button>
+    <button class="settings-btn" id="settingsBtn">⚙</button>
   </nav>
 
-  <!-- ── Main ── -->
-  <main class="main">
-    <div class="container">
+  <!-- Scrollable content -->
+  <div class="scroll" id="scroll">
 
-      <!-- ════════ PAGE: 回覆建議 ════════ -->
-      <div class="feature-page show" id="page-reply">
-        <div class="page-head">
-          <h1 class="page-title">回覆建議</h1>
-          <p class="page-desc">貼入對話截圖或文字，AI 根據你設定的語氣和關係，給出 3 個自然的回覆方向。</p>
-        </div>
+    <!-- ══ PAGE: 回覆建議 ══ -->
+    <div class="page show" id="page-reply">
+      <div class="page-head">
+        <div class="page-head-title">回覆建議</div>
+        <div class="page-head-desc">貼入截圖或文字，AI 根據語氣和關係給出 3 個自然回覆。</div>
+      </div>
 
-        <div class="steps">
+      <div class="steps">
 
-          <!-- Step 1 -->
-          <div class="step">
-            <div class="step-head">
-              <div class="step-num">1</div>
-              <span class="step-label">提供對話內容</span>
+        <!-- Step 1 -->
+        <div class="step">
+          <div class="step-head">
+            <div class="step-num">1</div>
+            <span class="step-label">對話內容</span>
+          </div>
+          <div class="step-body">
+            <div class="itabs">
+              <button class="itab on" data-ip="ip-img">📷 上傳截圖</button>
+              <button class="itab" data-ip="ip-txt">📋 貼上文字</button>
             </div>
-            <div class="step-body">
-              <div class="input-tabs">
-                <button class="itab on" data-ipane="ip-img">📷 上傳截圖</button>
-                <button class="itab" data-ipane="ip-txt">📋 貼上文字</button>
-              </div>
 
-              <div class="ipane show" id="ip-img">
-                <label class="dropzone" id="dropZone">
-                  <input type="file" id="fileIn" accept="image/*">
-                  <div class="dropzone-icon">🖼</div>
-                  <div class="dropzone-main">點擊選取，或直接拖曳圖片進來</div>
-                  <div class="dropzone-hint">
-                    支援格式：<span>JPG</span><span>PNG</span><span>WEBP</span><br>
-                    超過 3MB 或 1600px 會自動壓縮
-                  </div>
-                </label>
-
-                <div class="preview-wrap" id="prevWrap">
-                  <img id="prevImg" alt="截圖預覽">
-                  <button class="preview-rm" id="rmImg">✕</button>
+            <div class="ipane show" id="ip-img">
+              <label class="dropzone" id="dropZone">
+                <input type="file" id="fileIn" accept="image/*">
+                <div class="dz-icon">🖼</div>
+                <div class="dz-main">點擊選取或拖曳截圖</div>
+                <div class="dz-hint">超過 3MB / 1600px 自動壓縮</div>
+                <div class="dz-tags">
+                  <span class="dz-tag">JPG</span>
+                  <span class="dz-tag">PNG</span>
+                  <span class="dz-tag">WEBP</span>
                 </div>
-              </div>
-
-              <div class="ipane" id="ip-txt">
-                <textarea id="txtIn" placeholder="貼上對話紀錄，例如：&#10;&#10;對方：欸你週末有空嗎&#10;我：應該有 怎麼了&#10;對方：沒有啦 就想找你出來走走"></textarea>
-              </div>
-            </div>
-          </div>
-
-          <!-- Step 2 -->
-          <div class="step">
-            <div class="step-head">
-              <div class="step-num">2</div>
-              <span class="step-label">選擇回覆語氣</span>
-            </div>
-            <div class="step-body">
-              <div class="chips" id="toneChips">
-                <button class="chip on" data-v="幽默風趣">幽默風趣</button>
-                <button class="chip" data-v="溫柔體貼">溫柔體貼</button>
-                <button class="chip" data-v="曖昧撩人但不油膩">曖昧撩人</button>
-                <button class="chip" data-v="正式得體">正式得體</button>
-                <button class="chip" data-v="高情商委婉拒絕">高情商拒絕</button>
+              </label>
+              <div class="prev-wrap" id="prevWrap">
+                <img id="prevImg" alt="截圖預覽">
+                <button class="prev-rm" id="rmImg">✕</button>
               </div>
             </div>
-          </div>
 
-          <!-- Step 3 -->
-          <div class="step">
-            <div class="step-head">
-              <div class="step-num">3</div>
-              <span class="step-label">選擇對方身分</span>
-            </div>
-            <div class="step-body">
-              <div class="chips" id="relChips">
-                <button class="chip on" data-v="朋友">朋友</button>
-                <button class="chip" data-v="客戶">客戶</button>
-                <button class="chip" data-v="同事">同事</button>
-                <button class="chip" data-v="夫妻">夫妻</button>
-                <button class="chip" data-v="父母">父母</button>
-                <button class="chip" data-v="陌生人">陌生人</button>
-              </div>
+            <div class="ipane" id="ip-txt">
+              <textarea id="txtIn" placeholder="貼上對話，例如：&#10;&#10;對方：欸你週末有空嗎&#10;我：應該有 怎麼了&#10;對方：沒有啦 就想找你出來走走"></textarea>
             </div>
           </div>
-
-          <!-- Action -->
-          <button class="btn-primary" id="goBtn">✦ 生成回覆建議</button>
-
-          <div class="loading" id="loading">
-            <div class="dots"><i></i><i></i><i></i></div>
-            <span>AI 正在分析對話，思考最適合的說法…</span>
-          </div>
-          <div class="error-box" id="errBox"></div>
-
-          <!-- Results -->
-          <div class="results" id="results"></div>
-
         </div>
+
+        <!-- Step 2 -->
+        <div class="step">
+          <div class="step-head">
+            <div class="step-num">2</div>
+            <span class="step-label">回覆語氣</span>
+          </div>
+          <div class="step-body">
+            <div class="chips" id="toneChips">
+              <button class="chip on" data-v="幽默風趣">幽默風趣</button>
+              <button class="chip" data-v="溫柔體貼">溫柔體貼</button>
+              <button class="chip" data-v="曖昧撩人但不油膩">曖昧撩人</button>
+              <button class="chip" data-v="正式得體">正式得體</button>
+              <button class="chip" data-v="高情商委婉拒絕">高情商拒絕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step">
+          <div class="step-head">
+            <div class="step-num">3</div>
+            <span class="step-label">對方身分</span>
+          </div>
+          <div class="step-body">
+            <div class="chips" id="relChips">
+              <button class="chip on" data-v="朋友">朋友</button>
+              <button class="chip" data-v="客戶">客戶</button>
+              <button class="chip" data-v="同事">同事</button>
+              <button class="chip" data-v="夫妻">夫妻</button>
+              <button class="chip" data-v="父母">父母</button>
+              <button class="chip" data-v="陌生人">陌生人</button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- ════════ PAGE: 點評感謝 ════════ -->
-      <div class="feature-page" id="page-appreciate">
-        <div class="page-head">
-          <h1 class="page-title">點評感謝</h1>
-          <p class="page-desc">四個問題引導你說出心中對對方的感謝，AI 幫你把那份情感轉化成真誠、有畫面感的文字。</p>
-        </div>
-
-        <div class="steps">
-
-          <div class="step">
-            <div class="step-head">
-              <div class="step-num amber">1</div>
-              <span class="step-label">你要感謝誰？</span>
-            </div>
-            <div class="step-body">
-              <input class="field-input" id="appr1" type="text" placeholder="例如：我媽、我老公、我同事小美…">
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-head">
-              <div class="step-num amber">2</div>
-              <span class="step-label">讓你感覺到辛苦和不容易的是什麼事？</span>
-            </div>
-            <div class="step-body">
-              <input class="field-input" id="appr2" type="text" placeholder="例如：每天早起送我上班、一個人扛家裡所有事…">
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-head">
-              <div class="step-num amber">3</div>
-              <span class="step-label">說一件具體的事（時間、地點、人物、事件）</span>
-              <span class="step-badge amber">越具體越感人</span>
-            </div>
-            <div class="step-body">
-              <textarea class="field-input field-ta" id="appr3" placeholder="例如：上週三晚上快十一點，他還在廚房幫我準備隔天便當，我下班回來看到那個畫面…"></textarea>
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-head">
-              <div class="step-num amber">4</div>
-              <span class="step-label">當時你有什麼情緒或感受？</span>
-              <span class="step-badge amber">選填</span>
-            </div>
-            <div class="step-body">
-              <input class="field-input" id="appr4" type="text" placeholder="例如：又心疼又愧疚，但又不知道怎麼開口…">
-            </div>
-          </div>
-
-          <!-- Action -->
-          <button class="btn-primary btn-amber" id="apprBtn">❤ 生成點評感謝文字</button>
-
-          <div class="loading loading-amber" id="apprLoading">
-            <div class="dots"><i></i><i></i><i></i></div>
-            <span>正在用心撰寫中，請稍候…</span>
-          </div>
-          <div class="error-box" id="apprErr"></div>
-
-          <div class="results" id="apprResults"></div>
-
-        </div>
+      <div class="loading" id="loading">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <span>AI 正在分析對話中…</span>
       </div>
-
+      <div class="err" id="errBox"></div>
+      <div class="results" id="results"></div>
     </div>
-  </main>
-</div>
 
-<!-- ── Settings Modal ── -->
+    <!-- ══ PAGE: 點評感謝 ══ -->
+    <div class="page" id="page-appreciate">
+      <div class="page-head">
+        <div class="page-head-title">點評感謝</div>
+        <div class="page-head-desc">四個問題引導你，AI 幫你把那份情感變成真誠有畫面的文字。</div>
+      </div>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-head">
+            <div class="step-num amber">1</div>
+            <span class="step-label">你要感謝誰？</span>
+          </div>
+          <div class="step-body">
+            <input class="field-input" id="appr1" type="text" placeholder="例如：我媽、我老公、我同事小美…">
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-head">
+            <div class="step-num amber">2</div>
+            <span class="step-label">讓你感覺到他辛苦的是什麼？</span>
+          </div>
+          <div class="step-body">
+            <input class="field-input" id="appr2" type="text" placeholder="例如：每天早起送我上班、一個人扛家裡所有事…">
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-head">
+            <div class="step-num amber">3</div>
+            <span class="step-label">說一件具體的事</span>
+            <span class="step-badge amber">越具體越感人</span>
+          </div>
+          <div class="step-body">
+            <textarea class="field-input field-ta" id="appr3" placeholder="時間、地點、人物、事件&#10;&#10;例如：上週三晚上快十一點，他還在廚房幫我準備隔天便當，我下班回來看到那個畫面…"></textarea>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-head">
+            <div class="step-num amber">4</div>
+            <span class="step-label">當時你有什麼感受？</span>
+            <span class="step-badge amber">選填</span>
+          </div>
+          <div class="step-body">
+            <input class="field-input" id="appr4" type="text" placeholder="例如：又心疼又愧疚，不知道怎麼開口…">
+          </div>
+        </div>
+
+      </div>
+
+      <div class="loading amber" id="apprLoading">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <span>正在用心撰寫中…</span>
+      </div>
+      <div class="err" id="apprErr"></div>
+      <div class="results" id="apprResults"></div>
+    </div>
+
+  </div><!-- /scroll -->
+
+  <!-- Sticky CTA (changes per page) -->
+  <div class="bottom-cta" id="bottomCta">
+    <button class="btn-primary" id="goBtn">✦ 生成回覆建議</button>
+  </div>
+
+  <!-- Bottom Tab Bar -->
+  <nav class="tabbar">
+    <button class="tabitem on" data-page="reply" id="tab-reply">
+      <span class="tabitem-icon">💬</span>
+      <span class="tabitem-label">回覆建議</span>
+    </button>
+    <button class="tabitem amber" data-page="appreciate" id="tab-appreciate">
+      <span class="tabitem-icon">❤️</span>
+      <span class="tabitem-label">點評感謝</span>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- Settings Sheet -->
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h2 class="modal-title">連接 OpenAI</h2>
-    <p class="modal-desc">輸入你的 OpenAI API Key（以 sk- 開頭）。Key 只儲存在你的瀏覽器本機，不會上傳到任何伺服器。</p>
+    <div class="modal-handle"></div>
+    <div class="modal-title">連接 OpenAI</div>
+    <div class="modal-desc">輸入你的 API Key（以 sk- 開頭）。Key 只存在你的瀏覽器，不會上傳。</div>
     <input class="modal-input" type="password" id="keyIn" placeholder="sk-...">
-    <div class="modal-actions">
+    <div class="modal-row">
       <button class="modal-cancel" id="closeModal">取消</button>
       <button class="modal-save" id="saveKey">儲存</button>
     </div>
@@ -822,330 +774,202 @@ textarea::placeholder{color:var(--ink3)}
 (function(){
 'use strict';
 const $ = id => document.getElementById(id);
-const KEY_STORE = 'rai_v5';
+const STORE = 'rai_v5';
 let imgData = null, imgMime = 'image/jpeg';
+let curPage = 'reply';
 
-/* ── Page Navigation ── */
-document.querySelectorAll('.nav-tab').forEach(tab => {
-  tab.onclick = () => {
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('on'));
-    document.querySelectorAll('.feature-page').forEach(p => p.classList.remove('show'));
-    tab.classList.add('on');
-    $('page-' + tab.dataset.page).classList.add('show');
-  };
+/* ── Page switch ── */
+const pages = { reply: { btn:'goBtn', label:'✦ 生成回覆建議', cls:'' }, appreciate: { btn:'apprBtn', label:'❤ 生成點評感謝', cls:'amber' } };
+
+document.querySelectorAll('.tabitem').forEach(t => {
+  t.onclick = () => switchPage(t.dataset.page);
 });
 
+function switchPage(id){
+  curPage = id;
+  document.querySelectorAll('.tabitem').forEach(t => t.classList.toggle('on', t.dataset.page===id));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('show', p.id==='page-'+id));
+  $('scroll').scrollTo(0,0);
+
+  // swap CTA button
+  const cfg = pages[id];
+  const old = $('goBtn') || $('apprBtn');
+  if(old) old.remove();
+  const btn = document.createElement('button');
+  btn.className = 'btn-primary' + (cfg.cls ? ' '+cfg.cls : '');
+  btn.id = cfg.btn;
+  btn.textContent = cfg.label;
+  $('bottomCta').innerHTML = '';
+  $('bottomCta').appendChild(btn);
+  bindBtn(id, btn);
+}
+
+function bindBtn(id, btn){
+  if(id==='reply') btn.onclick = () => generateReply(false);
+  else btn.onclick = () => generateAppr(false);
+}
+
+// bind initial
+$('goBtn').onclick = () => generateReply(false);
+
 /* ── Settings ── */
-$('settingsBtn').onclick = () => {
-  $('keyIn').value = localStorage.getItem(KEY_STORE) || '';
-  $('overlay').classList.add('show');
-};
+$('settingsBtn').onclick = () => { $('keyIn').value=localStorage.getItem(STORE)||''; $('overlay').classList.add('show'); };
 $('closeModal').onclick = () => $('overlay').classList.remove('show');
-$('overlay').onclick = e => { if(e.target === $('overlay')) $('overlay').classList.remove('show'); };
+$('overlay').onclick = e => { if(e.target===$('overlay')) $('overlay').classList.remove('show'); };
 $('saveKey').onclick = () => {
   const v = $('keyIn').value.trim();
-  if(v && !v.startsWith('sk-')) { alert('Key 格式不對，OpenAI 的 Key 以 sk- 開頭。'); return; }
-  localStorage.setItem(KEY_STORE, v);
+  if(v && !v.startsWith('sk-')){ alert('Key 格式不對，應以 sk- 開頭。'); return; }
+  localStorage.setItem(STORE,v);
   $('overlay').classList.remove('show');
 };
 
 /* ── Input Tabs ── */
-document.querySelectorAll('.itab').forEach(tab => {
-  tab.onclick = () => {
-    document.querySelectorAll('.itab').forEach(t => t.classList.remove('on'));
-    document.querySelectorAll('.ipane').forEach(p => p.classList.remove('show'));
-    tab.classList.add('on');
-    $(tab.dataset.ipane).classList.add('show');
+document.querySelectorAll('.itab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.itab').forEach(x => x.classList.remove('on'));
+    document.querySelectorAll('.ipane').forEach(x => x.classList.remove('show'));
+    t.classList.add('on');
+    $(t.dataset.ip).classList.add('show');
   };
 });
 
 /* ── Chips ── */
 ['toneChips','relChips'].forEach(id => {
-  $(id).querySelectorAll('.chip').forEach(chip => {
-    chip.onclick = () => {
-      $(id).querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
-      chip.classList.add('on');
-    };
+  $(id).querySelectorAll('.chip').forEach(c => {
+    c.onclick = () => { $(id).querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); };
   });
 });
-const pickedChip = id => $(id).querySelector('.chip.on')?.dataset.v || '';
+const picked = id => $(id).querySelector('.chip.on')?.dataset.v||'';
 
-/* ── Image Upload ── */
-const dz = $('dropZone'), fi = $('fileIn');
-['dragenter','dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('over'); }));
-['dragleave','drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('over'); }));
-dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if(f) loadImg(f); });
-fi.onchange = () => { if(fi.files[0]) loadImg(fi.files[0]); };
-$('rmImg').onclick = ev => {
-  ev.preventDefault(); ev.stopPropagation();
-  imgData = null; fi.value = '';
-  $('prevWrap').classList.remove('show');
-};
+/* ── Image ── */
+const dz=$('dropZone'), fi=$('fileIn');
+['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('over')}));
+dz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadImg(f)});
+fi.onchange=()=>{if(fi.files[0])loadImg(fi.files[0])};
+$('rmImg').onclick=ev=>{ev.preventDefault();ev.stopPropagation();imgData=null;fi.value='';$('prevWrap').classList.remove('show')};
 
 function loadImg(file){
   if(!file.type.startsWith('image/')) return showErr('請上傳 JPG、PNG 或 WEBP 圖片。');
-  const r = new FileReader();
-  r.onerror = () => showErr('圖片讀取失敗，請換一張試試。');
-  r.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
-      const MAX = 1600;
-      let {width:w, height:h} = img;
-      if(w > MAX || h > MAX || file.size > 3*1024*1024){
-        const s = Math.min(MAX/w, MAX/h, 1);
-        w = Math.round(w*s); h = Math.round(h*s);
-        const cv = document.createElement('canvas');
-        cv.width = w; cv.height = h;
-        cv.getContext('2d').drawImage(img, 0, 0, w, h);
-        const url = cv.toDataURL('image/jpeg', .88);
-        imgData = url.split(',')[1]; imgMime = 'image/jpeg';
-        $('prevImg').src = url;
-      } else {
-        imgData = ev.target.result.split(',')[1];
-        imgMime = file.type;
-        $('prevImg').src = ev.target.result;
-      }
-      $('prevWrap').classList.add('show');
-      clearErr();
+  const r=new FileReader();
+  r.onerror=()=>showErr('圖片讀取失敗。');
+  r.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=1600;let{width:w,height:h}=img;
+      if(w>MAX||h>MAX||file.size>3*1024*1024){
+        const s=Math.min(MAX/w,MAX/h,1);w=Math.round(w*s);h=Math.round(h*s);
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        const url=cv.toDataURL('image/jpeg',.88);
+        imgData=url.split(',')[1];imgMime='image/jpeg';$('prevImg').src=url;
+      }else{imgData=ev.target.result.split(',')[1];imgMime=file.type;$('prevImg').src=ev.target.result;}
+      $('prevWrap').classList.add('show');clearErr();
     };
-    img.onerror = () => showErr('無法解析圖片，請換一張試試。');
-    img.src = ev.target.result;
+    img.onerror=()=>showErr('無法解析圖片。');
+    img.src=ev.target.result;
   };
   r.readAsDataURL(file);
 }
 
-/* ── Error helpers ── */
-function showErr(msg){ const b=$('errBox'); b.textContent=msg; b.classList.add('show'); b.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-function clearErr(){ $('errBox').classList.remove('show'); }
+function showErr(msg){const b=$('errBox');b.textContent=msg;b.classList.add('show');b.scrollIntoView({behavior:'smooth',block:'nearest'})}
+function clearErr(){$('errBox').classList.remove('show')}
 
 /* ── Generate Reply ── */
-$('goBtn').onclick = () => generateReply(false);
-
-async function generateReply(isRetry){
+async function generateReply(retry){
   clearErr();
-  const key = localStorage.getItem(KEY_STORE);
-  if(!key){ $('overlay').classList.add('show'); return showErr('請先點右上角 ⚙ 設定 OpenAI API Key。'); }
+  const key=localStorage.getItem(STORE);
+  if(!key){$('overlay').classList.add('show');return showErr('請先設定 OpenAI API Key。');}
+  const usingImg=$('ip-img').classList.contains('show');
+  const txt=$('txtIn').value.trim();
+  if(usingImg&&!imgData) return showErr('請先上傳截圖，或切換到貼上文字。');
+  if(!usingImg&&!txt) return showErr('請先貼上對話內容。');
 
-  const usingImg = $('ip-img').classList.contains('show');
-  const txt = $('txtIn').value.trim();
-  if(usingImg && !imgData) return showErr('請先上傳一張對話截圖，或切換到「貼上文字」。');
-  if(!usingImg && !txt) return showErr('請先貼上對話內容。');
+  const tone=picked('toneChips'),rel=picked('relChips');
+  const sys=`你是頂尖聊天回覆顧問，熟悉台灣日常繁體中文口語。對方身分：${rel}，語氣：${tone}。分析對話脈絡給出 3 個略有差異的回覆，要自然像真人打字，不要 AI 腔。只輸出 JSON：{"replies":[{"style":"標籤4-6字","text":"回覆"},...共3個]}`;
+  const content=usingImg
+    ?[{type:'text',text:'對話截圖如下，請辨識並給回覆建議。'},{type:'image_url',image_url:{url:`data:${imgMime};base64,${imgData}`}}]
+    :[{type:'text',text:`對話：\n${txt}`}];
 
-  const tone = pickedChip('toneChips'), rel = pickedChip('relChips');
-
-  const sys = `你是頂尖聊天回覆顧問，熟悉台灣日常繁體中文口語。
-對方身分：${rel}。回覆語氣要求：${tone}。
-任務：分析對話脈絡，給出 3 個風格略有差異的回覆建議，要自然像真人打字，不要 AI 腔調。
-只輸出 JSON：{"replies":[{"style":"風格標籤（4-6字）","text":"回覆內容"},...共3個]}，不含任何其他說明。`;
-
-  const content = usingImg
-    ? [{type:'text',text:'以下是對話截圖，請辨識內容並給出回覆建議。'},{type:'image_url',image_url:{url:`data:${imgMime};base64,${imgData}`}}]
-    : [{type:'text',text:`對話內容如下：\n${txt}`}];
-
-  $('goBtn').disabled = true;
+  const btn=$('goBtn');
+  if(btn)btn.disabled=true;
   $('loading').classList.add('show');
-  if(!isRetry) $('results').innerHTML = '';
+  if(!retry)$('results').innerHTML='';
 
   try{
-    const res = await fetch('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
-      body: JSON.stringify({
-        model:'gpt-4o-mini',
-        temperature:.9,
-        max_tokens:900,
-        response_format:{type:'json_object'},
-        messages:[{role:'system',content:sys},{role:'user',content}]
-      })
-    });
-    if(!res.ok){
-      if(res.status===401) throw new Error('API Key 無效或已過期，請重新設定。');
-      if(res.status===429) throw new Error('請求太頻繁或額度不足，請稍後再試。');
-      const e = await res.json().catch(()=>null);
-      throw new Error(e?.error?.message || `API 錯誤（HTTP ${res.status}）`);
-    }
-    const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content || '';
-    let parsed;
-    try{ parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
-    catch{ throw new Error('AI 回傳格式異常，請再試一次。'); }
-    if(!Array.isArray(parsed.replies) || !parsed.replies.length) throw new Error('沒有取得有效回覆，請重新生成。');
-    renderReplies(parsed.replies, isRetry);
-  } catch(e){
-    showErr(e.name === 'TypeError' ? '連不上 OpenAI，請確認網路連線正常。' : e.message);
-  } finally{
-    $('goBtn').disabled = false;
-    $('loading').classList.remove('show');
-  }
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:'gpt-4o-mini',temperature:.9,max_tokens:900,response_format:{type:'json_object'},messages:[{role:'system',content:sys},{role:'user',content}]})});
+    if(!res.ok){if(res.status===401)throw new Error('API Key 無效或過期。');if(res.status===429)throw new Error('請求太頻繁，請稍後再試。');const e=await res.json().catch(()=>null);throw new Error(e?.error?.message||`API 錯誤 ${res.status}`);}
+    const data=await res.json();
+    const raw=data.choices?.[0]?.message?.content||'';
+    let parsed;try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim())}catch{throw new Error('AI 回傳格式異常，請再試。')}
+    if(!Array.isArray(parsed.replies)||!parsed.replies.length)throw new Error('沒有取得回覆，請重試。');
+    renderReplies(parsed.replies);
+  }catch(e){showErr(e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message);}
+  finally{if(btn)btn.disabled=false;$('loading').classList.remove('show');}
 }
 
-function renderReplies(replies, append){
-  const box = $('results');
-  if(!append) box.innerHTML = '';
-
-  replies.slice(0,3).forEach((r, i) => {
-    const card = document.createElement('div');
-    card.className = 'reply-card';
-    card.style.animationDelay = (i * .10) + 's';
-
-    const tag = document.createElement('div');
-    tag.className = 'reply-tag';
-
-    const label = document.createElement('span');
-    label.className = 'reply-label';
-    label.innerHTML = `<span class="reply-dot"></span>${r.style || '建議 '+(i+1)}`;
-
-    const cpBtn = document.createElement('button');
-    cpBtn.className = 'copy-btn';
-    cpBtn.innerHTML = '複製';
-
-    tag.append(label, cpBtn);
-
-    const body = document.createElement('div');
-    body.className = 'reply-body';
-    body.textContent = r.text || '';
-
-    cpBtn.onclick = async () => {
-      try{ await navigator.clipboard.writeText(body.textContent); }
-      catch{
-        const ta = document.createElement('textarea');
-        ta.value = body.textContent;
-        Object.assign(ta.style,{position:'fixed',top:'-9999px'});
-        document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
-      }
-      cpBtn.textContent = '✓ 已複製';
-      cpBtn.classList.add('done');
-      if(navigator.vibrate) navigator.vibrate(28);
-      setTimeout(() => { cpBtn.innerHTML = '複製'; cpBtn.classList.remove('done'); }, 2000);
+function renderReplies(replies){
+  const box=$('results');box.innerHTML='';
+  replies.slice(0,3).forEach((r,i)=>{
+    const card=document.createElement('div');card.className='reply-card';card.style.animationDelay=(i*.1)+'s';
+    const head=document.createElement('div');head.className='reply-head';
+    const lbl=document.createElement('span');lbl.className='reply-label';lbl.innerHTML=`<span class="reply-dot"></span>${r.style||'建議'+(i+1)}`;
+    const cp=document.createElement('button');cp.className='copy-btn';cp.textContent='複製';
+    head.append(lbl,cp);
+    const body=document.createElement('div');body.className='reply-body';body.textContent=r.text||'';
+    cp.onclick=async()=>{
+      try{await navigator.clipboard.writeText(body.textContent)}catch{const ta=document.createElement('textarea');ta.value=body.textContent;Object.assign(ta.style,{position:'fixed',top:'-9999px'});document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();}
+      cp.textContent='✓ 已複製';cp.classList.add('done');if(navigator.vibrate)navigator.vibrate(28);
+      setTimeout(()=>{cp.textContent='複製';cp.classList.remove('done')},2000);
     };
-
-    card.append(tag, body);
-    box.appendChild(card);
+    card.append(head,body);box.appendChild(card);
   });
-
-  // Retry button
-  const retryBtn = document.createElement('button');
-  retryBtn.className = 'btn-secondary mt12';
-  retryBtn.textContent = '↻ 換一批說法';
-  retryBtn.onclick = () => generateReply(true);
-  box.appendChild(retryBtn);
-
-  setTimeout(() => box.firstChild?.scrollIntoView({behavior:'smooth',block:'start'}), 80);
+  const rb=document.createElement('button');rb.className='btn-retry';rb.textContent='↻ 換一批說法';rb.onclick=()=>generateReply(true);box.appendChild(rb);
+  setTimeout(()=>box.firstChild?.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
 
 /* ── Generate Appreciate ── */
-$('apprBtn').onclick = () => generateAppr(false);
-
-async function generateAppr(isRetry){
+async function generateAppr(retry){
   $('apprErr').classList.remove('show');
-  const key = localStorage.getItem(KEY_STORE);
-  if(!key){ $('overlay').classList.add('show'); $('apprErr').textContent='請先設定 API Key。'; $('apprErr').classList.add('show'); return; }
+  const key=localStorage.getItem(STORE);
+  if(!key){$('overlay').classList.add('show');$('apprErr').textContent='請先設定 API Key。';$('apprErr').classList.add('show');return;}
+  const q1=$('appr1').value.trim(),q2=$('appr2').value.trim(),q3=$('appr3').value.trim(),q4=$('appr4').value.trim();
+  if(!q1||!q2||!q3){$('apprErr').textContent='請至少填寫前三題。';$('apprErr').classList.add('show');return;}
 
-  const q1 = $('appr1').value.trim();
-  const q2 = $('appr2').value.trim();
-  const q3 = $('appr3').value.trim();
-  const q4 = $('appr4').value.trim();
+  const sys=`你是擅長用文字表達情感的寫手，熟悉台灣繁體中文日常語氣。根據資訊寫一段真誠感人的點評感謝文字，要求：語氣自然溫暖像真人說話、提到具體的事要有畫面感、情緒真實、150-250字。只輸出 JSON：{"title":"標題10字以內","text":"正文"}`;
+  const msg=`感謝對象：${q1}\n辛苦之處：${q2}\n具體事件：${q3}${q4?'\n當時情緒：'+q4:''}`;
 
-  if(!q1 || !q2 || !q3){
-    $('apprErr').textContent = '請至少填寫前三個問題，第四題可以跳過。';
-    $('apprErr').classList.add('show');
-    return;
-  }
-
-  const sys = `你是一位擅長用文字表達情感的寫手，熟悉台灣繁體中文的日常語氣。
-根據使用者提供的資訊，幫他寫一段發自內心、真誠感人的「點評感謝文字」。
-要求：
-- 語氣自然溫暖，像真人說話，不要書面腔或說教
-- 一定要提到那件具體的事，要有畫面感
-- 情緒要真實，可以有起伏，但不要過度煽情
-- 長度 150–250 字左右
-只輸出 JSON：{"title":"標題（10字以內）","text":"正文內容"}，不含任何其他說明。`;
-
-  const userMsg = `感謝對象：${q1}\n辛苦之處：${q2}\n具體事件：${q3}${q4 ? '\n當時情緒：'+q4 : ''}`;
-
-  $('apprBtn').disabled = true;
+  const btn=$('apprBtn');if(btn)btn.disabled=true;
   $('apprLoading').classList.add('show');
-  if(!isRetry) $('apprResults').innerHTML = '';
+  if(!retry)$('apprResults').innerHTML='';
 
   try{
-    const res = await fetch('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
-      body: JSON.stringify({
-        model:'gpt-4o-mini',
-        temperature:.85,
-        max_tokens:600,
-        response_format:{type:'json_object'},
-        messages:[{role:'system',content:sys},{role:'user',content:userMsg}]
-      })
-    });
-    if(!res.ok){
-      if(res.status===401) throw new Error('API Key 無效或已過期。');
-      if(res.status===429) throw new Error('請求太頻繁，請稍後再試。');
-      const e = await res.json().catch(()=>null);
-      throw new Error(e?.error?.message || `API 錯誤（HTTP ${res.status}）`);
-    }
-    const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content || '';
-    let parsed;
-    try{ parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
-    catch{ throw new Error('AI 回傳格式異常，請再試一次。'); }
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:'gpt-4o-mini',temperature:.85,max_tokens:600,response_format:{type:'json_object'},messages:[{role:'system',content:sys},{role:'user',content:msg}]})});
+    if(!res.ok){if(res.status===401)throw new Error('API Key 無效或過期。');if(res.status===429)throw new Error('請求太頻繁。');const e=await res.json().catch(()=>null);throw new Error(e?.error?.message||`API 錯誤 ${res.status}`);}
+    const data=await res.json();
+    const raw=data.choices?.[0]?.message?.content||'';
+    let parsed;try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim())}catch{throw new Error('格式異常，請再試。')}
     renderAppr(parsed);
-  } catch(e){
-    $('apprErr').textContent = e.name==='TypeError' ? '連不上 OpenAI，請確認網路連線正常。' : e.message;
-    $('apprErr').classList.add('show');
-  } finally{
-    $('apprBtn').disabled = false;
-    $('apprLoading').classList.remove('show');
-  }
+  }catch(e){$('apprErr').textContent=e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message;$('apprErr').classList.add('show');}
+  finally{if(btn)btn.disabled=false;$('apprLoading').classList.remove('show');}
 }
 
 function renderAppr(parsed){
-  const box = $('apprResults');
-  box.innerHTML = '';
-
-  const card = document.createElement('div');
-  card.className = 'appr-card';
-
-  const head = document.createElement('div');
-  head.className = 'appr-card-head';
-
-  const label = document.createElement('span');
-  label.className = 'appr-card-label';
-  label.innerHTML = `❤ ${parsed.title || '點評感謝文字'}`;
-
-  const cpBtn = document.createElement('button');
-  cpBtn.className = 'copy-btn copy-btn-amber';
-  cpBtn.textContent = '複製';
-
-  head.append(label, cpBtn);
-
-  const body = document.createElement('div');
-  body.className = 'appr-card-body';
-  body.textContent = parsed.text || '';
-
-  cpBtn.onclick = async () => {
-    try{ await navigator.clipboard.writeText(body.textContent); }
-    catch{
-      const ta = document.createElement('textarea');
-      ta.value = body.textContent;
-      Object.assign(ta.style,{position:'fixed',top:'-9999px'});
-      document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
-    }
-    cpBtn.textContent = '✓ 已複製';
-    cpBtn.classList.add('done');
-    if(navigator.vibrate) navigator.vibrate(28);
-    setTimeout(() => { cpBtn.textContent = '複製'; cpBtn.classList.remove('done'); }, 2000);
+  const box=$('apprResults');box.innerHTML='';
+  const card=document.createElement('div');card.className='appr-card';
+  const head=document.createElement('div');head.className='appr-head';
+  const lbl=document.createElement('span');lbl.className='appr-label';lbl.innerHTML=`❤ ${parsed.title||'點評感謝'}`;
+  const cp=document.createElement('button');cp.className='copy-btn';cp.textContent='複製';
+  head.append(lbl,cp);
+  const body=document.createElement('div');body.className='appr-body';body.textContent=parsed.text||'';
+  cp.onclick=async()=>{
+    try{await navigator.clipboard.writeText(body.textContent)}catch{const ta=document.createElement('textarea');ta.value=body.textContent;Object.assign(ta.style,{position:'fixed',top:'-9999px'});document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();}
+    cp.textContent='✓ 已複製';cp.classList.add('done-amber');if(navigator.vibrate)navigator.vibrate(28);
+    setTimeout(()=>{cp.textContent='複製';cp.classList.remove('done-amber')},2000);
   };
-
-  card.append(head, body);
-
-  const retryBtn = document.createElement('button');
-  retryBtn.className = 'btn-secondary mt12';
-  retryBtn.textContent = '↻ 換一個說法';
-  retryBtn.onclick = () => generateAppr(true);
-
-  box.append(card, retryBtn);
+  card.append(head,body);
+  const rb=document.createElement('button');rb.className='btn-retry';rb.textContent='↻ 換一個說法';rb.onclick=()=>generateAppr(true);
+  box.append(card,rb);
   card.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
