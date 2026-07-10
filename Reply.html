@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>初心系統 Banner</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@200;300;400;700&family=Cinzel:wght@300;400&display=swap" rel="stylesheet">
+<title>初心系統 頭像</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@200;300;400&family=Cinzel:wght@300;400&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -13,404 +13,271 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 20px;
 }
 
-.banner {
-  width: 1200px;
-  height: 675px;
+.avatar {
+  width: 640px;
+  height: 640px;
   position: relative;
   overflow: hidden;
-  background: #05080f;
+  background: #04070f;
 }
 
-/* ── 背景：深邃星空漸層 ── */
+/* ── 背景 ── */
 .bg {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 70% 50%, rgba(12,30,60,0.95) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 80% at 20% 50%, rgba(8,18,40,0.9) 0%, transparent 60%),
-    linear-gradient(135deg, #020510 0%, #060d1e 40%, #03070f 100%);
+    radial-gradient(ellipse 90% 90% at 50% 40%, rgba(14,32,70,0.95) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 60% at 80% 80%, rgba(8,18,40,0.8) 0%, transparent 60%),
+    linear-gradient(160deg, #020510 0%, #060d1e 50%, #03070f 100%);
 }
 
-/* ── 金色光暈 ── */
-.glow-gold {
+/* 中央金光 */
+.glow-center {
   position: absolute;
-  width: 500px;
-  height: 300px;
-  background: radial-gradient(ellipse, rgba(212,175,55,0.12) 0%, transparent 70%);
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,175,55,0.10) 0%, transparent 65%);
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -60%);
-  pointer-events: none;
+  transform: translate(-50%, -55%);
 }
-
 .glow-blue {
   position: absolute;
-  width: 700px;
+  width: 500px;
   height: 500px;
-  background: radial-gradient(ellipse, rgba(30,80,180,0.08) 0%, transparent 65%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(30,70,180,0.07) 0%, transparent 65%);
   bottom: -100px;
-  left: -100px;
-  pointer-events: none;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-/* ── 微粒光點 ── */
-.particles {
-  position: absolute;
-  inset: 0;
-}
+/* ── 星點 ── */
 .p {
   position: absolute;
   border-radius: 50%;
   background: white;
-  animation: twinkle var(--d, 3s) ease-in-out infinite alternate;
+  animation: tw var(--d,3s) ease-in-out infinite alternate;
 }
-@keyframes twinkle {
-  from { opacity: var(--lo, 0.1); }
-  to   { opacity: var(--hi, 0.5); }
-}
-
-/* ── 左側：黃金垂直線 ── */
-.gold-bar {
-  position: absolute;
-  left: 88px;
-  top: 80px;
-  bottom: 80px;
-  width: 2px;
-  background: linear-gradient(to bottom,
-    transparent 0%,
-    rgba(212,175,55,0.4) 20%,
-    rgba(212,175,55,0.9) 50%,
-    rgba(212,175,55,0.4) 80%,
-    transparent 100%
-  );
+@keyframes tw {
+  from { opacity: var(--lo,0.1); }
+  to   { opacity: var(--hi,0.5); }
 }
 
-/* ── 精緻外框 ── */
-.frame {
+/* ── 外框：圓形金邊 ── */
+.ring-outer {
   position: absolute;
-  top: 50px;
-  left: 56px;
-  right: 56px;
-  bottom: 50px;
-  pointer-events: none;
+  top: 28px; left: 28px; right: 28px; bottom: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(212,175,55,0.22);
+}
+.ring-inner {
+  position: absolute;
+  top: 38px; left: 38px; right: 38px; bottom: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(212,175,55,0.12);
 }
 
-/* 四角 L型 */
-.frame::before, .frame::after,
-.frame .b::before, .frame .b::after {
-  content: '';
+/* 四角裝飾點 */
+.corner-dot {
   position: absolute;
-  width: 28px;
-  height: 28px;
-  border-color: rgba(212,175,55,0.55);
-  border-style: solid;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(212,175,55,0.55);
+  box-shadow: 0 0 6px rgba(212,175,55,0.6);
 }
-.frame::before { top:0; left:0; border-width: 1.5px 0 0 1.5px; }
-.frame::after  { top:0; right:0; border-width: 1.5px 1.5px 0 0; }
-.frame .b::before { bottom:0; left:0; border-width: 0 0 1.5px 1.5px; }
-.frame .b::after  { bottom:0; right:0; border-width: 0 1.5px 1.5px 0; }
+.cd-t { top: 26px; left: 50%; transform: translateX(-50%); }
+.cd-b { bottom: 26px; left: 50%; transform: translateX(-50%); }
+.cd-l { left: 26px; top: 50%; transform: translateY(-50%); }
+.cd-r { right: 26px; top: 50%; transform: translateY(-50%); }
 
-/* 頂底細線 */
-.frame-line-top {
+/* 四條短刻度線 */
+.tick {
   position: absolute;
-  top: 50px;
-  left: 100px;
-  right: 100px;
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(212,175,55,0.3) 30%, rgba(212,175,55,0.3) 70%, transparent);
+  background: rgba(212,175,55,0.4);
 }
-.frame-line-bottom {
-  position: absolute;
-  bottom: 50px;
-  left: 100px;
-  right: 100px;
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(212,175,55,0.3) 30%, rgba(212,175,55,0.3) 70%, transparent);
-}
+.tick-t { width: 1px; height: 12px; top: 20px; left: 50%; transform: translateX(-50%); }
+.tick-b { width: 1px; height: 12px; bottom: 20px; left: 50%; transform: translateX(-50%); }
+.tick-l { height: 1px; width: 12px; left: 20px; top: 50%; transform: translateY(-50%); }
+.tick-r { height: 1px; width: 12px; right: 20px; top: 50%; transform: translateY(-50%); }
 
-/* ── 右側：蓮花水墨圖形 ── */
+/* ── 蓮花 ── */
 .lotus-wrap {
   position: absolute;
-  right: 90px;
-  top: 50%;
-  transform: translateY(-52%);
-  width: 260px;
-  height: 260px;
+  top: 55px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 180px;
+  animation: breath 5s ease-in-out infinite alternate;
+}
+@keyframes breath {
+  from { opacity: 0.28; transform: translateX(-50%) scale(1); }
+  to   { opacity: 0.38; transform: translateX(-50%) scale(1.04); }
 }
 
-.lotus-wrap svg {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 0 30px rgba(212,175,55,0.15));
-  animation: lotusBreath 5s ease-in-out infinite alternate;
-}
-@keyframes lotusBreath {
-  from { opacity: 0.22; transform: scale(1); }
-  to   { opacity: 0.30; transform: scale(1.03); }
-}
-
-/* 蓮花下方水波 */
-.water-lines {
-  position: absolute;
-  bottom: 115px;
-  right: 68px;
-  width: 305px;
-}
-.water-lines svg { width: 100%; opacity: 0.15; }
-
-/* ── 主要內容 ── */
+/* ── 主文字區 ── */
 .content {
   position: absolute;
-  top: 50%;
-  left: 130px;
-  transform: translateY(-50%);
-  max-width: 680px;
+  bottom: 0;
+  left: 0; right: 0;
+  top: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
 }
 
-/* 頂部標籤 */
-.tag {
+/* 頂部英文 */
+.en-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 5px;
+  color: rgba(212,175,55,0.55);
+  margin-bottom: 16px;
+}
+
+/* 初心 大字 */
+.chuxin {
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 200;
+  font-size: 108px;
+  color: #d4af37;
+  letter-spacing: 16px;
+  line-height: 1;
+  text-align: center;
+  text-shadow:
+    0 0 50px rgba(212,175,55,0.45),
+    0 0 100px rgba(212,175,55,0.15),
+    0 3px 0 rgba(0,0,0,0.5);
+}
+
+/* 分隔裝飾 */
+.orn {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 28px;
+  margin: 18px 0 16px;
 }
-.tag-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: #d4af37;
-  box-shadow: 0 0 8px rgba(212,175,55,0.8);
-}
-.tag-text {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  letter-spacing: 5px;
-  color: rgba(212,175,55,0.75);
-  text-transform: uppercase;
-}
-.tag-line {
-  flex: 1;
-  max-width: 60px;
-  height: 1px;
-  background: linear-gradient(to right, rgba(212,175,55,0.5), transparent);
-}
-
-/* 主標題 */
-.title-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0px;
-  line-height: 1;
-  margin-bottom: 8px;
-}
-
-.char-chuxin {
-  font-family: 'Noto Serif TC', serif;
-  font-weight: 200;
-  font-size: 100px;
-  color: #d4af37;
-  letter-spacing: 6px;
-  text-shadow:
-    0 0 40px rgba(212,175,55,0.35),
-    0 0 80px rgba(212,175,55,0.15),
-    0 2px 0 rgba(0,0,0,0.5);
-  line-height: 1;
-}
-
-.char-system {
-  font-family: 'Noto Serif TC', serif;
-  font-weight: 200;
-  font-size: 100px;
-  color: rgba(230,238,255,0.92);
-  letter-spacing: 6px;
-  text-shadow: 0 2px 20px rgba(80,120,220,0.2), 0 2px 0 rgba(0,0,0,0.4);
-  line-height: 1;
-}
-
-/* 金色分隔 */
-.ornament {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 24px 0 22px;
-}
-.orn-line {
-  height: 1px;
-  width: 50px;
-  background: linear-gradient(to right, rgba(212,175,55,0.6), rgba(212,175,55,0.1));
-}
-.orn-line-r {
-  height: 1px;
-  width: 160px;
-  background: linear-gradient(to right, rgba(212,175,55,0.1), transparent);
-}
-.orn-diamond {
-  width: 7px; height: 7px;
-  background: rgba(212,175,55,0.7);
-  transform: rotate(45deg);
-}
-.orn-dot {
-  width: 3px; height: 3px;
-  border-radius: 50%;
-  background: rgba(212,175,55,0.4);
-}
+.orn-line  { width: 44px; height: 1px; background: linear-gradient(to right, transparent, rgba(212,175,55,0.55)); }
+.orn-line-r { width: 44px; height: 1px; background: linear-gradient(to left, transparent, rgba(212,175,55,0.55)); }
+.orn-diamond { width: 6px; height: 6px; background: rgba(212,175,55,0.75); transform: rotate(45deg); box-shadow: 0 0 6px rgba(212,175,55,0.5); }
+.orn-dot   { width: 3px; height: 3px; border-radius: 50%; background: rgba(212,175,55,0.4); }
 
 /* 副標語 */
 .subtitle {
   font-family: 'Noto Serif TC', serif;
   font-weight: 200;
-  font-size: 28px;
-  color: rgba(200,215,245,0.78);
-  letter-spacing: 10px;
-  text-shadow: 0 1px 12px rgba(80,100,200,0.2);
+  font-size: 22px;
+  color: rgba(210,225,255,0.78);
+  letter-spacing: 7px;
+  text-align: center;
+  text-shadow: 0 0 20px rgba(80,120,220,0.25);
 }
 
-/* 底部資訊 */
-.bottom-info {
+/* 底部英文 */
+.bottom-en {
   position: absolute;
-  bottom: 68px;
-  left: 130px;
-  right: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.bottom-left {
+  bottom: 56px;
+  left: 0; right: 0;
+  text-align: center;
   font-family: 'Cinzel', serif;
-  font-size: 10px;
-  letter-spacing: 3px;
-  color: rgba(212,175,55,0.4);
-}
-
-.bottom-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.br-dot {
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: rgba(212,175,55,0.3);
-}
-.br-text {
-  font-family: 'Noto Serif TC', serif;
-  font-size: 11px;
-  letter-spacing: 3px;
-  color: rgba(200,215,245,0.35);
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: rgba(212,175,55,0.3);
 }
 </style>
 </head>
 <body>
-<div class="banner">
+<div class="avatar">
 
-  <!-- 背景層 -->
+  <!-- 背景 -->
   <div class="bg"></div>
-  <div class="glow-gold"></div>
+  <div class="glow-center"></div>
   <div class="glow-blue"></div>
 
-  <!-- 微粒 -->
-  <div class="particles">
-    <div class="p" style="--d:2.8s;--lo:0.08;--hi:0.45;width:2px;height:2px;top:9%;left:18%"></div>
-    <div class="p" style="--d:3.5s;--lo:0.05;--hi:0.3;width:1px;height:1px;top:22%;left:55%"></div>
-    <div class="p" style="--d:4s;--lo:0.1;--hi:0.5;width:2px;height:2px;top:6%;left:72%"></div>
-    <div class="p" style="--d:2.2s;--lo:0.06;--hi:0.35;width:1px;height:1px;top:38%;left:82%"></div>
-    <div class="p" style="--d:5s;--lo:0.05;--hi:0.28;width:2px;height:2px;top:72%;left:30%"></div>
-    <div class="p" style="--d:3.1s;--lo:0.08;--hi:0.4;width:1px;height:1px;top:15%;left:42%"></div>
-    <div class="p" style="--d:4.4s;--lo:0.04;--hi:0.22;width:3px;height:3px;top:85%;left:62%"></div>
-    <div class="p" style="--d:2.6s;--lo:0.07;--hi:0.38;width:1px;height:1px;top:50%;left:10%"></div>
-    <div class="p" style="--d:3.8s;--lo:0.05;--hi:0.3;width:2px;height:2px;top:28%;left:91%"></div>
-    <div class="p" style="--d:4.7s;--lo:0.06;--hi:0.32;width:1px;height:1px;top:60%;left:48%"></div>
-    <div class="p" style="--d:2.4s;--lo:0.08;--hi:0.42;width:1px;height:1px;top:78%;left:78%"></div>
-    <div class="p" style="--d:3.3s;--lo:0.05;--hi:0.25;width:2px;height:2px;top:45%;left:67%"></div>
-  </div>
+  <!-- 星點 -->
+  <div class="p" style="--d:2.8s;--lo:0.08;--hi:0.45;width:2px;height:2px;top:8%;left:14%"></div>
+  <div class="p" style="--d:3.5s;--lo:0.05;--hi:0.3;width:1px;height:1px;top:20%;left:80%"></div>
+  <div class="p" style="--d:4.1s;--lo:0.08;--hi:0.42;width:2px;height:2px;top:72%;left:12%"></div>
+  <div class="p" style="--d:2.5s;--lo:0.06;--hi:0.35;width:1px;height:1px;top:78%;left:82%"></div>
+  <div class="p" style="--d:5s;--lo:0.04;--hi:0.25;width:2px;height:2px;top:35%;left:6%"></div>
+  <div class="p" style="--d:3.2s;--lo:0.06;--hi:0.38;width:1px;height:1px;top:55%;left:90%"></div>
+  <div class="p" style="--d:4.6s;--lo:0.05;--hi:0.28;width:1px;height:1px;top:15%;left:50%"></div>
+  <div class="p" style="--d:2.9s;--lo:0.07;--hi:0.4;width:2px;height:2px;top:88%;left:48%"></div>
 
-  <!-- 框架 -->
-  <div class="frame"><div class="b"></div></div>
-  <div class="frame-line-top"></div>
-  <div class="frame-line-bottom"></div>
+  <!-- 圓形框線 -->
+  <div class="ring-outer"></div>
+  <div class="ring-inner"></div>
+  <div class="corner-dot cd-t"></div>
+  <div class="corner-dot cd-b"></div>
+  <div class="corner-dot cd-l"></div>
+  <div class="corner-dot cd-r"></div>
+  <div class="tick tick-t"></div>
+  <div class="tick tick-b"></div>
+  <div class="tick tick-l"></div>
+  <div class="tick tick-r"></div>
 
-  <!-- 左側金條 -->
-  <div class="gold-bar"></div>
-
-  <!-- 右側蓮花 -->
+  <!-- 蓮花 -->
   <div class="lotus-wrap">
     <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- 外層大花瓣 12片 -->
-      <g opacity="0.85">
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(0 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(30 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(60 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(90 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(120 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(150 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(180 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(210 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(240 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(270 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(300 100 100)"/>
-        <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#petalGrad)" transform="rotate(330 100 100)"/>
-      </g>
-      <!-- 內層花瓣 -->
-      <g opacity="0.6">
-        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(15 100 100)"/>
-        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(75 100 100)"/>
-        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(135 100 100)"/>
-        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(195 100 100)"/>
-        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(255 100 100)"/>
-        <ellipse cx="100" cy="100" rx="6" ry="32" fill="url(#petalInner)" transform="rotate(315 100 100)"/>
-      </g>
-      <!-- 花心圓環 -->
-      <circle cx="100" cy="100" r="18" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"/>
-      <circle cx="100" cy="100" r="12" fill="rgba(212,175,55,0.5)"/>
-      <circle cx="100" cy="100" r="6"  fill="rgba(255,240,180,0.9)"/>
-      <!-- 蓮莖 -->
-      <path d="M100 148 Q102 165 100 180" stroke="rgba(180,220,200,0.6)" stroke-width="2" fill="none"/>
-      <!-- 蓮葉 -->
-      <ellipse cx="82" cy="172" rx="22" ry="8" fill="rgba(100,170,140,0.5)" transform="rotate(-25 82 172)"/>
-      <ellipse cx="120" cy="176" rx="20" ry="7" fill="rgba(100,170,140,0.4)" transform="rotate(18 120 176)"/>
-      <!-- 八芒星光環 -->
-      <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(212,175,55,0.12)" stroke-width="0.8"/>
-      <circle cx="100" cy="100" r="70" fill="none" stroke="rgba(212,175,55,0.07)" stroke-width="0.5"/>
       <defs>
-        <linearGradient id="petalGrad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"   stop-color="rgba(220,235,255,0.9)"/>
-          <stop offset="50%"  stop-color="rgba(180,210,240,0.7)"/>
-          <stop offset="100%" stop-color="rgba(150,190,220,0.4)"/>
+          <stop offset="55%"  stop-color="rgba(180,210,240,0.65)"/>
+          <stop offset="100%" stop-color="rgba(140,180,220,0.35)"/>
         </linearGradient>
-        <linearGradient id="petalInner" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="rgba(245,230,200,0.8)"/>
-          <stop offset="100%" stop-color="rgba(212,175,55,0.3)"/>
+        <linearGradient id="pi" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="rgba(245,228,190,0.85)"/>
+          <stop offset="100%" stop-color="rgba(212,175,55,0.25)"/>
         </linearGradient>
       </defs>
-    </svg>
-  </div>
-
-  <!-- 水波紋 -->
-  <div class="water-lines">
-    <svg viewBox="0 0 305 40" fill="none">
-      <ellipse cx="152" cy="20" rx="140" ry="12" stroke="rgba(100,160,220,1)" stroke-width="0.8"/>
-      <ellipse cx="152" cy="20" rx="110" ry="9" stroke="rgba(100,160,220,1)" stroke-width="0.6"/>
-      <ellipse cx="152" cy="20" rx="80" ry="6" stroke="rgba(100,160,220,1)" stroke-width="0.5"/>
+      <!-- 外層12瓣 -->
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(0 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(30 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(60 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(90 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(120 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(150 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(180 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(210 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(240 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(270 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(300 100 100)"/>
+      <ellipse cx="100" cy="100" rx="9" ry="52" fill="url(#pg)" transform="rotate(330 100 100)"/>
+      <!-- 內層6瓣 -->
+      <ellipse cx="100" cy="100" rx="6" ry="30" fill="url(#pi)" opacity="0.6" transform="rotate(15 100 100)"/>
+      <ellipse cx="100" cy="100" rx="6" ry="30" fill="url(#pi)" opacity="0.6" transform="rotate(75 100 100)"/>
+      <ellipse cx="100" cy="100" rx="6" ry="30" fill="url(#pi)" opacity="0.6" transform="rotate(135 100 100)"/>
+      <ellipse cx="100" cy="100" rx="6" ry="30" fill="url(#pi)" opacity="0.6" transform="rotate(195 100 100)"/>
+      <ellipse cx="100" cy="100" rx="6" ry="30" fill="url(#pi)" opacity="0.6" transform="rotate(255 100 100)"/>
+      <ellipse cx="100" cy="100" rx="6" ry="30" fill="url(#pi)" opacity="0.6" transform="rotate(315 100 100)"/>
+      <!-- 花心 -->
+      <circle cx="100" cy="100" r="18" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"/>
+      <circle cx="100" cy="100" r="12" fill="rgba(212,175,55,0.5)"/>
+      <circle cx="100" cy="100" r="6"  fill="rgba(255,240,180,0.95)"/>
+      <!-- 光環 -->
+      <circle cx="100" cy="100" r="62" fill="none" stroke="rgba(212,175,55,0.1)" stroke-width="0.8"/>
+      <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(212,175,55,0.06)" stroke-width="0.6"/>
+      <!-- 蓮莖 -->
+      <path d="M100 152 Q103 168 100 185" stroke="rgba(150,200,170,0.5)" stroke-width="1.8" fill="none"/>
+      <!-- 蓮葉 -->
+      <ellipse cx="83" cy="175" rx="19" ry="7" fill="rgba(90,160,130,0.45)" transform="rotate(-22 83 175)"/>
+      <ellipse cx="118" cy="179" rx="17" ry="6" fill="rgba(90,160,130,0.38)" transform="rotate(17 118 179)"/>
     </svg>
   </div>
 
   <!-- 主內容 -->
   <div class="content">
-    <div class="tag">
-      <div class="tag-dot"></div>
-      <span class="tag-text">Official Channel</span>
-      <div class="tag-line"></div>
-    </div>
+    <div class="en-label">CHUXIN · 初心系統</div>
 
-    <div class="title-row">
-      <span class="char-chuxin">初心</span>
-      <span class="char-system">系統</span>
-    </div>
+    <div class="chuxin">初心</div>
 
-    <div class="ornament">
+    <div class="orn">
       <div class="orn-line"></div>
       <div class="orn-dot"></div>
       <div class="orn-diamond"></div>
@@ -421,15 +288,7 @@ body {
     <div class="subtitle">願世間無苦難</div>
   </div>
 
-  <!-- 底部資訊 -->
-  <div class="bottom-info">
-    <span class="bottom-left">CHUXIN SYSTEM · LINE</span>
-    <div class="bottom-right">
-      <div class="br-dot"></div>
-      <span class="br-text">初心・慈悲・智慧</span>
-      <div class="br-dot"></div>
-    </div>
-  </div>
+  <div class="bottom-en">CHUXIN SYSTEM · LINE OFFICIAL</div>
 
 </div>
 </body>
