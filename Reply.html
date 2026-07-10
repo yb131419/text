@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
@@ -29,9 +29,9 @@
   --amber:    #A8720A;
   --amber-bg: #FBF3E0;
   --red:      #B83232;
-  --red-bg:   #FBEEEe;
-  --tab-h:    56px;   /* bottom tab bar height */
-  --nav-h:    52px;   /* top nav height */
+  --red-bg:   #FBEEEE;
+  --tab-h:    56px;
+  --nav-h:    52px;
   --safe-b:   env(safe-area-inset-bottom, 0px);
   --r:        14px;
   --r-sm:     10px;
@@ -59,7 +59,7 @@ html,body{
 }
 
 /* ════════════════════════════
-   TOP NAV  (compact mobile)
+   TOP NAV
 ════════════════════════════ */
 .topnav{
   flex:none;
@@ -89,7 +89,17 @@ html,body{
   white-space:nowrap;
 }
 .topnav-sep{width:1px;height:14px;background:var(--border);flex:none}
-.topnav-sub{font-size:11px;color:var(--ink3);letter-spacing:.06em;white-space:nowrap}
+.model-pill{
+  font-size:10.5px;color:var(--ink3);
+  letter-spacing:.03em;white-space:nowrap;
+  padding:3px 9px;border-radius:99px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:background .15s;
+}
+.model-pill:active{background:var(--border)}
+.model-pill b{color:var(--green);font-weight:600}
 
 .settings-btn{
   flex:none;
@@ -112,7 +122,6 @@ html,body{
   flex:1;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
-  /* leave space for bottom tab bar + safe area */
   padding-bottom:calc(var(--tab-h) + var(--safe-b) + 60px);
 }
 
@@ -123,7 +132,6 @@ html,body{
 .page.show{display:block;animation:fadeUp .2s var(--ease) both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-/* Page header */
 .page-head{margin-bottom:16px}
 .page-head-title{
   font-size:13px;font-weight:600;
@@ -177,7 +185,7 @@ html,body{
 .step-body{padding:14px 16px}
 
 /* ════════════════════════════
-   INPUT TABS  (underline style)
+   INPUT TABS
 ════════════════════════════ */
 .itabs{
   display:flex;
@@ -268,7 +276,7 @@ textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(
 textarea::placeholder{color:var(--ink3)}
 
 /* ════════════════════════════
-   CHIPS  (touch-friendly)
+   CHIPS
 ════════════════════════════ */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{
@@ -288,16 +296,11 @@ textarea::placeholder{color:var(--ink3)}
   background:var(--green);
   color:#fff;font-weight:500;
 }
+.chip.on.amber-chip{border-color:var(--amber);background:var(--amber)}
 
 /* ════════════════════════════
    FORM FIELD
 ════════════════════════════ */
-.field{margin-bottom:14px}
-.field:last-child{margin-bottom:0}
-.field-label{
-  display:block;font-size:13px;font-weight:600;
-  color:var(--ink2);margin-bottom:6px;
-}
 .field-input{
   width:100%;
   background:var(--surface2);
@@ -314,11 +317,9 @@ textarea::placeholder{color:var(--ink3)}
 .field-ta{resize:vertical;min-height:90px;line-height:1.7}
 
 /* ════════════════════════════
-   CTA BUTTON WRAPPER (inline)
+   CTA
 ════════════════════════════ */
-.page-cta{
-  margin-top:14px;
-}
+.page-cta{margin-top:14px}
 .btn-primary{
   position:relative;overflow:hidden;
   width:100%;padding:16px 24px;
@@ -334,13 +335,10 @@ textarea::placeholder{color:var(--ink3)}
 }
 .btn-primary:active{transform:scale(.98);opacity:.9}
 .btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none}
-
 .btn-primary.amber{
   background:var(--amber);
   box-shadow:0 4px 18px rgba(168,114,10,.35);
 }
-
-/* Shimmer */
 .btn-primary::after{
   content:'';position:absolute;
   top:0;left:-80%;width:50%;height:100%;
@@ -554,7 +552,47 @@ textarea::placeholder{color:var(--ink3)}
 }
 .modal-cancel:active{background:var(--border)}
 
-/* misc */
+/* ── Model selector in modal ── */
+.modal-sec{
+  font-size:12px;font-weight:600;color:var(--ink2);
+  margin:18px 0 8px;letter-spacing:.04em;
+}
+.model-opts{display:flex;flex-direction:column;gap:8px}
+.model-opt{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 14px;
+  border:1.5px solid var(--border);
+  border-radius:var(--r-sm);
+  background:var(--surface2);
+  cursor:pointer;
+  transition:border-color .15s,background .15s;
+  text-align:left;width:100%;
+  font-family:'Inter',sans-serif;
+}
+.model-opt.on{border-color:var(--green);background:var(--green-bg)}
+.model-radio{
+  width:18px;height:18px;border-radius:50%;flex:none;
+  border:2px solid var(--border2);
+  display:grid;place-items:center;
+  transition:border-color .15s;
+}
+.model-opt.on .model-radio{border-color:var(--green)}
+.model-radio::after{
+  content:'';width:9px;height:9px;border-radius:50%;
+  background:var(--green);transform:scale(0);
+  transition:transform .15s var(--ease);
+}
+.model-opt.on .model-radio::after{transform:scale(1)}
+.model-info{flex:1;min-width:0}
+.model-name{font-size:14px;font-weight:600;color:var(--ink);line-height:1.3}
+.model-desc{font-size:11.5px;color:var(--ink3);line-height:1.5;margin-top:1px}
+.model-tag{
+  flex:none;font-size:10px;font-weight:600;
+  padding:3px 8px;border-radius:6px;
+  background:var(--green);color:#fff;
+}
+.model-tag.blue{background:#3B6FA8}
+
 ::-webkit-scrollbar{display:none}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
@@ -571,7 +609,7 @@ textarea::placeholder{color:var(--ink3)}
       </div>
       <span class="topnav-title">回覆靈感</span>
       <div class="topnav-sep"></div>
-      <span class="topnav-sub">AI Reply</span>
+      <button class="model-pill" id="modelPill">模型 <b id="modelPillName">4o mini</b></button>
     </div>
     <button class="settings-btn" id="settingsBtn">⚙</button>
   </nav>
@@ -634,9 +672,9 @@ textarea::placeholder{color:var(--ink3)}
             <div class="chips" id="toneChips">
               <button class="chip on" data-v="幽默風趣">幽默風趣</button>
               <button class="chip" data-v="溫柔體貼">溫柔體貼</button>
-              <button class="chip" data-v="曖昧撩人但不油膩">曖昧撩人</button>
+              <button class="chip" data-v="曖昧撩人">曖昧撩人</button>
               <button class="chip" data-v="正式得體">正式得體</button>
-              <button class="chip" data-v="高情商委婉拒絕">高情商拒絕</button>
+              <button class="chip" data-v="高情商拒絕">高情商拒絕</button>
             </div>
           </div>
         </div>
@@ -756,9 +794,30 @@ textarea::placeholder{color:var(--ink3)}
 <div class="overlay" id="overlay">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">連接 OpenAI</div>
-    <div class="modal-desc">輸入你的 API Key（以 sk- 開頭）。Key 只存在你的瀏覽器，不會上傳。</div>
+    <div class="modal-title">設定</div>
+    <div class="modal-desc">API Key 只存在你的瀏覽器，不會上傳到任何伺服器。</div>
     <input class="modal-input" type="password" id="keyIn" placeholder="sk-...">
+
+    <div class="modal-sec">AI 模型</div>
+    <div class="model-opts" id="modelOpts">
+      <button class="model-opt on" data-model="gpt-4o-mini">
+        <span class="model-radio"></span>
+        <span class="model-info">
+          <span class="model-name">GPT-4o mini</span>
+          <span class="model-desc">速度快、成本低，日常回覆的首選</span>
+        </span>
+        <span class="model-tag">快速</span>
+      </button>
+      <button class="model-opt" data-model="gpt-5-mini">
+        <span class="model-radio"></span>
+        <span class="model-info">
+          <span class="model-name">GPT-5 mini</span>
+          <span class="model-desc">理解力更好，適合複雜對話與細膩語氣</span>
+        </span>
+        <span class="model-tag blue">聰明</span>
+      </button>
+    </div>
+
     <div class="modal-row">
       <button class="modal-cancel" id="closeModal">取消</button>
       <button class="modal-save" id="saveKey">儲存</button>
@@ -770,38 +829,120 @@ textarea::placeholder{color:var(--ink3)}
 (function(){
 'use strict';
 const $ = id => document.getElementById(id);
-const STORE = 'rai_v5';
+const K_KEY   = 'rai_key';
+const K_MODEL = 'rai_model';
 let imgData = null, imgMime = 'image/jpeg';
-let curPage = 'reply';
 
-/* ── Page switch ── */
-document.querySelectorAll('.tabitem').forEach(t => {
-  t.onclick = () => switchPage(t.dataset.page);
-});
-
-function switchPage(id){
-  curPage = id;
-  document.querySelectorAll('.tabitem').forEach(t => t.classList.toggle('on', t.dataset.page===id));
-  document.querySelectorAll('.page').forEach(p => p.classList.toggle('show', p.id==='page-'+id));
-  $('scroll').scrollTo(0,0);
+/* ══════════════════════════════════════════
+   模型管理（4o mini / 5 mini 參數不同）
+══════════════════════════════════════════ */
+const MODELS = {
+  'gpt-4o-mini': { label:'4o mini' },
+  'gpt-5-mini':  { label:'5 mini'  },
+};
+function curModel(){
+  const m = localStorage.getItem(K_MODEL);
+  return MODELS[m] ? m : 'gpt-4o-mini';
+}
+function setModel(m){
+  localStorage.setItem(K_MODEL, m);
+  $('modelPillName').textContent = MODELS[m].label;
+  $('modelOpts').querySelectorAll('.model-opt').forEach(o =>
+    o.classList.toggle('on', o.dataset.model === m));
+}
+/* GPT-5 系列：用 max_completion_tokens、不支援自訂 temperature
+   GPT-4o 系列：用 max_tokens + temperature                     */
+function buildBody(model, sys, userContent, maxTok, temp){
+  const body = {
+    model,
+    response_format: { type:'json_object' },
+    messages: [
+      { role:'system', content: sys },
+      { role:'user',   content: userContent }
+    ]
+  };
+  if (model.startsWith('gpt-5')) {
+    body.max_completion_tokens = maxTok;
+  } else {
+    body.max_tokens = maxTok;
+    body.temperature = temp;
+  }
+  return body;
 }
 
-// bind static buttons
-$('goBtn').onclick = () => generateReply(false);
+/* ══════════════════════════════════════════
+   語言模組 — 台灣口語核心（共用）
+══════════════════════════════════════════ */
+const LANG_CORE = `【語言規則 — 必須嚴格遵守】
+你寫的每一個字都必須像台灣人在手機上打的訊息。
+
+1. 用台灣日常口語與語助詞：欸、啦、耶、喔、蛤、齁、好喔、真的假的、笑死、傻眼、是說、對啊
+2. 句子要短，像 LINE 訊息的節奏，可以省略主詞，一則回覆可拆成 1-3 個短句
+3. 標點自然：可用空格代替逗號、結尾不一定要句號，「～」可偶爾出現
+4. 禁用中國用語：視頻、立馬、給力、寶寶、閨蜜、走心、內卷、聊天記錄
+5. 禁止 AI 腔：不說「當然可以！」「希望能幫到你」「以下是我的建議」，不用過多驚嘆號，不過度熱情
+6. emoji 最多 1 個，能不用就不用
+7. 不解釋、不加前後綴，直接就是那句要傳出去的話`;
+
+/* 各語氣的細部指引 */
+const TONE_GUIDE = {
+  '幽默風趣':   '用自嘲或輕吐槽製造笑點，時機準、不尬。可以裝傻、可以反轉，但不酸人。',
+  '溫柔體貼':   '先接住對方的情緒再回應內容。用字放軟，讓人感覺被在乎，但不肉麻。',
+  '曖昧撩人':   '輕輕推進、留想像空間。半開玩笑半認真，讓對方心跳但抓不到把柄。絕對不油膩、不噁心、不直球到嚇人。',
+  '正式得體':   '禮貌、清楚、有分寸，適合工作場合。友善但不裝熟，句子完整一點。',
+  '高情商拒絕': '三步驟：先肯定對方或表達感謝 → 委婉說明無法配合 → 給台階或替代方案。讓對方完全不難堪。'
+};
+
+/* 各關係的分寸指引 */
+const REL_GUIDE = {
+  '朋友':   '可以損、可以鬧，講話直接沒關係，重點是自然。',
+  '客戶':   '要穩、要專業，但不僵硬。讓對方感覺被重視。',
+  '同事':   '友善中留餘地，不過度熟，也不冷淡。辦公室安全範圍。',
+  '夫妻':   '要暖、要有生活感，可以撒嬌或互虧，是最親密的頻道。',
+  '父母':   '語氣放軟、帶點孩子氣的親暱，報平安式的安心感。',
+  '陌生人': '禮貌、簡潔、保持適當距離，不自來熟。'
+};
+
+/* ══════════════════════════════════════════
+   頁面切換
+══════════════════════════════════════════ */
+document.querySelectorAll('.tabitem').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tabitem').forEach(x => x.classList.toggle('on', x === t));
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('show', p.id === 'page-' + t.dataset.page));
+    $('scroll').scrollTo(0, 0);
+  };
+});
+$('goBtn').onclick   = () => generateReply(false);
 $('apprBtn').onclick = () => generateAppr(false);
 
-/* ── Settings ── */
-$('settingsBtn').onclick = () => { $('keyIn').value=localStorage.getItem(STORE)||''; $('overlay').classList.add('show'); };
-$('closeModal').onclick = () => $('overlay').classList.remove('show');
-$('overlay').onclick = e => { if(e.target===$('overlay')) $('overlay').classList.remove('show'); };
+/* ══════════════════════════════════════════
+   設定面板
+══════════════════════════════════════════ */
+function openSettings(){
+  $('keyIn').value = localStorage.getItem(K_KEY) || '';
+  setModel(curModel());
+  $('overlay').classList.add('show');
+}
+$('settingsBtn').onclick = openSettings;
+$('modelPill').onclick   = openSettings;
+$('closeModal').onclick  = () => $('overlay').classList.remove('show');
+$('overlay').onclick     = e => { if(e.target === $('overlay')) $('overlay').classList.remove('show'); };
+$('modelOpts').querySelectorAll('.model-opt').forEach(o => {
+  o.onclick = () => setModel(o.dataset.model);
+});
 $('saveKey').onclick = () => {
   const v = $('keyIn').value.trim();
   if(v && !v.startsWith('sk-')){ alert('Key 格式不對，應以 sk- 開頭。'); return; }
-  localStorage.setItem(STORE,v);
+  localStorage.setItem(K_KEY, v);
   $('overlay').classList.remove('show');
 };
+// init pill
+setModel(curModel());
 
-/* ── Input Tabs ── */
+/* ══════════════════════════════════════════
+   輸入 Tabs / Chips
+══════════════════════════════════════════ */
 document.querySelectorAll('.itab').forEach(t => {
   t.onclick = () => {
     document.querySelectorAll('.itab').forEach(x => x.classList.remove('on'));
@@ -810,16 +951,16 @@ document.querySelectorAll('.itab').forEach(t => {
     $(t.dataset.ip).classList.add('show');
   };
 });
-
-/* ── Chips ── */
 ['toneChips','relChips'].forEach(id => {
   $(id).querySelectorAll('.chip').forEach(c => {
     c.onclick = () => { $(id).querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); };
   });
 });
-const picked = id => $(id).querySelector('.chip.on')?.dataset.v||'';
+const picked = id => $(id).querySelector('.chip.on')?.dataset.v || '';
 
-/* ── Image ── */
+/* ══════════════════════════════════════════
+   圖片上傳
+══════════════════════════════════════════ */
 const dz=$('dropZone'), fi=$('fileIn');
 ['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('over')}));
 ['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('over')}));
@@ -853,37 +994,75 @@ function loadImg(file){
 function showErr(msg){const b=$('errBox');b.textContent=msg;b.classList.add('show');b.scrollIntoView({behavior:'smooth',block:'nearest'})}
 function clearErr(){$('errBox').classList.remove('show')}
 
-/* ── Generate Reply ── */
+/* ══════════════════════════════════════════
+   共用 API 呼叫
+══════════════════════════════════════════ */
+async function callAPI(body, key){
+  const res = await fetch('https://api.openai.com/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
+    body:JSON.stringify(body)
+  });
+  if(!res.ok){
+    if(res.status===401) throw new Error('API Key 無效或過期，請重新輸入。');
+    if(res.status===404) throw new Error(`你的帳號可能還沒有 ${body.model} 的使用權限，請到設定切換另一個模型。`);
+    if(res.status===429) throw new Error('請求太頻繁或額度不足，請稍後再試。');
+    const e=await res.json().catch(()=>null);
+    throw new Error(e?.error?.message||`API 錯誤 ${res.status}`);
+  }
+  const data = await res.json();
+  const raw = data.choices?.[0]?.message?.content || '';
+  try{ return JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+  catch{ throw new Error('AI 回傳格式異常，請再試一次。'); }
+}
+
+/* ══════════════════════════════════════════
+   生成回覆建議
+══════════════════════════════════════════ */
 async function generateReply(retry){
   clearErr();
-  const key=localStorage.getItem(STORE);
-  if(!key){$('overlay').classList.add('show');return showErr('請先設定 OpenAI API Key。');}
+  const key=localStorage.getItem(K_KEY);
+  if(!key){ openSettings(); return showErr('請先設定 OpenAI API Key。'); }
   const usingImg=$('ip-img').classList.contains('show');
   const txt=$('txtIn').value.trim();
   if(usingImg&&!imgData) return showErr('請先上傳截圖，或切換到貼上文字。');
   if(!usingImg&&!txt) return showErr('請先貼上對話內容。');
 
-  const tone=picked('toneChips'),rel=picked('relChips');
-  const sys=`你是頂尖聊天回覆顧問，熟悉台灣日常繁體中文口語。對方身分：${rel}，語氣：${tone}。分析對話脈絡給出 3 個略有差異的回覆，要自然像真人打字，不要 AI 腔。只輸出 JSON：{"replies":[{"style":"標籤4-6字","text":"回覆"},...共3個]}`;
+  const tone=picked('toneChips'), rel=picked('relChips');
+  const sys=`你是台灣人聊天回覆專家，回覆將直接複製傳送，所以必須像真人。
+
+${LANG_CORE}
+
+【這次的任務】
+對方身分：${rel} — ${REL_GUIDE[rel]||''}
+語氣要求：${tone} — ${TONE_GUIDE[tone]||''}
+
+先讀懂對話脈絡與對方最後一句話的真正意圖（字面下的情緒或試探），再產出 3 個彼此有差異的回覆：
+- 第 1 個：最安全自然的回法
+- 第 2 個：更有記憶點、稍微大膽一點的回法
+- 第 3 個：不同角度切入的回法（例如反問、轉移、或推進話題）
+
+只輸出 JSON：{"replies":[{"style":"4-6字風格標籤","text":"回覆內容"},{"style":"...","text":"..."},{"style":"...","text":"..."}]}`;
+
   const content=usingImg
-    ?[{type:'text',text:'對話截圖如下，請辨識並給回覆建議。'},{type:'image_url',image_url:{url:`data:${imgMime};base64,${imgData}`}}]
+    ?[{type:'text',text:'對話截圖如下。請先辨識誰是我、誰是對方（我的訊息通常在右側），再給回覆建議。'},{type:'image_url',image_url:{url:`data:${imgMime};base64,${imgData}`}}]
     :[{type:'text',text:`對話：\n${txt}`}];
 
   const btn=$('goBtn');
-  if(btn)btn.disabled=true;
+  btn.disabled=true;
   $('loading').classList.add('show');
   if(!retry)$('results').innerHTML='';
 
   try{
-    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:'gpt-4o-mini',temperature:.9,max_tokens:900,response_format:{type:'json_object'},messages:[{role:'system',content:sys},{role:'user',content}]})});
-    if(!res.ok){if(res.status===401)throw new Error('API Key 無效或過期。');if(res.status===429)throw new Error('請求太頻繁，請稍後再試。');const e=await res.json().catch(()=>null);throw new Error(e?.error?.message||`API 錯誤 ${res.status}`);}
-    const data=await res.json();
-    const raw=data.choices?.[0]?.message?.content||'';
-    let parsed;try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim())}catch{throw new Error('AI 回傳格式異常，請再試。')}
-    if(!Array.isArray(parsed.replies)||!parsed.replies.length)throw new Error('沒有取得回覆，請重試。');
+    const parsed = await callAPI(buildBody(curModel(), sys, content, 1200, .9), key);
+    if(!Array.isArray(parsed.replies)||!parsed.replies.length) throw new Error('沒有取得回覆，請重試。');
     renderReplies(parsed.replies);
-  }catch(e){showErr(e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message);}
-  finally{if(btn)btn.disabled=false;$('loading').classList.remove('show');}
+  }catch(e){
+    showErr(e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message);
+  }finally{
+    btn.disabled=false;
+    $('loading').classList.remove('show');
+  }
 }
 
 function renderReplies(replies){
@@ -906,37 +1085,56 @@ function renderReplies(replies){
   setTimeout(()=>box.firstChild?.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
 
-/* ── Generate Appreciate ── */
+/* ══════════════════════════════════════════
+   生成點評感謝
+══════════════════════════════════════════ */
 async function generateAppr(retry){
-  $('apprErr').classList.remove('show');
-  const key=localStorage.getItem(STORE);
-  if(!key){$('overlay').classList.add('show');$('apprErr').textContent='請先設定 API Key。';$('apprErr').classList.add('show');return;}
+  const errB=$('apprErr');
+  errB.classList.remove('show');
+  const key=localStorage.getItem(K_KEY);
+  if(!key){ openSettings(); errB.textContent='請先設定 API Key。'; errB.classList.add('show'); return; }
   const q1=$('appr1').value.trim(),q2=$('appr2').value.trim(),q3=$('appr3').value.trim(),q4=$('appr4').value.trim();
-  if(!q1||!q2||!q3){$('apprErr').textContent='請至少填寫前三題。';$('apprErr').classList.add('show');return;}
+  if(!q1||!q2||!q3){ errB.textContent='請至少填寫前三題。'; errB.classList.add('show'); return; }
 
-  const sys=`你是擅長用文字表達情感的寫手，熟悉台灣繁體中文日常語氣。根據資訊寫一段真誠感人的點評感謝文字，要求：語氣自然溫暖像真人說話、提到具體的事要有畫面感、情緒真實、150-250字。只輸出 JSON：{"title":"標題10字以內","text":"正文"}`;
-  const msg=`感謝對象：${q1}\n辛苦之處：${q2}\n具體事件：${q3}${q4?'\n當時情緒：'+q4:''}`;
+  const sys=`你是最會用文字表達感謝的台灣寫手。你寫的文字會被本人直接傳給對方或發到社群，所以必須 100% 像本人親手寫的。
 
-  const btn=$('apprBtn');if(btn)btn.disabled=true;
+${LANG_CORE}
+
+【寫作要求】
+- 以第一人稱寫，收件人就是被感謝的那個人
+- 具體事件是靈魂：把提供的那件事寫出畫面感（時間、動作、細節），不要只是抽象地說「你辛苦了」
+- 情緒要真實有層次：可以有一點愧疚、心疼、說不出口的彆扭，最後落在感謝與愛
+- 避免成語堆疊與八股感謝文的套路（「感恩的心」「沒有你就沒有我」這類陳腔濫調禁用）
+- 結尾輕輕收，不要喊口號
+- 長度 150-250 字，分 2-3 段
+
+只輸出 JSON：{"title":"溫暖的標題，10字以內","text":"正文，段落之間用\\n\\n分隔"}`;
+
+  const msg=`感謝對象：${q1}\n辛苦之處：${q2}\n具體事件：${q3}${q4?'\n當時感受：'+q4:''}`;
+
+  const btn=$('apprBtn');
+  btn.disabled=true;
   $('apprLoading').classList.add('show');
   if(!retry)$('apprResults').innerHTML='';
 
   try{
-    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:'gpt-5.5',temperature:.85,max_tokens:600,response_format:{type:'json_object'},messages:[{role:'system',content:sys},{role:'user',content:msg}]})});
-    if(!res.ok){if(res.status===401)throw new Error('API Key 無效或過期。');if(res.status===429)throw new Error('請求太頻繁。');const e=await res.json().catch(()=>null);throw new Error(e?.error?.message||`API 錯誤 ${res.status}`);}
-    const data=await res.json();
-    const raw=data.choices?.[0]?.message?.content||'';
-    let parsed;try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim())}catch{throw new Error('格式異常，請再試。')}
+    const parsed = await callAPI(buildBody(curModel(), sys, [{type:'text',text:msg}], 900, .85), key);
+    if(!parsed.text) throw new Error('沒有取得內容，請重試。');
     renderAppr(parsed);
-  }catch(e){$('apprErr').textContent=e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message;$('apprErr').classList.add('show');}
-  finally{if(btn)btn.disabled=false;$('apprLoading').classList.remove('show');}
+  }catch(e){
+    errB.textContent=e.name==='TypeError'?'連不上 OpenAI，請確認網路。':e.message;
+    errB.classList.add('show');
+  }finally{
+    btn.disabled=false;
+    $('apprLoading').classList.remove('show');
+  }
 }
 
 function renderAppr(parsed){
   const box=$('apprResults');box.innerHTML='';
   const card=document.createElement('div');card.className='appr-card';
   const head=document.createElement('div');head.className='appr-head';
-  const lbl=document.createElement('span');lbl.className='appr-label';lbl.innerHTML=`❤ ${parsed.title||'點評感謝'}`;
+  const lbl=document.createElement('span');lbl.className='appr-label';lbl.textContent=`❤ ${parsed.title||'點評感謝'}`;
   const cp=document.createElement('button');cp.className='copy-btn';cp.textContent='複製';
   head.append(lbl,cp);
   const body=document.createElement('div');body.className='appr-body';body.textContent=parsed.text||'';
