@@ -337,16 +337,17 @@
   .pl-step.run .st{background:#fff;color:var(--ink);animation:pulse 1.4s ease-in-out infinite;}
 
   /* 運作流程圖 */
-  .flow-strip{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;
-    gap:2px;row-gap:12px;padding:4px 0 10px;overflow:visible;}
+  .flow-row{display:flex;align-items:flex-start;justify-content:center;gap:6px;padding:4px 0;}
+  .flow-row.bot{margin-top:6px;padding-bottom:8px;position:relative;}
+  .flow-row.bot::before{content:"";position:absolute;top:-4px;left:22%;right:22%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(168,120,46,.35),transparent);}
   .flow-node{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;
-    width:calc((100% - 60px)/5);min-width:56px;max-width:76px;text-align:center;
-    transition:transform .18s var(--spring);}
+    width:86px;max-width:29%;text-align:center;transition:transform .18s var(--spring);}
   .flow-node:active{transform:scale(.9);}
-  .flow-ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;
+  .flow-ic{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;font-size:24px;
     box-shadow:var(--shadow), inset 0 0 0 1px rgba(30,25,18,.06), inset 0 1.5px 0 rgba(255,255,255,.5);}
-  .flow-name{font-size:11px;font-weight:700;color:var(--ink-soft);line-height:1.2;}
-  .flow-arrow{flex:0 0 auto;align-self:center;color:var(--gold);font-size:14px;margin-top:-16px;opacity:.6;width:12px;text-align:center;}
+  .flow-name{font-size:11.5px;font-weight:700;color:var(--ink-soft);line-height:1.2;}
+  .flow-arrow{flex:0 0 auto;align-self:center;color:var(--gold);font-size:15px;margin-top:-16px;opacity:.6;width:14px;text-align:center;}
 
   /* 範例詞 */
   .preset-wrap{display:flex;flex-wrap:wrap;gap:9px;padding:0 2px 12px;}
@@ -394,6 +395,22 @@
   .res-out{font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word;
     -webkit-line-clamp:5;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden;}
   .res-out.full{-webkit-line-clamp:unset;display:block;}
+
+  /* 部門產出卡片化 */
+  .seg-deck{padding:13px;display:flex;flex-direction:column;gap:11px;}
+  .seg-card{position:relative;border-radius:16px;padding:16px 46px 16px 16px;
+    background:
+      radial-gradient(110% 80% at 92% -12%, rgba(217,184,115,.14), transparent 55%),
+      linear-gradient(168deg,#FFFDF8,#F7F0DF);
+    border:1px solid rgba(168,120,46,.24);
+    box-shadow:0 1px 2px rgba(30,25,18,.04), 0 12px 26px rgba(30,25,18,.08);
+    animation:deal .5s var(--spring) backwards;}
+  .seg-card:nth-child(even){animation-delay:.06s;}
+  .seg-body{font-size:15px;line-height:1.75;white-space:pre-wrap;word-break:break-word;}
+  .seg-num{position:absolute;top:8px;right:12px;font-size:22px;font-weight:800;opacity:.1;font-style:italic;}
+  .seg-copy{position:absolute;right:8px;bottom:8px;font-size:14px;padding:8px 10px;border-radius:10px;
+    background:rgba(30,25,18,.06);transition:transform .18s var(--spring);}
+  .seg-copy:active{transform:scale(.88);}
 
   /* 平台分塊顯示 */
   .plat-blocks{padding:12px;display:flex;flex-direction:column;gap:11px;}
@@ -472,34 +489,61 @@
   .wslib .f{display:inline-flex;align-items:center;gap:5px;background:rgba(31,138,114,.1);
     border:1px solid rgba(31,138,114,.3);color:#1F8A72;border-radius:16px;padding:7px 12px;font-weight:600;}
 
-  /* ========== 教學卡片工坊 ========== */
+  /* ========== 教學卡片工坊（精裝卡面） ========== */
   .cards-entry .le-ic{background:rgba(138,90,46,.14);color:var(--c-cards);}
-  .card-deck{display:flex;flex-direction:column;gap:14px;margin-top:6px;}
-  .tcard{perspective:1200px;min-height:190px;}
+  .card-deck{display:flex;flex-direction:column;gap:16px;margin-top:6px;}
+  .tcard{perspective:1400px;min-height:200px;animation:deal .55s var(--spring) backwards;}
+  .card-deck .tcard:nth-child(odd){animation-delay:.04s;}
+  .card-deck .tcard:nth-child(even){animation-delay:.1s;}
+  @keyframes deal{from{opacity:0;transform:translateY(22px) rotate(.6deg);}to{opacity:1;transform:none;}}
   .tcard.flat{perspective:none;min-height:0;}
-  .tcard.flat .tcard-face{padding:20px 18px 54px;box-shadow:var(--shadow);}
-  .tcard-inner{position:relative;width:100%;min-height:190px;
-    transform-style:preserve-3d;transition:transform .55s var(--spring);cursor:pointer;}
+  .tcard.flat .tcard-face{padding:22px 20px 56px;}
+  .tcard-inner{position:relative;width:100%;min-height:200px;
+    transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,1.35,.5,1);cursor:pointer;}
   .tcard.flip .tcard-inner{transform:rotateY(180deg);}
   .tcard-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
-    border-radius:20px;padding:20px 18px 52px;display:flex;flex-direction:column;gap:8px;
-    box-shadow:var(--shadow);}
-  .tcard-front{background:linear-gradient(168deg,#FFFCF6,#F7F1E2);border:1px solid var(--line);}
-  .tcard-back{background:linear-gradient(168deg,#2E2415,#1E1A14);color:#FBF6EA;
-    border:1px solid rgba(217,184,115,.35);transform:rotateY(180deg);}
-  .tcard-tag{font-size:10.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;}
+    border-radius:22px;padding:22px 20px 56px;display:flex;flex-direction:column;gap:9px;
+    box-shadow:0 2px 4px rgba(30,25,18,.05), 0 20px 44px rgba(30,25,18,.12);}
+  .tcard-front{
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(217,184,115,.22), transparent 55%),
+      linear-gradient(168deg,#FFFDF8,#F6EFDD);
+    border:1px solid rgba(168,120,46,.28);
+  }
+  .tcard-front::before,.tcard-back::before{
+    content:"";position:absolute;inset:7px;border-radius:16px;pointer-events:none;
+    border:1px solid rgba(168,120,46,.3);
+  }
+  .tcard-back{
+    background:
+      radial-gradient(120% 90% at 12% -10%, rgba(217,184,115,.16), transparent 55%),
+      linear-gradient(168deg,#332816,#1C1810);
+    color:#FBF6EA;border:1px solid rgba(217,184,115,.5);transform:rotateY(180deg);
+    box-shadow:0 2px 4px rgba(30,25,18,.1), 0 22px 48px rgba(30,25,18,.28), var(--shadow-gold);
+  }
+  .tcard-back::before{border-color:rgba(217,184,115,.32);}
+  .tcard-tag{font-size:10.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;
+    display:flex;align-items:center;gap:7px;}
+  .tcard-tag::after{content:"";flex:1;height:1px;max-width:44px;
+    background:linear-gradient(90deg,currentColor,transparent);opacity:.5;}
   .tcard-front .tcard-tag{color:var(--gold);}
   .tcard-back .tcard-tag{color:var(--gold-soft);}
-  .tcard-q{font-size:17px;font-weight:800;line-height:1.5;}
-  .tcard-a{font-size:15px;line-height:1.7;white-space:pre-wrap;}
-  .tcard-num{position:absolute;top:16px;right:16px;font-size:26px;font-weight:800;opacity:.12;font-variant-numeric:tabular-nums;}
-  .tcard-hint{position:absolute;left:18px;bottom:14px;font-size:11.5px;color:var(--ink-faint);
+  .tcard-q{font-size:17.5px;font-weight:800;line-height:1.5;letter-spacing:.2px;}
+  .tcard-a{font-size:15px;line-height:1.75;white-space:pre-wrap;}
+  .tcard-num{position:absolute;top:14px;right:18px;font-size:34px;font-weight:800;opacity:.1;
+    font-variant-numeric:tabular-nums;letter-spacing:1px;font-style:italic;}
+  .tcard-hint{position:absolute;left:20px;bottom:16px;font-size:11.5px;color:var(--ink-faint);
     display:flex;align-items:center;gap:5px;}
   .tcard-back .tcard-hint{color:rgba(251,246,234,.5);}
-  .tcard-copy{position:absolute;right:12px;bottom:10px;font-size:12px;font-weight:700;
-    padding:8px 13px;border-radius:10px;min-height:38px;}
-  .tcard-front .tcard-copy{background:var(--ink);color:#fff;}
-  .tcard-back .tcard-copy{background:#FBF6EA;color:var(--ink);}
+  .tcard-copy{position:absolute;right:14px;bottom:12px;font-size:12px;font-weight:700;
+    padding:9px 15px;border-radius:11px;min-height:40px;letter-spacing:.3px;
+    box-shadow:0 4px 12px rgba(30,25,18,.18), inset 0 1px 0 rgba(255,255,255,.25);
+    transition:transform .18s var(--spring);}
+  .tcard-copy:active{transform:scale(.92);}
+  .tcard-front .tcard-copy{background:linear-gradient(165deg,#2E2415,var(--ink));color:#fff;
+    border:1px solid rgba(217,184,115,.4);}
+  .tcard-back .tcard-copy{background:linear-gradient(165deg,#FBF6EA,#fff);color:var(--ink);
+    border:1px solid var(--gold-soft);}
   .deck-item{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius-sm);
     padding:15px;margin-bottom:11px;box-shadow:var(--shadow);}
   .deck-title{font-size:15.5px;font-weight:800;}
@@ -786,7 +830,7 @@
 /* ============ 預設資料 ============ */
 const DEFAULTS = {
   schema:9,
-  build:"2026.07.11-flow11-cards2",
+  build:"2026.07.11-flow12-premium",
   title:"AI 內容集團",
   context:"【行業／領域】（請填，例如：保健、餐飲、美業、房仲、教育、寵物、手作…）\n【品牌／個人定位】（你想被記得的一句話）\n【目標客群】（你最想打到的人）\n【語氣風格】（例如：溫暖像家人／專業俐落／幽默親切）\n【常用素材】到「素材庫」上傳產品資料、見證、文件，AI 會依這些素材產出。\n【禁忌／法規】（你這行不能說的話、要避免的字眼）\n\n內容鐵則（固定）：先破冰（停下滑動、引發共鳴）→ 再講事情（把重點／價值講清楚講到有感）→ 最後邀約（互動＋低門檻行動）。\n小提示：可到設定按「依素材自動產生品牌設定」，讓 AI 依你的素材幫你草擬以上內容。",
   apiKey:"",
@@ -897,22 +941,19 @@ function openView(v){
 /* ============ Home ============ */
 function renderHome(){
   const box=document.getElementById("chainBox");
-  const collectorNode = `<div class="flow-node" onclick="openCollector()">
-       <div class="flow-ic" style="background:rgba(107,78,158,.14);color:#6B4E9E">🛰️</div>
-       <div class="flow-name">資料收集</div>
-     </div><div class="flow-arrow">→</div>`;
-  const flow = state.departments.map(d=>
-    `<div class="flow-node" style="--fc:${d.accent}" onclick="openDept('${d.id}')">
-       <div class="flow-ic" style="background:${hexA(d.accent,.14)};color:${d.accent}">${d.emoji}</div>
-       <div class="flow-name">${esc(d.name)}</div>
-     </div>`
-  ).join('<div class="flow-arrow">→</div>');
-  const finalNode = `<div class="flow-arrow">→</div>
-    <div class="flow-node" onclick="openResults()">
-      <div class="flow-ic" style="background:rgba(46,111,176,.14);color:#2E6FB0">📦</div>
-      <div class="flow-name">成品庫</div>
-    </div>`;
-  box.innerHTML=`<div class="flow-strip">${collectorNode}${flow}${finalNode}</div>`;
+  const node=(onclk,bg,color,emoji,name)=>`<div class="flow-node" onclick="${onclk}">
+       <div class="flow-ic" style="background:${bg};color:${color}">${emoji}</div>
+       <div class="flow-name">${esc(name)}</div>
+     </div>`;
+  const arrow='<div class="flow-arrow">→</div>';
+  const topRow = state.departments.map(d=>
+    node(`openDept('${d.id}')`, hexA(d.accent,.14), d.accent, d.emoji, d.name)
+  ).join(arrow);
+  const botRow = node("openCollector()","rgba(107,78,158,.14)","#6B4E9E","🛰️","資料收集")
+    + arrow
+    + node("openResults()","rgba(46,111,176,.14)","#2E6FB0","📦","成品庫");
+  box.innerHTML=`<div class="flow-row top">${topRow}</div>
+    <div class="flow-row bot">${botRow}</div>`;
   const list=document.getElementById("deptList");
   list.innerHTML = state.departments.map(d=>{
     const cnt = state.tasks.filter(t=>t.deptId===d.id).length;
@@ -980,6 +1021,15 @@ function renderCardsFiles(){
     `<span class="file-chip">${libIcon(f.kind)} ${esc(f.name)}<span class="rm" onclick="rmCardsFile(${i})">×</span></span>`).join("");
 }
 function rmCardsFile(i){ cardsFiles.splice(i,1); renderCardsFiles(); }
+// 解析卡片 JSON：正常解析失敗時，用逐張搶救（即使回覆被截斷也能撈回完整的卡）
+function parseCardsJSON(r){
+  const s=cleanJSON(r);
+  try{ const o=JSON.parse(s); if(o&&Array.isArray(o.cards)) return o; }catch(e){}
+  const cards=[]; const re=/\{\s*"q"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"a"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g;
+  let m; while((m=re.exec(s))){ try{ cards.push({q:JSON.parse('"'+m[1]+'"'), a:JSON.parse('"'+m[2]+'"')}); }catch(e){} }
+  const t=s.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  return { title: t? (()=>{try{return JSON.parse('"'+t[1]+'"');}catch(e){return "教學卡組";}})() : "教學卡組", cards };
+}
 const CARD_MODES={
   together:"同頁卡：q 是一個好問題，a 是清楚完整的答案（問答會顯示在同一張卡上）。",
   flip:"翻轉卡：q 是一個好問題（正面），a 是清楚完整的答案（背面）。",
@@ -996,9 +1046,9 @@ async function generateCards(){
   running=true;
   const btn=document.getElementById("cardsBtn");
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>製卡中';
-  const n=document.getElementById("cardsCount").value;
+  const n=parseInt(document.getElementById("cardsCount").value,10)||10;
   const mode=document.getElementById("cardsMode").value;
-  const sys=`你是教學設計師。把使用者的教材整理成 ${n} 張教學卡片。卡片類型：${CARD_MODES[mode]}\n涵蓋教材最重要的觀念，由淺入深排序。用繁體中文（台灣用語）。\n只回 JSON，格式：{"title":"卡組名稱（8字內）","cards":[{"q":"正面","a":"背面"}]}，不要 markdown、不要其他文字。`;
+  const sys=`你是教學設計師。把使用者的教材整理成教學卡片。卡片類型：${CARD_MODES[mode]}\n【硬性規定】cards 陣列長度必須「剛好 ${n} 張」，不可少張、不可多張。若教材太少，就把觀念拆細或延伸例題補滿 ${n} 張。\n每張卡精簡：q 不超過 40 字，a 不超過 90 字。由淺入深排序，繁體中文（台灣用語）。\n只回 JSON：{"title":"卡組名稱（8字內）","cards":[{"q":"...","a":"..."}]}，不要 markdown、不要其他文字。`;
   let userText=(txt?("教材內容：\n"+txt+"\n\n"):"")+(fileTexts?("【附加教材檔】\n"+fileTexts.slice(0,MAX_TOTAL_CHARS)):"");
   if(imgFiles.length && !userText) userText="教材在附圖中，請先讀懂圖片內容（含文字與圖表）再製卡。";
   else if(imgFiles.length) userText+="\n\n另附教材圖片，請一併讀懂內容（含文字與圖表）納入製卡。";
@@ -1006,15 +1056,26 @@ async function generateCards(){
     ? [{type:"text",text:userText}, ...imgFiles.slice(0,4).map(f=>({type:"image_url",image_url:{url:f.url}}))]
     : userText;
   try{
-    const r=await callOpenAI(sys,user,3200);
-    let obj; try{ obj=JSON.parse(cleanJSON(r)); }catch(e){ throw new Error("回傳格式無法解析，請再試一次"); }
-    const cards=(obj.cards||[]).filter(c=>c.q&&c.a);
+    const budget=1400+n*300; // 依張數放大回覆額度，避免 JSON 被截斷只剩幾張
+    const r=await callOpenAI(sys,user,budget);
+    let obj=parseCardsJSON(r);
+    let cards=(obj.cards||[]).filter(c=>c.q&&c.a).slice(0,n);
+    // 張數不足：自動補齊一輪
+    if(cards.length<n){
+      const need=n-cards.length;
+      const sys2=sys+`\n【補卡】已有 ${cards.length} 張（主題：${cards.map(c=>c.q).join("；").slice(0,600)}）。請再產出「剛好 ${need} 張」不重複的新卡，只回 {"cards":[...]}。`;
+      try{
+        const r2=await callOpenAI(sys2,user,900+need*300);
+        const obj2=parseCardsJSON(r2);
+        cards=[...cards, ...(obj2.cards||[]).filter(c=>c.q&&c.a)].slice(0,n);
+      }catch(e){}
+    }
     if(cards.length===0) throw new Error("沒有產出卡片，請換教材再試");
     const deck={ id:Date.now(), time:Date.now(), title:obj.title||"教學卡組", mode, cards };
     state.decks.unshift(deck); state.decks=state.decks.slice(0,60); save();
     renderDeck(deck); renderDecks(); updateCardsSummary();
     document.getElementById("cardsInput").value=""; cardsFiles=[]; renderCardsFiles();
-    toast(`已產生 ${cards.length} 張卡並保存`);
+    toast(cards.length>=n?`已產生 ${cards.length} 張卡並保存`:`教材量有限，本次產出 ${cards.length}/${n} 張並已保存`);
     document.getElementById("deckZone").scrollIntoView({behavior:"smooth",block:"start"});
   }catch(err){ toast("製卡失敗："+err.message); }
   finally{ running=false; btn.disabled=false; btn.innerHTML="產生卡片 ▸"; }
@@ -1327,17 +1388,7 @@ function renderResults(){
     updateResSummary(); return;
   }
   box.innerHTML=items.map(t=>{
-    const blocks=splitPlatforms(t.output);
-    const body = blocks
-      ? `<div class="plat-blocks">`+blocks.map(b=>`
-          <div class="plat-block">
-            <div class="pb-head"><span class="pb-name">${esc(b.label)}</span>
-              <button class="pb-copy" onclick="copyBlock(this)">📋 複製</button></div>
-            <div class="pb-body clamp">${esc(b.body)}</div>
-            <button class="pb-more" onclick="toggleBlockBody(this)">展開</button>
-          </div>`).join("")+`</div>`
-      : `<div class="res-out clamp" id="resout-${t.id}">${esc(t.output)}</div>
-         <button class="hi-btn" onclick="toggleResExpand(${t.id},this)">展開全文</button>`;
+    const body=richBody(t.output);
     return `<div class="res-item output-card" data-id="${t.id}" style="padding:16px;">
       <div class="res-top">
         <span class="res-plat">${esc(t.platform||"成品")}</span>
@@ -1355,7 +1406,7 @@ function renderResults(){
 }
 function copyResultWhole(btn){
   const card=btn.closest(".res-item");
-  const parts=[...card.querySelectorAll(".pb-body, .res-out")].map(b=>b.textContent);
+  const parts=[...card.querySelectorAll(".pb-body, .res-out, .seg-body")].map(b=>b.textContent);
   navigator.clipboard.writeText(parts.join("\n\n")).then(()=>toast("已複製整篇，可直接貼文"));
 }
 function toggleResExpand(id,btn){
@@ -1665,19 +1716,34 @@ async function runTask(){
 function clip(s,n){ s=s||""; return s.length>n? s.slice(0,n)+"…（已截取）" : s; }
 function buildSys(d){ return `你是「${state.title}」的部門 AI 助理。\n\n【公司共用背景】\n${state.context}\n\n【你的部門定位】\n${d.role}\n\n請務必用繁體中文（台灣用語）回覆，內容要可以直接拿去用。`; }
 async function callOpenAI(sys,userContent,maxTokens){
-  const res=await fetch("https://api.openai.com/v1/chat/completions",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json","Authorization":"Bearer "+state.apiKey },
-    body:JSON.stringify({ model:state.model, temperature:0.75, max_tokens:maxTokens||1800,
-      messages:[ {role:"system",content:sys}, {role:"user",content:userContent} ] })
-  });
-  if(!res.ok){
+  let lastErr;
+  for(let attempt=0;attempt<4;attempt++){
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json","Authorization":"Bearer "+state.apiKey },
+      body:JSON.stringify({ model:state.model, temperature:0.75, max_tokens:maxTokens||1800,
+        messages:[ {role:"system",content:sys}, {role:"user",content:userContent} ] })
+    });
+    if(res.ok){
+      const data=await res.json();
+      return (data.choices?.[0]?.message?.content||"").trim();
+    }
     let m="HTTP "+res.status;
     try{ const er=await res.json(); m=er.error?.message||m; }catch(e){}
+    // 429 / Rate limit：自動等待後重試（最多 3 次）
+    if(res.status===429 || /rate limit/i.test(m)){
+      lastErr=m;
+      let wait=1800*(attempt+1);
+      const ms=m.match(/try again in\s+([\d.]+)\s*m?s/i);
+      if(ms){ wait=Math.ceil(parseFloat(ms[1]))+(/[\d.]+\s*ms/i.test(m)?600:0); if(/([\d.]+)\s*s(?!.*ms)/i.test(m)) wait=parseFloat(ms[1])*1000+600; }
+      wait=Math.min(Math.max(wait,800),15000);
+      toast(`AI 流量滿了，${(wait/1000).toFixed(1)} 秒後自動重試…`);
+      await new Promise(r=>setTimeout(r,wait));
+      continue;
+    }
     throw new Error(m);
   }
-  const data=await res.json();
-  return (data.choices?.[0]?.message?.content||"").trim();
+  throw new Error("AI 流量限制（TPM）重試多次仍失敗：請稍等 1 分鐘再執行，或減少勾選的素材量。原始訊息："+lastErr);
 }
 
 /* ============ 一鍵跑完整套網路經營 ============ */
@@ -1730,6 +1796,7 @@ async function runAllDepartments(){
       const step=document.getElementById("plstep-"+i);
       step.classList.remove("run"); step.classList.add("done"); step.querySelector(".st").textContent="✓";
       prev=out; prevName=d.name;
+      await new Promise(r=>setTimeout(r,1200)); // 步驟間緩衝，避免撞到每分鐘流量上限
     }
 
     const fstep=document.getElementById("plstep-final"); fstep.classList.add("run");
@@ -1768,6 +1835,16 @@ function splitPlatforms(text){
   }
   return blocks.length>=2?blocks:null;
 }
+// 把一段產出切成卡片段落（部門產出一律卡片化顯示）
+function segmentize(text){
+  const parts=(text||"").split(/\n{2,}/).map(s=>s.trim()).filter(Boolean);
+  const segs=[];
+  for(const p of parts){
+    if(segs.length && (p.length<36 || segs[segs.length-1].length<36)) segs[segs.length-1]+="\n\n"+p;
+    else segs.push(p);
+  }
+  return segs.length?segs:[(text||"").trim()];
+}
 function richBody(out){
   const blocks=splitPlatforms(out);
   if(blocks){
@@ -1779,8 +1856,17 @@ function richBody(out){
         <button class="pb-more" onclick="toggleBlockBody(this)">展開</button>
       </div>`).join("")+`</div>`;
   }
-  return `<div class="output-body clamp">${esc(out)}</div>
-    <button class="mini block-more" onclick="toggleClamp(this)">展開全文</button>`;
+  const segs=segmentize(out);
+  return `<div class="seg-deck">`+segs.map((s,i)=>`
+    <div class="seg-card">
+      <span class="seg-num">${String(i+1).padStart(2,"0")}</span>
+      <div class="seg-body">${esc(s)}</div>
+      <button class="seg-copy" onclick="copySeg(this)">📋</button>
+    </div>`).join("")+`</div>`;
+}
+function copySeg(btn){
+  const txt=btn.closest(".seg-card").querySelector(".seg-body").textContent;
+  navigator.clipboard.writeText(txt).then(()=>toast("已複製這張卡"));
 }
 function copyBlock(btn){
   const txt=btn.closest(".plat-block").querySelector(".pb-body").textContent;
@@ -1792,7 +1878,7 @@ function toggleBlockBody(btn){
 }
 function copyWhole(btn){
   const card=btn.closest(".output-card");
-  const parts=[...card.querySelectorAll(".pb-body, .output-body")].map(b=>b.textContent);
+  const parts=[...card.querySelectorAll(".pb-body, .output-body, .seg-body")].map(b=>b.textContent);
   navigator.clipboard.writeText(parts.join("\n\n")).then(()=>toast("已複製整篇，可直接貼文"));
 }
 function resultCard(d,out){
