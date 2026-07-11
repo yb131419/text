@@ -137,8 +137,7 @@
 
   /* ---------- 任務鏈 ---------- */
   .chain-wrap{margin-bottom:22px;}
-  .chain-scroll{display:flex;gap:8px;overflow-x:auto;padding:2px 4px 8px;scrollbar-width:none;}
-  .chain-scroll::-webkit-scrollbar{display:none;}
+  .chain-scroll{display:flex;flex-wrap:wrap;gap:8px;padding:2px 4px 8px;}
   .chain-item{flex:0 0 auto;display:flex;align-items:center;gap:8px;
     background:var(--paper-2);border:1px solid var(--line);
     border-radius:30px;padding:7px 12px 7px 8px;box-shadow:var(--shadow);}
@@ -338,21 +337,22 @@
   .pl-step.run .st{background:#fff;color:var(--ink);animation:pulse 1.4s ease-in-out infinite;}
 
   /* 運作流程圖 */
-  .flow-strip{display:flex;align-items:flex-start;gap:4px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;}
-  .flow-strip::-webkit-scrollbar{display:none;}
-  .flow-node{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:74px;text-align:center;
+  .flow-strip{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;
+    gap:2px;row-gap:12px;padding:4px 0 10px;overflow:visible;}
+  .flow-node{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;
+    width:calc((100% - 60px)/5);min-width:56px;max-width:76px;text-align:center;
     transition:transform .18s var(--spring);}
   .flow-node:active{transform:scale(.9);}
-  .flow-ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:25px;
+  .flow-ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;
     box-shadow:var(--shadow), inset 0 0 0 1px rgba(30,25,18,.06), inset 0 1.5px 0 rgba(255,255,255,.5);}
-  .flow-name{font-size:12px;font-weight:700;color:var(--ink-soft);line-height:1.25;}
-  .flow-arrow{flex:0 0 auto;align-self:center;color:var(--gold);font-size:18px;margin-top:14px;opacity:.6;}
+  .flow-name{font-size:11px;font-weight:700;color:var(--ink-soft);line-height:1.2;}
+  .flow-arrow{flex:0 0 auto;align-self:center;color:var(--gold);font-size:14px;margin-top:-16px;opacity:.6;width:12px;text-align:center;}
 
   /* 範例詞 */
-  .preset-wrap{display:flex;gap:9px;overflow-x:auto;padding:0 2px 12px;scrollbar-width:none;}
-  .preset-wrap::-webkit-scrollbar{display:none;}
-  .preset-chip{flex:0 0 auto;font-size:13.5px;font-weight:600;padding:11px 16px;border-radius:22px;min-height:44px;
-    background:var(--paper-2);border:1.5px solid var(--line);color:var(--ink-soft);white-space:nowrap;box-shadow:var(--shadow);
+  .preset-wrap{display:flex;flex-wrap:wrap;gap:9px;padding:0 2px 12px;}
+  .preset-chip{flex:0 0 auto;font-size:13px;font-weight:600;padding:10px 14px;border-radius:22px;min-height:44px;
+    background:var(--paper-2);border:1.5px solid var(--line);color:var(--ink-soft);white-space:normal;text-align:left;
+    line-height:1.35;max-width:100%;box-shadow:var(--shadow);
     transition:transform .18s var(--spring),border-color .15s;}
   .preset-chip:active{background:var(--paper);transform:scale(.94);border-color:var(--gold-soft);}
   .ps-emo{font-size:17px;}
@@ -476,6 +476,8 @@
   .cards-entry .le-ic{background:rgba(138,90,46,.14);color:var(--c-cards);}
   .card-deck{display:flex;flex-direction:column;gap:14px;margin-top:6px;}
   .tcard{perspective:1200px;min-height:190px;}
+  .tcard.flat{perspective:none;min-height:0;}
+  .tcard.flat .tcard-face{padding:20px 18px 54px;box-shadow:var(--shadow);}
   .tcard-inner{position:relative;width:100%;min-height:190px;
     transform-style:preserve-3d;transition:transform .55s var(--spring);cursor:pointer;}
   .tcard.flip .tcard-inner{transform:rotateY(180deg);}
@@ -594,7 +596,7 @@
       <button class="back" onclick="openView('home')">‹</button>
       <div class="ws-title"><h2>🎴 教學卡片工坊</h2><p>教材 → 互動問答卡 → 一鍵複製</p></div>
     </div>
-    <div class="note">貼上教材文字或上傳文件（PDF／Word／txt），AI 會抽出重點做成「問答翻卡」。點卡片翻面看答案，每張都能複製；也可複製整副卡當講義或貼文素材。卡組會存在你的瀏覽器。</div>
+    <div class="note">貼上教材文字或上傳文件（PDF／Word／txt／圖片），AI 會抽出重點做成教學卡。三種格式：同頁卡（問答一起看）、翻轉卡（翻面看答案）、填空卡（挖空考記憶）。每張都能複製，也可複製整副卡當講義；卡組會存在你的瀏覽器。</div>
 
     <div class="input-card">
       <textarea id="cardsInput" placeholder="貼上教材內容…（也可只上傳檔案）"></textarea>
@@ -606,14 +608,14 @@
           <option value="15">15 張卡</option>
         </select>
         <select id="cardsMode">
-          <option value="qa" selected>問答卡</option>
-          <option value="point">重點卡（正面標題／背面說明）</option>
-          <option value="cloze">填空卡（考驗記憶）</option>
+          <option value="together" selected>同頁卡（問題＋答案在同一張）</option>
+          <option value="flip">翻轉卡（先看問題，翻面看答案）</option>
+          <option value="cloze">填空卡（挖空句子，翻面看解答）</option>
         </select>
       </div>
       <div class="input-actions">
         <label class="attach">📎 加教材檔
-          <input type="file" id="cardsFileInput" multiple accept=".txt,.md,.csv,.json,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" onchange="handleCardsFiles(event)">
+          <input type="file" id="cardsFileInput" multiple accept=".txt,.md,.csv,.json,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" class="hidden" onchange="handleCardsFiles(event)">
         </label>
         <button class="run-btn" id="cardsBtn" style="background:var(--c-cards)" onclick="generateCards()">產生卡片 ▸</button>
       </div>
@@ -668,7 +670,7 @@
       <button class="back" onclick="openView('home')">‹</button>
       <div class="ws-title"><h2>📁 素材庫</h2><p>檔案留存一次，之後勾選即可使用</p></div>
     </div>
-    <div class="note">檔案存在你自己的瀏覽器。勾選「指定使用」的檔案，會在「一鍵運轉」與各部門執行時自動帶入，不必每次重新上傳。圖片會自動壓縮後保存（縮到適合的大小），上傳後 AI 會自動分類到所屬部門，你也可手動更改。</div>
+    <div class="note">檔案存在你自己的瀏覽器。上傳後 AI 會自動做兩件事：①分類到所屬部門（可手動改）②把內容整理成精煉的「備用資料」。之後「一鍵運轉」與各部門執行時，會自動帶入整理版，不必每次重新上傳。圖片會自動壓縮保存。</div>
     <label class="attach lib-upload">＋ 上傳檔案到素材庫
       <input type="file" id="libInput" multiple accept=".txt,.md,.csv,.json,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" class="hidden" onchange="handleLibUpload(event)">
     </label>
@@ -746,10 +748,8 @@
     <div class="field">
       <label>使用模型</label>
       <select id="modelSel">
-        <option value="gpt-4o-mini">gpt-4o-mini（便宜快速，支援圖片）</option>
-        <option value="gpt-4o">gpt-4o（最聰明，支援圖片）</option>
-        <option value="gpt-4.1-mini">gpt-4.1-mini</option>
-        <option value="gpt-4.1">gpt-4.1</option>
+        <option value="gpt-4o-mini">⚡ 快速（gpt-4o-mini · 便宜快，支援圖片）</option>
+        <option value="gpt-5-mini">🧠 智慧（gpt-5-mini · 更聰明，支援圖片）</option>
       </select>
     </div>
 
@@ -786,7 +786,7 @@
 /* ============ 預設資料 ============ */
 const DEFAULTS = {
   schema:9,
-  build:"2026.07.11-flow10-cards",
+  build:"2026.07.11-flow11-cards2",
   title:"AI 內容集團",
   context:"【行業／領域】（請填，例如：保健、餐飲、美業、房仲、教育、寵物、手作…）\n【品牌／個人定位】（你想被記得的一句話）\n【目標客群】（你最想打到的人）\n【語氣風格】（例如：溫暖像家人／專業俐落／幽默親切）\n【常用素材】到「素材庫」上傳產品資料、見證、文件，AI 會依這些素材產出。\n【禁忌／法規】（你這行不能說的話、要避免的字眼）\n\n內容鐵則（固定）：先破冰（停下滑動、引發共鳴）→ 再講事情（把重點／價值講清楚講到有感）→ 最後邀約（互動＋低門檻行動）。\n小提示：可到設定按「依素材自動產生品牌設定」，讓 AI 依你的素材幫你草擬以上內容。",
   apiKey:"",
@@ -852,6 +852,9 @@ function load(){
       merged.collections = Array.isArray(s.collections)? s.collections : [];
       merged.collector = {...DEF.collector, ...(s.collector||{})};
       merged.decks = Array.isArray(s.decks)? s.decks : [];
+      if(merged.model!=="gpt-4o-mini" && merged.model!=="gpt-5-mini"){
+        merged.model = (/gpt-4o$|4\.1(?!-)|gpt-5/.test(merged.model||""))? "gpt-5-mini" : "gpt-4o-mini";
+      }
       const defDepts = structuredClone(DEFAULTS.departments);
       const sameStructure = (s.schema===DEFAULTS.schema)
         && Array.isArray(s.departments) && s.departments.length===defDepts.length
@@ -967,7 +970,7 @@ async function handleCardsFiles(e){
   const files=[...e.target.files]; e.target.value="";
   for(const f of files){
     const p=await parseFile(f);
-    if(p.isImage){ toast("卡片工坊請用文字類檔案"); continue; }
+    if(p.isImage && p.url){ p.url=await compressImage(p.url); }
     cardsFiles.push(p);
   }
   renderCardsFiles();
@@ -978,23 +981,30 @@ function renderCardsFiles(){
 }
 function rmCardsFile(i){ cardsFiles.splice(i,1); renderCardsFiles(); }
 const CARD_MODES={
-  qa:"問答卡：front 是一個好問題，back 是清楚完整的答案。",
-  point:"重點卡：front 是重點標題（一句話），back 是白話說明與例子。",
-  cloze:"填空卡：front 是把關鍵詞挖空的句子（用「____」表示），back 是完整句子並標出關鍵詞。"
+  together:"同頁卡：q 是一個好問題，a 是清楚完整的答案（問答會顯示在同一張卡上）。",
+  flip:"翻轉卡：q 是一個好問題（正面），a 是清楚完整的答案（背面）。",
+  cloze:"填空卡：q 是把關鍵詞挖空的句子（用「____」表示，正面），a 是完整句子並標出關鍵詞（背面）。"
 };
 async function generateCards(){
   if(running) return;
   if(!state.apiKey){ toast("請先到設定填入 OpenAI 金鑰"); openView("settings"); return; }
   const txt=document.getElementById("cardsInput").value.trim();
-  const fileTexts=cardsFiles.map(f=>`---「${f.name}」---\n${(f.content||"").slice(0,MAX_FILE_CHARS)}`).join("\n\n");
-  if(!txt && !fileTexts){ toast("請貼上教材或上傳檔案"); return; }
+  const imgFiles=cardsFiles.filter(f=>f.isImage);
+  const fileTexts=cardsFiles.filter(f=>!f.isImage)
+    .map(f=>`---「${f.name}」---\n${(f.content||"").slice(0,MAX_FILE_CHARS)}`).join("\n\n");
+  if(!txt && !fileTexts && imgFiles.length===0){ toast("請貼上教材或上傳檔案"); return; }
   running=true;
   const btn=document.getElementById("cardsBtn");
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>製卡中';
   const n=document.getElementById("cardsCount").value;
   const mode=document.getElementById("cardsMode").value;
   const sys=`你是教學設計師。把使用者的教材整理成 ${n} 張教學卡片。卡片類型：${CARD_MODES[mode]}\n涵蓋教材最重要的觀念，由淺入深排序。用繁體中文（台灣用語）。\n只回 JSON，格式：{"title":"卡組名稱（8字內）","cards":[{"q":"正面","a":"背面"}]}，不要 markdown、不要其他文字。`;
-  const user=(txt?("教材內容：\n"+txt+"\n\n"):"")+(fileTexts?("【附加教材檔】\n"+fileTexts.slice(0,MAX_TOTAL_CHARS)):"");
+  let userText=(txt?("教材內容：\n"+txt+"\n\n"):"")+(fileTexts?("【附加教材檔】\n"+fileTexts.slice(0,MAX_TOTAL_CHARS)):"");
+  if(imgFiles.length && !userText) userText="教材在附圖中，請先讀懂圖片內容（含文字與圖表）再製卡。";
+  else if(imgFiles.length) userText+="\n\n另附教材圖片，請一併讀懂內容（含文字與圖表）納入製卡。";
+  const user = imgFiles.length
+    ? [{type:"text",text:userText}, ...imgFiles.slice(0,4).map(f=>({type:"image_url",image_url:{url:f.url}}))]
+    : userText;
   try{
     const r=await callOpenAI(sys,user,3200);
     let obj; try{ obj=JSON.parse(cleanJSON(r)); }catch(e){ throw new Error("回傳格式無法解析，請再試一次"); }
@@ -1009,31 +1019,47 @@ async function generateCards(){
   }catch(err){ toast("製卡失敗："+err.message); }
   finally{ running=false; btn.disabled=false; btn.innerHTML="產生卡片 ▸"; }
 }
-const MODE_TAG={qa:"問答",point:"重點",cloze:"填空"};
+const MODE_TAG={together:"同頁",flip:"翻轉",cloze:"填空",qa:"翻轉",point:"翻轉"};
+function cardHTML(deck,c,i){
+  const num=String(i+1).padStart(2,"0");
+  if(deck.mode==="together"){
+    return `<div class="tcard flat">
+      <div class="tcard-face tcard-front" style="position:relative;inset:auto;min-height:0;">
+        <span class="tcard-num">${num}</span>
+        <span class="tcard-tag">同頁 · 問答</span>
+        <div class="tcard-q">${esc(c.q)}</div>
+        <div class="tcard-a" style="color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:9px;">👉 ${esc(c.a)}</div>
+        <button class="tcard-copy" onclick="event.stopPropagation();copyCard(${deck.id},${i})">📋 複製</button>
+      </div>
+    </div>`;
+  }
+  const frontTag=deck.mode==="cloze"?"填空 · 正面":"翻轉 · 正面";
+  const hint=deck.mode==="cloze"?"👆 點卡片翻面看解答":"👆 點卡片翻面看答案";
+  return `<div class="tcard" onclick="this.classList.toggle('flip')">
+    <div class="tcard-inner">
+      <div class="tcard-face tcard-front">
+        <span class="tcard-num">${num}</span>
+        <span class="tcard-tag">${frontTag}</span>
+        <div class="tcard-q">${esc(c.q)}</div>
+        <span class="tcard-hint">${hint}</span>
+        <button class="tcard-copy" onclick="event.stopPropagation();copyCard(${deck.id},${i})">📋 複製</button>
+      </div>
+      <div class="tcard-face tcard-back">
+        <span class="tcard-num">${num}</span>
+        <span class="tcard-tag">${deck.mode==="cloze"?"解答":"答案"} · 背面</span>
+        <div class="tcard-a">${esc(c.a)}</div>
+        <span class="tcard-hint">👆 點卡片翻回正面</span>
+        <button class="tcard-copy" onclick="event.stopPropagation();copyCard(${deck.id},${i})">📋 複製</button>
+      </div>
+    </div>
+  </div>`;
+}
 function renderDeck(deck){
   const zone=document.getElementById("deckZone");
   zone.innerHTML=`<div class="output-card">
     <div class="oc-head">🎴 ${esc(deck.title)}<span class="saved-tag">共 ${deck.cards.length} 張 · 已保存</span></div>
     <div class="card-deck" style="padding:14px;">
-      ${deck.cards.map((c,i)=>`
-      <div class="tcard" onclick="this.classList.toggle('flip')">
-        <div class="tcard-inner">
-          <div class="tcard-face tcard-front">
-            <span class="tcard-num">${String(i+1).padStart(2,"0")}</span>
-            <span class="tcard-tag">${MODE_TAG[deck.mode]||"卡片"} · 正面</span>
-            <div class="tcard-q">${esc(c.q)}</div>
-            <span class="tcard-hint">👆 點卡片翻面看答案</span>
-            <button class="tcard-copy" onclick="event.stopPropagation();copyCard(${deck.id},${i})">📋 複製</button>
-          </div>
-          <div class="tcard-face tcard-back">
-            <span class="tcard-num">${String(i+1).padStart(2,"0")}</span>
-            <span class="tcard-tag">答案 · 背面</span>
-            <div class="tcard-a">${esc(c.a)}</div>
-            <span class="tcard-hint">👆 點卡片翻回正面</span>
-            <button class="tcard-copy" onclick="event.stopPropagation();copyCard(${deck.id},${i})">📋 複製</button>
-          </div>
-        </div>
-      </div>`).join("")}
+      ${deck.cards.map((c,i)=>cardHTML(deck,c,i)).join("")}
     </div>
     <div class="oc-actions">
       <button class="mini" onclick="copyDeck(${deck.id})">📋 複製整副卡（文字版）</button>
@@ -1446,16 +1472,17 @@ async function handleLibUpload(e){
     let url=p.url||"";
     if(p.isImage && url){ url=await compressImage(url); }
     const item={ id:Date.now()+Math.random(), name:p.name, kind:p.kind,
-      content:p.content||"", url, size:(p.isImage?url.length:(p.size||0)),
+      content:p.content||"", digest:"", url, size:(p.isImage?url.length:(p.size||0)),
       active:true, deptId:"", classifying:!!state.apiKey };
     state.library.push(item);
     save(); renderLibrary();
     if(state.apiKey){
       item.deptId = await classifyMaterial(item);
+      item.digest = await organizeMaterial(item);   // AI 整理成備用資料
       item.classifying=false; save(); renderLibrary();
     }
   }
-  toast("已存入素材庫並自動分類");
+  toast(state.apiKey?"已存入素材庫：AI 整理完成，之後自動當備用資料使用":"已存入素材庫（填入金鑰後可 AI 整理）");
 }
 function compressImage(dataURL, maxDim, quality){
   maxDim=maxDim||1280; quality=quality||0.82;
@@ -1489,6 +1516,20 @@ async function classifyMaterial(item){
     return hit?hit.id:"";
   }catch(e){ return ""; }
 }
+// 上傳後 AI 整理：把素材濃縮成結構化「備用資料」，之後各部門直接引用整理版
+async function organizeMaterial(item){
+  if(!state.apiKey) return "";
+  const sys="你是資料整理助理。把使用者的素材整理成一份精煉的『備用資料』，之後 AI 產文會直接引用它。格式：\n【素材重點】3–6 條關鍵重點\n【可用數據／事實】有就列，沒有寫「無」\n【可引用的句子／故事】1–3 句\n【適合用途】一句話\n用繁體台灣用語，總長 800 字內，只輸出整理結果。";
+  let user;
+  if(item.kind==="image" && item.url){
+    user=[{type:"text",text:"請讀懂這張圖片（含文字與圖表），整理成備用資料。"},{type:"image_url",image_url:{url:item.url}}];
+  }else{
+    const c=(item.content||"").slice(0,MAX_FILE_CHARS);
+    if(!c.trim()) return "";
+    user=`素材名稱：${item.name}\n內容：\n${c}`;
+  }
+  try{ return (await callOpenAI(sys,user,1100)).trim(); }catch(e){ return ""; }
+}
 function libIcon(k){ return k==="image"?"🖼":(k==="pdf"?"📕":(k==="doc"?"📘":"📄")); }
 function fmtSize(n){ return n>1024?(n/1024).toFixed(0)+"K 字元":n+" 字元"; }
 function deptNameOf(id){ const d=state.departments.find(x=>x.id===id); return d?d.name:""; }
@@ -1501,8 +1542,10 @@ function renderLibrary(){
       const opts=`<option value="">通用（全部部門）</option>`+state.departments.map(d=>
         `<option value="${d.id}" ${x.deptId===d.id?'selected':''}>${esc(d.name)}</option>`).join("");
       const deptSel = x.classifying
-        ? `<span class="li-class"><span class="mini-spin"></span> 分類中…</span>`
-        : `<select class="li-dept" onchange="assignLibDept('${x.id}',this.value)">${opts}</select>`;
+        ? `<span class="li-class"><span class="mini-spin"></span> AI 整理中…</span>`
+        : `<select class="li-dept" onchange="assignLibDept('${x.id}',this.value)">${opts}</select>
+           ${x.digest?'<span class="li-class" style="color:var(--accent)">✓ 已整理</span>'
+                     :`<button class="hi-btn" style="min-height:34px;padding:6px 10px;" onclick="reorganizeLib('${x.id}')">🪄 AI 整理</button>`}`;
       return `<div class="lib-item">
         <span class="li-ic">${libIcon(x.kind)}</span>
         <div class="li-meta">
@@ -1515,6 +1558,14 @@ function renderLibrary(){
     }).join("");
   }
   updateLibSummary();
+}
+async function reorganizeLib(id){
+  const x=state.library.find(o=>String(o.id)===String(id)); if(!x) return;
+  if(!state.apiKey){ toast("請先到設定填入金鑰"); return; }
+  x.classifying=true; renderLibrary();
+  x.digest=await organizeMaterial(x);
+  x.classifying=false; save(); renderLibrary();
+  toast(x.digest?"AI 整理完成，之後會用整理版當備用資料":"整理失敗，請再試一次");
 }
 function assignLibDept(id,v){ const x=state.library.find(o=>String(o.id)===String(id)); if(x){ x.deptId=v; save(); } }
 function toggleLibActive(id){
@@ -1535,7 +1586,8 @@ function activeAttachments(deptId){
     if(!x.active) return false;
     const valid = x.deptId && state.departments.some(d=>d.id===x.deptId);
     return !deptId || !valid || x.deptId===deptId;
-  }).map(x=>({ name:x.name+"（庫）", isImage:x.kind==="image", content:x.content, url:x.url }));
+  }).map(x=>({ name:x.name+(x.digest?"（AI 整理版）":"（庫）"), isImage:x.kind==="image",
+    content:x.digest||x.content, url:x.url }));
 }
 
 /* ============ 組裝送出內容（含素材庫） ============ */
@@ -1872,7 +1924,7 @@ function updateKeyStatus(){
   const on=!!state.apiKey;
   document.getElementById("keyDot").classList.toggle("on",on);
   document.getElementById("keyStatus").textContent= on
-    ? `已連接 · 模型 ${state.model}`
+    ? `已連接 · ${state.model==="gpt-5-mini"?"🧠 智慧模式":"⚡ 快速模式"}（${state.model}）`
     : "尚未連接 AI — 請到設定填入 OpenAI 金鑰";
 }
 
