@@ -649,7 +649,6 @@
         <select id="cardsCount">
           <option value="6">6 張卡</option>
           <option value="10" selected>10 張卡</option>
-          <option value="15">15 張卡</option>
         </select>
         <select id="cardsMode">
           <option value="together" selected>同頁卡（問題＋答案在同一張）</option>
@@ -830,7 +829,7 @@
 /* ============ 預設資料 ============ */
 const DEFAULTS = {
   schema:9,
-  build:"2026.07.11-flow12-premium",
+  build:"2026.07.11-flow13-g5fix",
   title:"AI 內容集團",
   context:"【行業／領域】（請填，例如：保健、餐飲、美業、房仲、教育、寵物、手作…）\n【品牌／個人定位】（你想被記得的一句話）\n【目標客群】（你最想打到的人）\n【語氣風格】（例如：溫暖像家人／專業俐落／幽默親切）\n【常用素材】到「素材庫」上傳產品資料、見證、文件，AI 會依這些素材產出。\n【禁忌／法規】（你這行不能說的話、要避免的字眼）\n\n內容鐵則（固定）：先破冰（停下滑動、引發共鳴）→ 再講事情（把重點／價值講清楚講到有感）→ 最後邀約（互動＋低門檻行動）。\n小提示：可到設定按「依素材自動產生品牌設定」，讓 AI 依你的素材幫你草擬以上內容。",
   apiKey:"",
@@ -1048,7 +1047,7 @@ async function generateCards(){
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>製卡中';
   const n=parseInt(document.getElementById("cardsCount").value,10)||10;
   const mode=document.getElementById("cardsMode").value;
-  const sys=`你是教學設計師。把使用者的教材整理成教學卡片。卡片類型：${CARD_MODES[mode]}\n【硬性規定】cards 陣列長度必須「剛好 ${n} 張」，不可少張、不可多張。若教材太少，就把觀念拆細或延伸例題補滿 ${n} 張。\n每張卡精簡：q 不超過 40 字，a 不超過 90 字。由淺入深排序，繁體中文（台灣用語）。\n只回 JSON：{"title":"卡組名稱（8字內）","cards":[{"q":"...","a":"..."}]}，不要 markdown、不要其他文字。`;
+  const sys=`你是教學設計師。把使用者的教材整理成教學卡片。卡片類型：${CARD_MODES[mode]}\n【硬性規定】cards 陣列長度必須「剛好 ${n} 張」，不可少張、不可多張。若教材太少，就把觀念拆細或延伸例題補滿 ${n} 張。\n每張卡精簡：q 不超過 40 字，a 不超過 90 字。由淺入深排序。\n【語言鐵則】不論教材原文是簡體、英文或其他語言，所有輸出一律轉成繁體中文（台灣用語）。\n只回 JSON：{"title":"卡組名稱（8字內）","cards":[{"q":"...","a":"..."}]}，不要 markdown、不要其他文字。`;
   let userText=(txt?("教材內容：\n"+txt+"\n\n"):"")+(fileTexts?("【附加教材檔】\n"+fileTexts.slice(0,MAX_TOTAL_CHARS)):"");
   if(imgFiles.length && !userText) userText="教材在附圖中，請先讀懂圖片內容（含文字與圖表）再製卡。";
   else if(imgFiles.length) userText+="\n\n另附教材圖片，請一併讀懂內容（含文字與圖表）納入製卡。";
@@ -1570,7 +1569,7 @@ async function classifyMaterial(item){
 // 上傳後 AI 整理：把素材濃縮成結構化「備用資料」，之後各部門直接引用整理版
 async function organizeMaterial(item){
   if(!state.apiKey) return "";
-  const sys="你是資料整理助理。把使用者的素材整理成一份精煉的『備用資料』，之後 AI 產文會直接引用它。格式：\n【素材重點】3–6 條關鍵重點\n【可用數據／事實】有就列，沒有寫「無」\n【可引用的句子／故事】1–3 句\n【適合用途】一句話\n用繁體台灣用語，總長 800 字內，只輸出整理結果。";
+  const sys="你是資料整理助理。把使用者的素材整理成一份精煉的『備用資料』，之後 AI 產文會直接引用它。格式：\n【素材重點】3–6 條關鍵重點\n【可用數據／事實】有就列，沒有寫「無」\n【可引用的句子／故事】1–3 句\n【適合用途】一句話\n用繁體台灣用語（原文若是簡體或英文也一律轉成繁體中文），總長 800 字內，只輸出整理結果。";
   let user;
   if(item.kind==="image" && item.url){
     user=[{type:"text",text:"請讀懂這張圖片（含文字與圖表），整理成備用資料。"},{type:"image_url",image_url:{url:item.url}}];
@@ -1687,7 +1686,7 @@ async function runTask(){
   const btn=document.getElementById("runBtn");
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>分析中';
 
-  const sys = `你是「${state.title}」的部門 AI 助理。\n\n【公司共用背景】\n${state.context}\n\n【你的部門定位】\n${d.role}\n\n【本次目標平台：${platLabel(currentPlatform)}】${platTip(currentPlatform)}\n\n請務必用繁體中文（台灣用語）回覆，內容要可以直接拿去用。`;
+  const sys = `你是「${state.title}」的部門 AI 助理。\n\n【公司共用背景】\n${state.context}\n\n【你的部門定位】\n${d.role}\n\n【本次目標平台：${platLabel(currentPlatform)}】${platTip(currentPlatform)}\n\n【語言鐵則】不論素材原文是簡體、英文或其他語言，最終輸出一律用繁體中文（台灣用語），內容要可以直接拿去用。`;
 
   let textPart = input || "請依你的部門定位，仔細閱讀下方附件內容，直接完成分析並產出可立即使用的成果。";
   if(handoffFrom){ textPart = `【${handoffFrom.deptName} 交辦的素材】\n${clip(handoffFrom.output,MAX_CHAIN_CHARS)}\n\n【本次任務】\n${textPart}`; }
@@ -1714,15 +1713,19 @@ async function runTask(){
 }
 
 function clip(s,n){ s=s||""; return s.length>n? s.slice(0,n)+"…（已截取）" : s; }
-function buildSys(d){ return `你是「${state.title}」的部門 AI 助理。\n\n【公司共用背景】\n${state.context}\n\n【你的部門定位】\n${d.role}\n\n請務必用繁體中文（台灣用語）回覆，內容要可以直接拿去用。`; }
+function buildSys(d){ return `你是「${state.title}」的部門 AI 助理。\n\n【公司共用背景】\n${state.context}\n\n【你的部門定位】\n${d.role}\n\n【語言鐵則】不論素材原文是簡體、英文或其他語言，最終輸出一律用繁體中文（台灣用語），內容要可以直接拿去用。`; }
 async function callOpenAI(sys,userContent,maxTokens){
   let lastErr;
   for(let attempt=0;attempt<4;attempt++){
+    const isG5=/^gpt-5/.test(state.model);
+    const body={ model:state.model,
+      messages:[ {role:"system",content:sys}, {role:"user",content:userContent} ] };
+    if(isG5){ body.max_completion_tokens=maxTokens||1800; }        // gpt-5 系列：新參數、固定溫度
+    else{ body.max_tokens=maxTokens||1800; body.temperature=0.75; }
     const res=await fetch("https://api.openai.com/v1/chat/completions",{
       method:"POST",
       headers:{ "Content-Type":"application/json","Authorization":"Bearer "+state.apiKey },
-      body:JSON.stringify({ model:state.model, temperature:0.75, max_tokens:maxTokens||1800,
-        messages:[ {role:"system",content:sys}, {role:"user",content:userContent} ] })
+      body:JSON.stringify(body)
     });
     if(res.ok){
       const data=await res.json();
@@ -1730,6 +1733,18 @@ async function callOpenAI(sys,userContent,maxTokens){
     }
     let m="HTTP "+res.status;
     try{ const er=await res.json(); m=er.error?.message||m; }catch(e){}
+    // 模型不吃 max_tokens：自動換 max_completion_tokens 重送一次
+    if(/max_tokens.*not supported|max_completion_tokens/i.test(m) && body.max_tokens){
+      delete body.max_tokens; delete body.temperature;
+      body.max_completion_tokens=maxTokens||1800;
+      const res2=await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json","Authorization":"Bearer "+state.apiKey },
+        body:JSON.stringify(body)
+      });
+      if(res2.ok){ const d2=await res2.json(); return (d2.choices?.[0]?.message?.content||"").trim(); }
+      try{ const e2=await res2.json(); m=e2.error?.message||m; }catch(e){}
+    }
     // 429 / Rate limit：自動等待後重試（最多 3 次）
     if(res.status===429 || /rate limit/i.test(m)){
       lastErr=m;
