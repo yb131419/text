@@ -970,12 +970,15 @@ function rgb_(hex) {
 function reportLayout_(r) {
   const d = reportData_(r);
   const n = x => Number(x).toLocaleString('en-US');
-  const rows = r.lines.map(l => [l.name, l.qty, Math.round(l.price / l.qty), Math.round(l.pv / l.qty), l.price, l.pv]);
-  if (d.gifts) rows.push([GIFT_NAME, d.gifts, 0, 0, 0, 0]);
+  const rows = r.lines.map(l => l.price || l.pv
+    ? { name: l.name, qty: l.qty, sub: '單價 ' + n(Math.round(l.price / l.qty)) + '｜PV ' + n(Math.round(l.pv / l.qty)), amount: 'NT$ ' + n(l.price), pv: n(l.pv) }
+    : { name: l.name, qty: l.qty, sub: '入會贈送', amount: '贈送', pv: '—' });
+  if (d.gifts) rows.push({ name: GIFT_NAME, qty: d.gifts, sub: '現金每滿 2 萬送 1 瓶', amount: '贈品', pv: '—', gift: true });
+  const boxes = r.lines.reduce((a, l) => a + l.qty, 0);
 
-  const W = 540, X = 20, TW = 500, ROW = 22;
+  const W = 540, X = 20, TW = 500, HEAD = 26, ROW = 38, TOTAL = 32;
   const tableTop = 128;
-  const tableH = (rows.length + 1) * ROW;
+  const tableH = HEAD + rows.length * ROW + TOTAL;
   let y = tableTop + tableH + 16;
   const sumTop = y; y += 84;
   const tgtTop = y; y += 70;
@@ -1012,28 +1015,39 @@ function reportLayout_(r) {
     text('🌿 康園試算報表', X, 20, TW, 34, 22, C.white, true);
     box(X, 58, TW, 32, C.card, C.gold);
     text((r.card ? '💳 刷卡' : '💵 現金') + (d.days ? '　｜　📦 預估可使用天數 ' + d.days + ' 天' : ''), X, 58, TW, 32, 12, C.gold2, true);
-    text('購買者：' + (r.name || '—') + '　　試算者：小乖', X, 96, TW, 24, 11, C.white, true);
+    text('購買者：' + (r.name || '—') + '　　試算者：彥彬｜助理小乖', X, 96, TW, 24, 11, C.white, true);
 
-    // 品項表
-    const tbl = 'xg_table';
-    const cols = [150, 46, 62, 62, 90, 90];
-    req.push({ createTable: { objectId: tbl, rows: rows.length + 1, columns: 6, elementProperties: place(TW, tableH, X, tableTop) } });
-    cols.forEach((w, i) => req.push({ updateTableColumnProperties: { objectId: tbl, columnIndices: [i], fields: 'columnWidth',
-      tableColumnProperties: { columnWidth: { magnitude: w, unit: 'PT' } } } }));
-    req.push({ updateTableRowProperties: { objectId: tbl, rowIndices: rows.map((_, i) => i + 1).concat([0]), fields: 'minRowHeight',
-      tableRowProperties: { minRowHeight: { magnitude: ROW, unit: 'PT' } } } });
-    const cell = (ri, ci, str, color, bold, fill) => {
-      const loc = { rowIndex: ri, columnIndex: ci };
-      req.push({ insertText: { objectId: tbl, cellLocation: loc, text: String(str) } });
-      req.push({ updateTextStyle: { objectId: tbl, cellLocation: loc, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily',
-        style: style(ci === 1 ? 11 : 9, color, bold) } });
-      req.push({ updateParagraphStyle: { objectId: tbl, cellLocation: loc, textRange: { type: 'ALL' }, fields: 'alignment', style: { alignment: 'CENTER' } } });
-      req.push({ updateTableCellProperties: { objectId: tbl, tableRange: { location: loc, rowSpan: 1, columnSpan: 1 },
-        fields: 'tableCellBackgroundFill.solidFill.color,contentAlignment',
-        tableCellProperties: { tableCellBackgroundFill: { solidFill: { color: { rgbColor: rgb_(fill) } } }, contentAlignment: 'MIDDLE' } } });
+    // 品項表：用色塊和文字框排，欄位對齊不受表格自動撐高影響
+    // 欄位：品項（下方小字：單價｜PV）｜數量｜小計金額｜小計 PV
+    const COL = [{ x: 0, w: 214 }, { x: 214, w: 56 }, { x: 270, w: 120 }, { x: 390, w: 110 }];
+    const rect = (x, yy, w, h, fill) => {
+      const id = 'xg_rect_' + (k++);
+      req.push({ createShape: { objectId: id, shapeType: 'RECTANGLE', elementProperties: place(w, h, x, yy) } });
+      req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill.solidFill.color,outline.propertyState', shapeProperties: {
+        shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(fill) } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
     };
-    ['品項名稱', '數量', '單價', 'PV', '小計金額', '小計PV'].forEach((h, ci) => cell(0, ci, h, C.white, true, C.head));
-    rows.forEach((rw, i) => rw.forEach((v, ci) => cell(i + 1, ci, v, ci === 1 ? C.qty : C.ink, ci === 1, i % 2 ? C.row2 : C.row1)));
+    const colText = (ci, str, yy, h, size, color, bold, align) =>
+      text(str, X + COL[ci].x + (ci === 0 ? 10 : 4), yy, COL[ci].w - (ci === 0 ? 14 : 12), h, size, color, bold, align);
+    let ty = tableTop;
+    rect(X, ty, TW, HEAD, C.head);
+    ['品項名稱', '數量', '小計金額', '小計 PV'].forEach((h, ci) => colText(ci, h, ty, HEAD, 11, C.white, true, ci === 0 ? 'START' : ci === 1 ? 'CENTER' : 'END'));
+    ty += HEAD;
+    rows.forEach((rw, i) => {
+      rect(X, ty, TW, ROW, rw.gift ? '#fff6dc' : i % 2 ? C.row2 : C.row1);
+      colText(0, rw.name, ty + 3, 19, 12, C.ink, true, 'START');
+      colText(0, rw.sub, ty + 21, 14, 8, '#6b7280', false, 'START');
+      colText(1, '× ' + rw.qty, ty, ROW, 13, C.qty, true, 'CENTER');
+      colText(2, rw.amount, ty, ROW, 12, C.ink, true, 'END');
+      colText(3, rw.pv, ty, ROW, 12, '#0f766e', true, 'END');
+      ty += ROW;
+    });
+    rect(X, ty, TW, TOTAL, '#e3ebf7');
+    colText(0, '合計', ty, TOTAL, 12, C.head, true, 'START');
+    colText(1, boxes + ' 盒', ty, TOTAL, 11, C.head, true, 'CENTER');
+    colText(2, 'NT$ ' + n(d.amount), ty, TOTAL, 12, C.head, true, 'END');
+    colText(3, n(d.pv), ty, TOTAL, 12, C.head, true, 'END');
+    // 欄位分隔線
+    [1, 2, 3].forEach(ci => rect(X + COL[ci].x, tableTop + HEAD, 0.6, tableH - HEAD, '#d5dbe3'));
 
     // 總金額／總 PV
     const half = (TW - 10) / 2;
@@ -1062,7 +1076,7 @@ function reportLayout_(r) {
         ? (b.type === '經理' ? '🏅 ' : '👤 ') + b.type + ' ' + b.pct + '%：約 NT$ ' + n(b.amount) + '　扣稅後 NT$ ' + n(b.afterTax)
         : b.type + '：PV 未達最低門檻', X, bonusTop + 26 + i * 22, TW, 22, 11, b.type === '經理' ? C.gold2 : C.teal, true));
     }
-    text('小乖自動試算｜數量依圖片辨識，請再核對　' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), X, footTop, TW, 20, 8, C.grey);
+    text('彥彬｜助理小乖 自動試算｜數量依圖片辨識，請再核對　' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), X, footTop, TW, 20, 8, C.grey);
     return req;
   };
   return { W: W, H: y, build: build };
