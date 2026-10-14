@@ -355,17 +355,39 @@ function checkReminders() {
 }
 
 /* ============ 試算（金額與 PV） ============ */
-// AI 只負責「看出買了什麼、幾個」，金額和 PV 一律由程式照價目表計算，不讓 AI 心算
+// AI 只負責「看出表上寫了什麼」，盒數、金額、PV 一律由程式照價目表計算，不讓 AI 心算。
+// 支援兩種輸入：
+//   1. 草本產品購買明細表：每個月一欄（服用 N 月），每列「編號＋每次顆數＋早中晚打勾」，另有「保養」欄
+//   2. 一般訂單或打字清單：直接寫品項和盒數（例如「211 2盒」）
+const DAYS_PER_MONTH = 30;
+// 一組＝4 盒的優惠組合；買到 4 盒以上自動換成組合價（2711AB 組合限 2 組）
+const PACKS = {
+  '2711AB': { single: '2711AB(1)限8盒', set: '2711AB(4)限2組', size: 4, maxSets: 2 },
+  '777Q': { single: '777Q', set: '777Q(4)', size: 4, maxSets: 99 },
+};
+const CODE_ALIAS = { '火山甘露茶': '火山甘露' };
+const CAPPED = ['168', '111', '101'];   // SOP：三個月購買上限 4 盒
+const CAP_BOXES = 4;
+
 function quote_(text, image) {
   if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，請到 Apps Script 的指令碼屬性填入 OPENAI_API_KEY。';
   const prices = prices_();
-  const sys = '你是訂單辨識助手。從使用者給的圖片或文字中，找出購買的品項和數量，'
-    + '把每一項對應到下面「價目表品項」裡最符合的名稱（name 必須一字不差照抄價目表）。'
-    + '數量沒寫就當 1；「2盒」「x2」「*2」都代表數量 2。對應不到的放進 unknown（照原文）。'
-    + '只輸出 JSON：{"items":[{"name":"價目表品項","qty":1}],"unknown":["原文"]}\n\n價目表品項：\n'
-    + prices.map(p => p.name).join('\n');
+  const sys = '你是訂單辨識助手，負責把圖片或文字轉成 JSON，不要計算金額。\n'
+    + '【情況一：草本產品購買明細表】表上有「一、二、三」（或第一、二、三個月）幾欄，每欄標題有「服用 N 月」，'
+    + '也可能在欄位底下用紅筆寫「吃3個月」；沒寫月數就當 1。每列有「編號」（印好的或手寫，例如 211、300、299A、211A、255A、2711AB、777Q、260）、'
+    + '「顆數」（每次吃幾顆）、「早／中／晚」打勾。只收「顆數有寫數字」的列；顆數空白的列（例如沒用到的月份裡印好的 211）不要收。'
+    + 'times 是該列有幾個時段要吃：表格的早、晚通常是印好的勾，就算 2；中也有勾才算 3。'
+    + '整欄都沒寫顆數的月份不要放。最右邊的「保養」欄放進 maintenance。左上角有日期、地點，姓名、介紹人照抄。'
+    + '手寫的 2 常寫得像 >，例如「>60」是 260、「>55A」是 255A、「>711AB」是 2711AB、「7770」「777Q」是 777Q。\n'
+    + '【情況二：一般訂單或打字清單】直接寫品項和數量（盒）的，放進 items，name 要一字不差照抄價目表品項，數量沒寫就當 1。\n'
+    + '對應不到價目表的放進 unknown（照原文）。\n'
+    + '只輸出 JSON：{"name":"","introducer":"","date":"",'
+    + '"periods":[{"label":"第一個月","months":1,"rows":[{"code":"211","perDose":3,"times":2}]}],'
+    + '"maintenance":[{"code":"211","perDose":3,"times":2}],'
+    + '"items":[{"name":"價目表品項","qty":1}],"unknown":["原文"]}\n\n'
+    + '價目表品項：\n' + prices.map(p => p.name).join('\n');
   const user = image
-    ? [{ type: 'text', text: text || '請辨識這張訂單的品項與數量' }, { type: 'image_url', image_url: { url: image, detail: 'high' } }]
+    ? [{ type: 'text', text: text || '請辨識這張訂單／購買明細表' }, { type: 'image_url', image_url: { url: image, detail: 'high' } }]
     : text;
   let parsed;
   try {
@@ -374,45 +396,140 @@ function quote_(text, image) {
     console.error(err);
     return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
   }
-  const answer = quoteText_(priceItems_(prices, parsed));
+  const answer = quoteText_(computeQuote_(prices, parsed));
   logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
   logChat_('assistant', answer);
   return answer;
 }
 
-function priceItems_(prices, parsed) {
+// 把辨識結果換算成購買清單：明細表依「每次顆數 × 時段 × 30 天 × 月數 ÷ 每盒顆數」無條件進位成盒數
+function computeQuote_(prices, parsed) {
   const byName = {};
   prices.forEach(p => { byName[normName_(p.name)] = p; });
-  const lines = {}, order = [];
+  const find = code => {
+    const k = normName_(CODE_ALIAS[normName_(code)] || code);
+    return byName[k] || null;
+  };
+  const num = (v, d) => { const n = Number(String(v == null ? '' : v).normalize('NFKC')); return n > 0 ? n : d; };
   const unknown = (parsed.unknown || []).map(String).filter(Boolean);
-  (parsed.items || []).forEach(it => {
-    const p = byName[normName_(it && it.name)];
-    const qty = Math.max(1, Math.round(Number(String(it && it.qty).normalize('NFKC')) || 1));
-    if (!p) { if (it && it.name) unknown.push(String(it.name)); return; }
-    if (!lines[p.name]) { lines[p.name] = { name: p.name, qty: 0, pv: p.pv, price: p.price }; order.push(p.name); }
-    lines[p.name].qty += qty;
+  const boxes = {}, order = [];
+  const add = (key, n) => { if (!boxes[key]) { boxes[key] = 0; order.push(key); } boxes[key] += n; };
+
+  // 某個編號在一段期間要幾盒
+  const boxesFor = (code, perDose, times, months) => {
+    const pack = PACKS[normName_(code)];
+    const p = pack ? byName[normName_(pack.single)] : find(code);
+    if (!p) return null;
+    const pills = perDose * times * DAYS_PER_MONTH * months;
+    return { key: pack ? normName_(code) : p.name, n: Math.ceil(pills / (p.perBox || 90)) };
+  };
+
+  const periods = [];
+  (parsed.periods || []).forEach((pd, i) => {
+    const months = num(pd && pd.months, 1);
+    const rows = [];
+    ((pd && pd.rows) || []).forEach(r => {
+      const code = String((r && r.code) || '').trim();
+      const perDose = num(r && r.perDose, 0);
+      if (!code || !perDose) return;
+      const times = Math.min(3, num(r.times, 2));
+      const b = boxesFor(code, perDose, times, months);
+      if (!b) { unknown.push(code); return; }
+      add(b.key, b.n);
+      rows.push(code + '(' + perDose + ')');
+    });
+    if (rows.length) periods.push({ label: String((pd && pd.label) || '第' + (i + 1) + '段'), months: months, rows: rows });
   });
-  return { items: order.map(n => lines[n]), unknown: unknown };
+  const isSheet = periods.length > 0;
+  if (isSheet) {
+    const tea = find('火山甘露');
+    if (tea && !boxes[tea.name]) add(tea.name, 1);   // 表上：火山甘露茶第一個月一盒即可
+  }
+
+  (parsed.items || []).forEach(it => {
+    const name = String((it && it.name) || '').trim();
+    const qty = Math.max(1, Math.round(num(it && it.qty, 1)));
+    const pack = PACKS[normName_(name)];
+    const p = pack ? null : find(name);
+    if (pack) add(normName_(name), qty);
+    else if (p) add(p.name, qty);
+    else if (name) unknown.push(name);
+  });
+
+  // 換成價目表上的實際品項（4 盒以上自動用組合價）
+  const lines = [];
+  const warn = [];
+  order.forEach(key => {
+    const n = boxes[key];
+    const pack = PACKS[key];
+    if (pack) {
+      const sets = Math.min(Math.floor(n / pack.size), pack.maxSets);
+      const singles = n - sets * pack.size;
+      if (sets) lines.push(line_(byName[normName_(pack.set)], sets, key + ' ' + sets * pack.size + ' 盒'));
+      if (singles) lines.push(line_(byName[normName_(pack.single)], singles, key + ' ' + singles + ' 盒'));
+    } else {
+      lines.push(line_(byName[normName_(key)], n));
+    }
+    if (CAPPED.indexOf(key) >= 0 && n > CAP_BOXES) warn.push(key + ' 共 ' + n + ' 盒，超過三個月上限 ' + CAP_BOXES + ' 盒');
+  });
+
+  const maint = [];
+  ((parsed.maintenance) || []).forEach(r => {
+    const code = String((r && r.code) || '').trim();
+    const perDose = num(r && r.perDose, 0);
+    if (!code || !perDose) return;
+    const b = boxesFor(code, perDose, Math.min(3, num(r.times, 2)), 1);
+    if (!b) { unknown.push(code); return; }
+    const pack = PACKS[b.key];
+    maint.push(line_(byName[normName_(pack ? pack.single : b.key)], b.n, code + '(' + perDose + ')'));
+  });
+
+  return {
+    name: String(parsed.name || ''), introducer: String(parsed.introducer || ''), date: String(parsed.date || ''),
+    isSheet: isSheet, periods: periods, lines: lines.filter(Boolean), maint: maint.filter(Boolean),
+    unknown: unknown.filter((x, i, a) => a.indexOf(x) === i), warn: warn,
+  };
+}
+
+function line_(p, qty, label) {
+  if (!p) return null;
+  return { name: p.name, label: label || p.name, qty: qty, price: p.price * qty, pv: p.pv * qty };
 }
 
 function quoteText_(r) {
-  if (!r.items.length) {
+  if (!r.lines.length) {
     return '我沒從裡面找到價目表上的品項' + (r.unknown.length ? '（看到：' + r.unknown.join('、') + '）' : '')
       + '。可以拍清楚一點再傳，或直接打字：試算 211 2盒、777Q 1盒';
   }
   const n = x => Number(x).toLocaleString('en-US');
-  let qty = 0, amount = 0, pv = 0;
-  const out = ['🧾 試算結果', ''];
-  r.items.forEach(it => {
-    qty += it.qty; amount += it.price * it.qty; pv += it.pv * it.qty;
-    out.push(it.name + ' × ' + it.qty);
-    out.push('　金額 ' + n(it.price * it.qty) + '｜PV ' + n(it.pv * it.qty));
+  const out = ['🧾 試算結果'];
+  const who = [r.name, r.introducer ? '介紹人 ' + r.introducer : '', r.date].filter(Boolean).join('｜');
+  if (who) out.push(who);
+  if (r.isSheet) {
+    out.push('', '【看到的內容】（括號是每次顆數）');
+    r.periods.forEach(pd => out.push(pd.label + '（服用 ' + pd.months + ' 個月）：' + pd.rows.join('、')));
+  }
+  out.push('', '【購買明細】');
+  let boxes = 0, amount = 0, pv = 0;
+  r.lines.forEach(l => {
+    boxes += l.qty; amount += l.price; pv += l.pv;
+    const unit = l.label !== l.name ? l.label + '（' + l.name + ' × ' + l.qty + '）' : l.name + ' × ' + l.qty;
+    out.push(unit);
+    out.push('　金額 ' + n(l.price) + '｜PV ' + n(l.pv));
   });
-  out.push('', '共 ' + r.items.length + ' 項、' + qty + ' 件', '總金額：' + n(amount) + ' 元', '總 PV：' + n(pv));
+  out.push('', '總金額：' + n(amount) + ' 元', '總 PV：' + n(pv));
   out.push(pv >= MANAGER_PV ? '✅ 已達經理 ' + n(MANAGER_PV) + ' PV' : '距經理 ' + n(MANAGER_PV) + ' PV 還差 ' + n(MANAGER_PV - pv));
   if (amount >= CASH_GIFT_AMOUNT) out.push('💡 現金購買滿 2 萬，送 30 顆一瓶（刷卡沒有）');
+  if (r.maint.length) {
+    let ma = 0, mp = 0;
+    out.push('', '【保養：之後每個月】');
+    r.maint.forEach(l => { ma += l.price; mp += l.pv; out.push(l.label + ' → ' + l.name + ' × ' + l.qty); });
+    out.push('每月金額：' + n(ma) + ' 元｜PV ' + n(mp) + '（不含在上面的總計）');
+  }
+  r.warn.forEach(w => out.push('⚠️ ' + w));
   if (r.unknown.length) out.push('', '⚠️ 這些我對不到價目表，沒算進去：' + r.unknown.join('、'));
-  out.push('', '數量是從圖片辨識的，請再核對一次。');
+  out.push('', r.isSheet ? '盒數＝每次顆數 × 時段 × 30 天 × 月數 ÷ 每盒顆數（無條件進位）。字是辨識出來的，請再核對一次。'
+    : '數量是辨識出來的，請再核對一次。');
   return out.join('\n');
 }
 
@@ -426,26 +543,26 @@ function prices_() {
   let sh = ss.getSheetByName(PRICE_SHEET);
   if (!sh) {
     sh = ss.insertSheet(PRICE_SHEET);
-    const rows = DEFAULT_PRICES.map(l => l.split('|')).map(r => [r[0], Number(r[1]), Number(r[2])]);
-    sh.getRange(1, 1, 1, 3).setValues([['品項', 'PV', '金額']]).setFontWeight('bold');
-    sh.getRange(2, 1, rows.length, 3).setValues(rows);
+    const rows = DEFAULT_PRICES.map(l => l.split('|')).map(r => [r[0], Number(r[1]), Number(r[2]), Number(r[3] || 90)]);
+    sh.getRange(1, 1, 1, 4).setValues([['品項', 'PV', '金額', '每盒顆數']]).setFontWeight('bold');
+    sh.getRange(2, 1, rows.length, 4).setValues(rows);
     sh.setFrozenRows(1);
   }
   const last = sh.getLastRow();
   if (last < 2) return [];
   const num = v => Number(String(v).normalize('NFKC').replace(/[,\s]/g, '')) || 0;
-  return sh.getRange(2, 1, last - 1, 3).getValues()
+  return sh.getRange(2, 1, last - 1, 4).getValues()
     .filter(r => String(r[0]).trim())
-    .map(r => ({ name: String(r[0]).trim(), pv: num(r[1]), price: num(r[2]) }));
+    .map(r => ({ name: String(r[0]).trim(), pv: num(r[1]), price: num(r[2]), perBox: num(r[3]) || 90 }));
 }
 
-// 第一次試算時寫進「價目表」分頁；之後改價格請直接改試算表，不用改這裡
+// 第一次試算時寫進「價目表」分頁（品項|PV|金額|每盒顆數，沒寫每盒顆數就是 90）；之後改價格請直接改試算表，不用改這裡
 const DEFAULT_PRICES = [
   '新入會(9號）|17280|29800',
   '新入會(草本）男|9000|15400',
   '新入會(草本）女|9000|15400',
-  '2711AB(1)限8盒|3600|4880',
-  '2711AB(4)限2組|12600|17920',
+  '2711AB(1)限8盒|3600|4880|60',
+  '2711AB(4)限2組|12600|17920|60',
   '211|2160|2960',
   '300|2160|2980',
   '299A|2280|3240',
