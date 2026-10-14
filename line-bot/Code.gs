@@ -452,7 +452,21 @@ function quote_(text, image, fallbackToChat) {
   let parsed;
   try {
     // 看手寫明細表用比較強的模型（指令碼屬性 QUOTE_MODEL 可改），一般聊天仍用 MODEL
-    parsed = JSON.parse(callOpenAI_(sys, [{ role: 'user', content: user }], true, prop_('QUOTE_MODEL') || 'gpt-4o'));
+    const qModel = prop_('QUOTE_MODEL') || 'gpt-4o';
+    parsed = JSON.parse(callOpenAI_(sys, [{ role: 'user', content: user }], true, qModel));
+    // 明細表再核對一次：拿第一次的結果對照圖片，補漏掉的列、改錯的編號和顆數（失敗就用第一次的結果）
+    if (image && (parsed.periods || []).length && prop_('QUOTE_VERIFY') !== 'off') {
+      try {
+        const check = JSON.parse(callOpenAI_(sys, [
+          { role: 'user', content: user },
+          { role: 'assistant', content: JSON.stringify(parsed) },
+          { role: 'user', content: '請再仔細對照圖片核對一次上面的結果：每一欄（一、二、三、保養）從第一列看到最後一列，'
+            + '漏掉的列補上、編號或顆數讀錯的改正、表上沒有的刪掉，服用月數、姓名、介紹人也再確認。'
+            + '特別注意每欄最底下幾列、手寫的 2 寫成 > 的編號、紅筆寫的月數。只輸出修正後完整的 JSON（格式同上）。' },
+        ], true, qModel));
+        if ((check.periods || []).length) parsed = check;
+      } catch (e) { console.error('明細表核對失敗：' + e.message); }
+    }
   } catch (err) {
     console.error(err);
     if (fallbackToChat) return chat_(text, image);
@@ -1349,7 +1363,7 @@ function callOpenAI_(system, messages, asJson, modelOverride) {
   const body = { model: model, messages: [{ role: 'system', content: system }].concat(messages) };
   if (asJson) body.response_format = { type: 'json_object' };
   if (/^gpt-5/.test(model)) body.max_completion_tokens = 4000;
-  else { body.max_tokens = 2500; body.temperature = 0.6; }
+  else { body.max_tokens = asJson ? 6000 : 2500; body.temperature = asJson ? 0 : 0.6; }   // 辨識明細表要穩定、不能被截斷
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
