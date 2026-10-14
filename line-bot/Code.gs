@@ -41,6 +41,7 @@ const HELP_TEXT = [
   '📝 記事：「幫我記下 車位B2-35」',
   '📅 行程：「這週有什麼行程？」',
   '📁 本機找：找你存的案例和資料',
+  '🎤 語音：在 Telegram 傳語音，小乖用語音回',
   '🌐 上網找：上網找資料',
   '',
   '點下面的按鈕也可以',
@@ -67,7 +68,13 @@ const HELP_MORE = [
   '・圖片、影片、文字轉傳給小乖就會存進案例庫，自動分類',
   '・說明打「#見證案例」可以指定分類',
   '・案例分類：看每類有幾筆、按分類瀏覽',
-  '・改分類 名稱：改剛存那筆的分類（沒有的分類會新增）',
+  '・改分類 名稱：改剛存那筆的分類',
+  '・新增分類／分類改名 舊 新／刪除分類',
+  '',
+  '【語音對話】（Telegram）',
+  '・傳語音給小乖，小乖也用語音回你',
+  '・語音回覆 開：打字也用語音回',
+  '・語音回覆 關：只回文字',
   '',
   '【其他】',
   '・清除對話：忘掉聊天內容（資料不刪）',
@@ -318,6 +325,8 @@ function answer_(text) {
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
+  const vm = String(text).replace(/\s+/g, '').match(/^(?:語音回覆|語音對話|用語音回)(開|關|開啟|關閉|自動)?$/);
+  if (vm) return voiceSwitch_(vm[1] || '');
   // 案例分類：列分類、看某一類、改剛存那筆的分類
   if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
   const bc = text.match(/^(?:看分類\s*)?(.+?)（\d+）$/) || text.match(/^看分類\s*(.+)$/);
@@ -766,6 +775,55 @@ function transcribe_(blob, filename) {
   return String(JSON.parse(res.getContentText()).text || '').trim();
 }
 
+// 語音回覆模式：auto＝你傳語音才用語音回（預設）、always＝打字也用語音回、off＝只回文字
+function voiceMode_() { return prop_('VOICE_REPLY') || 'auto'; }
+
+function voiceSwitch_(w) {
+  if (/開/.test(w)) setProp_('VOICE_REPLY', 'always');
+  else if (/關/.test(w)) setProp_('VOICE_REPLY', 'off');
+  else if (w === '自動') setProp_('VOICE_REPLY', 'auto');
+  const m = voiceMode_();
+  return '🎤 語音回覆：' + (m === 'always' ? '開（打字也用語音回）' : m === 'off' ? '關（只回文字）' : '自動（你傳語音，小乖就用語音回）')
+    + '\n\n改的話打「語音回覆 開」「語音回覆 關」或「語音回覆 自動」';
+}
+
+// 把回覆變成講話的稿子：去掉表情符號、符號和網址，太長只念前面
+function speechText_(ans) {
+  let t = String(ans && typeof ans === 'object' ? ans.text : ans || '');
+  t = t.replace(/https?:\/\/\S+/g, '')
+    .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '')
+    .replace(/[*_#`>｜|【】「」]/g, ' ').replace(/[─—=]{2,}/g, ' ').replace(/^[・\-•]\s*/gm, '')
+    .replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim();
+  if (t.length > 600) t = t.slice(0, 600).replace(/[^。！？\n]*$/, '') + '\n其他的請看文字。';
+  return t;
+}
+
+function tts_(text) {
+  const res = UrlFetchApp.fetch('https://api.openai.com/v1/audio/speech', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
+    payload: JSON.stringify({
+      model: prop_('TTS_MODEL') || 'gpt-4o-mini-tts', voice: prop_('TTS_VOICE') || 'nova', input: text,
+      instructions: '用台灣口音的中文，語氣親切、自然、像貼心的助理，速度適中。', response_format: 'opus',
+    }),
+  });
+  if (res.getResponseCode() !== 200) throw new Error('語音合成失敗（' + res.getResponseCode() + '）：' + res.getContentText().slice(0, 200));
+  return res.getBlob().setName('xiaoguai.ogg');
+}
+
+// Telegram 用語音訊息回（失敗就算了，文字已經送出）
+function speakTg_(chatId, ans) {
+  const t = speechText_(ans);
+  if (!t) return;
+  try {
+    tgApi_('sendChatAction', { chat_id: chatId, action: 'record_voice' });
+    const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendVoice', {
+      method: 'post', muteHttpExceptions: true, payload: { chat_id: String(chatId), voice: tts_(t) },
+    });
+    if (res.getResponseCode() !== 200) console.error('Telegram sendVoice 失敗：' + res.getContentText());
+  } catch (e) { console.error(e.message); }
+}
+
 // 圖片：說明以「試算」開頭（或像「幫我算金額」），或 10 分鐘內先傳過「試算」，就走試算；否則一般看圖
 function image_(text, image) {
   const pending = Number(prop_('QUOTE_UNTIL')) > Date.now();
@@ -824,7 +882,9 @@ function handleTelegram_(update) {
     if (!said) return tgSend_(chatId, '沒聽到內容，再說一次看看。');
     const ans = answer_(said);
     const short = sendReportTg_(chatId);
-    return tgSend_(chatId, short ? '🎤 「' + said + '」\n\n' + short : withVoice_(said, ans));
+    tgSend_(chatId, short ? '🎤 「' + said + '」\n\n' + short : withVoice_(said, ans));
+    if (!short && voiceMode_() !== 'off') speakTg_(chatId, ans);   // 用講的就用講的回
+    return;
   }
 
   if (fileId) {
@@ -859,6 +919,7 @@ function handleTelegram_(update) {
   const ans = answer_(text.replace(/^\/start\b\s*/, '') || '說明');
   const short = sendReportTg_(chatId);
   tgSend_(chatId, short || ans);
+  if (!short && voiceMode_() === 'always' && !/^語音回覆/.test(text)) speakTg_(chatId, ans);
 }
 
 // 下載 Telegram 圖片，轉成 OpenAI 看得懂的 data URL
