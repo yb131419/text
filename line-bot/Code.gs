@@ -408,7 +408,9 @@ function quote_(text, image) {
     return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
   }
   parsed.card = /刷卡/.test(text || '');
-  const answer = quoteText_(fitTarget_(prices, parsed, targetPv_(text)));
+  const result = fitTarget_(prices, parsed, targetPv_(text));
+  if (result.isSheet) result.byMonths = [1, 2, 3].map(m => byMonths_(prices, parsed, m));
+  const answer = quoteText_(result);
   logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
   logChat_('assistant', answer);
   return answer;
@@ -436,6 +438,25 @@ function applyCash211_(r) {
   r.notes = (r.notes || []).concat(['現金：211 需要 ' + need + ' 盒，扣掉' + (joined ? '入會送的 ' + joined + ' 盒和' : '')
     + '贈品 211(30) ' + gifts + ' 瓶（' + gifts * 30 + ' 顆），只買 ' + qty + ' 盒']);
   return r;
+}
+
+// 只買前 m 個月：照明細表的月份順序取，取到 m 個月為止；表上不夠 m 個月就把最後一段拉長
+function byMonths_(prices, parsed, m) {
+  const copy = JSON.parse(JSON.stringify(parsed));
+  const filled = (copy.periods || []).filter(pd => ((pd && pd.rows) || []).some(x => Number(String(x && x.perDose).normalize('NFKC')) > 0));
+  let left = m;
+  const out = [];
+  filled.forEach(pd => {
+    if (left <= 0) return;
+    const take = Math.min(left, Math.max(1, Number(pd.months) || 1));
+    out.push(Object.assign({}, pd, { months: take }));
+    left -= take;
+  });
+  if (left > 0 && out.length) out[out.length - 1].months += left;
+  copy.periods = out;
+  const r = applyCash211_(computeQuote_(prices, copy));
+  const amount = r.lines.reduce((a, l) => a + l.price, 0);
+  return { months: m, amount: amount, pv: r.lines.reduce((a, l) => a + l.pv, 0), gifts: r.card ? 0 : Math.floor(amount / CASH_GIFT_AMOUNT) };
 }
 
 // 說明裡寫的目標 PV，例如「試算 22萬」「試算 300000」
@@ -616,6 +637,10 @@ function quoteText_(r) {
     if (newMember) out.push('（有新入會：總 PV 已滿 2 萬門檻）');
   }
 
+  if (r.byMonths) {
+    out.push('', '【買幾個月要多少】');
+    r.byMonths.forEach(b => out.push('買 ' + b.months + ' 個月：NT$ ' + n(b.amount) + '｜PV ' + n(b.pv) + (b.gifts ? '｜贈品 ' + b.gifts + ' 瓶' : '')));
+  }
   if (r.maint.length) {
     let ma = 0, mp = 0;
     out.push('', '【保養：之後每個月】');
