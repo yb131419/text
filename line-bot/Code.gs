@@ -384,12 +384,13 @@ const CASE_CATS = ['見證案例', '使用前後對比', '產品介紹', '試算
 const CASE_HEAD = ['時間', '分類', '類型', '產品', '人物', '說明文字', 'AI 摘要', '關鍵字', '來源', 'file_id'];
 const CASE_ICON = { photo: '🖼️', video: '🎬', animation: '🎞️', document: '📄', text: '📝' };
 let CURRENT_TG_CHAT_ = '';
+let IMG_NOT_ORDER_ = false;   // 沒寫說明的圖片看起來不是訂單／明細表
 
 function caseSheet_() {
   const ss = ss_();
   let sh = ss.getSheetByName(CASE_SHEET);
   if (sh && sh.getLastRow() >= 1 && sh.getRange(1, 2).getValue() !== '分類') {
-    sh.setName(CASE_SHEET + '（舊）');   // 舊格式先改名保留
+    sh.setName(CASE_SHEET + '（舊）');   // 舊格式先改名保留，資料下面會搬過來
     sh = null;
   }
   if (!sh) {
@@ -397,8 +398,28 @@ function caseSheet_() {
     sh.appendRow(CASE_HEAD);
     sh.setFrozenRows(1);
   }
+  migrateOldCases_(ss, sh);
   newestFirst_(sh, CASE_HEAD.length);
   return sh;
+}
+
+// 舊版案例庫（時間｜類型｜file_id｜說明文字｜AI 描述｜來源）搬進新的案例庫，只搬一次
+function migrateOldCases_(ss, sh) {
+  if (prop_('CASE_OLD_MIGRATED')) return;
+  const old = ss.getSheetByName(CASE_SHEET + '（舊）');
+  if (old && old.getLastRow() > 1) {
+    const have = {};
+    if (sh.getLastRow() > 1) sh.getRange(2, 10, sh.getLastRow() - 1, 1).getValues().forEach(r => { if (r[0]) have[r[0]] = 1; });
+    const rows = old.getRange(2, 1, old.getLastRow() - 1, 6).getValues()
+      .filter(r => (r[2] || r[3]) && !(r[2] && have[r[2]]))
+      .map(r => [r[0], '其他', String(r[1] || 'photo'), '', '', String(r[3] || ''), String(r[4] || '').slice(0, 300), '', String(r[5] || ''), String(r[2] || '')])
+      .sort((a, b) => (b[0] instanceof Date ? b[0].getTime() : 0) - (a[0] instanceof Date ? a[0].getTime() : 0));
+    if (rows.length) {
+      const last = sh.getLastRow();
+      sh.getRange(last + 1, 1, rows.length, CASE_HEAD.length).setValues(rows);   // 舊的接在最下面
+    }
+  }
+  setProp_('CASE_OLD_MIGRATED', '1');
 }
 
 function caseCats_() {
@@ -442,6 +463,8 @@ function saveTgCase_(msg, photoId, video, doc, caption) {
   if (video) { type = msg.video ? 'video' : msg.animation ? 'animation' : 'document'; fid = video.file_id; thumb = (video.thumbnail || video.thumb || {}).file_id || ''; }
   else if (photoId) { type = doc ? 'document' : 'photo'; fid = photoId; thumb = photoId; }
   let text = String(caption || (type === 'text' ? msg.text || '' : '')).trim();
+  const fname = video && video.file_name ? String(video.file_name).replace(/\.[^.]+$/, '') : '';
+  if (fname && text.indexOf(fname) < 0) text = (text ? text + ' ' : '') + '〔' + fname + '〕';
   if (type === 'text' && !text) return '這則沒有內容可以存。';
   const cats = caseCats_();
   // 說明裡寫「#見證案例」就直接用這個分類
@@ -490,7 +513,7 @@ function recatCase_(name) {
 }
 
 function allCases_() {
-  const sh = ss_().getSheetByName(CASE_SHEET);
+  const sh = caseSheet_();   // 會順便把舊版案例搬過來
   if (!sh || sh.getLastRow() < 2 || sh.getRange(1, 2).getValue() !== '分類') return [];
   return sh.getRange(2, 1, sh.getLastRow() - 1, CASE_HEAD.length).getValues().map(r => ({
     time: r[0], cat: String(r[1] || '其他'), type: String(r[2]), products: String(r[3] || ''), people: String(r[4] || ''),
@@ -499,10 +522,24 @@ function allCases_() {
 }
 
 function findCases_(words) {
-  return allCases_().filter(c => {
-    const s = [c.cat, c.products, c.people, c.text, c.summary, c.keywords, c.src].join(' ').toLowerCase();
-    return words.every(w => s.indexOf(w) >= 0);
+  const all = allCases_().map(c => ({ c: c, s: [c.cat, c.products, c.people, c.text, c.summary, c.keywords, c.src].join(' ').toLowerCase() }));
+  const exact = all.filter(x => words.every(w => x.s.indexOf(w) >= 0)).map(x => x.c);
+  if (exact.length) return exact;
+  // 找不到完全一樣的：把關鍵字拆成兩個字一組（中文）或整個字（英文數字），符合一半以上就算，符合越多排越前面
+  const parts = [];
+  words.forEach(w => {
+    const segs = w.match(/[a-z0-9]+|[^a-z0-9\s]+/g) || [];
+    segs.forEach(g => {
+      if (/^[a-z0-9]+$/.test(g) || g.length <= 2) parts.push(g);
+      else for (let i = 0; i < g.length - 1; i++) parts.push(g.slice(i, i + 2));
+    });
   });
+  if (!parts.length) return [];
+  const need = Math.max(1, Math.ceil(parts.length / 2));
+  return all.map(x => ({ c: x.c, n: parts.filter(p => x.s.indexOf(p) >= 0).length }))
+    .filter(x => x.n >= need)
+    .sort((a, b) => b.n - a.n)
+    .map(x => x.c);
 }
 
 // 「案例分類」：列出每個分類有幾筆，按了就看那個分類
@@ -723,7 +760,10 @@ function handleTelegram_(update) {
     let img;
     try { img = tgImage_(fileId, doc && doc.mime_type); }
     catch (err) { console.error(err); return tgSend_(chatId, '圖片讀取失敗，再傳一次看看。'); }
+    IMG_NOT_ORDER_ = false;
     const ans = image_(text, img);
+    // 在 Telegram 傳沒寫說明、又不是明細表的圖片：直接存進案例庫，之後找得到
+    if (IMG_NOT_ORDER_ && !text) return tgSend_(chatId, saveTgCase_(msg, fileId, null, doc, ''));
     const short = sendReportTg_(chatId);
     return tgSend_(chatId, short || ans);
   }
@@ -948,7 +988,7 @@ function quote_(text, image, fallbackToChat) {
     }
   } catch (err) {
     console.error(err);
-    if (fallbackToChat) return chat_(text, image);
+    if (fallbackToChat) { IMG_NOT_ORDER_ = true; if (CURRENT_TG_CHAT_ && !String(text || '').trim()) return ''; return chat_(text, image); }
     return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
   }
   // 手寫編號校正：去掉「肝、心肺」這類字、> 當 2、7770 當 777Q…，對到價目表上的編號
@@ -959,7 +999,7 @@ function quote_(text, image, fallbackToChat) {
   if (isProduct(parsed.name)) parsed.name = '';
   if (isProduct(parsed.introducer)) parsed.introducer = '';
   const hasRows = (parsed.periods || []).some(pd => ((pd && pd.rows) || []).length) || (parsed.items || []).length;
-  if (fallbackToChat && !hasRows) return chat_(text, image);
+  if (fallbackToChat && !hasRows) { IMG_NOT_ORDER_ = true; if (CURRENT_TG_CHAT_ && !String(text || '').trim()) return ''; return chat_(text, image); }
   logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
   const opts = quoteOpts_(text);
   // 明細表：四個問題（付款、PV 或金額、買滿幾個月、入會方式）明細表上或說明欄已經寫了就不再問，其餘才問
