@@ -533,27 +533,11 @@ function finishQuote_(prices, parsed, opts) {
   parsed.gender = opts.gender || '';
   const months = Number(opts.months) || 0;
   const target = opts.target && opts.target.kind !== 'none' ? opts.target : null;
-  // 先照月數取明細表，再看 PV／金額目標：買滿月數還不到目標，就把最後一個月份拉長到達標
-  // 有選月數就照月數買；PV／金額不夠時不自動拉長，只提醒要買幾個月才達標
+  // 先照選的月數取明細表；有 PV／金額目標時一定要買到目標：不夠就把最後一個月份拉長到達標為止
   const base = months ? sliceMonths_(parsed, months) : parsed;
-  const result = fitTarget_(prices, months ? JSON.parse(JSON.stringify(base)) : base, months || !target ? 0 : target.value, target ? target.kind : '');
-  if (months) {
-    result.goalNote = '🗓️ 買滿 ' + months + ' 個月';
-    if (target && result.isSheet) {
-      const sum = q => q.lines.reduce((a, l) => a + (target.kind === 'amount' ? l.price : l.pv), 0);
-      const got = sum(result);
-      if (got < target.value) {
-        const need = fitTarget_(prices, JSON.parse(JSON.stringify(base)), target.value, target.kind);
-        const unit = target.kind === 'amount' ? '金額' : 'PV';
-        const fmt = v => Number(v).toLocaleString('en-US');
-        result.goalNote += '\n⚠️ 買滿 ' + months + ' 個月的' + unit + '是 ' + fmt(got) + '，還差 ' + fmt(target.value - got)
-          + (sum(need) >= target.value ? '；照明細表要買 ' + need.totalMonths + ' 個月才達標（NT$ ' + fmt(need.lines.reduce((a, l) => a + l.price, 0))
-            + '｜PV ' + fmt(need.lines.reduce((a, l) => a + l.pv, 0)) + '）' : '');
-      } else {
-        result.goalNote += '｜🎯 已達 ' + (target.kind === 'amount' ? '金額 NT$ ' : '') + Number(target.value).toLocaleString('en-US') + (target.kind === 'amount' ? '' : ' PV');
-      }
-    }
-  }
+  const result = fitTarget_(prices, base, target ? target.value : 0, target ? target.kind : '');
+  if (months) result.goalNote = '🗓️ 買滿 ' + months + ' 個月'
+    + (result.totalMonths > months ? '還不到目標，已補到 ' + result.totalMonths + ' 個月才達標' : '');
   LAST_QUOTE_ = result.lines.length ? result : null;
   if (result.isSheet) result.byMonths = [1, 2, 3].map(m => byMonths_(prices, parsed, m));
   const answer = quoteText_(result);
