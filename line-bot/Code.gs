@@ -437,10 +437,11 @@ function quote_(text, image, fallbackToChat) {
     + '手寫的 2 常寫得像 >，例如「>60」是 260、「>55A」是 255A、「>711AB」是 2711AB、「7770」「777Q」是 777Q。'
     + '請由上到下一列一列讀，不要跳列、不要把兩列合併；同一欄裡同一個編號只出現一次。'
     + '編號一定是下面價目表裡有的品項編號（例如 211、211A、255A、260、299A、300），讀出來不在價目表裡時，挑字形最像的那個；真的看不出來就照原樣寫，程式會標成看不清楚請人確認。'
-    + '顆數通常是 1～6 的小數字。\n'
+    + '顆數通常是 1～6 的小數字。每欄大約有 13 列，寫到最底下的列（例如 2711AB、295）常被漏掉，一定要看到最後一列。'
+    + '請先在 raw 裡依欄位把每一列逐字抄下來（例如「一：>711AB 3 ✓✓」），抄完再整理成 periods。\n'
     + '【情況二：一般訂單或打字清單】直接寫品項和數量（盒）的，放進 items，name 要一字不差照抄價目表品項，數量沒寫就當 1。\n'
     + '對應不到價目表的放進 unknown（照原文）。\n'
-    + '只輸出 JSON：{"name":"","introducer":"","date":"",'
+    + '只輸出 JSON：{"name":"","introducer":"","date":"","raw":["一：肝 211 3 ✓✓"],'
     + '"periods":[{"label":"第一個月","months":1,"rows":[{"code":"211","perDose":3,"times":2}]}],'
     + '"maintenance":[{"code":"211","perDose":3,"times":2}],'
     + '"items":[{"name":"價目表品項","qty":1}],"unknown":["原文"]}\n\n'
@@ -457,6 +458,9 @@ function quote_(text, image, fallbackToChat) {
     if (fallbackToChat) return chat_(text, image);
     return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
   }
+  // 手寫編號校正：去掉「肝、心肺」這類字、> 當 2、7770 當 777Q…，對到價目表上的編號
+  const fix = fixCode_(prices);
+  (parsed.periods || []).concat([{ rows: parsed.maintenance || [] }]).forEach(pd => ((pd && pd.rows) || []).forEach(x => { if (x) x.code = fix(x.code); }));
   // 姓名被讀成產品名稱（例如火山甘露）就清掉，不要印在報表上
   const isProduct = v => { const k = normName_(v || ''); return !!k && (/^\d/.test(k) || !!CODE_ALIAS[k] || prices.some(p => normName_(p.name) === k)); };
   if (isProduct(parsed.name)) parsed.name = '';
@@ -854,6 +858,30 @@ function quoteText_(r) {
 }
 
 // 全形半形、空白、括號統一，避免「(Ａ)」「（A）」對不上
+// 回傳一個把手寫編號校正成價目表編號的函式；對不到就照原樣（摘要會標 ❓）
+function fixCode_(prices) {
+  const known = {};
+  const addKey = k => { if (k) known[k] = k; };
+  prices.forEach(p => { const k = normName_(p.name); addKey(k); addKey(k.replace(/[(（].*$/, '')); });
+  Object.keys(PACKS).concat(Object.keys(FIXED_MONTHLY)).forEach(addKey);
+  Object.keys(CODE_ALIAS).forEach(k => { known[normName_(k)] = CODE_ALIAS[k]; });
+  const look = k => known[k] || '';
+  return code => {
+    const raw = normName_(code);
+    if (!raw || look(raw)) return look(raw) || String(code || '');
+    // 有數字的才去掉中文說明（「肝211」「消炎211A」）；「火山甘露」這種純文字保留
+    let k = /\d/.test(raw) ? raw.replace(/^[^0-9A-Z>＞]+/, '').replace(/[^0-9A-Z>＞]/g, '') : raw;
+    k = k.replace(/^[>＞]+/, '2');
+    const tries = [k, '2' + k,
+      k.replace(/[OD]/g, '0'), k.replace(/Z/g, '2'), k.replace(/S/g, '5'), k.replace(/[IL|]/g, '1'),
+      /^777./.test(k) && k.length === 4 ? '777Q' : '',
+      /^7?711A[B8]$/.test(k) ? '2711AB' : '',
+      k.replace(/8$/, 'B'), k.replace(/^Z/, '2')];
+    for (const t of tries) if (t && look(t)) return look(t);
+    return k || String(code || '');
+  };
+}
+
 function normName_(s) {
   return String(s || '').normalize('NFKC').replace(/\s+/g, '').toUpperCase();
 }
