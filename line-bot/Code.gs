@@ -30,21 +30,36 @@ const BONUS_RATES = {
 const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 共用）
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+// 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
+const MENU = [['📋 試算', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['❓ 說明']];
+
 const HELP_TEXT = [
-  '直接跟小乖說話就好，例如：',
-  '・明天下午三點提醒我打電話給媽媽',
-  '・幫我記下：車位在 B2-35',
-  '・我這週有什麼行程？',
-  '・直接傳購買明細表或訂單圖片，小乖會先問四題：「現金／刷卡」「要買多少 PV 或金額」「要買滿幾個月」「入會方式（女生／男生／九號／舊會員）」，再算出數量、金額和 PV（試算中打「取消」可中止）',
-  '・也可以直接打字：試算 211 2盒、777Q 1盒',
-  '・說明欄可以先寫答案：例如「現金 22萬 3個月 男」就不用再問',
-  '・傳圖片（可加一句說明，例如「幫我記下來」），小乖會讀出內容幫你整理',
+  '小乖可以幫你 👇',
   '',
-  '其他指令：',
-  '・清除對話：讓小乖忘掉聊天內容（待辦、筆記等資料不會刪）',
-  '・邀請小乖：之後 10 分鐘內，由你把小乖邀進 LINE 群組（別人邀請小乖會馬上退出）',
-  '・群組關：小乖離開所有群組；群組：看小乖在幾個群組',
-  '・在群組裡：訊息開頭打「小乖」小乖才會回（只回主人）；打「小乖離開」小乖就退出那個群組',
+  '📋 試算：直接傳明細表照片',
+  '⏰ 提醒：「明天3點提醒我開會」',
+  '📝 記事：「幫我記下 車位B2-35」',
+  '📅 行程：「這週有什麼行程？」',
+  '',
+  '點下面的按鈕也可以',
+].join('\n');
+
+const HELP_MORE = [
+  '📖 更多用法',
+  '',
+  '【試算】',
+  '・傳明細表 → 回答 4 題就出報表',
+  '・讀錯可打：改 255A 3顆／刪 270／加 260 3顆',
+  '・打「取消」停止試算',
+  '',
+  '【群組】',
+  '・邀請小乖：10 分鐘內由你邀進群組',
+  '・群組裡開頭打「小乖」才會回',
+  '・小乖離開：退出群組',
+  '・群組關：離開全部群組',
+  '',
+  '【其他】',
+  '・清除對話：忘掉聊天內容（資料不刪）',
 ].join('\n');
 
 /* ============ 設定值（指令碼屬性） ============ */
@@ -237,7 +252,7 @@ function handleLine_(ev) {
   }
   if (ev.type !== 'message' || !ev.replyToken) return;
   if (ev.message.type === 'image') {
-    if (owner && uid === owner) { const ans = image_('', lineImage_(ev.message.id)); const rp = reportLine_(); reply_(ev.replyToken, rp.short || ans, rp.msgs); }
+    if (owner && uid === owner) { const ans = image_('', lineImage_(ev.message.id)); const rp = reportLine_(); reply_(ev.replyToken, rp.short || ans, rp.msgs, true); }
     return;
   }
   if (ev.message.type !== 'text') {
@@ -258,7 +273,7 @@ function handleLine_(ev) {
 
   const ans = answer_(text);
   const rp = reportLine_();
-  reply_(ev.replyToken, rp.short || ans, rp.msgs);
+  reply_(ev.replyToken, rp.short || ans, rp.msgs, true);
 }
 
 // 下載 LINE 圖片，轉成 OpenAI 看得懂的 data URL
@@ -272,7 +287,9 @@ function lineImage_(messageId) {
 
 // LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
 function answer_(text) {
-  if (text === '說明' || /^\/?help$/i.test(text)) return HELP_TEXT;
+  text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
+  if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
+  if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
   const flat = String(text).replace(/\s+/g, '');
   if (/^(邀請小乖|邀小乖|小乖邀請)$/.test(flat)) return groupSwitch_('開');
   const gm = flat.match(/^(?:群組|加入群組|開放群組)(開|關|開啟|關閉|狀態)?$/);
@@ -387,9 +404,10 @@ function dataUrl_(blob, mime) {
 function tgSend_(chatId, msg) {
   const rich = msg && typeof msg === 'object';
   tgApi_('sendMessage', { chat_id: chatId, text: String(rich ? msg.text : msg).slice(0, 4000),
+    // 試算的問題用一次性的按鈕；其他回覆一律帶常用功能按鈕
     reply_markup: rich && msg.buttons
-      ? { keyboard: msg.buttons.map(row => row.map(t => ({ text: t }))), one_time_keyboard: true, resize_keyboard: true }
-      : { remove_keyboard: true } });
+      ? { keyboard: msg.buttons.map(row => row.map(t => ({ text: t }))), one_time_keyboard: msg.buttons !== MENU && msg.buttons[0] !== MENU[0], resize_keyboard: true }
+      : { keyboard: MENU.map(row => row.map(t => ({ text: t }))), resize_keyboard: true, is_persistent: true } });
 }
 
 function tgApi_(method, payload) {
@@ -442,11 +460,12 @@ function chat_(text, image) {
   return answer;
 }
 
-function reply_(replyToken, msg, extra) {
+function reply_(replyToken, msg, extra, menu) {
   const rich = msg && typeof msg === 'object';
   const m = { type: 'text', text: String(rich ? msg.text : msg).slice(0, 5000) };
-  if (rich && msg.buttons) {
-    m.quickReply = { items: [].concat.apply([], msg.buttons).slice(0, 13)
+  const buttons = rich && msg.buttons ? msg.buttons : menu ? MENU : null;   // menu：私訊主人時附常用功能按鈕
+  if (buttons) {
+    m.quickReply = { items: [].concat.apply([], buttons).slice(0, 13)
       .map(t => ({ type: 'action', action: { type: 'message', label: t.slice(0, 20), text: t } })) };
   }
   lineApi_('reply', { replyToken: replyToken, messages: (extra || []).concat([m]).slice(0, 5) });
