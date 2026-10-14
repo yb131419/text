@@ -35,9 +35,9 @@ const HELP_TEXT = [
   '・明天下午三點提醒我打電話給媽媽',
   '・幫我記下：車位在 B2-35',
   '・我這週有什麼行程？',
-  '・直接傳購買明細表或訂單圖片，小乖會先問三題：「現金／刷卡」「要買多少 PV 或金額」「要買滿幾個月」，再算出數量、金額和 PV（試算中打「取消」可中止）',
+  '・直接傳購買明細表或訂單圖片，小乖會先問四題：「現金／刷卡」「要買多少 PV 或金額」「要買滿幾個月」「入會方式（女生／男生／九號／舊會員）」，再算出數量、金額和 PV（試算中打「取消」可中止）',
   '・也可以直接打字：試算 211 2盒、777Q 1盒',
-  '・說明欄可以加：男／舊會員／刷卡／22萬（目標 PV）',
+  '・說明欄可以先寫答案：例如「現金 22萬 3個月 男」就不用再問',
   '・傳圖片（可加一句說明，例如「幫我記下來」），小乖會讀出內容幫你整理',
   '',
   '其他指令：',
@@ -412,10 +412,11 @@ const CAPPED = ['168', '111', '101'];   // SOP：三個月購買上限 4 盒
 // SOP 購買建議二：這些品項照「每月固定盒數」算，不看顆數
 const FIXED_MONTHLY = { '2711AB': 3, '777Q': 2, '168': 2, '111': 2, '101': 2 };
 const MIN_2711AB = 3;                    // SOP：新人必須買滿三盒
-// 新入會組合與入會贈送（照康園試算報表）；說明欄寫「男」用男生組合，寫「舊會員」就不加
+// 新入會組合與入會贈送（照彥彬試算系統）：女生、男生、九號三種；舊會員不加
 const NEW_MEMBER = {
   '女': { pack: '新入會(草本）女', gifts: [['入*會「 211 」', 2], ['入*會「 707 」', 2]] },
   '男': { pack: '新入會(草本）男', gifts: [['入*會「 211 」', 2], ['入*會「 101 」', 2]] },
+  '九號': { pack: '新入會(9號）', gifts: [['入*會「 9號兩組」', 1]] },
 };
 const CAP_BOXES = 4;                 // 每 3 個月的上限，月數更長就等比放寬
 
@@ -482,7 +483,7 @@ function quoteOpts_(text) {
   const o = {};
   if (/刷卡/.test(t)) o.card = true; else if (/現金/.test(t)) o.card = false;
   if (/舊會員|不入會|非新/.test(t)) o.newMember = false;
-  if (/男/.test(t)) o.gender = '男'; else if (/女/.test(t)) o.gender = '女';
+  if (/[九9]號/.test(t)) o.gender = '九號'; else if (/男/.test(t)) o.gender = '男'; else if (/女/.test(t)) o.gender = '女';
   if (/照(明細)?表|照單/.test(t)) o.months = 'sheet';
   if (/不指定|不用|沒有|都可以|隨便|不限/.test(t)) o.target = { kind: 'none' };
   const CN = { '一': 1, '二': 2, '兩': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10, '十二': 12 };
@@ -500,7 +501,8 @@ function quoteOpts_(text) {
 }
 
 function askOrQuote_(prices, st) {
-  if (st.opts.card === undefined || !st.opts.target || !st.opts.months) {
+  const joinAsked = st.opts.gender || st.opts.newMember === false;
+  if (st.opts.card === undefined || !st.opts.target || !st.opts.months || !joinAsked) {
     const intro = [];
     if (!st.asked) {
       const p = st.parsed;
@@ -519,10 +521,13 @@ function askOrQuote_(prices, st) {
         '可以選下面的按鈕，或直接打：「PV 15萬」「金額 30萬」；沒有目標就選「不指定」']).join('\n'),
         buttons: [['22萬PV', '30萬PV'], ['不指定']] };
     }
-    return { text: intro.concat(['3️⃣ 要買滿幾個月？',
-      '可以選下面的按鈕，或直接打「買滿2個月」；照明細表寫的月數就選「照明細表」',
-      '（新入會預設女生；男生打「男」，舊會員打「舊會員」）']).join('\n'),
-      buttons: [['買滿1個月', '買滿2個月', '買滿3個月'], ['照明細表']] };
+    if (!st.opts.months) {
+      return { text: intro.concat(['3️⃣ 要買滿幾個月？',
+        '可以選下面的按鈕，或直接打「買滿2個月」；照明細表寫的月數就選「照明細表」']).join('\n'),
+        buttons: [['買滿1個月', '買滿2個月', '買滿3個月'], ['照明細表']] };
+    }
+    return { text: intro.concat(['4️⃣ 入會方式？', '男生、女生、九號三種入會組合；已經是會員就選「舊會員」']).join('\n'),
+      buttons: [['👩 女生', '👨 男生'], ['9️⃣ 九號', '舊會員']] };
   }
   clearQuoteState_();
   return finishQuote_(prices, st.parsed, st.opts);
@@ -654,13 +659,13 @@ function computeQuote_(prices, parsed) {
   const isSheet = periods.length > 0;
   const totalMonths = periods.reduce((a, pd) => a + pd.months, 0);
   const notes = [];
-  // 新入會：照報表的做法，加入會組合（男／女）和入會贈送的 211、707（男生是 101）各 2 盒
+  // 新入會：加入會組合和入會贈送（女：211、707 各 2；男：211、101 各 2；九號：9號兩組 1）
   if (isSheet && parsed.newMember !== false) {
     const g = parsed.gender || '女';
     const join = NEW_MEMBER[g];
     if (find(join.pack)) add(find(join.pack).name, 1);
     join.gifts.forEach(x => { const p = find(x[0]); if (p) add(p.name, x[1]); });
-    if (!parsed.gender) notes.push('新入會預設用「女」的組合；男生請在說明欄加「男」，舊會員加「舊會員」');
+    if (!parsed.gender) notes.push('新入會預設用「女」的組合；男生打「男」、九號打「九號」，舊會員打「舊會員」');
   }
   if (isSheet) {
     const tea = find('火山甘露');
