@@ -322,6 +322,9 @@ function answer_(text) {
   if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
   const bc = text.match(/^(?:看分類\s*)?(.+?)（\d+）$/) || text.match(/^看分類\s*(.+)$/);
   if (bc && caseCats_().indexOf(bc[1].trim()) >= 0) return browseCat_(bc[1].trim());
+  const ac = text.match(/^新增分類\s*(\S+)$/); if (ac) return editCaseCat_('add', ac[1]);
+  const mc = text.match(/^(?:分類改名|改分類名稱?)\s*(\S+)\s*(?:改成|→|->)?\s*(\S+)$/); if (mc) return editCaseCat_('rename', mc[1], mc[2]);
+  const dc = text.match(/^(?:刪除分類|刪分類)\s*(\S+)$/); if (dc) return editCaseCat_('delete', dc[1]);
   const rc = text.match(/^改分類\s*(.+)$/);
   if (rc) return recatCase_(rc[1].trim());
   // 找資料分兩種：本機（案例庫、待辦、筆記）和網路。只按按鈕沒給關鍵字，就等下一句（或語音）
@@ -431,12 +434,80 @@ function caseCats_() {
     CASE_CATS.forEach(c => sh.appendRow([c]));
   }
   const n = sh.getLastRow() - 1;
-  const cats = n > 0 ? sh.getRange(2, 1, n, 1).getValues().map(r => String(r[0]).trim()).filter(Boolean) : [];
-  return cats.length ? cats : CASE_CATS.slice();
+  const cats = [];
+  (n > 0 ? sh.getRange(2, 1, n, 1).getValues() : []).forEach(r => {
+    const c = String(r[0]).replace(/^🗂️\s*/, '').trim();
+    if (c && cats.indexOf(c) < 0) cats.push(c);   // 重複的只算一次
+  });
+  if (!cats.length) CASE_CATS.forEach(c => cats.push(c));
+  if (cats.indexOf('其他') < 0) cats.push('其他');   // 一定留「其他」接沒地方放的案例
+  syncCaseCats_(cats);
+  return cats;
 }
 
-function addCaseCat_(name) {
-  if (caseCats_().indexOf(name) < 0) ss_().getSheetByName(CASE_CAT_SHEET).appendRow([name]);
+// 「案例分類」分頁改過時，案例跟著改：同一列換了名字＝改名；被刪掉的分類，裡面的案例移到「其他」
+function syncCaseCats_(cats) {
+  const key = JSON.stringify(cats);
+  const prevRaw = prop_('CASE_CATS_PREV');
+  if (prevRaw === key) return;
+  let prev = [];
+  try { prev = JSON.parse(prevRaw || '[]'); } catch (e) { prev = []; }
+  const map = {};
+  prev.forEach((p, i) => {
+    if (cats.indexOf(p) >= 0) return;
+    map[p] = (i < cats.length && prev.indexOf(cats[i]) < 0) ? cats[i] : '其他';
+  });
+  const sh = ss_().getSheetByName(CASE_SHEET);
+  if (sh && sh.getLastRow() > 1 && sh.getRange(1, 2).getValue() === '分類') {
+    const rng = sh.getRange(2, 2, sh.getLastRow() - 1, 1);
+    let changed = false;
+    const vals = rng.getValues().map(r => {
+      const c = String(r[0] || '').trim();
+      const to = map[c] || (cats.indexOf(c) < 0 ? '其他' : c);
+      if (to !== r[0]) changed = true;
+      return [to];
+    });
+    if (changed) rng.setValues(vals);
+  }
+  setProp_('CASE_CATS_PREV', key);
+}
+
+function writeCaseCats_(cats) {
+  const sh = ss_().getSheetByName(CASE_CAT_SHEET);
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 1).clearContent();
+  sh.getRange(2, 1, cats.length, 1).setValues(cats.map(c => [c]));
+}
+
+// 「新增分類 X」「分類改名 舊 新」「刪除分類 X」：分類表和案例一起改，不會留下舊的
+function editCaseCat_(op, a, b) {
+  const cats = caseCats_();
+  if (op === 'add') {
+    if (cats.indexOf(a) >= 0) return '【' + a + '】已經有了。';
+    cats.splice(Math.max(0, cats.indexOf('其他')), 0, a);
+    writeCaseCats_(cats); syncCaseCats_(cats);
+    return '✅ 已新增分類【' + a + '】';
+  }
+  if (cats.indexOf(a) < 0) return '沒有【' + a + '】這個分類。現在的分類：' + cats.join('、');
+  if (op === 'rename') {
+    if (cats.indexOf(b) >= 0) return mergeCaseCat_(cats, a, b);
+    cats[cats.indexOf(a)] = b;
+    writeCaseCats_(cats); syncCaseCats_(cats);
+    return '✅ 【' + a + '】已改名成【' + b + '】，裡面的案例也一起改了。';
+  }
+  if (a === '其他') return '「其他」要留著放沒分到的案例，不能刪喔。';
+  return mergeCaseCat_(cats, a, '其他', '🗑️ 已刪除分類【' + a + '】，裡面的案例移到【其他】。');
+}
+
+function mergeCaseCat_(cats, from, to, msg) {
+  const rest = cats.filter(c => c !== from);
+  const sh = ss_().getSheetByName(CASE_SHEET);
+  if (sh && sh.getLastRow() > 1) {
+    const rng = sh.getRange(2, 2, sh.getLastRow() - 1, 1);
+    rng.setValues(rng.getValues().map(r => [String(r[0]).trim() === from ? to : r[0]]));
+  }
+  writeCaseCats_(rest);
+  setProp_('CASE_CATS_PREV', JSON.stringify(rest));
+  return msg || '✅ 【' + from + '】已併進【' + to + '】。';
 }
 
 // 請 AI 分類並整理：分類、產品編號、人物、一句摘要、關鍵字（圖片用 low 解析度，便宜）
@@ -507,12 +578,14 @@ function recatCase_(name) {
   const n = sh ? Math.min(sh.getLastRow() - 1, 50) : 0;
   const idx = n > 0 && t ? sh.getRange(2, 1, n, 1).getValues().findIndex(r => r[0] instanceof Date && r[0].getTime() === t) : -1;
   if (idx < 0) return '找不到剛剛存的案例。';
-  addCaseCat_(name);
+  const cats = caseCats_();
+  if (cats.indexOf(name) < 0) return { text: '沒有【' + name + '】這個分類，選一個現有的；要新的分類請打「新增分類 ' + name + '」。', buttons: chunk_(cats.map(c => '改分類 ' + c), 2).slice(0, 5) };
   sh.getRange(idx + 2, 2).setValue(name);
   return '✅ 已改成【' + name + '】';
 }
 
 function allCases_() {
+  caseCats_();               // 分類表改過的話，案例的分類先跟著改
   const sh = caseSheet_();   // 會順便把舊版案例搬過來
   if (!sh || sh.getLastRow() < 2 || sh.getRange(1, 2).getValue() !== '分類') return [];
   return sh.getRange(2, 1, sh.getLastRow() - 1, CASE_HEAD.length).getValues().map(r => ({
@@ -544,14 +617,14 @@ function findCases_(words) {
 
 // 「案例分類」：列出每個分類有幾筆，按了就看那個分類
 function caseCatsMenu_() {
-  const cases = allCases_(), cats = caseCats_();
+  const cats = caseCats_(), cases = allCases_();   // 先整理分類，再數
   const count = {};
   cases.forEach(c => { count[c.cat] = (count[c.cat] || 0) + 1; });
-  const btns = cats.map(c => '🗂️ ' + c + '（' + (count[c] || 0) + '）');
+  const used = cats.filter(c => count[c]);   // 沒有案例的分類不出按鈕，畫面比較乾淨
   return {
     text: '🗂️ 案例分類（共 ' + cases.length + ' 筆）\n\n' + cats.map(c => '・' + c + '：' + (count[c] || 0) + ' 筆').join('\n')
-      + '\n\n按分類看最新的案例；要找特定的打「本機找 分類 關鍵字」，例如「本機找 見證 211」',
-    buttons: chunk_(btns, 2).slice(0, 5),
+      + '\n\n按下面的分類看案例。\n整理分類：「新增分類 名稱」「分類改名 舊 新」「刪除分類 名稱」',
+    buttons: chunk_(used.map(c => '🗂️ ' + c + '（' + count[c] + '）'), 2).slice(0, 5),
   };
 }
 
