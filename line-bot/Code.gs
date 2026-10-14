@@ -35,7 +35,7 @@ const HELP_TEXT = [
   '・明天下午三點提醒我打電話給媽媽',
   '・幫我記下：車位在 B2-35',
   '・我這週有什麼行程？',
-  '・傳訂單圖片，說明欄打「試算」，小乖會算出每項數量、金額和 PV',
+  '・直接傳購買明細表或訂單圖片，小乖會算出每項數量、金額和 PV',
   '・也可以直接打字：試算 211 2盒、777Q 1盒',
   '・說明欄可以加：男／舊會員／刷卡／22萬（目標 PV）',
   '・傳圖片（可加一句說明，例如「幫我記下來」），小乖會讀出內容幫你整理',
@@ -197,10 +197,13 @@ function answer_(text) {
 function image_(text, image) {
   const pending = Number(prop_('QUOTE_UNTIL')) > Date.now();
   const t = String(text || '').trim();
-  if (pending || /^(試算|計算|算)/.test(t) || /算.{0,4}(金額|PV)/i.test(t)) {
+  const quoteWords = /^(試算|計算|算)|算.{0,4}(金額|PV)|^(男|女|刷卡|現金|舊會員|\d+(\.\d+)?\s*萬)/i;
+  if (pending || quoteWords.test(t)) {
     setProp_('QUOTE_UNTIL', '0');
     return quote_(t.replace(/^(試算|計算|算)\s*/, ''), image);
   }
+  // 沒寫說明：先當訂單／明細表試算，看不出品項才改成一般看圖
+  if (!t) return quote_('', image, true);
   return chat_(text, image);
 }
 
@@ -386,7 +389,7 @@ const NEW_MEMBER = {
 };
 const CAP_BOXES = 4;                 // 每 3 個月的上限，月數更長就等比放寬
 
-function quote_(text, image) {
+function quote_(text, image, fallbackToChat) {
   if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，請到 Apps Script 的指令碼屬性填入 OPENAI_API_KEY。';
   const prices = prices_();
   const sys = '你是訂單辨識助手，負責把圖片或文字轉成 JSON，不要計算金額。\n'
@@ -411,8 +414,11 @@ function quote_(text, image) {
     parsed = JSON.parse(callOpenAI_(sys, [{ role: 'user', content: user }], true));
   } catch (err) {
     console.error(err);
+    if (fallbackToChat) return chat_(text, image);
     return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
   }
+  const hasRows = (parsed.periods || []).some(pd => ((pd && pd.rows) || []).length) || (parsed.items || []).length;
+  if (fallbackToChat && !hasRows) return chat_(text, image);
   parsed.card = /刷卡/.test(text || '');
   parsed.newMember = !/舊會員|不入會|非新/.test(text || '');
   parsed.gender = /男/.test(text || '') ? '男' : (/女/.test(text || '') ? '女' : '');
