@@ -1143,7 +1143,8 @@ function reportLayout_(r) {
 
     // 品項表：用色塊和文字框排，欄位對齊不受表格自動撐高影響
     // 欄位：品項（下方小字：單價｜PV）｜數量｜小計金額｜小計 PV
-    const COL = [{ x: 0, w: 214 }, { x: 214, w: 56 }, { x: 270, w: 120 }, { x: 390, w: 110 }];
+    // 簡報文字框左右各有約 7pt 內距，數量欄要留寬一點，「× 10」才不會被擠到換行
+    const COL = [{ x: 0, w: 186 }, { x: 186, w: 84 }, { x: 270, w: 126 }, { x: 396, w: 104 }];
     const rect = (x, yy, w, h, fill) => {
       const id = 'xg_rect_' + (k++);
       req.push({ createShape: { objectId: id, shapeType: 'RECTANGLE', elementProperties: place(w, h, x, yy) } });
@@ -1151,7 +1152,7 @@ function reportLayout_(r) {
         shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(fill) } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
     };
     const colText = (ci, str, yy, h, size, color, bold, align) =>
-      text(str, X + COL[ci].x + (ci === 0 ? 10 : 4), yy, COL[ci].w - (ci === 0 ? 14 : 12), h, size, color, bold, align);
+      text(str, X + COL[ci].x + (ci === 0 ? 4 : 0), yy, COL[ci].w - (ci === 0 ? 4 : 2), h, size, color, bold, align);
     let ty = tableTop;
     rect(X, ty, TW, HEAD, C.head);
     ['品項名稱', '數量', '小計金額', '小計 PV'].forEach((h, ci) => colText(ci, h, ty, HEAD, 11, C.white, true, ci === 0 ? 'START' : ci === 1 ? 'CENTER' : 'END'));
