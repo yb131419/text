@@ -12,7 +12,7 @@
 
 1. 到 [LINE Developers](https://developers.line.biz/console/) 用你的 LINE 帳號登入。
 2. 建立 Provider（名字隨意，例如「彥彬」）。
-3. 在 Provider 下建立 **Messaging API** 頻道。這一步會同時建立一個 LINE 官方帳號；若你已有官方帳號，也可以到 [LINE Official Account Manager](https://manager.line.biz/) 的「設定 → Messaging API」把現有帳號啟用。
+3. 在 Provider 下建立 **Messaging API** 頻道，這一步會同時建立小乖專屬的新 LINE 官方帳號（名稱可以取「小乖」）。請不要用店裡（莫凡）的官方帳號，避免客人的訊息跑進小乖。
 4. 進入頻道的「Messaging API」分頁，最下方的 **Channel access token** 按「Issue」，複製起來備用。
 5. 到 LINE Official Account Manager 的「回應設定」：
    - 關閉「自動回應訊息」
