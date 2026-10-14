@@ -591,15 +591,15 @@ function askOrQuote_(prices, st) {
       Object.keys(CODE_ALIAS).forEach(k => { known[normName_(k)] = 1; });
       let unsure = 0;
       intro.push('📋 收到' + (p.name ? ' ' + p.name + ' 的' : '') + '明細表，我看到：（括號是每次幾顆 × 一天幾次）');
-      filledPeriods_(p).forEach(pd => intro.push('【' + (pd.label || '') + '｜服用 ' + (Number(pd.months) || 1) + ' 個月】\n'
+      filledPeriods_(p).forEach(pd => intro.push('', '【' + (pd.label || '') + '｜服用 ' + (Number(pd.months) || 1) + ' 個月】\n'
         + pd.rows.filter(x => Number(String(x.perDose).normalize('NFKC')) > 0).map(x => {
           const ok = known[normName_(x.code)] || FIXED_MONTHLY[normName_(x.code)];
           if (!ok) unsure++;
           return (ok ? '' : '❓') + x.code + '（' + x.perDose + '×' + (Number(x.times) || 2) + '）';
         }).join('、')));
-      if (unsure) intro.push('❓ 是看不清楚、價目表沒有的編號，請幫我改正');
-      if ((st.sheetSaid || []).length) intro.push('📝 表上寫了：' + st.sheetSaid.join('、') + '（這幾題就不再問）');
-      intro.push('有讀錯可以直接打：「改 255A 3顆」「刪 270」「加 260 3顆」「第二個月 加 211 3顆」，改完會再給你看一次', '');
+      if (unsure) intro.push('', '❓ 是看不清楚、價目表沒有的編號，請幫我改正');
+      if ((st.sheetSaid || []).length) intro.push('', '📝 表上寫了：' + st.sheetSaid.join('、') + '（這幾題就不再問）');
+      intro.push('', '✏️ 有讀錯可以直接打：「改 255A 3顆」「刪 270」「加 260 3顆」「第二個月 加 211 3顆」，改完會再給你看一次', '', '────────', '');
       st.asked = true;
     }
     saveQuoteState_(st);
