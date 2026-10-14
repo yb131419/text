@@ -35,7 +35,7 @@ const HELP_TEXT = [
   '・明天下午三點提醒我打電話給媽媽',
   '・幫我記下：車位在 B2-35',
   '・我這週有什麼行程？',
-  '・直接傳購買明細表或訂單圖片，小乖會算出每項數量、金額和 PV',
+  '・直接傳購買明細表或訂單圖片，小乖會先問「現金／刷卡」和「要買多少」，再算出數量、金額和 PV（試算中打「取消」可中止）',
   '・也可以直接打字：試算 211 2盒、777Q 1盒',
   '・說明欄可以加：男／舊會員／刷卡／22萬（目標 PV）',
   '・傳圖片（可加一句說明，例如「幫我記下來」），小乖會讀出內容幫你整理',
@@ -184,6 +184,17 @@ function answer_(text) {
     if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
     return '好，聊天內容我忘掉了，你的待辦和筆記都還在。';
   }
+  // 明細表試算進行中：回答「現金／刷卡」「買多少」
+  const st = quoteState_();
+  if (st) {
+    if (/^取消/.test(text)) { clearQuoteState_(); return '好，這次試算先取消。'; }
+    const o = quoteOpts_(text);
+    if (o.card !== undefined || o.goal || (text.length <= 6 && (o.gender || o.newMember === false))) {
+      logChat_('user', text);
+      Object.assign(st.opts, o);
+      return askOrQuote_(prices_(), st);
+    }
+  }
   const q = text.match(/^試算[\s：:]*([\s\S]*)$/);
   if (q) {
     if (q[1].trim()) return quote_(q[1].trim());
@@ -267,8 +278,13 @@ function dataUrl_(blob, mime) {
   return 'data:' + type + ';base64,' + Utilities.base64Encode(blob.getBytes());
 }
 
-function tgSend_(chatId, text) {
-  tgApi_('sendMessage', { chat_id: chatId, text: String(text).slice(0, 4000) });
+// msg：文字，或 { text, buttons: [['按鈕', …], …] }（按鈕按下去會直接送出那段文字）
+function tgSend_(chatId, msg) {
+  const rich = msg && typeof msg === 'object';
+  tgApi_('sendMessage', { chat_id: chatId, text: String(rich ? msg.text : msg).slice(0, 4000),
+    reply_markup: rich && msg.buttons
+      ? { keyboard: msg.buttons.map(row => row.map(t => ({ text: t }))), one_time_keyboard: true, resize_keyboard: true }
+      : { remove_keyboard: true } });
 }
 
 function tgApi_(method, payload) {
@@ -321,8 +337,14 @@ function chat_(text, image) {
   return answer;
 }
 
-function reply_(replyToken, text) {
-  lineApi_('reply', { replyToken: replyToken, messages: [{ type: 'text', text: String(text).slice(0, 5000) }] });
+function reply_(replyToken, msg) {
+  const rich = msg && typeof msg === 'object';
+  const m = { type: 'text', text: String(rich ? msg.text : msg).slice(0, 5000) };
+  if (rich && msg.buttons) {
+    m.quickReply = { items: [].concat.apply([], msg.buttons).slice(0, 13)
+      .map(t => ({ type: 'action', action: { type: 'message', label: t.slice(0, 20), text: t } })) };
+  }
+  lineApi_('reply', { replyToken: replyToken, messages: [m] });
 }
 
 function push_(to, text) {
@@ -423,14 +445,88 @@ function quote_(text, image, fallbackToChat) {
   }
   const hasRows = (parsed.periods || []).some(pd => ((pd && pd.rows) || []).length) || (parsed.items || []).length;
   if (fallbackToChat && !hasRows) return chat_(text, image);
-  parsed.card = /刷卡/.test(text || '');
-  parsed.newMember = !/舊會員|不入會|非新/.test(text || '');
-  parsed.gender = /男/.test(text || '') ? '男' : (/女/.test(text || '') ? '女' : '');
-  const result = fitTarget_(prices, parsed, targetPv_(text));
+  logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
+  const opts = quoteOpts_(text);
+  // 明細表：先問付款方式和要買多少，都回答了才算（說明欄已經寫了就直接算）
+  if (filledPeriods_(parsed).length) return askOrQuote_(prices, { parsed: parsed, opts: opts, ts: Date.now() });
+  return finishQuote_(prices, parsed, Object.assign({ card: false }, opts));
+}
+
+/* ---- 明細表試算的兩個問題：現金／刷卡、要買多少 ---- */
+const QUOTE_STATE_TTL = 30 * 60 * 1000;
+
+function quoteState_() {
+  try {
+    const st = JSON.parse(prop_('QUOTE_STATE') || 'null');
+    return st && Date.now() - st.ts < QUOTE_STATE_TTL ? st : null;
+  } catch (e) { return null; }
+}
+function saveQuoteState_(st) { st.ts = Date.now(); setProp_('QUOTE_STATE', JSON.stringify(st)); }
+function clearQuoteState_() { setProp_('QUOTE_STATE', ''); }
+
+function filledPeriods_(parsed) {
+  return (parsed.periods || []).filter(pd => ((pd && pd.rows) || []).some(x => Number(String(x && x.perDose).normalize('NFKC')) > 0));
+}
+
+// 從一句話讀出試算條件：現金／刷卡、男／女／舊會員、買幾個月、目標 PV 或金額、照明細表
+function quoteOpts_(text) {
+  const t = String(text || '').normalize('NFKC');
+  const o = {};
+  if (/刷卡/.test(t)) o.card = true; else if (/現金/.test(t)) o.card = false;
+  if (/舊會員|不入會|非新/.test(t)) o.newMember = false;
+  if (/男/.test(t)) o.gender = '男'; else if (/女/.test(t)) o.gender = '女';
+  if (/照(明細)?表|照單/.test(t)) o.goal = { kind: 'sheet' };
+  const CN = { '一': 1, '二': 2, '兩': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10, '十二': 12 };
+  const mm = t.match(/(\d+|十二|[一二兩三四五六七八九十])\s*個?月/);
+  if (mm) o.goal = { kind: 'months', value: Number(mm[1]) || CN[mm[1]] };
+  const num = (v, w) => Math.round(Number(v) * (w ? 10000 : 1));
+  const money = t.match(/(?:金額|NT\$?)\s*(\d+(?:\.\d+)?)\s*(萬)?/i) || t.match(/(\d+(?:\.\d+)?)\s*(萬)?\s*元/);
+  const pv = t.match(/(\d+(?:\.\d+)?)\s*(萬)?\s*PV/i) || t.match(/PV\s*(\d+(?:\.\d+)?)\s*(萬)?/i)
+    || t.match(/(\d+(?:\.\d+)?)\s*(萬)/) || t.match(/(\d{5,7})()/);
+  if (money) o.goal = { kind: 'amount', value: num(money[1], money[2]) };
+  else if (pv && !mm) o.goal = { kind: 'pv', value: num(pv[1], pv[2]) };
+  return o;
+}
+
+function askOrQuote_(prices, st) {
+  if (st.opts.card === undefined || !st.opts.goal) {
+    const intro = [];
+    if (!st.asked) {
+      const p = st.parsed;
+      intro.push('📋 收到' + (p.name ? ' ' + p.name + ' 的' : '') + '明細表，我看到：');
+      filledPeriods_(p).forEach(pd => intro.push((pd.label || '') + '（服用 ' + (Number(pd.months) || 1) + ' 個月）：'
+        + pd.rows.filter(x => Number(String(x.perDose).normalize('NFKC')) > 0).map(x => x.code + '(' + x.perDose + ')').join('、')));
+      intro.push('');
+      st.asked = true;
+    }
+    saveQuoteState_(st);
+    if (st.opts.card === undefined) {
+      return { text: intro.concat(['1️⃣ 這次是現金還是刷卡？']).join('\n'), buttons: [['💵 現金', '💳 刷卡']] };
+    }
+    return { text: intro.concat(['2️⃣ 要買多少？',
+      '可以選下面的按鈕，或直接打：「PV 15萬」「金額 30萬」「買滿2個月」「照明細表」',
+      '（新入會預設女生；男生打「男」，舊會員打「舊會員」）']).join('\n'),
+      buttons: [['買滿1個月', '買滿3個月'], ['22萬PV', '30萬PV'], ['照明細表']] };
+  }
+  clearQuoteState_();
+  return finishQuote_(prices, st.parsed, st.opts);
+}
+
+function finishQuote_(prices, parsed, opts) {
+  parsed.card = !!opts.card;
+  parsed.newMember = opts.newMember !== false;
+  parsed.gender = opts.gender || '';
+  const goal = opts.goal || { kind: 'sheet' };
+  let result;
+  if (goal.kind === 'months') {
+    result = applyCash211_(computeQuote_(prices, sliceMonths_(parsed, goal.value)));
+    result.goalNote = '🗓️ 買滿 ' + goal.value + ' 個月';
+  } else {
+    result = fitTarget_(prices, parsed, goal.kind === 'sheet' ? 0 : goal.value, goal.kind);
+  }
   LAST_QUOTE_ = result.lines.length ? result : null;
   if (result.isSheet) result.byMonths = [1, 2, 3].map(m => byMonths_(prices, parsed, m));
   const answer = quoteText_(result);
-  logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
   logChat_('assistant', answer);
   return answer;
 }
@@ -461,8 +557,14 @@ function applyCash211_(r) {
 
 // 只買前 m 個月：照明細表的月份順序取，取到 m 個月為止；表上不夠 m 個月就把最後一段拉長
 function byMonths_(prices, parsed, m) {
+  const r = applyCash211_(computeQuote_(prices, sliceMonths_(parsed, m)));
+  const amount = r.lines.reduce((a, l) => a + l.price, 0);
+  return { months: m, amount: amount, pv: r.lines.reduce((a, l) => a + l.pv, 0), gifts: r.card ? 0 : Math.floor(amount / CASH_GIFT_AMOUNT) };
+}
+
+function sliceMonths_(parsed, m) {
   const copy = JSON.parse(JSON.stringify(parsed));
-  const filled = (copy.periods || []).filter(pd => ((pd && pd.rows) || []).some(x => Number(String(x && x.perDose).normalize('NFKC')) > 0));
+  const filled = filledPeriods_(copy);
   let left = m;
   const out = [];
   filled.forEach(pd => {
@@ -473,34 +575,24 @@ function byMonths_(prices, parsed, m) {
   });
   if (left > 0 && out.length) out[out.length - 1].months += left;
   copy.periods = out;
-  const r = applyCash211_(computeQuote_(prices, copy));
-  const amount = r.lines.reduce((a, l) => a + l.price, 0);
-  return { months: m, amount: amount, pv: r.lines.reduce((a, l) => a + l.pv, 0), gifts: r.card ? 0 : Math.floor(amount / CASH_GIFT_AMOUNT) };
-}
-
-// 說明裡寫的目標 PV，例如「試算 22萬」「試算 300000」
-function targetPv_(text) {
-  const t = String(text || '').normalize('NFKC');
-  const w = t.match(/(\d+(?:\.\d+)?)\s*萬/);
-  if (w) return Math.round(Number(w[1]) * 10000);
-  const d = t.match(/(\d{5,7})/);
-  return d ? Number(d[1]) : 0;
+  return copy;
 }
 
 // 有目標 PV 時：把最後一個有寫顆數的月份拉長（一次加 1 個月），直到總 PV 達標；最多 36 個月
-function fitTarget_(prices, parsed, target) {
+function fitTarget_(prices, parsed, target, kind) {
   const calc = () => applyCash211_(computeQuote_(prices, parsed));
   let r = calc();
   if (!target || !r.isSheet) return r;
-  const filled = (parsed.periods || []).filter(pd => ((pd && pd.rows) || []).some(x => Number(String(x && x.perDose).normalize('NFKC')) > 0));
+  const filled = filledPeriods_(parsed);
   const last = filled[filled.length - 1];
-  const pvOf = q => q.lines.reduce((a, l) => a + l.pv, 0);
+  const pvOf = q => q.lines.reduce((a, l) => a + (kind === 'amount' ? l.price : l.pv), 0);
   let m = Math.max(1, Number(last.months) || 1);
   while (pvOf(r) < target && m < 36) {
     last.months = ++m;
     r = calc();
   }
   r.target = target;
+  r.targetKind = kind || 'pv';
   r.fitLabel = String(last.label || '');
   return r;
 }
@@ -651,7 +743,9 @@ function quoteText_(r) {
   const who = [r.name ? '購買者 ' + r.name : '', r.introducer ? '介紹人 ' + r.introducer : '', r.date].filter(Boolean).join('｜');
   if (who) out.push(who);
   out.push((r.card ? '💳 刷卡' : '💵 現金') + (r.isSheet ? '｜服用 ' + r.totalMonths + ' 個月' : '') + (days ? '｜預估可使用 ' + days + ' 天' : ''));
-  if (r.target) out.push('🎯 目標 ' + n(r.target) + ' PV：' + (r.fitLabel ? r.fitLabel + '的' : '') + '服用月數自動調整到達標為止');
+  if (r.target) out.push('🎯 目標' + (r.targetKind === 'amount' ? '金額 NT$ ' + n(r.target) : ' ' + n(r.target) + ' PV') + '：'
+    + (r.fitLabel ? r.fitLabel + '的' : '') + '服用月數自動調整到達標為止');
+  if (r.goalNote) out.push(r.goalNote);
   if (r.isSheet) {
     out.push('', '【看到的內容】（括號是每次顆數）');
     r.periods.forEach(pd => out.push(pd.label + '（服用 ' + pd.months + ' 個月）：' + pd.rows.join('、')));
