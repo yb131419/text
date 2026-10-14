@@ -1008,14 +1008,14 @@ function reportLayout_(r) {
     const style = (size, color, bold) => ({ fontSize: { magnitude: size, unit: 'PT' }, bold: !!bold, fontFamily: 'Noto Sans TC',
       foregroundColor: { opaqueColor: { rgbColor: rgb_(color) } } });
     const box = (x, yy, w, h, fill, outline) => {
-      const id = 'b' + (k++);
+      const id = 'xg_box_' + (k++);
       req.push({ createShape: { objectId: id, shapeType: 'ROUND_RECTANGLE', elementProperties: place(w, h, x, yy) } });
       req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill.solidFill.color,outline', shapeProperties: {
         shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(fill) } } },
         outline: { outlineFill: { solidFill: { color: { rgbColor: rgb_(outline) } } }, weight: { magnitude: 1, unit: 'PT' } } } } });
     };
     const text = (str, x, yy, w, h, size, color, bold, align) => {
-      const id = 't' + (k++);
+      const id = 'xg_txt_' + (k++);
       req.push({ createShape: { objectId: id, shapeType: 'TEXT_BOX', elementProperties: place(w, h, x, yy) } });
       req.push({ insertText: { objectId: id, text: String(str) } });
       req.push({ updateTextStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: style(size, color, bold) } });
@@ -1031,7 +1031,7 @@ function reportLayout_(r) {
     text('購買者：' + (r.name || '—') + '　　試算者：小乖', X, 96, TW, 24, 11, C.white, true);
 
     // 品項表
-    const tbl = 'tbl';
+    const tbl = 'xg_table';
     const cols = [150, 46, 62, 62, 90, 90];
     req.push({ createTable: { objectId: tbl, rows: rows.length + 1, columns: 6, elementProperties: place(TW, tableH, X, tableTop) } });
     cols.forEach((w, i) => req.push({ updateTableColumnProperties: { objectId: tbl, columnIndices: [i], fields: 'columnWidth',
