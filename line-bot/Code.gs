@@ -31,7 +31,7 @@ const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
-const MENU = [['📋 試算', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找', '❓ 說明']];
+const MENU = [['📋 試算', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '❓ 說明']];
 
 const HELP_TEXT = [
   '小乖可以幫你 👇',
@@ -64,7 +64,10 @@ const HELP_MORE = [
   '・本機找 關鍵字：找案例庫、待辦、筆記',
   '・上網找 關鍵字：上網找資料',
   '・按按鈕後也可以傳語音',
-  '・圖片、影片、文字轉傳給小乖就會存進案例庫',
+  '・圖片、影片、文字轉傳給小乖就會存進案例庫，自動分類',
+  '・說明打「#見證案例」可以指定分類',
+  '・案例分類：看每類有幾筆、按分類瀏覽',
+  '・改分類 名稱：改剛存那筆的分類（沒有的分類會新增）',
   '',
   '【其他】',
   '・清除對話：忘掉聊天內容（資料不刪）',
@@ -316,6 +319,12 @@ function answer_(text) {
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
+  // 案例分類：列分類、看某一類、改剛存那筆的分類
+  if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
+  const bc = text.match(/^(?:看分類\s*)?(.+?)（\d+）$/) || text.match(/^看分類\s*(.+)$/);
+  if (bc && caseCats_().indexOf(bc[1].trim()) >= 0) return browseCat_(bc[1].trim());
+  const rc = text.match(/^改分類\s*(.+)$/);
+  if (rc) return recatCase_(rc[1].trim());
   // 找資料分兩種：本機（案例庫、待辦、筆記）和網路。只按按鈕沒給關鍵字，就等下一句（或語音）
   const wq = text.match(/^(?:上網找|上網查|網路找|網路查|上網搜尋)[\s：:]*([\s\S]*)$/);
   const lq = wq ? null : text.match(/^(?:本機找|本機查|找本機|找案例|查案例|找資料|查資料|搜尋|幫我查|幫我找|查(?=[\s：:])|找(?=[\s：:]))[\s：:]*([\s\S]*)$/);
@@ -370,53 +379,166 @@ function answer_(text) {
 // Telegram 機器人看不到你以前的聊天紀錄，所以案例要「轉傳給小乖」才會進案例庫；
 // 存的是 Telegram 的 file_id（檔案還是在 Telegram 上），找到時小乖直接把原圖／原影片再傳給你
 const CASE_SHEET = '案例庫';
+const CASE_CAT_SHEET = '案例分類';
+// 預設分類；之後可以直接改試算表「案例分類」分頁（一列一個），或打「改分類 新名字」新增
+const CASE_CATS = ['見證案例', '使用前後對比', '產品介紹', '試算報表', '課程活動', '其他'];
+const CASE_HEAD = ['時間', '分類', '類型', '產品', '人物', '說明文字', 'AI 摘要', '關鍵字', '來源', 'file_id'];
+const CASE_ICON = { photo: '🖼️', video: '🎬', animation: '🎞️', document: '📄', text: '📝' };
 let CURRENT_TG_CHAT_ = '';
 
 function caseSheet_() {
   const ss = ss_();
   let sh = ss.getSheetByName(CASE_SHEET);
+  if (sh && sh.getLastRow() >= 1 && sh.getRange(1, 2).getValue() !== '分類') {
+    sh.setName(CASE_SHEET + '（舊）');   // 舊格式先改名保留
+    sh = null;
+  }
   if (!sh) {
     sh = ss.insertSheet(CASE_SHEET);
-    sh.appendRow(['時間', '類型', 'file_id', '說明文字', 'AI 描述', '來源']);
+    sh.appendRow(CASE_HEAD);
     sh.setFrozenRows(1);
   }
   return sh;
+}
+
+function caseCats_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(CASE_CAT_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CASE_CAT_SHEET);
+    sh.appendRow(['分類（一列一個，可以自己改）']);
+    CASE_CATS.forEach(c => sh.appendRow([c]));
+  }
+  const n = sh.getLastRow() - 1;
+  const cats = n > 0 ? sh.getRange(2, 1, n, 1).getValues().map(r => String(r[0]).trim()).filter(Boolean) : [];
+  return cats.length ? cats : CASE_CATS.slice();
+}
+
+function addCaseCat_(name) {
+  if (caseCats_().indexOf(name) < 0) ss_().getSheetByName(CASE_CAT_SHEET).appendRow([name]);
+}
+
+// 請 AI 分類並整理：分類、產品編號、人物、一句摘要、關鍵字（圖片用 low 解析度，便宜）
+function classifyCase_(type, text, imageUrl, cats) {
+  const sys = '你幫使用者整理「案例庫」，讓資料多了也好找。只輸出 JSON：'
+    + '{"category":"","products":[],"people":[],"summary":"","keywords":[]}。'
+    + 'category 只能從這些挑一個：' + cats.join('、') + '。'
+    + 'products 是看得到的產品編號或品名（例如 211、777Q、2711AB、火山甘露）；people 是人名或稱呼（例如 張小姐）；'
+    + 'summary 用繁體中文一句話（30 字內）說這是什麼；keywords 5～8 個，方便日後搜尋。看不出來的留空，不要編。';
+  const parts = [{ type: 'text', text: '類型：' + type + (text ? '\n內容／說明：' + text : '') }];
+  if (imageUrl) parts.push({ type: 'image_url', image_url: { url: imageUrl, detail: 'low' } });
+  const raw = callOpenAI_(sys, [{ role: 'user', content: parts }], true);
+  let j;
+  try { j = JSON.parse(String(raw).replace(/^```(?:json)?\s*|\s*```$/g, '')); }
+  catch (e) { j = { summary: String(raw).slice(0, 60) }; }
+  if (cats.indexOf(j.category) < 0) j.category = '其他';
+  ['products', 'people', 'keywords'].forEach(k => { if (!Array.isArray(j[k])) j[k] = []; });
+  j.summary = String(j.summary || '');
+  return j;
 }
 
 function saveTgCase_(msg, photoId, video, doc, caption) {
   let type = 'text', fid = '', thumb = '';
   if (video) { type = msg.video ? 'video' : msg.animation ? 'animation' : 'document'; fid = video.file_id; thumb = (video.thumbnail || video.thumb || {}).file_id || ''; }
   else if (photoId) { type = doc ? 'document' : 'photo'; fid = photoId; thumb = photoId; }
-  const text = String(caption || (type === 'text' ? msg.text || '' : '')).trim();
+  let text = String(caption || (type === 'text' ? msg.text || '' : '')).trim();
   if (type === 'text' && !text) return '這則沒有內容可以存。';
-  // 圖片（影片用縮圖）請 AI 寫一段描述和關鍵字，之後才找得到
-  let desc = '';
-  if (thumb) {
-    try {
-      desc = callOpenAI_('你幫使用者整理案例圖片，方便日後用關鍵字搜尋。用繁體中文，一兩句描述畫面重點，並抄下圖上看得到的文字、產品編號、人名、數字，最後列 5～10 個關鍵字。不要超過 150 字。',
-        [{ role: 'user', content: [{ type: 'text', text: (type === 'photo' ? '這張圖片' : '這是影片的縮圖') + (text ? '，說明：' + text : '') }, { type: 'image_url', image_url: { url: tgImage_(thumb), detail: 'low' } }] }]);
-    } catch (e) { console.error('案例描述失敗：' + e.message); }
-  }
+  const cats = caseCats_();
+  // 說明裡寫「#見證案例」就直接用這個分類
+  let forced = '';
+  const tag = text.match(/#(\S+)/);
+  if (tag && cats.indexOf(tag[1]) >= 0) { forced = tag[1]; text = text.replace(tag[0], '').trim(); }
+  let info = { category: forced || '其他', products: [], people: [], summary: '', keywords: [] };
+  try {
+    info = classifyCase_(type, text, thumb ? tgImage_(thumb) : '', cats);
+    if (forced) info.category = forced;
+  } catch (e) { console.error('案例分類失敗：' + e.message); }
   const o = msg.forward_origin || {};
   const src = (o.chat && o.chat.title) || (o.sender_user && o.sender_user.first_name) || o.sender_user_name
     || (msg.forward_from_chat && msg.forward_from_chat.title) || (msg.forward_from && msg.forward_from.first_name) || '';
-  withLock_(() => caseSheet_().appendRow([new Date(), type, fid, text, desc, src]));
+  const join = a => (Array.isArray(a) ? a : []).map(String).filter(Boolean).join('、');
+  const row = withLock_(() => {
+    const sh = caseSheet_();
+    sh.appendRow([new Date(), info.category, type, join(info.products), join(info.people), text, String(info.summary || ''), join(info.keywords), src, fid]);
+    return sh.getLastRow();
+  });
+  setProp_('CASE_LAST_ROW', String(row));
   const NAME = { photo: '圖片', video: '影片', animation: '動圖', document: '檔案', text: '文字' };
-  return '📁 已存進案例庫（' + NAME[type] + '）' + (text || desc ? '\n' + String(text || desc).replace(/\s+/g, ' ').slice(0, 60) : '')
-    + '\n之後打「查 關鍵字」就能找回來';
+  const tags = [join(info.products), join(info.people)].filter(Boolean).join('｜');
+  return {
+    text: '📁 已存進【' + info.category + '】（' + NAME[type] + '）'
+      + (info.summary || text ? '\n' + String(info.summary || text).replace(/\s+/g, ' ').slice(0, 60) : '')
+      + (tags ? '\n🏷️ ' + tags : '')
+      + '\n分錯了按下面的分類就能改',
+    buttons: chunk_(cats.filter(c => c !== info.category).map(c => '改分類 ' + c), 2).slice(0, 4),
+  };
+}
+
+function chunk_(arr, n) { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; }
+
+// 「改分類 見證案例」：改最近存的那一筆；分類不存在就新增
+function recatCase_(name) {
+  const row = Number(prop_('CASE_LAST_ROW'));
+  const sh = ss_().getSheetByName(CASE_SHEET);
+  if (!row || !sh || row > sh.getLastRow()) return '找不到剛剛存的案例。';
+  addCaseCat_(name);
+  sh.getRange(row, 2).setValue(name);
+  return '✅ 已改成【' + name + '】';
+}
+
+function allCases_() {
+  const sh = ss_().getSheetByName(CASE_SHEET);
+  if (!sh || sh.getLastRow() < 2 || sh.getRange(1, 2).getValue() !== '分類') return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, CASE_HEAD.length).getValues().map(r => ({
+    time: r[0], cat: String(r[1] || '其他'), type: String(r[2]), products: String(r[3] || ''), people: String(r[4] || ''),
+    text: String(r[5] || ''), summary: String(r[6] || ''), keywords: String(r[7] || ''), src: String(r[8] || ''), fid: String(r[9] || ''),
+  })).reverse();   // 新的在前
 }
 
 function findCases_(words) {
-  const sh = ss_().getSheetByName(CASE_SHEET);
-  if (!sh || sh.getLastRow() < 2) return [];
-  return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues()
-    .map(r => ({ time: r[0], type: r[1], fid: r[2], text: String(r[3] || ''), desc: String(r[4] || ''), src: r[5] }))
-    .filter(c => { const s = (c.text + ' ' + c.desc + ' ' + c.src).toLowerCase(); return words.every(w => s.indexOf(w) >= 0); })
-    .reverse();   // 新的在前
+  return allCases_().filter(c => {
+    const s = [c.cat, c.products, c.people, c.text, c.summary, c.keywords, c.src].join(' ').toLowerCase();
+    return words.every(w => s.indexOf(w) >= 0);
+  });
+}
+
+// 「案例分類」：列出每個分類有幾筆，按了就看那個分類
+function caseCatsMenu_() {
+  const cases = allCases_(), cats = caseCats_();
+  const count = {};
+  cases.forEach(c => { count[c.cat] = (count[c.cat] || 0) + 1; });
+  const btns = cats.map(c => '🗂️ ' + c + '（' + (count[c] || 0) + '）');
+  return {
+    text: '🗂️ 案例分類（共 ' + cases.length + ' 筆）\n\n' + cats.map(c => '・' + c + '：' + (count[c] || 0) + ' 筆').join('\n')
+      + '\n\n按分類看最新的案例；要找特定的打「本機找 分類 關鍵字」，例如「本機找 見證 211」',
+    buttons: chunk_(btns, 2).slice(0, 5),
+  };
+}
+
+function browseCat_(cat) {
+  const list = allCases_().filter(c => c.cat === cat);
+  if (!list.length) return { text: '【' + cat + '】還沒有案例。轉傳圖片、影片或文字給小乖就會存進來。', buttons: MENU };
+  return { text: caseLines_('【' + cat + '】共 ' + list.length + ' 筆，最新的：', list), buttons: MENU };
+}
+
+// 列出案例（每筆一行：圖示＋摘要＋標籤），圖片／影片在 Telegram 另外傳原檔
+function caseLines_(title, list) {
+  const out = [title];
+  list.slice(0, 10).forEach(c => {
+    const tags = [c.products, c.people].filter(Boolean).join('｜');
+    out.push(CASE_ICON[c.type] + ' ' + String(c.summary || c.text).replace(/\s+/g, ' ').slice(0, 40) + (tags ? '（' + tags + '）' : ''));
+  });
+  if (list.length > 10) out.push('…還有 ' + (list.length - 10) + ' 筆，多打幾個關鍵字可以縮小範圍');
+  const media = list.filter(c => c.type !== 'text' && c.fid);
+  if (media.length) {
+    if (CURRENT_TG_CHAT_) { media.slice(0, 5).forEach(c => sendTgCase_(CURRENT_TG_CHAT_, c)); out.push('（最新 ' + Math.min(5, media.length) + ' 個圖片／影片已傳在上面）'); }
+    else out.push('（圖片／影片存在 Telegram，到 Telegram 查就會直接傳給你）');
+  }
+  return out.join('\n');
 }
 
 function sendTgCase_(chatId, c) {
-  const cap = (c.text || c.desc).slice(0, 900);
+  const cap = ('【' + c.cat + '】' + (c.text || c.summary)).slice(0, 900);
   const m = { photo: ['sendPhoto', 'photo'], video: ['sendVideo', 'video'], animation: ['sendAnimation', 'animation'], document: ['sendDocument', 'document'] }[c.type];
   if (!m) return;
   const p = { chat_id: chatId, caption: cap };
@@ -435,11 +557,20 @@ function search_(q, mode) {
     // 1. 案例庫：文字案例直接列出，圖片／影片在 Telegram 直接傳原檔
     try {
       const cases = findCases_(words);
-      const texts = cases.filter(c => c.type === 'text'), media = cases.filter(c => c.type !== 'text');
-      if (texts.length) out.push('', '📁 文字案例', texts.slice(0, 5).map(c => '・' + c.text.replace(/\s+/g, ' ').slice(0, 120)).join('\n'));
-      if (media.length) {
-        if (CURRENT_TG_CHAT_) { media.slice(0, 5).forEach(c => sendTgCase_(CURRENT_TG_CHAT_, c)); out.push('', '🖼️ 圖片／影片案例：已傳上面 ' + Math.min(5, media.length) + ' 個' + (media.length > 5 ? '（共 ' + media.length + ' 個，關鍵字多打幾個可以縮小範圍）' : '')); }
-        else out.push('', '🖼️ 找到 ' + media.length + ' 個圖片／影片案例，存在 Telegram，到 Telegram 打同樣的關鍵字就會傳給你');
+      if (cases.length) {
+        // 依分類分段列出，每段標筆數
+        const byCat = {};
+        cases.forEach(c => { (byCat[c.cat] = byCat[c.cat] || []).push(c); });
+        out.push('', '📁 案例庫找到 ' + cases.length + ' 筆');
+        Object.keys(byCat).forEach(cat => out.push('', '【' + cat + '】' + byCat[cat].length + ' 筆',
+          byCat[cat].slice(0, 5).map(c => CASE_ICON[c.type] + ' ' + String(c.summary || c.text).replace(/\s+/g, ' ').slice(0, 40)
+            + ([c.products, c.people].filter(Boolean).length ? '（' + [c.products, c.people].filter(Boolean).join('｜') + '）' : '')).join('\n')
+          + (byCat[cat].length > 5 ? '\n…還有 ' + (byCat[cat].length - 5) + ' 筆' : '')));
+        const media = cases.filter(c => c.type !== 'text' && c.fid);
+        if (media.length) {
+          if (CURRENT_TG_CHAT_) { media.slice(0, 5).forEach(c => sendTgCase_(CURRENT_TG_CHAT_, c)); out.push('', '（最新 ' + Math.min(5, media.length) + ' 個圖片／影片已傳在上面）'); }
+          else out.push('', '（圖片／影片存在 Telegram，到 Telegram 查就會直接傳給你）');
+        }
       }
       localHits += cases.length;
     } catch (e) { console.error(e); }
