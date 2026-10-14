@@ -145,7 +145,7 @@ function handleLine_(ev) {
   }
   if (ev.type !== 'message' || !ev.replyToken) return;
   if (ev.message.type === 'image') {
-    if (owner && uid === owner) reply_(ev.replyToken, image_('', lineImage_(ev.message.id)));
+    if (owner && uid === owner) { const ans = image_('', lineImage_(ev.message.id)); reply_(ev.replyToken, ans, reportLine_()); }
     return;
   }
   if (ev.message.type !== 'text') {
@@ -164,7 +164,8 @@ function handleLine_(ev) {
   if (!owner) return reply_(ev.replyToken, '請先傳「綁定 你的同步密碼」完成綁定。');
   if (uid !== owner) return reply_(ev.replyToken, '小乖目前只服務主人喔。');
 
-  reply_(ev.replyToken, answer_(text));
+  const ans = answer_(text);
+  reply_(ev.replyToken, ans, reportLine_());
 }
 
 // 下載 LINE 圖片，轉成 OpenAI 看得懂的 data URL
@@ -339,14 +340,14 @@ function chat_(text, image) {
   return answer;
 }
 
-function reply_(replyToken, msg) {
+function reply_(replyToken, msg, extra) {
   const rich = msg && typeof msg === 'object';
   const m = { type: 'text', text: String(rich ? msg.text : msg).slice(0, 5000) };
   if (rich && msg.buttons) {
     m.quickReply = { items: [].concat.apply([], msg.buttons).slice(0, 13)
       .map(t => ({ type: 'action', action: { type: 'message', label: t.slice(0, 20), text: t } })) };
   }
-  lineApi_('reply', { replyToken: replyToken, messages: [m] });
+  lineApi_('reply', { replyToken: replyToken, messages: (extra || []).concat([m]).slice(0, 5) });
 }
 
 function push_(to, text) {
@@ -425,7 +426,7 @@ function quote_(text, image, fallbackToChat) {
     + '也可能在欄位底下用紅筆寫「吃3個月」；沒寫月數就當 1。每列有「編號」（印好的或手寫，例如 211、300、299A、211A、255A、2711AB、777Q、260）、'
     + '「顆數」（每次吃幾顆）、「早／中／晚」打勾。只收「顆數有寫數字」的列；顆數空白的列（例如沒用到的月份裡印好的 211）不要收。'
     + 'times 是該列有幾個時段要吃：表格的早、晚通常是印好的勾，就算 2；中也有勾才算 3。'
-    + '整欄都沒寫顆數的月份不要放。最右邊的「保養」欄放進 maintenance。左上角有日期、地點，姓名、介紹人照抄。'
+    + '整欄都沒寫顆數的月份不要放。最右邊的「保養」欄放進 maintenance。左上角有日期、地點，姓名、介紹人照抄；姓名是購買者的人名，不是產品名稱（例如「火山甘露」是產品），看不清楚就留空。'
     + '手寫的 2 常寫得像 >，例如「>60」是 260、「>55A」是 255A、「>711AB」是 2711AB、「7770」「777Q」是 777Q。\n'
     + '【情況二：一般訂單或打字清單】直接寫品項和數量（盒）的，放進 items，name 要一字不差照抄價目表品項，數量沒寫就當 1。\n'
     + '對應不到價目表的放進 unknown（照原文）。\n'
@@ -445,6 +446,10 @@ function quote_(text, image, fallbackToChat) {
     if (fallbackToChat) return chat_(text, image);
     return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
   }
+  // 姓名被讀成產品名稱（例如火山甘露）就清掉，不要印在報表上
+  const isProduct = v => { const k = normName_(v || ''); return !!k && (/^\d/.test(k) || !!CODE_ALIAS[k] || prices.some(p => normName_(p.name) === k)); };
+  if (isProduct(parsed.name)) parsed.name = '';
+  if (isProduct(parsed.introducer)) parsed.introducer = '';
   const hasRows = (parsed.periods || []).some(pd => ((pd && pd.rows) || []).length) || (parsed.items || []).length;
   if (fallbackToChat && !hasRows) return chat_(text, image);
   logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
@@ -529,10 +534,26 @@ function finishQuote_(prices, parsed, opts) {
   const months = Number(opts.months) || 0;
   const target = opts.target && opts.target.kind !== 'none' ? opts.target : null;
   // 先照月數取明細表，再看 PV／金額目標：買滿月數還不到目標，就把最後一個月份拉長到達標
+  // 有選月數就照月數買；PV／金額不夠時不自動拉長，只提醒要買幾個月才達標
   const base = months ? sliceMonths_(parsed, months) : parsed;
-  const result = fitTarget_(prices, base, target ? target.value : 0, target ? target.kind : '');
-  if (months) result.goalNote = '🗓️ 買滿 ' + months + ' 個月'
-    + (result.totalMonths > months ? '還不到目標，已延長到 ' + result.totalMonths + ' 個月' : '');
+  const result = fitTarget_(prices, months ? JSON.parse(JSON.stringify(base)) : base, months || !target ? 0 : target.value, target ? target.kind : '');
+  if (months) {
+    result.goalNote = '🗓️ 買滿 ' + months + ' 個月';
+    if (target && result.isSheet) {
+      const sum = q => q.lines.reduce((a, l) => a + (target.kind === 'amount' ? l.price : l.pv), 0);
+      const got = sum(result);
+      if (got < target.value) {
+        const need = fitTarget_(prices, JSON.parse(JSON.stringify(base)), target.value, target.kind);
+        const unit = target.kind === 'amount' ? '金額' : 'PV';
+        const fmt = v => Number(v).toLocaleString('en-US');
+        result.goalNote += '\n⚠️ 買滿 ' + months + ' 個月的' + unit + '是 ' + fmt(got) + '，還差 ' + fmt(target.value - got)
+          + (sum(need) >= target.value ? '；照明細表要買 ' + need.totalMonths + ' 個月才達標（NT$ ' + fmt(need.lines.reduce((a, l) => a + l.price, 0))
+            + '｜PV ' + fmt(need.lines.reduce((a, l) => a + l.pv, 0)) + '）' : '');
+      } else {
+        result.goalNote += '｜🎯 已達 ' + (target.kind === 'amount' ? '金額 NT$ ' : '') + Number(target.value).toLocaleString('en-US') + (target.kind === 'amount' ? '' : ' PV');
+      }
+    }
+  }
   LAST_QUOTE_ = result.lines.length ? result : null;
   if (result.isSheet) result.byMonths = [1, 2, 3].map(m => byMonths_(prices, parsed, m));
   const answer = quoteText_(result);
@@ -927,11 +948,13 @@ function authorizeReport() {
 function slidesApi_(method, path, body) {
   // 優先用 Apps Script「服務」裡加入的 Google Slides API（不用另外到 Cloud 主控台啟用）
   if (typeof Slides !== 'undefined') {
-    if (path === '') return Slides.Presentations.create(body);
-    let m = path.match(/^\/([^/:]+):batchUpdate$/);
-    if (m) return Slides.Presentations.batchUpdate(body, m[1]);
-    m = path.match(/^\/([^/]+)\/pages\/([^/?]+)\/thumbnail/);
-    if (m) return Slides.Presentations.Pages.getThumbnail(m[1], m[2], { 'thumbnailProperties.mimeType': 'PNG', 'thumbnailProperties.thumbnailSize': 'LARGE' });
+    // 「The service is currently unavailable」多半是暫時的，最多試 3 次
+    for (let i = 0; ; i++) {
+      try { return slidesAdv_(path, body); } catch (err) {
+        if (i >= 2 || !/unavailable|internal|backend|503|500/i.test(err.message)) throw err;
+        Utilities.sleep(1500 * (i + 1));
+      }
+    }
   }
   const opt = {
     method: method, contentType: 'application/json', muteHttpExceptions: true,
@@ -941,6 +964,17 @@ function slidesApi_(method, path, body) {
   const res = UrlFetchApp.fetch('https://slides.googleapis.com/v1/presentations' + path, opt);
   if (res.getResponseCode() !== 200) throw new Error('Slides ' + res.getResponseCode() + '：' + res.getContentText().slice(0, 300));
   return JSON.parse(res.getContentText());
+}
+
+function slidesAdv_(path, body) {
+  if (path === '') return Slides.Presentations.create(body);
+  let m = path.match(/^\/([^/:]+):batchUpdate$/);
+  if (m) return Slides.Presentations.batchUpdate(body, m[1]);
+  m = path.match(/^\/([^/]+)\/pages\/([^/?]+)\/thumbnail/);
+  if (m) return Slides.Presentations.Pages.getThumbnail(m[1], m[2], { 'thumbnailProperties.mimeType': 'PNG', 'thumbnailProperties.thumbnailSize': 'LARGE' });
+  m = path.match(/^\/([^/:?]+)$/);
+  if (m) return Slides.Presentations.get(m[1]);
+  throw new Error('不支援的 Slides 呼叫：' + path);
 }
 
 function rgb_(hex) {
@@ -1057,10 +1091,18 @@ function reportPng_(r) {
   let pid = null;
   try {
     const L = reportLayout_(r);
-    const created = slidesApi_('post', '', { title: '小乖試算報表', pageSize: { width: { magnitude: L.W, unit: 'PT' }, height: { magnitude: L.H, unit: 'PT' } } });
-    pid = created.presentationId;
-    const page = created.slides[0];
-    const req = (page.pageElements || []).map(e => ({ deleteObject: { objectId: e.objectId } })).concat(L.build(page.objectId));
+    const deck = newDeck_(L.W, L.H);
+    pid = deck.pid;
+    const page = deck.pres.slides[0];
+    // 頁面沒改成直式時：整張報表等比縮小，置中放進預設的橫式頁面
+    let built = L.build(page.objectId);
+    const ps = deck.pres.pageSize, pt = v => v.unit === 'EMU' ? v.magnitude / 12700 : v.magnitude;
+    const pw = pt(ps.width), ph = pt(ps.height);
+    if (Math.abs(pw - L.W) > 1 || Math.abs(ph - L.H) > 1) {
+      const sc = Math.min(pw / L.W, ph / L.H);
+      built = scaleReq_(built, sc, (pw - L.W * sc) / 2, (ph - L.H * sc) / 2);
+    }
+    const req = (page.pageElements || []).map(e => ({ deleteObject: { objectId: e.objectId } })).concat(built);
     slidesApi_('post', '/' + pid + ':batchUpdate', { requests: req });
     const th = slidesApi_('get', '/' + pid + '/pages/' + page.objectId + '/thumbnail?thumbnailProperties.mimeType=PNG&thumbnailProperties.thumbnailSize=LARGE');
     return UrlFetchApp.fetch(th.contentUrl).getBlob()
@@ -1074,6 +1116,50 @@ function reportPng_(r) {
   }
 }
 
+// Slides API 建立簡報時不能指定頁面大小，所以：建立後匯出成 pptx、改掉頁面尺寸、再用 Drive 服務轉回 Google 簡報。
+// 沒加入 Drive 服務（或轉檔失敗）就用預設的橫式頁面，報表會縮小置中
+function newDeck_(W, H) {
+  const created = slidesApi_('post', '', { title: '小乖試算報表' });
+  let pid = created.presentationId;
+  if (typeof Drive === 'undefined') return { pid: pid, pres: created };
+  let newId = null;
+  try {
+    const pptx = UrlFetchApp.fetch('https://docs.google.com/presentation/d/' + pid + '/export/pptx', {
+      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } }).getBlob();
+    const EMU = 12700;
+    const files = Utilities.unzip(pptx.setContentType('application/zip')).map(f => f.getName() !== 'ppt/presentation.xml' ? f
+      : Utilities.newBlob(f.getDataAsString().replace(/<p:sldSz[^>]*\/>/, '<p:sldSz cx="' + Math.round(W * EMU) + '" cy="' + Math.round(H * EMU) + '"/>'),
+        'application/xml', f.getName()));
+    const zip = Utilities.zip(files, 'report.pptx').setContentType('application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    const mime = 'application/vnd.google-apps.presentation';
+    const f2 = typeof Drive.Files.create === 'function'
+      ? Drive.Files.create({ name: '小乖試算報表', mimeType: mime }, zip)
+      : Drive.Files.insert({ title: '小乖試算報表', mimeType: mime }, zip, { convert: true });
+    newId = f2.id;
+    const pres = slidesApi_('get', '/' + newId);
+    try { DriveApp.getFileById(pid).setTrashed(true); } catch (e) { console.error(e); }
+    return { pid: newId, pres: pres };
+  } catch (err) {
+    console.error('報表頁面改尺寸失敗，改用橫式：' + err.message);
+    if (newId) try { DriveApp.getFileById(newId).setTrashed(true); } catch (e) { console.error(e); }
+    return { pid: pid, pres: created };
+  }
+}
+
+// 把整組繪圖指令等比縮放（位置、大小、字級、欄寬列高），再平移 ox, oy
+function scaleReq_(reqs, sc, ox, oy) {
+  const SIZE_KEYS = { width: 1, height: 1, fontSize: 1, columnWidth: 1, minRowHeight: 1 };
+  const walk = (o, key) => {
+    if (Array.isArray(o)) return o.forEach(v => walk(v, key));
+    if (!o || typeof o !== 'object') return;
+    if (SIZE_KEYS[key] && typeof o.magnitude === 'number') o.magnitude = Math.round(o.magnitude * sc * 100) / 100;
+    if (key === 'transform') { o.translateX = o.translateX * sc + ox; o.translateY = o.translateY * sc + oy; }
+    Object.keys(o).forEach(k => walk(o[k], k));
+  };
+  walk(reqs, '');
+  return reqs;
+}
+
 // Telegram：有剛算好的試算就先傳圖片，並在自己的雲端硬碟留一份
 function sendReportTg_(chatId) {
   const r = LAST_QUOTE_; LAST_QUOTE_ = null;
@@ -1081,18 +1167,10 @@ function sendReportTg_(chatId) {
   REPORT_ERR_ = '';
   const png = reportPng_(r);
   if (!png) {
-    const why = /has not been used|disabled|Slides is not defined/i.test(REPORT_ERR_)
-      ? '還沒加入 Google Slides 服務，請在 Apps Script 左側「服務」按 ＋，選 Google Slides API → 新增，再執行 authorizeReport。'
-      : /401|403|scope|permission|權限|授權/i.test(REPORT_ERR_)
-      ? '還沒授權，請在 Apps Script 函式選單選 authorizeReport → 執行 → 允許，再部署新版本。'
-      : REPORT_ERR_.slice(0, 300);
-    tgSend_(chatId, '報表圖片沒產生（文字試算如下）。原因：' + why);
+    tgSend_(chatId, reportErrText_());
     return;
   }
-  try {
-    const it = DriveApp.getFoldersByName(REPORT_FOLDER);
-    (it.hasNext() ? it.next() : DriveApp.createFolder(REPORT_FOLDER)).createFile(png.copyBlob().setName(png.getName()));
-  } catch (e) { console.error(e); }
+  try { saveReport_(png); } catch (e) { console.error(e); }
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
     method: 'post', muteHttpExceptions: true,
     payload: { chat_id: String(chatId), photo: png, caption: '康園試算報表' + (r.name ? '｜' + r.name : '') },
@@ -1101,6 +1179,40 @@ function sendReportTg_(chatId) {
     console.error('Telegram sendPhoto 失敗：' + res.getContentText());
     tgSend_(chatId, '報表圖片傳送失敗：' + res.getContentText().slice(0, 200));
   }
+}
+
+// LINE：圖片要公開網址，所以存到雲端硬碟後設成「知道連結的人都能看」（2026-10-14 使用者同意）
+function reportLine_() {
+  const r = LAST_QUOTE_; LAST_QUOTE_ = null;
+  if (!r) return [];
+  REPORT_ERR_ = '';
+  const png = reportPng_(r);
+  try {
+    if (!png) throw new Error(REPORT_ERR_);
+    const file = saveReport_(png);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const url = 'https://lh3.googleusercontent.com/d/' + file.getId();
+    return [{ type: 'image', originalContentUrl: url, previewImageUrl: url }];
+  } catch (err) {
+    REPORT_ERR_ = REPORT_ERR_ || err.message;
+    console.error('LINE 報表圖片失敗：' + REPORT_ERR_);
+    return [{ type: 'text', text: reportErrText_() }];
+  }
+}
+
+function saveReport_(png) {
+  const it = DriveApp.getFoldersByName(REPORT_FOLDER);
+  return (it.hasNext() ? it.next() : DriveApp.createFolder(REPORT_FOLDER)).createFile(png.copyBlob().setName(png.getName()));
+}
+
+function reportErrText_() {
+  const e = REPORT_ERR_ || '';
+  const why = /has not been used|disabled|Slides is not defined/i.test(e)
+    ? '還沒加入 Google Slides 服務，請在 Apps Script 左側「服務」按 ＋，選 Google Slides API → 新增，再執行 authorizeReport。'
+    : /401|403|scope|permission|權限|授權/i.test(e)
+    ? '還沒授權，請在 Apps Script 函式選單選 authorizeReport → 執行 → 允許，再部署新版本。'
+    : e.slice(0, 300);
+  return '報表圖片沒產生（文字試算如下）。原因：' + why;
 }
 
 /* ============ OpenAI ============ */
