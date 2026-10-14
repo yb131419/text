@@ -591,7 +591,8 @@ function finishQuote_(prices, parsed, opts) {
   const target = opts.target && opts.target.kind !== 'none' ? opts.target : null;
   // 先照選的月數取明細表；有 PV／金額目標時一定要買到目標：不夠就把最後一個月份拉長到達標為止
   const base = months ? sliceMonths_(parsed, months) : parsed;
-  const result = fitTarget_(prices, base, target ? target.value : 0, target ? target.kind : '');
+  let result = fitTarget_(prices, base, target ? target.value : 0, target ? target.kind : '');
+  if (target && result.isSheet) result = trimToTarget_(prices, base, target, result);
   if (months) result.goalNote = '🗓️ 買滿 ' + months + ' 個月'
     + (result.totalMonths > months ? '還不到目標，已補到 ' + result.totalMonths + ' 個月才達標' : '');
   LAST_QUOTE_ = result.lines.length ? result : null;
@@ -646,6 +647,34 @@ function sliceMonths_(parsed, m) {
   if (left > 0 && out.length) out[out.length - 1].months += left;
   copy.periods = out;
   return copy;
+}
+
+// SOP 刪減原則：超過目標時，從第三個月（最後一個月份）的產品開始刪，基本款 211、300、299A 不刪；
+// 一項一項試著拿掉，拿掉後仍達標才真的刪，最後留下「剛好達標」的組合
+const BASIC_CODES = ['211', '300', '299A'];
+function trimToTarget_(prices, base, target, result) {
+  const sum = q => q.lines.reduce((a, l) => a + (target.kind === 'amount' ? l.price : l.pv), 0);
+  if (sum(result) <= target.value) return result;
+  const work = JSON.parse(JSON.stringify(base));
+  const calc = () => applyCash211_(computeQuote_(prices, work));
+  const removed = [];
+  let best = result;
+  const filled = filledPeriods_(work);
+  for (let pi = filled.length - 1; pi >= 0; pi--) {
+    const pd = filled[pi];
+    for (let ri = pd.rows.length - 1; ri >= 0; ri--) {
+      const row = pd.rows[ri];
+      if (BASIC_CODES.indexOf(normName_(row.code)) >= 0 || !(Number(String(row.perDose).normalize('NFKC')) > 0)) continue;
+      pd.rows.splice(ri, 1);
+      const r = calc();
+      if (r.lines.length && sum(r) >= target.value) { best = r; removed.push((pd.label || '') + ' ' + row.code); }
+      else pd.rows.splice(ri, 0, row);
+    }
+  }
+  if (!removed.length) return result;
+  ['target', 'targetKind', 'fitLabel'].forEach(k => { if (result[k] !== undefined) best[k] = result[k]; });
+  best.notes = (best.notes || []).concat(['✂️ 依 SOP 刪減原則（超過目標先刪第三個月、基本款 211／300／299A 不刪），拿掉：' + removed.join('、')]);
+  return best;
 }
 
 // 有目標 PV 時：把最後一個有寫顆數的月份拉長（一次加 1 個月），直到總 PV 達標；最多 36 個月
