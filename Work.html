@@ -571,7 +571,7 @@
     </div>
     <div class="status-line">
       <span class="dot" id="keyDot"></span>
-      <span id="keyStatus">尚未連接 AI — 請到設定填入 OpenAI 金鑰</span>
+      <span id="keyStatus">尚未連接 AI — 請到設定填入 AI 代理網址與通行碼</span>
     </div>
   </header>
 
@@ -775,17 +775,22 @@
     </div>
 
     <div class="note">
-      🔑 金鑰只存在你自己的瀏覽器（localStorage），不會上傳到任何伺服器。放上 GitHub Pages 後即可獨立運作。<br>
-      ⚠️ 因金鑰寫在前端，請勿把含金鑰的網址公開分享給他人。
+      🔑 OpenAI 金鑰放在你自己的 Google Apps Script，不存在瀏覽器裡。網頁只記得代理網址和通行碼。<br>
+      ⚠️ 通行碼請勿分享給他人；外洩時到 Apps Script 的指令碼屬性換一組即可。
     </div>
 
     <div class="field">
-      <label>OpenAI API 金鑰</label>
+      <label>AI 代理網址（Google Apps Script）</label>
+      <input type="text" id="aiUrl" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false">
+      <div class="hint">OpenAI 金鑰放在你的 Apps Script，不在瀏覽器。架設方式請看 GitHub 上的 ai-proxy/README.md。AI 集團、交易助手、小乖共用這組設定，填一次就好。</div>
+    </div>
+
+    <div class="field">
+      <label>通行碼</label>
       <div class="key-row">
-        <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" spellcheck="false">
+        <input type="password" id="aiPass" placeholder="Apps Script 的同步密碼或 AI_PASSCODE" autocomplete="off" spellcheck="false">
         <button class="toggle-key" onclick="toggleKey()" id="toggleKeyBtn">顯示</button>
       </div>
-      <div class="hint">前往 platform.openai.com → API keys 取得。</div>
     </div>
 
     <div class="field">
@@ -832,7 +837,6 @@ const DEFAULTS = {
   build:"2026.07.11-flow13-g5fix",
   title:"AI 內容集團",
   context:"【行業／領域】（請填，例如：保健、餐飲、美業、房仲、教育、寵物、手作…）\n【品牌／個人定位】（你想被記得的一句話）\n【目標客群】（你最想打到的人）\n【語氣風格】（例如：溫暖像家人／專業俐落／幽默親切）\n【常用素材】到「素材庫」上傳產品資料、見證、文件，AI 會依這些素材產出。\n【禁忌／法規】（你這行不能說的話、要避免的字眼）\n\n內容鐵則（固定）：先破冰（停下滑動、引發共鳴）→ 再講事情（把重點／價值講清楚講到有感）→ 最後邀約（互動＋低門檻行動）。\n小提示：可到設定按「依素材自動產生品牌設定」，讓 AI 依你的素材幫你草擬以上內容。",
-  apiKey:"",
   model:"gpt-4o-mini",
   autoAnalyze:true,
   departments:[
@@ -855,6 +859,40 @@ const DEFAULTS = {
   collector:{ auto:false, freq:"daily", lastRun:0, topicHint:"" },
   decks:[]   // {id, time, title, mode, cards:[{q,a}]}
 };
+
+/* ============ AI 代理：OpenAI 金鑰放在 Google Apps Script，不在瀏覽器 ============ */
+// AI 集團、交易助手、小乖三個頁面共用這組設定（同一個網站，填一次就好）
+const AI_PROXY_STORE = "xiaoguai_ai_proxy";
+function aiProxy(){
+  try{ const p=JSON.parse(localStorage.getItem(AI_PROXY_STORE)||"{}"); return {url:String(p.url||"").trim(), pass:String(p.pass||"").trim()}; }
+  catch(e){ return {url:"", pass:""}; }
+}
+function setAiProxy(url,pass){
+  try{ localStorage.setItem(AI_PROXY_STORE, JSON.stringify({url:String(url||"").trim(), pass:String(pass||"").trim()})); }catch(e){}
+}
+function aiOn(){ const p=aiProxy(); return /^https:\/\/script\.google\.com\/.+\/exec$/.test(p.url) && !!p.pass; }
+// 回傳 {ok, status, data | error}；Apps Script 一律回 HTTP 200，真正狀態看 status
+async function callProxy(body){
+  const p=aiProxy(); let res;
+  try{
+    // text/plain 不會觸發 CORS 預檢，Apps Script 才收得到
+    res=await fetch(p.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({action:"openai",key:p.pass,body})});
+  }catch(e){ return {ok:false,status:0,error:"連不上 AI 代理，請檢查網路或設定裡的代理網址"}; }
+  if(!res.ok) return {ok:false,status:res.status,error:"AI 代理回應 HTTP "+res.status};
+  try{ return await res.json(); }
+  catch(e){ return {ok:false,status:502,error:"AI 代理回傳格式不對，請確認代理網址是 Apps Script 的 /exec 網址"}; }
+}
+// 舊版把 OpenAI 金鑰存在瀏覽器，這裡一律清掉
+(function purgeOldKeys(){
+  try{
+    ["ai_company_v1","xiaoguai_v1"].forEach(k=>{
+      const s=JSON.parse(localStorage.getItem(k)||"null");
+      if(s && "apiKey" in s){ delete s.apiKey; localStorage.setItem(k, JSON.stringify(s)); }
+    });
+    localStorage.removeItem("sniper_apiKey");
+  }catch(e){}
+})();
 
 /* ============ 狀態 ============ */
 let state = load();
@@ -891,6 +929,7 @@ function load(){
     const raw = localStorage.getItem("ai_company_v1");
     if(raw){ const s = JSON.parse(raw);
       const merged = {...DEF, ...s};
+      delete merged.apiKey;
       merged.library = Array.isArray(s.library)? s.library : [];
       merged.collections = Array.isArray(s.collections)? s.collections : [];
       merged.collector = {...DEF.collector, ...(s.collector||{})};
@@ -1036,7 +1075,7 @@ const CARD_MODES={
 };
 async function generateCards(){
   if(running) return;
-  if(!state.apiKey){ toast("請先到設定填入 OpenAI 金鑰"); openView("settings"); return; }
+  if(!aiOn()){ toast("請先到設定填入 AI 代理網址與通行碼"); openView("settings"); return; }
   const txt=document.getElementById("cardsInput").value.trim();
   const imgFiles=cardsFiles.filter(f=>f.isImage);
   const fileTexts=cardsFiles.filter(f=>!f.isImage)
@@ -1331,7 +1370,7 @@ function maybeAutoRun(){
   if(running) return;
   if(pendingFiles.length===0) return;
   if(pendingFiles.some(f=>f.loading)) return;
-  if(!state.apiKey){ toast("已上傳，請先到設定填入金鑰再分析"); return; }
+  if(!aiOn()){ toast("已上傳，請先到設定填入 AI 代理再分析"); return; }
   runTask();
 }
 function renderFiles(){
@@ -1444,7 +1483,7 @@ function cleanJSON(s){ return (s||"").replace(/```json/gi,"").replace(/```/g,"")
 async function collectNow(){ await collectTopics(false); }
 async function collectTopics(silent){
   if(running){ if(!silent) toast("有任務進行中，請稍候"); return; }
-  if(!state.apiKey){ if(!silent){ toast("請先到設定填入金鑰"); openView("settings"); } return; }
+  if(!aiOn()){ if(!silent){ toast("請先到設定填入 AI 代理網址與通行碼"); openView("settings"); } return; }
   running=true;
   const btn=document.getElementById("collectBtn");
   if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 收集中…'; }
@@ -1505,7 +1544,7 @@ function deleteTopic(id){
   state.collections=state.collections.filter(c=>String(c.id)!==String(id)); save(); renderCollector();
 }
 function checkAutoCollect(){
-  const c=state.collector; if(!c.auto||!state.apiKey||running) return;
+  const c=state.collector; if(!c.auto||!aiOn()||running) return;
   let due=false;
   if(c.freq==="open"){ due=(Date.now()-(c.lastRun||0))>30*60*1000; }
   else { due = new Date().toDateString()!==new Date(c.lastRun||0).toDateString(); }
@@ -1523,16 +1562,16 @@ async function handleLibUpload(e){
     if(p.isImage && url){ url=await compressImage(url); }
     const item={ id:Date.now()+Math.random(), name:p.name, kind:p.kind,
       content:p.content||"", digest:"", url, size:(p.isImage?url.length:(p.size||0)),
-      active:true, deptId:"", classifying:!!state.apiKey };
+      active:true, deptId:"", classifying:aiOn() };
     state.library.push(item);
     save(); renderLibrary();
-    if(state.apiKey){
+    if(aiOn()){
       item.deptId = await classifyMaterial(item);
       item.digest = await organizeMaterial(item);   // AI 整理成備用資料
       item.classifying=false; save(); renderLibrary();
     }
   }
-  toast(state.apiKey?"已存入素材庫：AI 整理完成，之後自動當備用資料使用":"已存入素材庫（填入金鑰後可 AI 整理）");
+  toast(aiOn()?"已存入素材庫：AI 整理完成，之後自動當備用資料使用":"已存入素材庫（設定 AI 代理後可 AI 整理）");
 }
 function compressImage(dataURL, maxDim, quality){
   maxDim=maxDim||1280; quality=quality||0.82;
@@ -1550,7 +1589,7 @@ function compressImage(dataURL, maxDim, quality){
   });
 }
 async function classifyMaterial(item){
-  if(!state.apiKey) return "";
+  if(!aiOn()) return "";
   const list=state.departments.map(d=>`${d.id}：${d.name}（${d.tagline}）`).join("\n");
   const sys=`你是素材分類助理。根據素材內容，判斷它最適合給哪一個部門使用。只能從下列 id 擇一，且只回 id 本身、不要任何其他文字：\n${list}`;
   let user;
@@ -1568,7 +1607,7 @@ async function classifyMaterial(item){
 }
 // 上傳後 AI 整理：把素材濃縮成結構化「備用資料」，之後各部門直接引用整理版
 async function organizeMaterial(item){
-  if(!state.apiKey) return "";
+  if(!aiOn()) return "";
   const sys="你是資料整理助理。把使用者的素材整理成一份精煉的『備用資料』，之後 AI 產文會直接引用它。格式：\n【素材重點】3–6 條關鍵重點\n【可用數據／事實】有就列，沒有寫「無」\n【可引用的句子／故事】1–3 句\n【適合用途】一句話\n用繁體台灣用語（原文若是簡體或英文也一律轉成繁體中文），總長 800 字內，只輸出整理結果。";
   let user;
   if(item.kind==="image" && item.url){
@@ -1611,7 +1650,7 @@ function renderLibrary(){
 }
 async function reorganizeLib(id){
   const x=state.library.find(o=>String(o.id)===String(id)); if(!x) return;
-  if(!state.apiKey){ toast("請先到設定填入金鑰"); return; }
+  if(!aiOn()){ toast("請先到設定填入 AI 代理網址與通行碼"); return; }
   x.classifying=true; renderLibrary();
   x.digest=await organizeMaterial(x);
   x.classifying=false; save(); renderLibrary();
@@ -1676,7 +1715,7 @@ function clearHandoff(){ handoffFrom=null; document.getElementById("handoffBanne
 /* ============ 執行 AI ============ */
 async function runTask(){
   if(running) return;
-  if(!state.apiKey){ toast("請先到設定填入 OpenAI 金鑰"); openView("settings"); return; }
+  if(!aiOn()){ toast("請先到設定填入 AI 代理網址與通行碼"); openView("settings"); return; }
   const input=document.getElementById("taskInput").value.trim();
   if(!input && pendingFiles.length===0){ toast("請輸入要交辦的內容"); return; }
   if(pendingFiles.some(f=>f.loading)){ toast("檔案還在解析中，請稍候"); return; }
@@ -1722,28 +1761,16 @@ async function callOpenAI(sys,userContent,maxTokens){
       messages:[ {role:"system",content:sys}, {role:"user",content:userContent} ] };
     if(isG5){ body.max_completion_tokens=maxTokens||1800; }        // gpt-5 系列：新參數、固定溫度
     else{ body.max_tokens=maxTokens||1800; body.temperature=0.75; }
-    const res=await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json","Authorization":"Bearer "+state.apiKey },
-      body:JSON.stringify(body)
-    });
-    if(res.ok){
-      const data=await res.json();
-      return (data.choices?.[0]?.message?.content||"").trim();
-    }
-    let m="HTTP "+res.status;
-    try{ const er=await res.json(); m=er.error?.message||m; }catch(e){}
+    const res=await callProxy(body);
+    if(res.ok) return (res.data?.choices?.[0]?.message?.content||"").trim();
+    let m=res.error||("HTTP "+res.status);
     // 模型不吃 max_tokens：自動換 max_completion_tokens 重送一次
     if(/max_tokens.*not supported|max_completion_tokens/i.test(m) && body.max_tokens){
       delete body.max_tokens; delete body.temperature;
       body.max_completion_tokens=maxTokens||1800;
-      const res2=await fetch("https://api.openai.com/v1/chat/completions",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json","Authorization":"Bearer "+state.apiKey },
-        body:JSON.stringify(body)
-      });
-      if(res2.ok){ const d2=await res2.json(); return (d2.choices?.[0]?.message?.content||"").trim(); }
-      try{ const e2=await res2.json(); m=e2.error?.message||m; }catch(e){}
+      const res2=await callProxy(body);
+      if(res2.ok) return (res2.data?.choices?.[0]?.message?.content||"").trim();
+      m=res2.error||m;
     }
     // 429 / Rate limit：自動等待後重試（最多 3 次）
     if(res.status===429 || /rate limit/i.test(m)){
@@ -1764,7 +1791,7 @@ async function callOpenAI(sys,userContent,maxTokens){
 /* ============ 一鍵跑完整套網路經營 ============ */
 async function runAllDepartments(){
   if(running) return;
-  if(!state.apiKey){ toast("請先到設定填入 OpenAI 金鑰"); openView("settings"); return; }
+  if(!aiOn()){ toast("請先到設定填入 AI 代理網址與通行碼"); openView("settings"); return; }
   const goal=document.getElementById("pipeInput").value.trim();
   const order=state.departments;
   const stepTasks=order.map((d,i)=>{
@@ -1941,14 +1968,16 @@ function renderOutput(out, d){
 function renderError(msg){
   document.getElementById("outputZone").innerHTML=
    `<div class="output-card"><div class="oc-head">⚠️ 執行失敗</div>
-   <div class="output-body" style="color:#A8442E">${esc(msg)}<br><br>請檢查：金鑰是否正確、帳戶是否有額度、模型名稱是否可用。</div></div>`;
+   <div class="output-body" style="color:#A8442E">${esc(msg)}<br><br>請檢查：代理網址與通行碼是否正確、Apps Script 裡的 OpenAI 金鑰是否有效、帳戶是否有額度。</div></div>`;
 }
 function getLastOut(){ return window._lastOut||""; }
 function copyOut(){ navigator.clipboard.writeText(getLastOut()).then(()=>toast("已複製")); }
 
 /* ============ 設定 ============ */
 function fillSettings(){
-  document.getElementById("apiKey").value=state.apiKey;
+  const ap=aiProxy();
+  document.getElementById("aiUrl").value=ap.url;
+  document.getElementById("aiPass").value=ap.pass;
   document.getElementById("modelSel").value=state.model;
   document.getElementById("autoSet").checked=!!state.autoAnalyze;
   document.getElementById("titleSet").value=state.title;
@@ -1957,7 +1986,7 @@ function fillSettings(){
   const bt=document.getElementById("buildTag"); if(bt) bt.textContent="版本 "+(DEFAULTS.build||"-")+"　通用模板 · 依資料整理";
 }
 function toggleKey(){
-  const i=document.getElementById("apiKey"); const b=document.getElementById("toggleKeyBtn");
+  const i=document.getElementById("aiPass"); const b=document.getElementById("toggleKeyBtn");
   if(i.type==="password"){ i.type="text"; b.textContent="隱藏"; } else { i.type="password"; b.textContent="顯示"; }
 }
 const INDUSTRY_TEMPLATES={
@@ -1983,7 +2012,7 @@ function pickIndustry(k){
 }
 async function deriveBrand(){
   if(running){ toast("有任務進行中，請稍候"); return; }
-  if(!state.apiKey){ toast("請先填入金鑰"); return; }
+  if(!aiOn()){ toast("請先到設定填入 AI 代理網址與通行碼"); return; }
   const mats=activeAttachments();
   const texts=mats.filter(f=>!f.isImage).map(f=>f.content||"").join("\n").slice(0,6000);
   const imgs=mats.filter(f=>f.isImage).slice(0,2);
@@ -2002,7 +2031,7 @@ async function deriveBrand(){
   finally{ running=false; btn.disabled=false; btn.innerHTML=old; }
 }
 function saveSettings(){
-  state.apiKey=document.getElementById("apiKey").value.trim();
+  setAiProxy(document.getElementById("aiUrl").value, document.getElementById("aiPass").value);
   state.model=document.getElementById("modelSel").value;
   state.autoAnalyze=document.getElementById("autoSet").checked;
   state.title=document.getElementById("titleSet").value.trim()||"AI 集團";
@@ -2015,18 +2044,18 @@ function saveSettings(){
   openView("home");
 }
 function resetAll(){
-  if(confirm("確定要清空所有部門設定、紀錄與金鑰，回復出廠預設？")){
+  if(confirm("確定要清空所有部門設定與紀錄，回復出廠預設？（AI 代理設定會保留）")){
     localStorage.removeItem("ai_company_v1"); state=structuredClone(DEFAULTS);
     document.getElementById("titleInput").value=state.title;
     toast("已回復預設"); openView("home");
   }
 }
 function updateKeyStatus(){
-  const on=!!state.apiKey;
+  const on=aiOn();
   document.getElementById("keyDot").classList.toggle("on",on);
   document.getElementById("keyStatus").textContent= on
     ? `已連接 · ${state.model==="gpt-5-mini"?"🧠 智慧模式":"⚡ 快速模式"}（${state.model}）`
-    : "尚未連接 AI — 請到設定填入 OpenAI 金鑰";
+    : "尚未連接 AI — 請到設定填入 AI 代理網址與通行碼";
 }
 
 /* ============ 標題即時編輯 ============ */

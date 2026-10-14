@@ -395,12 +395,45 @@ const fmt = (n, d = 0) => !n || isNaN(n) || !isFinite(n) ? '—' : Number(n).toF
 // ════════════════════════════════════════════════
 // 資料持久化
 // ════════════════════════════════════════════════
+/* ============ AI 代理：OpenAI 金鑰放在 Google Apps Script，不在瀏覽器 ============ */
+// AI 集團、交易助手、小乖三個頁面共用這組設定（同一個網站，填一次就好）
+const AI_PROXY_STORE = "xiaoguai_ai_proxy";
+function aiProxy(){
+  try{ const p=JSON.parse(localStorage.getItem(AI_PROXY_STORE)||"{}"); return {url:String(p.url||"").trim(), pass:String(p.pass||"").trim()}; }
+  catch(e){ return {url:"", pass:""}; }
+}
+function setAiProxy(url,pass){
+  try{ localStorage.setItem(AI_PROXY_STORE, JSON.stringify({url:String(url||"").trim(), pass:String(pass||"").trim()})); }catch(e){}
+}
+function aiOn(){ const p=aiProxy(); return /^https:\/\/script\.google\.com\/.+\/exec$/.test(p.url) && !!p.pass; }
+// 回傳 {ok, status, data | error}；Apps Script 一律回 HTTP 200，真正狀態看 status
+async function callProxy(body){
+  const p=aiProxy(); let res;
+  try{
+    // text/plain 不會觸發 CORS 預檢，Apps Script 才收得到
+    res=await fetch(p.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({action:"openai",key:p.pass,body})});
+  }catch(e){ return {ok:false,status:0,error:"連不上 AI 代理，請檢查網路或設定裡的代理網址"}; }
+  if(!res.ok) return {ok:false,status:res.status,error:"AI 代理回應 HTTP "+res.status};
+  try{ return await res.json(); }
+  catch(e){ return {ok:false,status:502,error:"AI 代理回傳格式不對，請確認代理網址是 Apps Script 的 /exec 網址"}; }
+}
+// 舊版把 OpenAI 金鑰存在瀏覽器，這裡一律清掉
+(function purgeOldKeys(){
+  try{
+    ["ai_company_v1","xiaoguai_v1"].forEach(k=>{
+      const s=JSON.parse(localStorage.getItem(k)||"null");
+      if(s && "apiKey" in s){ delete s.apiKey; localStorage.setItem(k, JSON.stringify(s)); }
+    });
+    localStorage.removeItem("sniper_apiKey");
+  }catch(e){}
+})();
+
 const saveData = (key, data) => { try { localStorage.setItem(`sniper_${key}`, JSON.stringify(data)); } catch(e) {} };
 const loadData = (key, def) => { try { const d = localStorage.getItem(`sniper_${key}`); return d ? JSON.parse(d) : def; } catch(e) { return def; } };
 
 let state = {
   tab: 'home',
-  apiKey:         loadData('apiKey', ''),
   aiAnalysis:     loadData('aiAnalysis', null),
   aiHistory:      loadData('aiHistory', []),
   aiBase64s:      [],
@@ -415,7 +448,6 @@ let state = {
 };
 
 const saveState = () => {
-  saveData('apiKey', state.apiKey);
   saveData('aiAnalysis', state.aiAnalysis);
   saveData('aiHistory', state.aiHistory);
   saveData('slStage1', state.slStage1);
@@ -727,9 +759,10 @@ const renderSettings = () => {
   const k = state.productKind || 'futures';
   return `<div class="text-lg font-bold mb-2">⚙️ 系統設定</div>
 <div class="bg-card border border-border rounded-xl p-4 space-y-3 mb-4">
-<div class="font-bold text-sm">OpenAI API 金鑰設定</div>
-<input id="apiKeyInput" value="${state.apiKey}" placeholder="請輸入 sk-proj- 或 sk- 開頭的API金鑰" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" />
-<div class="text-xs text-gray-500">💡 前往 <span class="text-indigo">platform.openai.com/api-keys</span> 取得 API Key</div>
+<div class="font-bold text-sm">AI 代理設定（Google Apps Script）</div>
+<input id="aiUrlInput" value="${aiProxy().url.replace(/"/g,'&quot;')}" placeholder="代理網址：https://script.google.com/macros/s/…/exec" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="text" inputmode="url" autocomplete="off" spellcheck="false" />
+<input id="aiPassInput" value="${aiProxy().pass.replace(/"/g,'&quot;')}" placeholder="通行碼（Apps Script 的同步密碼或 AI_PASSCODE）" class="w-full bg-black/40 border border-gray-700 rounded-lg p-2 text-sm" type="password" autocomplete="off" spellcheck="false" />
+<div class="text-xs text-gray-500">🔑 OpenAI 金鑰放在你的 Apps Script，不存在瀏覽器裡。架設方式請看 GitHub 上的 ai-proxy/README.md；AI 集團、小乖共用這組設定。</div>
 </div>
 <div class="bg-card border border-cyan/30 rounded-xl p-4 space-y-3 mb-4 bg-cyan/5">
 <div class="font-bold text-sm text-cyan">🎯 預設商品類型</div>
@@ -782,7 +815,9 @@ const bindStatsEvents = () => {
   });
 };
 const bindSettingsEvents = () => {
-  document.getElementById('apiKeyInput')?.addEventListener('input', e => { state.apiKey = e.target.value; saveState(); });
+  ['aiUrlInput', 'aiPassInput'].forEach(id => document.getElementById(id)?.addEventListener('input', () => {
+    setAiProxy(document.getElementById('aiUrlInput').value, document.getElementById('aiPassInput').value);
+  }));
   document.getElementById('slStage1Input')?.addEventListener('change', e => { const v = parseInt(e.target.value); state.slStage1 = isNaN(v) ? STAGE1_SL_POINTS : v; saveState(); });
   document.getElementById('slStage2Input')?.addEventListener('change', e => { const v = parseInt(e.target.value); state.slStage2 = isNaN(v) ? STAGE2_SL_POINTS : v; saveState(); });
   document.getElementById('minProfitInput')?.addEventListener('change', e => { const v = parseInt(e.target.value); state.minTrendProfit = isNaN(v) ? MIN_TREND_PROFIT : v; saveState(); });
@@ -1016,37 +1051,26 @@ ${kind.promptHint}
     { type: 'text', text: `請分析以上${kind.label}的K線圖，嚴格只回傳JSON格式，不要加任何說明文字或markdown符號。` }
   ];
 
-  let res;
-  try {
-    res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${state.apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: 1200,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent }
-        ]
-      })
-    });
-  } catch(networkErr) {
-    throw new Error(`網路連線失敗\n\n請確認：\n1. 網路連線是否正常\n2. API金鑰是否已輸入（sk- 開頭）\n\n錯誤詳情：${networkErr.message}`);
-  }
+  const res = await callProxy({
+    model: 'gpt-4o',
+    max_tokens: 1200,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent }
+    ]
+  });
 
   if (!res.ok) {
-    let errMsg = `API 請求錯誤 (HTTP ${res.status})`;
-    try { const d = await res.json(); if (d.error) errMsg += `\n\n錯誤類型：${d.error.code||'未知'}\n詳細說明：${d.error.message||''}`; } catch(e) {}
-    if (res.status === 401) errMsg += '\n\n💡 API 金鑰錯誤或未輸入，請到設定頁輸入 sk- 開頭的 OpenAI 金鑰';
+    if (res.status === 0) throw new Error(`網路連線失敗\n\n請確認：\n1. 網路連線是否正常\n2. 設定頁的 AI 代理網址是否正確\n\n錯誤詳情：${res.error}`);
+    let errMsg = `API 請求錯誤 (HTTP ${res.status})\n\n詳細說明：${res.error||''}`;
+    if (res.status === 401) errMsg += '\n\n💡 請到設定頁確認 AI 代理的通行碼，或 Apps Script 裡的 OpenAI 金鑰';
+    else if (res.status === 403) errMsg += '\n\n💡 今天的 AI 呼叫次數已用完，明天會自動恢復';
     else if (res.status === 429) errMsg += '\n\n💡 請求過於頻繁或額度不足，請稍後再試';
     else if (res.status >= 500) errMsg += '\n\n💡 伺服器端錯誤，請稍後重試';
     throw new Error(errMsg);
   }
 
-  const data = await res.json();
+  const data = res.data || {};
   const rawContent = data.choices?.[0]?.message?.content;
   if (!rawContent) throw new Error('API 返回格式異常，請重新上傳更清晰的K線截圖');
 
@@ -1295,7 +1319,7 @@ ${kind.promptHint}
 const runAiAnalyze = async () => {
   hideError();
   showDebug('正在分析：EMA判斷進場方向，亞當理論計算出場目標...');
-  if (!state.apiKey?.trim()) { hideDebug(); showError('❌ 請先在設定頁面輸入 OpenAI API 金鑰（sk- 開頭）'); return; }
+  if (!aiOn()) { hideDebug(); showError('❌ 請先在設定頁面填入 AI 代理網址與通行碼'); return; }
   if (state.aiBase64s.length === 0) { hideDebug(); showError('❌ 請先上傳至少一張 K 線截圖再進行分析'); return; }
   const btn = document.getElementById('analyzeButton');
   const orig = btn.textContent;
