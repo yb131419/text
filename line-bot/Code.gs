@@ -37,6 +37,7 @@ const HELP_TEXT = [
   '・我這週有什麼行程？',
   '・傳訂單圖片，說明欄打「試算」，小乖會算出每項數量、金額和 PV',
   '・也可以直接打字：試算 211 2盒、777Q 1盒',
+  '・說明欄可以加：男／舊會員／刷卡／22萬（目標 PV）',
   '・傳圖片（可加一句說明，例如「幫我記下來」），小乖會讀出內容幫你整理',
   '',
   '其他指令：',
@@ -378,6 +379,11 @@ const CAPPED = ['168', '111', '101'];   // SOP：三個月購買上限 4 盒
 // SOP 購買建議二：這些品項照「每月固定盒數」算，不看顆數
 const FIXED_MONTHLY = { '2711AB': 3, '777Q': 2, '168': 2, '111': 2, '101': 2 };
 const MIN_2711AB = 3;                    // SOP：新人必須買滿三盒
+// 新入會組合與入會贈送（照康園試算報表）；說明欄寫「男」用男生組合，寫「舊會員」就不加
+const NEW_MEMBER = {
+  '女': { pack: '新入會(草本）女', gifts: [['入*會「 211 」', 2], ['入*會「 707 」', 2]] },
+  '男': { pack: '新入會(草本）男', gifts: [['入*會「 211 」', 2], ['入*會「 101 」', 2]] },
+};
 const CAP_BOXES = 4;                 // 每 3 個月的上限，月數更長就等比放寬
 
 function quote_(text, image) {
@@ -408,6 +414,8 @@ function quote_(text, image) {
     return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
   }
   parsed.card = /刷卡/.test(text || '');
+  parsed.newMember = !/舊會員|不入會|非新/.test(text || '');
+  parsed.gender = /男/.test(text || '') ? '男' : (/女/.test(text || '') ? '女' : '');
   const result = fitTarget_(prices, parsed, targetPv_(text));
   if (result.isSheet) result.byMonths = [1, 2, 3].map(m => byMonths_(prices, parsed, m));
   const answer = quoteText_(result);
@@ -527,6 +535,15 @@ function computeQuote_(prices, parsed) {
   });
   const isSheet = periods.length > 0;
   const totalMonths = periods.reduce((a, pd) => a + pd.months, 0);
+  const notes = [];
+  // 新入會：照報表的做法，加入會組合（男／女）和入會贈送的 211、707（男生是 101）各 2 盒
+  if (isSheet && parsed.newMember !== false) {
+    const g = parsed.gender || '女';
+    const join = NEW_MEMBER[g];
+    if (find(join.pack)) add(find(join.pack).name, 1);
+    join.gifts.forEach(x => { const p = find(x[0]); if (p) add(p.name, x[1]); });
+    if (!parsed.gender) notes.push('新入會預設用「女」的組合；男生請在說明欄加「男」，舊會員加「舊會員」');
+  }
   if (isSheet) {
     const tea = find('火山甘露');
     if (tea && !boxes[tea.name]) add(tea.name, totalMonths);   // SOP：火山甘露一個月一盒
@@ -583,7 +600,7 @@ function computeQuote_(prices, parsed) {
   return {
     name: String(parsed.name || ''), introducer: String(parsed.introducer || ''), date: String(parsed.date || ''),
     isSheet: isSheet, periods: periods, totalMonths: totalMonths, card: !!parsed.card, lines: lines.filter(Boolean), maint: maint.filter(Boolean),
-    unknown: unknown.filter((x, i, a) => a.indexOf(x) === i), warn: warn,
+    unknown: unknown.filter((x, i, a) => a.indexOf(x) === i), warn: warn, notes: notes,
   };
 }
 
