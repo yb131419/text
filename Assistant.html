@@ -372,7 +372,7 @@
     </div>
     <div class="status-line">
       <span class="dot" id="keyDot"></span>
-      <span id="keyStatus">尚未連接 AI — 請到設定填入 Claude API 金鑰</span>
+      <span id="keyStatus">尚未連接 AI — 請到設定填入 OpenAI 金鑰</span>
     </div>
   </header>
 
@@ -529,25 +529,24 @@
     </div>
 
     <div class="note">
-      🔑 金鑰與所有資料只存在你自己的瀏覽器（localStorage），不會上傳到任何伺服器（對話內容只會送到 Anthropic 的 Claude API）。<br>
+      🔑 金鑰與所有資料只存在你自己的瀏覽器（localStorage），不會上傳到任何伺服器（對話內容只會送到 OpenAI）。<br>
       ⚠️ 因金鑰寫在前端，請勿在公用電腦使用，也不要把含金鑰的備份檔分享給他人。
     </div>
 
     <div class="field">
-      <label>Claude API 金鑰（Anthropic）</label>
+      <label>OpenAI API 金鑰</label>
       <div class="key-row">
-        <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+        <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" spellcheck="false">
         <button class="toggle-key" onclick="toggleKey()" id="toggleKeyBtn">顯示</button>
       </div>
-      <div class="hint">前往 platform.claude.com → API Keys 申請，按用量計費（和 Claude 訂閱方案是分開的）。</div>
+      <div class="hint">前往 platform.openai.com → API keys 取得。和「AI 集團」（Work.html）放在同一個網站時，小乖會自動沿用那邊填過的金鑰。</div>
     </div>
 
     <div class="field">
       <label>使用模型</label>
       <select id="modelSel">
-        <option value="claude-opus-5-5">🧠 Claude Opus 5.5（最聰明 · 預設）</option>
-        <option value="claude-sonnet-5-5">⚖️ Claude Sonnet 5.5（聰明又省一半）</option>
-        <option value="claude-haiku-5-5">⚡ Claude Haiku 5.5（最快最便宜）</option>
+        <option value="gpt-4o-mini">⚡ 快速（gpt-4o-mini · 便宜快，支援圖片）</option>
+        <option value="gpt-5-mini">🧠 智慧（gpt-5-mini · 更聰明，支援圖片）</option>
       </select>
     </div>
 
@@ -591,15 +590,15 @@
 <script>
 /* ============ 預設資料 ============ */
 const STORE_KEY = "xiaoguai_v1";
-const MODELS = {"claude-opus-5-5":"Opus 5.5","claude-sonnet-5-5":"Sonnet 5.5","claude-haiku-5-5":"Haiku 5.5"};
+const MODELS = {"gpt-4o-mini":"gpt-4o-mini","gpt-5-mini":"gpt-5-mini"};
 const DEFAULTS = {
   schema:1,
-  build:"2026.10.14-v3-chat",
+  build:"2026.10.14-v4-openai",
   title:"小乖",
   nick:"",
   about:"",
   apiKey:"",
-  model:"claude-opus-5-5",
+  model:"gpt-4o-mini",
   todos:[],     // {id, text, due, pri, done, time, doneAt}
   events:[],    // {id, title, date, time, place, time0}
   reminders:[], // {id, text, at, repeat, fired, src}
@@ -624,10 +623,15 @@ function load(){
       ["todos","events","reminders","notes","chat"].forEach(k=>{ if(!Array.isArray(m[k])) m[k]=[]; });
       if(!MODELS[m.model]) m.model=DEFAULTS.model;
       m.build = DEFAULTS.build;
-      return m;
+      return withSharedKey(m);
     }
   }catch(e){}
-  return DEF;
+  return withSharedKey(DEF);
+}
+// 同一網站上的「AI 集團」（Work.html）已填過 OpenAI 金鑰時，直接沿用
+function withSharedKey(m){
+  if(!m.apiKey || /^sk-ant-/.test(m.apiKey)){ try{ const w=JSON.parse(localStorage.getItem("ai_company_v1")||"{}"); if(w.apiKey) m.apiKey=w.apiKey; }catch(e){} }
+  return m;
 }
 function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){ toast("儲存失敗：瀏覽器空間不足"); } }
 
@@ -677,8 +681,8 @@ function renderHeader(){
   const on=!!state.apiKey;
   document.getElementById("keyDot").classList.toggle("on",on);
   document.getElementById("keyStatus").textContent = on
-    ? `Claude 已連接 · ${MODELS[state.model]} · ${state.title}隨時待命`
-    : "尚未連接 AI — 請到設定填入 Claude API 金鑰";
+    ? `AI 已連接 · ${MODELS[state.model]} · ${state.title}隨時待命`
+    : "尚未連接 AI — 請到設定填入 OpenAI 金鑰";
 }
 document.getElementById("titleInput").addEventListener("change",e=>{
   state.title=(e.target.value||"").trim()||"小乖"; save(); renderHeader(); renderHome();
@@ -1049,7 +1053,7 @@ function handleFiles(files){
     const t=f.type||"", n=f.name||"附件";
     let kind = t.startsWith("image/")?"image" : t.startsWith("video/")?"video" : t==="application/pdf"||/\.pdf$/i.test(n)?"pdf"
       : t.startsWith("audio/")?"audio" : (t.startsWith("text/")||/\.(txt|md|csv|json)$/i.test(n))?"text" : "";
-    if(kind==="audio"){ toast("Claude 目前聽不懂音檔，請改用 🎤 語音輸入",3500); return; }
+    if(kind==="audio"){ toast("目前不支援音檔，請改用 🎤 語音輸入",3500); return; }
     if(!kind){ toast("不支援這種檔案："+n,3000); return; }
     if(pending.length>=10){ toast("一次最多 10 個附件"); return; }
     const item={id:uid(),kind,name:n,thumb:"",blocks:[],busy:true};
@@ -1073,7 +1077,7 @@ async function prepAttachment(item,f){
   }else if(item.kind==="pdf"){
     if(f.size>MAX_PDF) throw new Error("PDF 超過 20MB");
     const b64=(await readAs(f,"dataURL")).split(",")[1];
-    item.blocks=[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64},title:item.name}];
+    item.blocks=[{type:"file",file:{filename:item.name,file_data:"data:application/pdf;base64,"+b64}}];
   }else{
     let txt=await readAs(f,"text");
     if(txt.length>100000) txt=txt.slice(0,100000)+"\n…（檔案太長，已截取前 100000 字）";
@@ -1095,7 +1099,7 @@ function drawScaled(src,max,q){
   const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(src,0,0,c.width,c.height);
   return c.toDataURL("image/jpeg",q);
 }
-function imgBlock(dataUrl){ return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:dataUrl.split(",")[1]}}; }
+function imgBlock(dataUrl){ return {type:"image_url",image_url:{url:dataUrl,detail:"auto"}}; }
 async function videoFrames(f){
   const u=URL.createObjectURL(f);
   const v=document.createElement("video"); v.muted=true; v.playsInline=true; v.preload="auto"; v.src=u;
@@ -1173,7 +1177,7 @@ async function sendChat(){
   if(pending.some(a=>a.busy)){ toast("附件還在處理中，請稍等一下"); return; }
   const input=document.getElementById("chatInput"); const text=input.value.trim();
   if(!text && !pending.length) return;
-  if(!state.apiKey){ toast("請先到設定填入 Claude API 金鑰"); setTimeout(()=>openView("settings"),600); return; }
+  if(!state.apiKey){ toast("請先到設定填入 OpenAI 金鑰"); setTimeout(()=>openView("settings"),600); return; }
   if(rec) rec.stop();
   const atts=pending; pending=[]; renderPending(); toggleAttMenu(false);
   input.value=""; autoGrow();
@@ -1193,7 +1197,7 @@ async function sendChat(){
       const extra=m.atts&&m.atts.length? `\n（當時附上：${attDesc(m.atts)}）` : "";
       return {role:m.role,content:(m.content||"")+extra};
     });
-    const out=await callClaude(buildSys(),msgs);
+    const out=await callOpenAI(buildSys(),msgs);
     const {clean,acts}=parseActions(out);
     const done=applyActions(acts);
     state.chat.push({role:"assistant",content:clean||"好的！",acts:done,t:Date.now()});
@@ -1235,46 +1239,43 @@ function autoGrow(){ const t=document.getElementById("chatInput"); t.style.heigh
   box.addEventListener("drop",e=>handleFiles([...(e.dataTransfer?.files||[])]));
 })();
 
-async function callClaude(system,messages){
-  // Claude API 一則對話必須以 user 開頭、且 user／assistant 交替
+async function callOpenAI(system,messages){
+  // 相鄰同角色的訊息合併，避免對話順序混亂
   messages=messages.reduce((acc,m)=>{
     const last=acc[acc.length-1];
     const blocks=typeof m.content==="string"? [{type:"text",text:m.content||"…"}] : m.content;
     if(last && last.role===m.role) last.content.push(...blocks); else acc.push({role:m.role,content:[...blocks]});
     return acc;
   },[]);
-  while(messages.length && messages[0].role!=="user") messages=messages.slice(1);
-  const body={model:state.model,max_tokens:16000,system,messages,
-    thinking:{type:"adaptive"},output_config:{effort:"medium"}};
-  const headers={"content-type":"application/json","x-api-key":state.apiKey,
-    "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
-  if(state.model!=="claude-haiku-5-5"){      // 被安全機制擋下時，由伺服器自動改用備援模型
-    body.fallbacks="default"; headers["anthropic-beta"]="server-side-fallback-2026-07-01";
-  }
+  // assistant 訊息只能是純文字
+  messages.forEach(m=>{ if(m.role==="assistant") m.content=m.content.map(b=>b.text||"").join("\n\n"); });
   let lastErr;
   for(let attempt=0;attempt<3;attempt++){
+    const isG5=/^gpt-5/.test(state.model);
+    const body={model:state.model,messages:[{role:"system",content:system},...messages]};
+    if(isG5){ body.max_completion_tokens=4000; }   // gpt-5 系列：推理也吃額度、固定溫度
+    else{ body.max_tokens=1500; body.temperature=0.6; }
     let res;
-    try{ res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers,body:JSON.stringify(body)}); }
-    catch(e){ throw new Error("連不上 Claude API，請檢查網路"); }
-    if(res.ok){
-      const data=await res.json();
-      if(data.stop_reason==="refusal") throw new Error("這個請求被 Claude 的安全機制婉拒了，換個說法試試看");
-      const text=(data.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("").trim();
-      if(!text && data.stop_reason==="max_tokens") throw new Error("回覆太長被截斷了，請把問題拆小一點");
-      return text;
-    }
+    try{
+      res=await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+state.apiKey},
+        body:JSON.stringify(body)
+      });
+    }catch(e){ throw new Error("連不上 OpenAI，請檢查網路"); }
+    if(res.ok){ const data=await res.json(); return (data.choices?.[0]?.message?.content||"").trim(); }
     let m="HTTP "+res.status;
     try{ const er=await res.json(); m=er.error?.message||m; }catch(e){}
-    if(res.status===401) throw new Error("金鑰無效，請到設定確認 Claude API 金鑰");
-    if(res.status===429 || res.status===529 || res.status>=500){
+    if(res.status===401) throw new Error("金鑰無效，請到設定確認 OpenAI 金鑰");
+    if(res.status===429 || /rate limit/i.test(m) || res.status>=500){
       lastErr=m; const wait=2000*(attempt+1);
-      toast(`Claude 忙線中，${wait/1000} 秒後自動重試…`);
+      toast(`AI 流量滿了，${wait/1000} 秒後自動重試…`);
       await new Promise(r=>setTimeout(r,wait));
       continue;
     }
     throw new Error(m);
   }
-  throw new Error("Claude 目前太忙，請稍等一分鐘再試。原始訊息："+lastErr);
+  throw new Error("AI 流量限制，請稍等一分鐘再試。原始訊息："+lastErr);
 }
 
 /* ============ 設定 ============ */
