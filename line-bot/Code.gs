@@ -261,7 +261,8 @@ function chat_(text, image) {
 
   let out;
   try {
-    out = callOpenAI_(buildSys_(data), history.concat([{ role: 'user', content: content }]));
+    // 看圖時不帶舊對話：以前「看不到圖片」的回覆會讓模型跟著拒絕
+    out = callOpenAI_(buildSys_(data), (image ? [] : history).concat([{ role: 'user', content: content }]));
   } catch (err) {
     console.error(err);
     return '抱歉，小乖暫時想不起來（' + err.message + '），等一下再問我一次。';
@@ -365,6 +366,7 @@ function buildSys_(d) {
     .map(n => '- ' + (n.title || '（無標題）') + '：' + String(n.body || '').replace(/\s+/g, ' ').slice(0, 120)).join('\n') || '（無）';
   return '你是「' + (p.title || '小乖') + '」，' + (p.nick || '使用者') + '的私人助理。個性貼心、可靠、說話簡潔溫暖，一律用繁體中文（台灣用語）。\n'
     + '你現在在 LINE 或 Telegram 上聊天：回覆要短，不要用 Markdown 標題、表格或粗體。\n'
+    + '你看得懂使用者傳來的圖片：收到圖片就直接讀出內容，不要說你看不到圖片。\n'
     + '現在時間：' + today + ' ' + hm + '（星期' + dow + '）。\n\n'
     + '【關於使用者】\n' + (p.about || '（尚未填寫）') + '\n\n'
     + '【目前未完成待辦】\n' + todos + '\n\n'
