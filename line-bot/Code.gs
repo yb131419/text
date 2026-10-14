@@ -916,6 +916,14 @@ function authorizeReport() {
 }
 
 function slidesApi_(method, path, body) {
+  // 優先用 Apps Script「服務」裡加入的 Google Slides API（不用另外到 Cloud 主控台啟用）
+  if (typeof Slides !== 'undefined') {
+    if (path === '') return Slides.Presentations.create(body);
+    let m = path.match(/^\/([^/:]+):batchUpdate$/);
+    if (m) return Slides.Presentations.batchUpdate(body, m[1]);
+    m = path.match(/^\/([^/]+)\/pages\/([^/?]+)\/thumbnail/);
+    if (m) return Slides.Presentations.Pages.getThumbnail(m[1], m[2], { 'thumbnailProperties.mimeType': 'PNG', 'thumbnailProperties.thumbnailSize': 'LARGE' });
+  }
   const opt = {
     method: method, contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
@@ -1064,7 +1072,9 @@ function sendReportTg_(chatId) {
   REPORT_ERR_ = '';
   const png = reportPng_(r);
   if (!png) {
-    const why = /401|403|scope|permission|權限|授權/i.test(REPORT_ERR_)
+    const why = /has not been used|disabled|Slides is not defined/i.test(REPORT_ERR_)
+      ? '還沒加入 Google Slides 服務，請在 Apps Script 左側「服務」按 ＋，選 Google Slides API → 新增，再執行 authorizeReport。'
+      : /401|403|scope|permission|權限|授權/i.test(REPORT_ERR_)
       ? '還沒授權，請在 Apps Script 函式選單選 authorizeReport → 執行 → 允許，再部署新版本。'
       : REPORT_ERR_.slice(0, 300);
     tgSend_(chatId, '報表圖片沒產生（文字試算如下）。原因：' + why);
