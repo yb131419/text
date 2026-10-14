@@ -31,7 +31,7 @@ const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
-const MENU = [['📋 試算', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['🔎 找資料', '❓ 說明']];
+const MENU = [['📋 試算', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找', '❓ 說明']];
 
 const HELP_TEXT = [
   '小乖可以幫你 👇',
@@ -40,7 +40,8 @@ const HELP_TEXT = [
   '⏰ 提醒：「明天3點提醒我開會」',
   '📝 記事：「幫我記下 車位B2-35」',
   '📅 行程：「這週有什麼行程？」',
-  '🔎 找資料：「查 關鍵字」或傳語音',
+  '📁 本機找：找你存的案例和資料',
+  '🌐 上網找：上網找資料',
   '',
   '點下面的按鈕也可以',
 ].join('\n');
@@ -60,8 +61,10 @@ const HELP_MORE = [
   '・群組關：離開全部群組',
   '',
   '【找資料】',
-  '・查 關鍵字：先找你存的資料，再上網找',
-  '・也可以按「🔎 找資料」再傳語音',
+  '・本機找 關鍵字：找案例庫、待辦、筆記',
+  '・上網找 關鍵字：上網找資料',
+  '・按按鈕後也可以傳語音',
+  '・圖片、影片、文字轉傳給小乖就會存進案例庫',
   '',
   '【其他】',
   '・清除對話：忘掉聊天內容（資料不刪）',
@@ -247,6 +250,7 @@ function handleLineGroup_(ev, gid, type) {
 
 /* ============ LINE ============ */
 function handleLine_(ev) {
+  CURRENT_TG_CHAT_ = '';   // LINE 傳不了 Telegram 的檔案，案例圖片只列出數量
   const src = ev.source || {};
   if (src.type === 'group' || src.type === 'room') return handleLineGroup_(ev, src.groupId || src.roomId, src.type);
   const uid = ev.source && ev.source.userId;
@@ -312,16 +316,19 @@ function answer_(text) {
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
-  // 找資料：「查 xxx」「找資料 xxx」「搜尋 xxx」；只按「找資料」就等下一句關鍵字（或語音）
-  const sq = text.match(/^(?:找資料|查資料|搜尋|上網查|幫我查|幫我搜尋|查(?=[\s：:]))[\s：:]*([\s\S]*)$/);
-  if (sq) {
-    if (sq[1].trim()) return search_(sq[1].trim());
+  // 找資料分兩種：本機（案例庫、待辦、筆記）和網路。只按按鈕沒給關鍵字，就等下一句（或語音）
+  const wq = text.match(/^(?:上網找|上網查|網路找|網路查|上網搜尋)[\s：:]*([\s\S]*)$/);
+  const lq = wq ? null : text.match(/^(?:本機找|本機查|找本機|找案例|查案例|找資料|查資料|搜尋|幫我查|幫我找|查(?=[\s：:])|找(?=[\s：:]))[\s：:]*([\s\S]*)$/);
+  if (wq || lq) {
+    const kw = (wq || lq)[1].trim(), mode = wq ? 'web' : 'local';
+    if (kw) return search_(kw, mode);
     setProp_('SEARCH_UNTIL', String(Date.now() + 5 * 60 * 1000));
-    return '好，要找什麼？打關鍵字或傳一段語音給我 🔎';
+    setProp_('SEARCH_MODE', mode);
+    return (mode === 'web' ? '🌐 要上網找什麼？' : '📁 要在本機找什麼？') + '打關鍵字或傳一段語音給我';
   }
   if (Number(prop_('SEARCH_UNTIL')) > Date.now() && !quoteState_()) {
     setProp_('SEARCH_UNTIL', '0');
-    return search_(text);
+    return search_(text, prop_('SEARCH_MODE') || 'local');
   }
   const flat = String(text).replace(/\s+/g, '');
   if (/^(邀請小乖|邀小乖|小乖邀請)$/.test(flat)) return groupSwitch_('開');
@@ -359,25 +366,105 @@ function answer_(text) {
   return chat_(text);
 }
 
-/* ============ 找資料：先找自己的待辦／行程／筆記，再上網搜尋 ============ */
-function search_(q) {
+/* ============ 案例庫（Telegram 圖片／影片／文字） ============ */
+// Telegram 機器人看不到你以前的聊天紀錄，所以案例要「轉傳給小乖」才會進案例庫；
+// 存的是 Telegram 的 file_id（檔案還是在 Telegram 上），找到時小乖直接把原圖／原影片再傳給你
+const CASE_SHEET = '案例庫';
+let CURRENT_TG_CHAT_ = '';
+
+function caseSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(CASE_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CASE_SHEET);
+    sh.appendRow(['時間', '類型', 'file_id', '說明文字', 'AI 描述', '來源']);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function saveTgCase_(msg, photoId, video, doc, caption) {
+  let type = 'text', fid = '', thumb = '';
+  if (video) { type = msg.video ? 'video' : msg.animation ? 'animation' : 'document'; fid = video.file_id; thumb = (video.thumbnail || video.thumb || {}).file_id || ''; }
+  else if (photoId) { type = doc ? 'document' : 'photo'; fid = photoId; thumb = photoId; }
+  const text = String(caption || (type === 'text' ? msg.text || '' : '')).trim();
+  if (type === 'text' && !text) return '這則沒有內容可以存。';
+  // 圖片（影片用縮圖）請 AI 寫一段描述和關鍵字，之後才找得到
+  let desc = '';
+  if (thumb) {
+    try {
+      desc = callOpenAI_('你幫使用者整理案例圖片，方便日後用關鍵字搜尋。用繁體中文，一兩句描述畫面重點，並抄下圖上看得到的文字、產品編號、人名、數字，最後列 5～10 個關鍵字。不要超過 150 字。',
+        [{ role: 'user', content: [{ type: 'text', text: (type === 'photo' ? '這張圖片' : '這是影片的縮圖') + (text ? '，說明：' + text : '') }, { type: 'image_url', image_url: { url: tgImage_(thumb), detail: 'low' } }] }]);
+    } catch (e) { console.error('案例描述失敗：' + e.message); }
+  }
+  const o = msg.forward_origin || {};
+  const src = (o.chat && o.chat.title) || (o.sender_user && o.sender_user.first_name) || o.sender_user_name
+    || (msg.forward_from_chat && msg.forward_from_chat.title) || (msg.forward_from && msg.forward_from.first_name) || '';
+  withLock_(() => caseSheet_().appendRow([new Date(), type, fid, text, desc, src]));
+  const NAME = { photo: '圖片', video: '影片', animation: '動圖', document: '檔案', text: '文字' };
+  return '📁 已存進案例庫（' + NAME[type] + '）' + (text || desc ? '\n' + String(text || desc).replace(/\s+/g, ' ').slice(0, 60) : '')
+    + '\n之後打「查 關鍵字」就能找回來';
+}
+
+function findCases_(words) {
+  const sh = ss_().getSheetByName(CASE_SHEET);
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues()
+    .map(r => ({ time: r[0], type: r[1], fid: r[2], text: String(r[3] || ''), desc: String(r[4] || ''), src: r[5] }))
+    .filter(c => { const s = (c.text + ' ' + c.desc + ' ' + c.src).toLowerCase(); return words.every(w => s.indexOf(w) >= 0); })
+    .reverse();   // 新的在前
+}
+
+function sendTgCase_(chatId, c) {
+  const cap = (c.text || c.desc).slice(0, 900);
+  const m = { photo: ['sendPhoto', 'photo'], video: ['sendVideo', 'video'], animation: ['sendAnimation', 'animation'], document: ['sendDocument', 'document'] }[c.type];
+  if (!m) return;
+  const p = { chat_id: chatId, caption: cap };
+  p[m[1]] = c.fid;
+  tgApi_(m[0], p);
+}
+
+/* ============ 找資料：先找本機（案例庫、待辦／行程／筆記），沒有才上網 ============ */
+function search_(q, mode) {
+  const webOnly = mode === 'web';
   logChat_('user', '找資料：' + q);
-  const out = ['🔎 「' + q + '」'];
-  // 1. 自己的資料
-  try {
-    const data = readAll_(), words = q.toLowerCase().split(/\s+/).filter(Boolean);
-    const NAME = { todos: '待辦', events: '行程', reminders: '提醒', notes: '筆記' };
-    const hits = [];
-    COLS.forEach(c => (data[c] || []).forEach(it => {
-      const s = JSON.stringify(it).toLowerCase();
-      if (words.every(w => s.indexOf(w) >= 0)) hits.push('・' + NAME[c] + '：' + String(it.title || it.text || it.body || '').replace(/\s+/g, ' ').slice(0, 60));
-    }));
-    if (hits.length) out.push('', '📂 你存的資料', hits.slice(0, 5).join('\n') + (hits.length > 5 ? '\n…還有 ' + (hits.length - 5) + ' 筆' : ''));
-  } catch (e) { console.error(e); }
-  // 2. 網路
+  const out = [(webOnly ? '🌐 上網找' : '📁 本機找') + '「' + q + '」'];
+  let localHits = 0;
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!webOnly) {
+    // 1. 案例庫：文字案例直接列出，圖片／影片在 Telegram 直接傳原檔
+    try {
+      const cases = findCases_(words);
+      const texts = cases.filter(c => c.type === 'text'), media = cases.filter(c => c.type !== 'text');
+      if (texts.length) out.push('', '📁 文字案例', texts.slice(0, 5).map(c => '・' + c.text.replace(/\s+/g, ' ').slice(0, 120)).join('\n'));
+      if (media.length) {
+        if (CURRENT_TG_CHAT_) { media.slice(0, 5).forEach(c => sendTgCase_(CURRENT_TG_CHAT_, c)); out.push('', '🖼️ 圖片／影片案例：已傳上面 ' + Math.min(5, media.length) + ' 個' + (media.length > 5 ? '（共 ' + media.length + ' 個，關鍵字多打幾個可以縮小範圍）' : '')); }
+        else out.push('', '🖼️ 找到 ' + media.length + ' 個圖片／影片案例，存在 Telegram，到 Telegram 打同樣的關鍵字就會傳給你');
+      }
+      localHits += cases.length;
+    } catch (e) { console.error(e); }
+    // 2. 待辦、行程、提醒、筆記
+    try {
+      const data = readAll_();
+      const NAME = { todos: '待辦', events: '行程', reminders: '提醒', notes: '筆記' };
+      const hits = [];
+      COLS.forEach(c => (data[c] || []).forEach(it => {
+        const s = JSON.stringify(it).toLowerCase();
+        if (words.every(w => s.indexOf(w) >= 0)) hits.push('・' + NAME[c] + '：' + String(it.title || it.text || it.body || '').replace(/\s+/g, ' ').slice(0, 60));
+      }));
+      if (hits.length) out.push('', '📂 你存的資料', hits.slice(0, 5).join('\n') + (hits.length > 5 ? '\n…還有 ' + (hits.length - 5) + ' 筆' : ''));
+      localHits += hits.length;
+    } catch (e) { console.error(e); }
+    // 本機只找本機；要上網按按鈕
+    if (!localHits) out.push('', '📁 本機沒有找到「' + q + '」。圖片、影片、文字轉傳給小乖，就會存進案例庫。');
+    const answer = out.join('\n');
+    logChat_('assistant', answer.slice(0, 1000));
+    return { text: answer, buttons: [['🌐 上網找 ' + q.slice(0, 14)], MENU[0], MENU[1]] };
+  }
+  // 3. 網路
   try {
     const web = webSearch_(q);
-    out.push('', '🌐 網路上找到的', web.text);
+    out.push('', web.text);
     if (web.links.length) out.push('', '🔗 參考來源', web.links.slice(0, 4).map(l => '・' + l.title.slice(0, 30) + '\n' + l.url).join('\n'));
   } catch (err) {
     console.error(err);
@@ -452,9 +539,16 @@ function image_(text, image) {
 /* ============ Telegram ============ */
 function handleTelegram_(update) {
   // Apps Script 回應時會轉址一次，Telegram 可能因此重送同一則；用 update_id 去除重複
-  const seenId = Number(prop_('TG_LAST_UPDATE_ID')) || 0;
-  if (update.update_id <= seenId) return;
-  setProp_('TG_LAST_UPDATE_ID', String(update.update_id));
+  // 一次轉傳很多張時 Telegram 會同時送來、順序不一定，所以用快取記住處理過的編號
+  if (typeof CacheService !== 'undefined') {
+    const cache = CacheService.getScriptCache(), k = 'tgu' + update.update_id;
+    if (cache.get(k)) return;
+    cache.put(k, '1', 21600);
+  } else {
+    const seenId = Number(prop_('TG_LAST_UPDATE_ID')) || 0;
+    if (update.update_id <= seenId) return;
+    setProp_('TG_LAST_UPDATE_ID', String(update.update_id));
+  }
 
   const msg = update.message;
   if (!msg || !msg.chat || msg.chat.type !== 'private') return;
@@ -464,6 +558,15 @@ function handleTelegram_(update) {
   const doc = msg.document && /^image\//.test(msg.document.mime_type || '') ? msg.document : null;
   const fileId = msg.photo && msg.photo.length ? msg.photo[msg.photo.length - 1].file_id : doc && doc.file_id;
   const voice = msg.voice || msg.audio;
+  CURRENT_TG_CHAT_ = chatId;
+
+  // 案例庫：轉傳過來的圖片／影片／文字，或說明打「存」的，存起來之後可以用「查 關鍵字」找回來
+  const forwarded = !!(msg.forward_origin || msg.forward_date || msg.forward_from || msg.forward_from_chat);
+  const video = msg.video || msg.animation || (msg.document && !doc ? msg.document : null);
+  if (owner && chatId === owner && (video || forwarded || ((fileId || video) && /^(存|存案例|案例|收藏)/.test(text)))) {
+    tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
+    return tgSend_(chatId, saveTgCase_(msg, fileId, video, doc, text.replace(/^(存案例|存|案例|收藏)[\s：:]*/, '')));
+  }
 
   if (voice) {
     if (!owner || chatId !== owner) return;
