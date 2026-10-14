@@ -24,6 +24,7 @@ const HELP_TEXT = [
   '・明天下午三點提醒我打電話給媽媽',
   '・幫我記下：車位在 B2-35',
   '・我這週有什麼行程？',
+  '・傳圖片（可加一句說明，例如「幫我記下來」），小乖會讀出內容幫你整理',
   '',
   '其他指令：',
   '・清除對話：讓小乖忘掉聊天內容（待辦、筆記等資料不會刪）',
@@ -126,8 +127,12 @@ function handleLine_(ev) {
     return;
   }
   if (ev.type !== 'message' || !ev.replyToken) return;
+  if (ev.message.type === 'image') {
+    if (owner && uid === owner) reply_(ev.replyToken, chat_('', lineImage_(ev.message.id)));
+    return;
+  }
   if (ev.message.type !== 'text') {
-    if (uid === owner) reply_(ev.replyToken, '小乖目前只看得懂文字訊息喔。');
+    if (uid === owner) reply_(ev.replyToken, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
     return;
   }
 
@@ -143,6 +148,15 @@ function handleLine_(ev) {
   if (uid !== owner) return reply_(ev.replyToken, '小乖目前只服務主人喔。');
 
   reply_(ev.replyToken, answer_(text));
+}
+
+// 下載 LINE 圖片，轉成 OpenAI 看得懂的 data URL
+function lineImage_(messageId) {
+  const res = UrlFetchApp.fetch('https://api-data.line.me/v2/bot/message/' + messageId + '/content', {
+    headers: { Authorization: 'Bearer ' + prop_('LINE_CHANNEL_ACCESS_TOKEN') }, muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() !== 200) throw new Error('LINE 圖片下載失敗');
+  return dataUrl_(res.getBlob());
 }
 
 // LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
@@ -167,10 +181,20 @@ function handleTelegram_(update) {
   if (!msg || !msg.chat || msg.chat.type !== 'private') return;
   const chatId = String(msg.chat.id);
   const owner = prop_('TG_OWNER_CHAT_ID');
-  const text = String(msg.text || '').trim();
+  const text = String(msg.text || msg.caption || '').trim();
+  const doc = msg.document && /^image\//.test(msg.document.mime_type || '') ? msg.document : null;
+  const fileId = msg.photo && msg.photo.length ? msg.photo[msg.photo.length - 1].file_id : doc && doc.file_id;
 
+  if (fileId) {
+    if (!owner || chatId !== owner) return;
+    tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
+    let img;
+    try { img = tgImage_(fileId, doc && doc.mime_type); }
+    catch (err) { console.error(err); return tgSend_(chatId, '圖片讀取失敗，再傳一次看看。'); }
+    return tgSend_(chatId, chat_(text, img));
+  }
   if (!text) {
-    if (chatId === owner) tgSend_(chatId, '小乖目前只看得懂文字訊息喔。');
+    if (chatId === owner) tgSend_(chatId, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
     return;
   }
   if (/^\/start\b/.test(text) && !owner) return tgSend_(chatId, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
@@ -188,6 +212,20 @@ function handleTelegram_(update) {
   tgSend_(chatId, answer_(text.replace(/^\/start\b\s*/, '') || '說明'));
 }
 
+// 下載 Telegram 圖片，轉成 OpenAI 看得懂的 data URL
+function tgImage_(fileId, mime) {
+  const info = JSON.parse(tgApi_('getFile', { file_id: fileId }));
+  if (!info.ok) throw new Error('Telegram getFile 失敗');
+  const res = UrlFetchApp.fetch('https://api.telegram.org/file/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/' + info.result.file_path, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error('Telegram 圖片下載失敗');
+  return dataUrl_(res.getBlob(), mime || 'image/jpeg');
+}
+
+function dataUrl_(blob, mime) {
+  const type = mime || blob.getContentType() || 'image/jpeg';
+  return 'data:' + type + ';base64,' + Utilities.base64Encode(blob.getBytes());
+}
+
 function tgSend_(chatId, text) {
   tgApi_('sendMessage', { chat_id: chatId, text: String(text).slice(0, 4000) });
 }
@@ -201,17 +239,26 @@ function tgApi_(method, payload) {
   return res.getContentText();
 }
 
-function chat_(text) {
+// image：可選，data URL。聊天紀錄只存文字，所以看圖後的回覆要把圖片重點寫出來，之後的對話才接得上
+function chat_(text, image) {
   const key = prop_('OPENAI_API_KEY');
   if (!key) return '還沒設定 OpenAI 金鑰，請到 Apps Script 的指令碼屬性填入 OPENAI_API_KEY。';
 
   const data = readAll_();
   const history = recentChat_(HISTORY_TURNS);
-  logChat_('user', text);
+  logChat_('user', image ? '（傳了一張圖片）' + (text ? ' ' + text : '') : text);
+
+  let content = text;
+  if (image) {
+    content = [
+      { type: 'text', text: (text || '請讀取這張圖片') + '\n\n（請先把圖片中的文字與重點完整整理成條列；使用者要你記下來時，用 note 動作存成筆記。）' },
+      { type: 'image_url', image_url: { url: image, detail: 'high' } },
+    ];
+  }
 
   let out;
   try {
-    out = callOpenAI_(buildSys_(data), history.concat([{ role: 'user', content: text }]));
+    out = callOpenAI_(buildSys_(data), history.concat([{ role: 'user', content: content }]));
   } catch (err) {
     console.error(err);
     return '抱歉，小乖暫時想不起來（' + err.message + '），等一下再問我一次。';
@@ -286,7 +333,7 @@ function callOpenAI_(system, messages) {
   const model = prop_('MODEL') || 'gpt-4o-mini';
   const body = { model: model, messages: [{ role: 'system', content: system }].concat(messages) };
   if (/^gpt-5/.test(model)) body.max_completion_tokens = 4000;
-  else { body.max_tokens = 1000; body.temperature = 0.6; }
+  else { body.max_tokens = 2500; body.temperature = 0.6; }
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
