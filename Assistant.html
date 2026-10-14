@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>私人助理小乖</title>
+<style>
+  :root{
+    --paper:#F5F0E3;
+    --paper-2:#FFFCF6;
+    --ink:#1E1A14;
+    --ink-soft:#5C5343;
+    --ink-faint:#A0937A;
+    --line:rgba(30,25,18,.11);
+    --line-2:rgba(30,25,18,.05);
+    --accent:#1F8A72;
+    --gold:#A8782E;
+    --gold-soft:#D9B873;
+    --gold-wash:rgba(168,120,46,.12);
+    --shadow:0 1px 2px rgba(30,25,18,.04), 0 16px 36px rgba(30,25,18,.08);
+    --shadow-lg:0 14px 48px rgba(30,25,18,.16);
+    --radius:24px;
+    --radius-sm:16px;
+    --tap:54px;
+    --spring:cubic-bezier(.34,1.56,.64,1);
+    --ease-out:cubic-bezier(.22,.8,.36,1);
+    /* 功能色 */
+    --c-todo:#1F8A72;
+    --c-sched:#2E6FB0;
+    --c-remind:#E0613B;
+    --c-note:#C7902B;
+    --c-chat:#6B4E9E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    background:
+      radial-gradient(ellipse 900px 480px at 50% -8%, rgba(168,120,46,.07), transparent 60%),
+      var(--paper);
+    color:var(--ink);
+    line-height:1.62;
+    font-size:16px;
+    letter-spacing:.1px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:500px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:24px;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  textarea,input,select{font-family:inherit;}
+
+  /* ---------- Header ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:linear-gradient(168deg,#2E2415 0%,#1E1A14 78%);color:#fff;
+    padding:20px 20px 21px;
+    border-radius:0 0 28px 28px;
+    box-shadow:0 10px 30px rgba(30,25,18,.22);
+  }
+  .topbar::after{
+    content:"";position:absolute;left:20px;right:20px;bottom:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(217,184,115,.55) 18%,rgba(217,184,115,.55) 82%,transparent);
+  }
+  .topbar .row{display:flex;align-items:center;gap:12px;position:relative;}
+  .brand-tag{
+    font-size:11px;letter-spacing:4px;color:var(--gold-soft);
+    text-transform:uppercase;font-weight:700;
+    display:flex;align-items:center;gap:7px;
+  }
+  .brand-tag::before{content:"";width:14px;height:1px;background:var(--gold-soft);display:inline-block;}
+  .title-edit{
+    flex:1;font-size:24px;font-weight:800;letter-spacing:.5px;
+    background:transparent;border:none;color:#fff;outline:none;
+    border-bottom:1.5px dashed transparent;padding:3px 0;min-width:0;
+  }
+  .title-edit:focus{border-bottom-color:var(--gold-soft);}
+  .gear,.hdr-toggle{
+    width:46px;height:46px;border-radius:14px;flex:0 0 auto;
+    background:rgba(255,255,255,.1);display:grid;place-items:center;color:#fff;
+    transition:background .15s,transform .1s,box-shadow .15s;
+    border:1px solid rgba(217,184,115,.22);
+  }
+  .gear svg,.hdr-toggle svg{width:22px;height:22px;display:block;}
+  .gear:active,.hdr-toggle:active{background:rgba(217,184,115,.22);transform:scale(.93);box-shadow:0 0 0 3px var(--gold-wash);}
+  .chev-ic{transition:transform .2s;}
+  .topbar.min .chev-ic{transform:rotate(180deg);}
+  .topbar.min{padding:8px 16px;border-radius:0 0 18px 18px;}
+  .topbar.min .brand-tag,.topbar.min .status-line,.topbar.min .title-edit{display:none;}
+  .topbar.min .row{margin-top:0!important;justify-content:flex-end;gap:8px;}
+  .topbar.min .mini-title{display:block;}
+  .mini-title{display:none;flex:1;font-size:15px;font-weight:800;color:#fff;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .status-line{
+    margin-top:13px;font-size:12.5px;color:rgba(255,255,255,.68);
+    display:flex;align-items:center;gap:7px;
+    background:rgba(255,255,255,.06);padding:10px 13px;border-radius:13px;
+    border:1px solid rgba(255,255,255,.07);
+  }
+  .dot{width:8px;height:8px;border-radius:50%;background:#E0613B;flex:0 0 auto;}
+  .dot.on{background:#4ED9A0;box-shadow:0 0 0 3px rgba(78,217,160,.2);animation:pulse 2.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(78,217,160,.2);}50%{box-shadow:0 0 0 6px rgba(78,217,160,.08);}}
+
+  /* ---------- Views ---------- */
+  .view{display:none;padding:20px 18px 48px;}
+  .view.active{display:block;animation:fade .32s var(--ease-out);}
+  @keyframes fade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .view.active>*{animation:rise .5s var(--ease-out) backwards;}
+  .view.active>*:nth-child(1){animation-delay:.02s;}
+  .view.active>*:nth-child(2){animation-delay:.06s;}
+  .view.active>*:nth-child(3){animation-delay:.1s;}
+  .view.active>*:nth-child(4){animation-delay:.14s;}
+  .view.active>*:nth-child(5){animation-delay:.18s;}
+  .view.active>*:nth-child(n+6){animation-delay:.22s;}
+  @keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important;}
+  }
+
+  .section-label{
+    font-size:12px;letter-spacing:2.5px;color:var(--ink-faint);
+    font-weight:800;text-transform:uppercase;margin:18px 4px 12px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-label::before{content:"";width:16px;height:2px;background:var(--gold);border-radius:1px;flex:0 0 auto;}
+
+  /* ---------- 首頁問候卡 ---------- */
+  .hero{background:linear-gradient(168deg,#2E2415 0%,#1E1A14 78%);color:#fff;border-radius:var(--radius);
+    padding:22px;margin-bottom:18px;box-shadow:var(--shadow-lg);border:1px solid rgba(217,184,115,.16);
+    position:relative;overflow:hidden;}
+  .hero::before{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(217,184,115,.07),transparent);
+    animation:sheen 6s ease-in-out infinite;pointer-events:none;}
+  @keyframes sheen{0%,60%{left:-60%;}100%{left:130%;}}
+  .hero-hi{font-size:21px;font-weight:800;letter-spacing:.5px;}
+  .hero-date{font-size:13px;color:rgba(255,255,255,.62);margin:4px 0 14px;}
+  .hero textarea{width:100%;min-height:84px;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;font-size:16px;
+    background:rgba(255,255,255,.08);color:#fff;outline:none;resize:vertical;line-height:1.6;transition:border-color .15s;}
+  .hero textarea:focus{border-color:var(--gold-soft);}
+  .hero textarea::placeholder{color:rgba(255,255,255,.4);}
+  .hero-run{width:100%;margin-top:12px;min-height:54px;border-radius:16px;
+    background:linear-gradient(165deg,#FBF6EA,#fff);color:var(--ink);
+    font-size:16.5px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:9px;
+    box-shadow:0 10px 26px rgba(0,0,0,.28), inset 0 1.5px 0 rgba(255,255,255,.6);
+    border:1px solid var(--gold-soft);transition:transform .18s var(--spring);}
+  .hero-run:active{transform:scale(.98);}
+  .quick-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}
+  .quick{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.82);padding:7px 12px;border-radius:20px;
+    background:rgba(255,255,255,.07);border:1px solid rgba(217,184,115,.22);}
+  .quick:active{background:rgba(217,184,115,.22);}
+
+  /* ---------- 今日總覽 ---------- */
+  .today{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:6px 16px;margin-bottom:20px;}
+  .t-row{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line-2);font-size:14.5px;}
+  .t-row:last-child{border-bottom:none;}
+  .t-pin{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .t-time{font-size:12px;font-weight:800;color:var(--ink-faint);min-width:44px;}
+  .t-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .t-empty{font-size:13px;color:var(--ink-faint);padding:16px 4px;text-align:center;}
+
+  /* ---------- 功能入口 ---------- */
+  .lib-entry{display:flex;align-items:center;gap:15px;background:var(--paper-2);border:1px solid var(--line);
+    border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;box-shadow:var(--shadow);min-height:80px;
+    transition:transform .18s var(--spring);cursor:pointer;position:relative;overflow:hidden;}
+  .lib-entry:active{transform:scale(.98);}
+  .lib-entry .bar{position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .le-ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:24px;flex:0 0 auto;
+    box-shadow:inset 0 0 0 1px rgba(30,25,18,.07), inset 0 1.5px 0 rgba(255,255,255,.55);}
+  .le-meta{flex:1;min-width:0;}
+  .le-name{font-size:17.5px;font-weight:800;}
+  .le-sub{font-size:13px;color:var(--ink-soft);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .count{font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:20px;
+    background:linear-gradient(165deg,#2E2415,var(--ink));color:#fff;flex:0 0 auto;}
+  .count.zero{background:var(--line);color:var(--ink-faint);}
+  .chev{color:var(--gold);opacity:.55;font-size:22px;flex:0 0 auto;}
+
+  /* ---------- 工作區 ---------- */
+  .ws-head{display:flex;align-items:flex-start;gap:13px;margin-bottom:14px;}
+  .back{width:48px;height:48px;border-radius:15px;background:var(--paper-2);
+    border:1px solid var(--line);display:grid;place-items:center;font-size:22px;flex:0 0 auto;
+    box-shadow:var(--shadow);transition:transform .18s var(--spring);}
+  .back:active{transform:scale(.88);}
+  .ws-ic{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;font-size:25px;flex:0 0 auto;}
+  .ws-title{flex:1;padding-top:2px;}
+  .ws-title h2{margin:0;font-size:21px;font-weight:800;}
+  .ws-title p{margin:2px 0 0;font-size:13px;color:var(--ink-soft);}
+
+  .input-card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;box-shadow:var(--shadow);margin-bottom:16px;transition:box-shadow .2s;}
+  .input-card:focus-within{box-shadow:var(--shadow), 0 0 0 3px var(--gold-wash);}
+  .input-card textarea,.input-card .main-in{width:100%;border:none;outline:none;resize:vertical;
+    font-size:16px;background:transparent;color:var(--ink);line-height:1.6;}
+  .input-card textarea{min-height:90px;}
+  .input-card .main-in{min-height:40px;font-weight:700;}
+  .in-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .in-grid input,.in-grid select{flex:1 1 130px;min-width:0;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;
+    font-size:15px;background:#fff;color:var(--ink);outline:none;min-height:46px;}
+  .in-grid input:focus,.in-grid select:focus{border-color:var(--gold);}
+  .input-actions{display:flex;align-items:center;gap:11px;margin-top:13px;
+    border-top:1px solid var(--line-2);padding-top:14px;}
+  .run-btn{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    font-size:16px;font-weight:800;color:#fff;padding:0 26px;border-radius:16px;min-height:var(--tap);
+    box-shadow:0 8px 20px rgba(30,25,18,.24), inset 0 1.5px 0 rgba(255,255,255,.28);
+    transition:opacity .15s,transform .18s var(--spring);}
+  .run-btn:active{transform:scale(.95);}
+  .run-btn:disabled{opacity:.5;}
+  .spinner{width:17px;height:17px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;
+    border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .filter{display:flex;gap:7px;flex-wrap:wrap;margin:4px 2px 12px;}
+  .f-chip{font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;border:1.5px solid var(--line);
+    background:var(--paper-2);color:var(--ink-soft);}
+  .f-chip.on{background:linear-gradient(165deg,#2E2415,var(--ink));color:#fff;border-color:transparent;}
+
+  .item{display:flex;align-items:flex-start;gap:12px;background:var(--paper-2);border:1px solid var(--line);
+    border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:9px;box-shadow:0 1px 2px rgba(30,25,18,.04);}
+  .item.done .it-text{text-decoration:line-through;color:var(--ink-faint);}
+  .item.past{opacity:.55;}
+  .item input[type=checkbox]{width:24px;height:24px;flex:0 0 auto;accent-color:var(--accent);margin:1px 0 0;}
+  .it-main{flex:1;min-width:0;}
+  .it-text{font-size:15.5px;font-weight:700;word-break:break-word;}
+  .it-sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;word-break:break-word;}
+  .it-x{color:var(--ink-faint);font-size:18px;padding:0 4px;flex:0 0 auto;}
+  .tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:8px;background:var(--line);color:var(--ink-soft);margin-left:4px;}
+  .tag.hot{background:rgba(224,97,59,.14);color:#C04A28;}
+  .day-label{font-size:12.5px;font-weight:800;color:var(--ink-soft);margin:16px 4px 8px;}
+  .empty{font-size:13px;color:var(--ink-faint);padding:18px;text-align:center;
+    border:1px dashed rgba(168,120,46,.3);border-radius:var(--radius-sm);background:var(--gold-wash);}
+
+  /* 筆記 */
+  .search{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:12px 15px;font-size:15px;
+    background:var(--paper-2);color:var(--ink);outline:none;margin-bottom:12px;min-height:48px;}
+  .search:focus{border-color:var(--gold);}
+  .note-card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:14px 15px;margin-bottom:9px;cursor:pointer;box-shadow:0 1px 2px rgba(30,25,18,.04);}
+  .note-card .nt{font-size:15.5px;font-weight:800;}
+  .note-card .nb{font-size:13px;color:var(--ink-soft);margin-top:3px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;}
+  .note-card .nm{font-size:11px;color:var(--ink-faint);margin-top:6px;}
+
+  .mini{font-size:14px;font-weight:700;padding:11px 16px;border-radius:13px;min-height:46px;
+    border:1.5px solid var(--line);background:var(--paper-2);color:var(--ink-soft);
+    display:inline-flex;align-items:center;gap:6px;transition:transform .18s var(--spring);}
+  .mini:active{transform:scale(.95);}
+  .mini.warn{color:#A8442E;border-color:rgba(168,68,46,.25);}
+
+  /* ---------- 對話 ---------- */
+  .chat-box{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+  .msg{max-width:86%;padding:11px 14px;border-radius:18px;font-size:15px;line-height:1.65;
+    white-space:pre-wrap;word-break:break-word;box-shadow:0 1px 2px rgba(30,25,18,.05);}
+  .msg.user{align-self:flex-end;background:linear-gradient(165deg,#2E2415,var(--ink));color:#fff;border-bottom-right-radius:6px;}
+  .msg.bot{align-self:flex-start;background:var(--paper-2);border:1px solid var(--line);border-bottom-left-radius:6px;}
+  .msg.err{border-color:rgba(168,68,46,.3);color:#A8442E;}
+  .msg .acts{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;}
+  .msg .act{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:12px;background:rgba(31,138,114,.1);
+    color:var(--accent);border:1px solid rgba(31,138,114,.25);white-space:normal;}
+  .chat-in{position:sticky;bottom:0;background:linear-gradient(transparent,var(--paper) 22%);padding:14px 0 6px;}
+  .chat-in .input-card{margin-bottom:0;}
+  .chat-in textarea{min-height:56px;}
+
+  /* ---------- 設定 ---------- */
+  .field{margin-bottom:22px;}
+  .field label{display:block;font-size:14px;font-weight:800;margin-bottom:9px;}
+  .field .hint{font-size:12.5px;color:var(--ink-faint);font-weight:400;margin-top:7px;line-height:1.5;}
+  .field input[type=text],.field input[type=password],.field select,.field textarea{
+    width:100%;border:1.5px solid var(--line);border-radius:14px;padding:15px;
+    font-size:16px;background:var(--paper-2);color:var(--ink);outline:none;min-height:var(--tap);
+    transition:border-color .15s,box-shadow .15s;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);box-shadow:0 0 0 4px var(--gold-wash);}
+  .field textarea{min-height:100px;resize:vertical;line-height:1.6;}
+  .key-row{display:flex;gap:9px;}
+  .key-row input{flex:1;}
+  .toggle-key{flex:0 0 auto;padding:0 18px;border:1.5px solid var(--line);border-radius:14px;min-height:var(--tap);
+    font-size:14px;font-weight:700;color:var(--ink-soft);background:var(--paper-2);}
+  .btn-row{display:flex;flex-wrap:wrap;gap:9px;}
+  .save-bar{position:sticky;bottom:0;background:linear-gradient(transparent,var(--paper) 30%);
+    padding:16px 0 6px;margin-top:10px;}
+  .save-main{width:100%;min-height:58px;border-radius:16px;
+    background:linear-gradient(165deg,#2E2415,var(--ink));color:#fff;
+    font-size:17px;font-weight:800;box-shadow:0 10px 26px rgba(30,25,18,.26), inset 0 1.5px 0 rgba(255,255,255,.16);
+    border:1px solid rgba(217,184,115,.3);transition:transform .18s var(--spring);}
+  .save-main:active{transform:scale(.98);}
+  .danger{width:100%;margin-top:12px;min-height:50px;border-radius:14px;font-size:14px;font-weight:700;
+    color:#A8442E;background:rgba(168,68,46,.06);border:1px solid rgba(168,68,46,.2);}
+  .note{font-size:12px;color:var(--ink-faint);background:var(--paper-2);border:1px solid var(--line);
+    border-radius:var(--radius-sm);padding:12px;line-height:1.6;margin-bottom:16px;}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 20px;border-radius:30px;font-size:13.5px;font-weight:600;
+    opacity:0;pointer-events:none;transition:.28s var(--spring);z-index:200;box-shadow:0 8px 30px rgba(0,0,0,.3);
+    border:1px solid rgba(217,184,115,.25);max-width:calc(100% - 32px);text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .build-tag{text-align:center;font-size:11.5px;color:var(--ink-faint);margin-top:16px;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar" id="topbar">
+    <div class="brand-tag">私人助理 · ASSISTANT</div>
+    <div class="row" style="margin-top:4px;">
+      <span class="mini-title" id="miniTitle">小乖</span>
+      <input id="titleInput" class="title-edit" value="小乖" maxlength="20" spellcheck="false">
+      <button class="hdr-toggle" onclick="toggleHeader()" aria-label="收合標題">
+        <svg class="chev-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+      </button>
+      <button class="gear" onclick="openView('settings')" aria-label="設定">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+    </div>
+    <div class="status-line">
+      <span class="dot" id="keyDot"></span>
+      <span id="keyStatus">尚未連接 AI — 請到設定填入 OpenAI 金鑰</span>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <section id="view-home" class="view active">
+    <div class="hero">
+      <div class="hero-hi" id="heroHi">嗨！</div>
+      <div class="hero-date" id="heroDate"></div>
+      <textarea id="heroInput" placeholder="跟小乖說說話，例如：明天下午三點提醒我打電話給媽媽"></textarea>
+      <button class="hero-run" onclick="heroSend()">💬 交給小乖</button>
+      <div class="quick-row">
+        <button class="quick" onclick="quickAsk('幫我整理今天的待辦和行程，排個先後順序')">📋 今天怎麼安排</button>
+        <button class="quick" onclick="quickAsk('這週有哪些行程和提醒？幫我做個重點摘要')">🗓️ 本週摘要</button>
+        <button class="quick" onclick="quickAsk('幫我看看有哪些待辦拖太久，給我建議')">⏳ 拖延檢查</button>
+      </div>
+    </div>
+
+    <div class="section-label">今天</div>
+    <div class="today" id="todayBox"></div>
+
+    <div class="section-label">小乖幫你管</div>
+    <div id="entryList"></div>
+    <div class="build-tag" id="homeBuild"></div>
+  </section>
+
+  <!-- 待辦 -->
+  <section id="view-todos" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-ic" style="background:rgba(31,138,114,.14)">✅</div>
+      <div class="ws-title"><h2>待辦清單</h2><p>想到就記，做完就勾</p></div>
+    </div>
+    <div class="input-card">
+      <input class="main-in" id="todoText" placeholder="要做什麼？" maxlength="120" onkeydown="if(event.key==='Enter')addTodo()">
+      <div class="in-grid">
+        <input type="date" id="todoDue" aria-label="期限">
+        <select id="todoPri" aria-label="優先順序">
+          <option value="normal">一般</option>
+          <option value="high">🔥 重要</option>
+        </select>
+      </div>
+      <div class="input-actions">
+        <button class="run-btn" style="background:var(--c-todo)" onclick="addTodo()">＋ 新增待辦</button>
+      </div>
+    </div>
+    <div class="filter" id="todoFilter"></div>
+    <div id="todoList"></div>
+  </section>
+
+  <!-- 行程 -->
+  <section id="view-schedule" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-ic" style="background:rgba(46,111,176,.14)">🗓️</div>
+      <div class="ws-title"><h2>行程表</h2><p>依日期排好，一眼看完</p></div>
+    </div>
+    <div class="input-card">
+      <input class="main-in" id="evTitle" placeholder="行程名稱，例如：牙醫回診" maxlength="80">
+      <div class="in-grid">
+        <input type="date" id="evDate" aria-label="日期">
+        <input type="time" id="evTime" aria-label="時間">
+        <input type="text" id="evPlace" placeholder="地點／備註（可留空）" maxlength="80" style="flex-basis:100%">
+      </div>
+      <div class="input-actions">
+        <label class="it-sub" style="display:flex;align-items:center;gap:6px;margin:0">
+          <input type="checkbox" id="evRemind" checked style="width:20px;height:20px;accent-color:var(--accent)"> 提前 30 分鐘提醒
+        </label>
+        <button class="run-btn" style="background:var(--c-sched)" onclick="addEvent()">＋ 加入行程</button>
+      </div>
+    </div>
+    <div class="filter" id="evFilter"></div>
+    <div id="evList"></div>
+  </section>
+
+  <!-- 提醒 -->
+  <section id="view-reminders" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-ic" style="background:rgba(224,97,59,.14)">⏰</div>
+      <div class="ws-title"><h2>提醒</h2><p>時間到了小乖會叫你</p></div>
+    </div>
+    <div class="note" id="notifNote"></div>
+    <div class="input-card">
+      <input class="main-in" id="rmText" placeholder="要提醒什麼？" maxlength="120">
+      <div class="in-grid">
+        <input type="datetime-local" id="rmAt" aria-label="提醒時間">
+        <select id="rmRepeat" aria-label="重複">
+          <option value="none">不重複</option>
+          <option value="daily">每天</option>
+          <option value="weekly">每週</option>
+        </select>
+      </div>
+      <div class="input-actions">
+        <button class="run-btn" style="background:var(--c-remind)" onclick="addReminder()">＋ 設定提醒</button>
+      </div>
+    </div>
+    <div id="rmList"></div>
+  </section>
+
+  <!-- 筆記 -->
+  <section id="view-notes" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-ic" style="background:rgba(199,144,43,.14)">📝</div>
+      <div class="ws-title"><h2>筆記</h2><p>靈感、清單、隨手記</p></div>
+    </div>
+    <div class="input-card">
+      <input class="main-in" id="noteTitle" placeholder="標題" maxlength="60">
+      <textarea id="noteBody" placeholder="內容…"></textarea>
+      <div class="input-actions">
+        <button class="mini" id="noteCancel" style="display:none" onclick="clearNoteEditor()">取消編輯</button>
+        <button class="run-btn" style="background:var(--c-note)" id="noteSaveBtn" onclick="saveNote()">＋ 儲存筆記</button>
+      </div>
+    </div>
+    <input class="search" id="noteSearch" placeholder="🔍 搜尋筆記" oninput="renderNotes()">
+    <div id="noteList"></div>
+  </section>
+
+  <!-- 對話 -->
+  <section id="view-chat" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-ic" style="background:rgba(107,78,158,.14)">💬</div>
+      <div class="ws-title"><h2 id="chatTitle">和小乖聊聊</h2><p>小乖看得到你的待辦、行程、提醒和筆記，也能幫你新增</p></div>
+    </div>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="chat-in">
+      <div class="input-card">
+        <textarea id="chatInput" placeholder="想問什麼、想記什麼都可以…" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey))sendChat()"></textarea>
+        <div class="input-actions">
+          <button class="mini" onclick="clearChat()">清空對話</button>
+          <button class="run-btn" style="background:var(--c-chat)" id="chatBtn" onclick="sendChat()">送出</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 設定 -->
+  <section id="view-settings" class="view">
+    <div class="ws-head">
+      <button class="back" onclick="openView('home')">‹</button>
+      <div class="ws-title"><h2>設定</h2><p>接上 AI，小乖就能陪你聊天、幫你記事</p></div>
+    </div>
+
+    <div class="note">
+      🔑 金鑰與所有資料只存在你自己的瀏覽器（localStorage），不會上傳到任何伺服器（對話內容只會送到 OpenAI）。<br>
+      ⚠️ 因金鑰寫在前端，請勿在公用電腦使用，也不要把含金鑰的備份檔分享給他人。
+    </div>
+
+    <div class="field">
+      <label>OpenAI API 金鑰</label>
+      <div class="key-row">
+        <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" spellcheck="false">
+        <button class="toggle-key" onclick="toggleKey()" id="toggleKeyBtn">顯示</button>
+      </div>
+      <div class="hint">前往 platform.openai.com → API keys 取得。</div>
+    </div>
+
+    <div class="field">
+      <label>使用模型</label>
+      <select id="modelSel">
+        <option value="gpt-4o-mini">⚡ 快速（gpt-4o-mini · 便宜快）</option>
+        <option value="gpt-5-mini">🧠 智慧（gpt-5-mini · 更聰明）</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>助理名字（顯示在最上方）</label>
+      <input type="text" id="titleSet" maxlength="20">
+    </div>
+
+    <div class="field">
+      <label>小乖該怎麼稱呼你</label>
+      <input type="text" id="nickSet" maxlength="20" placeholder="例如：彥彬">
+    </div>
+
+    <div class="field">
+      <label>關於我（小乖會記住這些）</label>
+      <textarea id="aboutSet" placeholder="你的工作、作息、習慣、喜歡的說話方式…例如：我是上班族，早上 9 點上班，喜歡簡短直接的建議"></textarea>
+    </div>
+
+    <div class="field">
+      <label>資料備份</label>
+      <div class="btn-row">
+        <button class="mini" onclick="exportData()">⬇️ 匯出備份</button>
+        <button class="mini" onclick="document.getElementById('importFile').click()">⬆️ 匯入備份</button>
+        <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(this)">
+      </div>
+      <div class="hint">換手機或換瀏覽器前先匯出，到新裝置再匯入即可。備份檔不含 API 金鑰。</div>
+    </div>
+
+    <div class="save-bar">
+      <button class="save-main" onclick="saveSettings()">儲存設定</button>
+      <button class="danger" onclick="resetAll()">回復出廠預設（清空所有資料）</button>
+    </div>
+    <div class="build-tag" id="buildTag"></div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 預設資料 ============ */
+const STORE_KEY = "xiaoguai_v1";
+const DEFAULTS = {
+  schema:1,
+  build:"2026.10.14-v1",
+  title:"小乖",
+  nick:"",
+  about:"",
+  apiKey:"",
+  model:"gpt-4o-mini",
+  todos:[],     // {id, text, due, pri, done, time, doneAt}
+  events:[],    // {id, title, date, time, place, time0}
+  reminders:[], // {id, text, at, repeat, fired, src}
+  notes:[],     // {id, title, body, time}
+  chat:[]       // {role, content, acts?}
+};
+
+/* ============ 狀態 ============ */
+let state = load();
+let todoFilter = "open";
+let evShowPast = false;
+let editingNote = null;
+let chatting = false;
+
+function load(){
+  const DEF = structuredClone(DEFAULTS);
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const s = JSON.parse(raw);
+      const m = {...DEF, ...s};
+      ["todos","events","reminders","notes","chat"].forEach(k=>{ if(!Array.isArray(m[k])) m[k]=[]; });
+      if(m.model!=="gpt-4o-mini" && m.model!=="gpt-5-mini") m.model="gpt-4o-mini";
+      m.build = DEFAULTS.build;
+      return m;
+    }
+  }catch(e){}
+  return DEF;
+}
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){ toast("儲存失敗：瀏覽器空間不足"); } }
+
+/* ============ 工具 ============ */
+function toast(msg,ms){
+  const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove("show"),ms||1900);
+}
+function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function pad(n){ return String(n).padStart(2,"0"); }
+function ymd(d){ d=d||new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function localDT(d){ return `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+const WEEK = ["日","一","二","三","四","五","六"];
+function dateLabel(s){
+  if(!s) return "";
+  const d=new Date(s+"T00:00"); const t=ymd(); const tm=ymd(new Date(Date.now()+864e5));
+  const base=`${d.getMonth()+1}/${d.getDate()}（${WEEK[d.getDay()]}）`;
+  if(s===t) return "今天 "+base;
+  if(s===tm) return "明天 "+base;
+  return base;
+}
+function dtLabel(s){
+  const d=new Date(s); if(isNaN(d)) return s||"";
+  return `${dateLabel(ymd(d))} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function timeStr(t){ const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+
+/* ============ 視圖切換 ============ */
+function openView(v){
+  document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
+  document.getElementById("view-"+v).classList.add("active");
+  window.scrollTo(0,0);
+  ({home:renderHome, todos:renderTodos, schedule:renderEvents, reminders:renderReminders,
+    notes:renderNotes, chat:renderChat, settings:fillSettings})[v]?.();
+  if(v==="chat") setTimeout(()=>window.scrollTo(0,document.body.scrollHeight),60);
+}
+function toggleHeader(){ document.getElementById("topbar").classList.toggle("min"); }
+
+/* ============ Header ============ */
+function renderHeader(){
+  document.getElementById("titleInput").value=state.title;
+  document.getElementById("miniTitle").textContent=state.title;
+  document.title="私人助理"+state.title;
+  document.getElementById("chatTitle").textContent="和"+state.title+"聊聊";
+  const on=!!state.apiKey;
+  document.getElementById("keyDot").classList.toggle("on",on);
+  document.getElementById("keyStatus").textContent = on
+    ? `AI 已連接 · ${state.model} · ${state.title}隨時待命`
+    : "尚未連接 AI — 請到設定填入 OpenAI 金鑰";
+}
+document.getElementById("titleInput").addEventListener("change",e=>{
+  state.title=(e.target.value||"").trim()||"小乖"; save(); renderHeader(); renderHome();
+});
+
+/* ============ Home ============ */
+function greet(){
+  const h=new Date().getHours();
+  const g = h<5?"夜深了":h<11?"早安":h<14?"午安":h<18?"午後好":"晚安";
+  return `${g}${state.nick?"，"+state.nick:""}！`;
+}
+function renderHome(){
+  renderHeader();
+  const now=new Date();
+  document.getElementById("heroHi").textContent=greet();
+  document.getElementById("heroDate").textContent=
+    `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日 星期${WEEK[now.getDay()]} · 我是${state.title}，有什麼交給我`;
+  document.getElementById("heroInput").placeholder=`跟${state.title}說說話，例如：明天下午三點提醒我打電話給媽媽`;
+
+  // 今日總覽
+  const t=ymd();
+  const rows=[];
+  state.events.filter(e=>e.date===t).sort((a,b)=>(a.time||"").localeCompare(b.time||""))
+    .forEach(e=>rows.push({k:e.time||"00:00",c:"var(--c-sched)",tm:e.time||"整天",tx:e.title+(e.place?"・"+e.place:"")}));
+  const endOfDay=new Date(t+"T23:59:59").getTime();
+  state.reminders.filter(r=>!r.fired && new Date(r.at).getTime()<=endOfDay)
+    .sort((a,b)=>a.at.localeCompare(b.at))
+    .forEach(r=>{ const d=new Date(r.at); rows.push({k:ymd(d)<t?"":`${pad(d.getHours())}:${pad(d.getMinutes())}`,c:"var(--c-remind)",tm:ymd(d)<t?"逾時":`${pad(d.getHours())}:${pad(d.getMinutes())}`,tx:"⏰ "+r.text}); });
+  state.todos.filter(x=>!x.done && (x.due && x.due<=t || x.pri==="high"))
+    .forEach(x=>rows.push({k:"99",c:"var(--c-todo)",tm:x.due&&x.due<t?"逾期":"待辦",tx:(x.pri==="high"?"🔥 ":"")+x.text}));
+  rows.sort((a,b)=>a.k.localeCompare(b.k));
+  document.getElementById("todayBox").innerHTML = rows.length
+    ? rows.slice(0,8).map(r=>`<div class="t-row"><span class="t-pin" style="background:${r.c}"></span><span class="t-time">${esc(r.tm)}</span><span class="t-text">${esc(r.tx)}</span></div>`).join("")
+      + (rows.length>8?`<div class="t-empty">還有 ${rows.length-8} 項…</div>`:"")
+    : `<div class="t-empty">今天沒有排定的事，好好享受 ☕</div>`;
+
+  // 入口
+  const openTodos=state.todos.filter(x=>!x.done).length;
+  const upEv=state.events.filter(e=>e.date>=t).length;
+  const upRm=state.reminders.filter(r=>!r.fired).length;
+  const nextEv=state.events.filter(e=>e.date>=t).sort(evCmp)[0];
+  const nextRm=state.reminders.filter(r=>!r.fired).sort((a,b)=>a.at.localeCompare(b.at))[0];
+  const lastChat=[...state.chat].reverse().find(m=>m.role==="assistant");
+  const E=[
+    {v:"todos",ic:"✅",c:"var(--c-todo)",bg:"rgba(31,138,114,.14)",name:"待辦清單",n:openTodos,
+      sub: openTodos? `還有 ${openTodos} 件沒做完` : "想到就記，做完就勾"},
+    {v:"schedule",ic:"🗓️",c:"var(--c-sched)",bg:"rgba(46,111,176,.14)",name:"行程表",n:upEv,
+      sub: nextEv? `下一個：${dateLabel(nextEv.date)} ${nextEv.time||""} ${nextEv.title}` : "依日期排好，一眼看完"},
+    {v:"reminders",ic:"⏰",c:"var(--c-remind)",bg:"rgba(224,97,59,.14)",name:"提醒",n:upRm,
+      sub: nextRm? `下一個：${dtLabel(nextRm.at)} ${nextRm.text}` : "時間到了小乖會叫你"},
+    {v:"notes",ic:"📝",c:"var(--c-note)",bg:"rgba(199,144,43,.14)",name:"筆記",n:state.notes.length,
+      sub: state.notes.length? `最近：${state.notes[0].title||"（無標題）"}` : "靈感、清單、隨手記"},
+    {v:"chat",ic:"💬",c:"var(--c-chat)",bg:"rgba(107,78,158,.14)",name:"和"+state.title+"聊聊",n:null,
+      sub: lastChat? lastChat.content.replace(/\s+/g," ").slice(0,40) : "問問題、排計畫、口述記事都可以"}
+  ];
+  document.getElementById("entryList").innerHTML=E.map(e=>`
+    <div class="lib-entry" onclick="openView('${e.v}')">
+      <span class="bar" style="background:${e.c}"></span>
+      <div class="le-ic" style="background:${e.bg};color:${e.c}">${e.ic}</div>
+      <div class="le-meta"><div class="le-name">${esc(e.name)}</div><div class="le-sub">${esc(e.sub)}</div></div>
+      ${e.n===null?"":`<span class="count ${e.n?"":"zero"}">${e.n}</span>`}
+      <span class="chev">›</span>
+    </div>`).join("");
+  document.getElementById("homeBuild").textContent="版本 "+state.build;
+}
+function heroSend(){
+  const el=document.getElementById("heroInput"); const v=el.value.trim();
+  if(!v){ toast("先打點字給"+state.title+"吧"); el.focus(); return; }
+  el.value=""; quickAsk(v);
+}
+function quickAsk(text){
+  openView("chat");
+  document.getElementById("chatInput").value=text;
+  sendChat();
+}
+
+/* ============ 待辦 ============ */
+function addTodo(){
+  const tx=document.getElementById("todoText"); const text=tx.value.trim();
+  if(!text){ toast("要做什麼呢？"); tx.focus(); return; }
+  state.todos.unshift({id:uid(),text,due:document.getElementById("todoDue").value||"",
+    pri:document.getElementById("todoPri").value,done:false,time:Date.now()});
+  save(); tx.value=""; document.getElementById("todoDue").value=""; document.getElementById("todoPri").value="normal";
+  renderTodos(); toast("已加入待辦");
+}
+function toggleTodo(id){
+  const x=state.todos.find(t=>t.id===id); if(!x) return;
+  x.done=!x.done; x.doneAt=x.done?Date.now():null; save(); renderTodos();
+  if(x.done) toast("做得好！✨");
+}
+function deleteTodo(id){ state.todos=state.todos.filter(t=>t.id!==id); save(); renderTodos(); }
+function setTodoFilter(f){ todoFilter=f; renderTodos(); }
+function renderTodos(){
+  const F=[["open","未完成"],["done","已完成"],["all","全部"]];
+  document.getElementById("todoFilter").innerHTML=F.map(([k,l])=>
+    `<button class="f-chip ${k===todoFilter?"on":""}" onclick="setTodoFilter('${k}')">${l}</button>`).join("")
+    + (state.todos.some(t=>t.done)?`<button class="f-chip" style="margin-left:auto" onclick="clearDone()">清除已完成</button>`:"");
+  const t=ymd();
+  let list=state.todos.filter(x=> todoFilter==="all" || (todoFilter==="done")===!!x.done);
+  list.sort((a,b)=> (a.done-b.done) || ((b.pri==="high")-(a.pri==="high"))
+    || ((a.due||"9999").localeCompare(b.due||"9999")) || (b.time-a.time));
+  document.getElementById("todoList").innerHTML = list.length ? list.map(x=>{
+    const late = !x.done && x.due && x.due<t;
+    return `<div class="item ${x.done?"done":""}">
+      <input type="checkbox" ${x.done?"checked":""} onchange="toggleTodo('${x.id}')" aria-label="完成">
+      <div class="it-main">
+        <div class="it-text">${esc(x.text)}${x.pri==="high"?'<span class="tag hot">重要</span>':""}</div>
+        ${x.due?`<div class="it-sub">${late?"⚠️ 已逾期・":"期限："}${esc(dateLabel(x.due))}</div>`:""}
+      </div>
+      <button class="it-x" onclick="deleteTodo('${x.id}')" aria-label="刪除">×</button>
+    </div>`; }).join("")
+    : `<div class="empty">${todoFilter==="done"?"還沒有完成的項目":"目前沒有待辦，輕鬆一下 🌿"}</div>`;
+}
+function clearDone(){ state.todos=state.todos.filter(t=>!t.done); save(); renderTodos(); toast("已清除已完成"); }
+
+/* ============ 行程 ============ */
+function evCmp(a,b){ return (a.date+(a.time||"00:00")).localeCompare(b.date+(b.time||"00:00")); }
+function addEvent(){
+  const title=document.getElementById("evTitle").value.trim();
+  const date=document.getElementById("evDate").value;
+  if(!title){ toast("請填行程名稱"); return; }
+  if(!date){ toast("請選日期"); return; }
+  const ev={id:uid(),title,date,time:document.getElementById("evTime").value||"",
+    place:document.getElementById("evPlace").value.trim(),time0:Date.now()};
+  state.events.push(ev);
+  if(document.getElementById("evRemind").checked && ev.time) addEventReminder(ev);
+  save();
+  ["evTitle","evTime","evPlace"].forEach(i=>document.getElementById(i).value="");
+  renderEvents(); toast("已加入行程");
+}
+function addEventReminder(ev){
+  const at=new Date(`${ev.date}T${ev.time}`); at.setMinutes(at.getMinutes()-30);
+  if(at.getTime()>Date.now())
+    state.reminders.push({id:uid(),text:`30 分鐘後：${ev.title}${ev.place?"（"+ev.place+"）":""}`,at:localDT(at),repeat:"none",fired:false,src:ev.id});
+}
+function deleteEvent(id){
+  state.events=state.events.filter(e=>e.id!==id);
+  state.reminders=state.reminders.filter(r=>r.src!==id);
+  save(); renderEvents();
+}
+function renderEvents(){
+  if(!document.getElementById("evDate").value) document.getElementById("evDate").value=ymd();
+  const t=ymd();
+  const pastN=state.events.filter(e=>e.date<t).length;
+  document.getElementById("evFilter").innerHTML =
+    `<button class="f-chip ${!evShowPast?"on":""}" onclick="evShowPast=false;renderEvents()">接下來</button>`+
+    `<button class="f-chip ${evShowPast?"on":""}" onclick="evShowPast=true;renderEvents()">過去（${pastN}）</button>`;
+  let list=state.events.filter(e=> evShowPast? e.date<t : e.date>=t).sort(evCmp);
+  if(evShowPast) list.reverse();
+  let html="", last="";
+  list.forEach(e=>{
+    if(e.date!==last){ html+=`<div class="day-label">${esc(dateLabel(e.date))}</div>`; last=e.date; }
+    html+=`<div class="item ${evShowPast?"past":""}">
+      <div class="t-time" style="padding-top:3px">${esc(e.time||"整天")}</div>
+      <div class="it-main"><div class="it-text">${esc(e.title)}</div>${e.place?`<div class="it-sub">📍 ${esc(e.place)}</div>`:""}</div>
+      <button class="it-x" onclick="deleteEvent('${e.id}')" aria-label="刪除">×</button>
+    </div>`;
+  });
+  document.getElementById("evList").innerHTML = html || `<div class="empty">${evShowPast?"沒有過去的行程":"接下來沒有行程"}</div>`;
+}
+
+/* ============ 提醒 ============ */
+function addReminder(){
+  const text=document.getElementById("rmText").value.trim();
+  const at=document.getElementById("rmAt").value;
+  if(!text){ toast("要提醒什麼呢？"); return; }
+  if(!at){ toast("請選提醒時間"); return; }
+  state.reminders.push({id:uid(),text,at,repeat:document.getElementById("rmRepeat").value,fired:false});
+  save(); document.getElementById("rmText").value=""; renderReminders(); toast("已設定提醒");
+  askNotify();
+}
+function deleteReminder(id){ state.reminders=state.reminders.filter(r=>r.id!==id); save(); renderReminders(); }
+function renderReminders(){
+  const n=document.getElementById("notifNote");
+  const perm = ("Notification" in window)? Notification.permission : "unsupported";
+  n.innerHTML = perm==="granted" ? "🔔 已開啟系統通知。頁面開著（或在背景分頁）時，時間到會跳出通知。"
+    : perm==="unsupported" ? "這個瀏覽器不支援系統通知，時間到時會在頁面上提示。請保持頁面開啟。"
+    : `時間到時會在頁面上提示。想收到系統通知？<button class="mini" style="margin-top:8px" onclick="askNotify(true)">🔔 開啟通知</button>`;
+  if(!document.getElementById("rmAt").value){
+    const d=new Date(Date.now()+36e5); d.setMinutes(0); document.getElementById("rmAt").value=localDT(d);
+  }
+  const RP={none:"",daily:"每天",weekly:"每週"};
+  const list=[...state.reminders].sort((a,b)=>(a.fired-b.fired)||a.at.localeCompare(b.at));
+  document.getElementById("rmList").innerHTML = list.length ? list.map(r=>`
+    <div class="item ${r.fired?"past":""}">
+      <div class="it-main">
+        <div class="it-text">${esc(r.text)}${RP[r.repeat]?`<span class="tag">${RP[r.repeat]}</span>`:""}</div>
+        <div class="it-sub">${r.fired?"✓ 已提醒・":"⏰ "}${esc(dtLabel(r.at))}</div>
+      </div>
+      <button class="it-x" onclick="deleteReminder('${r.id}')" aria-label="刪除">×</button>
+    </div>`).join("") : `<div class="empty">還沒有提醒</div>`;
+}
+function askNotify(force){
+  if(!("Notification" in window)) return;
+  if(Notification.permission==="default" || force)
+    Notification.requestPermission().then(()=>{ if(document.getElementById("view-reminders").classList.contains("active")) renderReminders(); });
+}
+function checkReminders(){
+  const now=Date.now(); let changed=false;
+  state.reminders.forEach(r=>{
+    if(r.fired) return;
+    const t=new Date(r.at).getTime();
+    if(isNaN(t) || t>now) return;
+    fireReminder(r);
+    if(r.repeat==="daily"||r.repeat==="weekly"){
+      const step=(r.repeat==="daily"?1:7)*864e5; let nt=t;
+      while(nt<=now) nt+=step;
+      r.at=localDT(new Date(nt));
+    }else r.fired=true;
+    changed=true;
+  });
+  if(changed){
+    save();
+    const act=document.querySelector(".view.active")?.id;
+    if(act==="view-reminders") renderReminders();
+    if(act==="view-home") renderHome();
+  }
+}
+function fireReminder(r){
+  toast(`⏰ ${state.title}提醒你：${r.text}`,6000);
+  try{ if("Notification" in window && Notification.permission==="granted") new Notification(state.title+"提醒你",{body:r.text}); }catch(e){}
+  try{ navigator.vibrate?.([200,100,200]); }catch(e){}
+}
+
+/* ============ 筆記 ============ */
+function saveNote(){
+  const title=document.getElementById("noteTitle").value.trim();
+  const body=document.getElementById("noteBody").value.trim();
+  if(!title && !body){ toast("筆記是空的"); return; }
+  if(editingNote){
+    const n=state.notes.find(x=>x.id===editingNote);
+    if(n){ n.title=title; n.body=body; n.time=Date.now();
+      state.notes=[n,...state.notes.filter(x=>x.id!==n.id)]; }
+  }else state.notes.unshift({id:uid(),title,body,time:Date.now()});
+  save(); clearNoteEditor(); renderNotes(); toast("筆記已儲存");
+}
+function editNote(id){
+  const n=state.notes.find(x=>x.id===id); if(!n) return;
+  editingNote=id;
+  document.getElementById("noteTitle").value=n.title;
+  document.getElementById("noteBody").value=n.body;
+  document.getElementById("noteCancel").style.display="";
+  document.getElementById("noteSaveBtn").textContent="✓ 更新筆記";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function clearNoteEditor(){
+  editingNote=null;
+  document.getElementById("noteTitle").value=""; document.getElementById("noteBody").value="";
+  document.getElementById("noteCancel").style.display="none";
+  document.getElementById("noteSaveBtn").textContent="＋ 儲存筆記";
+}
+function deleteNote(id,ev){
+  ev.stopPropagation();
+  if(!confirm("確定刪除這則筆記？")) return;
+  state.notes=state.notes.filter(x=>x.id!==id);
+  if(editingNote===id) clearNoteEditor();
+  save(); renderNotes();
+}
+function renderNotes(){
+  const q=document.getElementById("noteSearch").value.trim().toLowerCase();
+  const list=state.notes.filter(n=>!q || (n.title+" "+n.body).toLowerCase().includes(q));
+  document.getElementById("noteList").innerHTML = list.length ? list.map(n=>`
+    <div class="note-card" onclick="editNote('${n.id}')">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <div class="nt" style="flex:1">${esc(n.title||"（無標題）")}</div>
+        <button class="it-x" onclick="deleteNote('${n.id}',event)" aria-label="刪除">×</button>
+      </div>
+      ${n.body?`<div class="nb">${esc(n.body)}</div>`:""}
+      <div class="nm">${timeStr(n.time)}</div>
+    </div>`).join("") : `<div class="empty">${q?"找不到符合的筆記":"還沒有筆記"}</div>`;
+}
+
+/* ============ AI 對話 ============ */
+function snapshot(){
+  const t=ymd();
+  const todos=state.todos.filter(x=>!x.done).slice(0,40)
+    .map(x=>`- ${x.text}${x.due?`（期限 ${x.due}）`:""}${x.pri==="high"?"［重要］":""}`).join("\n")||"（無）";
+  const evs=state.events.filter(e=>e.date>=t).sort(evCmp).slice(0,30)
+    .map(e=>`- ${e.date} ${e.time||"整天"} ${e.title}${e.place?"＠"+e.place:""}`).join("\n")||"（無）";
+  const rms=state.reminders.filter(r=>!r.fired).sort((a,b)=>a.at.localeCompare(b.at)).slice(0,30)
+    .map(r=>`- ${r.at.replace("T"," ")} ${r.text}${r.repeat!=="none"?`（${r.repeat==="daily"?"每天":"每週"}）`:""}`).join("\n")||"（無）";
+  const notes=state.notes.slice(0,15)
+    .map(n=>`- ${n.title||"（無標題）"}：${(n.body||"").replace(/\s+/g," ").slice(0,120)}`).join("\n")||"（無）";
+  return {todos,evs,rms,notes};
+}
+function buildSys(){
+  const now=new Date(); const s=snapshot();
+  return `你是「${state.title}」，${state.nick||"使用者"}的私人助理。個性貼心、可靠、說話簡潔溫暖，一律用繁體中文（台灣用語）。
+現在時間：${ymd(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}（星期${WEEK[now.getDay()]}）。
+
+【關於使用者】
+${state.about||"（尚未填寫）"}
+
+【目前未完成待辦】
+${s.todos}
+
+【接下來的行程】
+${s.evs}
+
+【尚未觸發的提醒】
+${s.rms}
+
+【最近筆記】
+${s.notes}
+
+【你可以直接幫使用者新增資料】
+當使用者要你記下、安排、提醒某件事時，先用一兩句話回覆確認，然後在回覆最後附上一個 \`\`\`actions 程式碼區塊，內容是 JSON 陣列，格式如下（只放需要的項目，日期時間一律換算成絕對值）：
+\`\`\`actions
+[
+  {"type":"todo","text":"繳電話費","due":"YYYY-MM-DD","pri":"normal 或 high"},
+  {"type":"event","title":"牙醫回診","date":"YYYY-MM-DD","time":"HH:MM","place":"地點"},
+  {"type":"reminder","text":"打電話給媽媽","at":"YYYY-MM-DDTHH:MM","repeat":"none 或 daily 或 weekly"},
+  {"type":"note","title":"標題","body":"內容"}
+]
+\`\`\`
+沒有要新增東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。`;
+}
+function parseActions(text){
+  const m=text.match(/```actions\s*([\s\S]*?)```/);
+  if(!m) return {clean:text.trim(),acts:[]};
+  let arr=[];
+  try{ arr=JSON.parse(m[1].trim()); if(!Array.isArray(arr)) arr=[arr]; }catch(e){ arr=[]; }
+  return {clean:text.replace(m[0],"").trim(),acts:arr};
+}
+function applyActions(acts){
+  const done=[];
+  acts.forEach(a=>{
+    if(!a||typeof a!=="object") return;
+    if(a.type==="todo" && a.text){
+      state.todos.unshift({id:uid(),text:String(a.text).slice(0,120),due:/^\d{4}-\d{2}-\d{2}$/.test(a.due||"")?a.due:"",
+        pri:a.pri==="high"?"high":"normal",done:false,time:Date.now()});
+      done.push("✅ 待辦："+a.text);
+    }else if(a.type==="event" && a.title && /^\d{4}-\d{2}-\d{2}$/.test(a.date||"")){
+      const ev={id:uid(),title:String(a.title).slice(0,80),date:a.date,time:/^\d{2}:\d{2}$/.test(a.time||"")?a.time:"",
+        place:String(a.place||"").slice(0,80),time0:Date.now()};
+      state.events.push(ev);
+      done.push(`🗓️ 行程：${dateLabel(ev.date)} ${ev.time} ${ev.title}`);
+    }else if(a.type==="reminder" && a.text && !isNaN(new Date(a.at))){
+      const at=localDT(new Date(a.at));
+      state.reminders.push({id:uid(),text:String(a.text).slice(0,120),at,
+        repeat:["daily","weekly"].includes(a.repeat)?a.repeat:"none",fired:false});
+      done.push(`⏰ 提醒：${dtLabel(at)} ${a.text}`);
+    }else if(a.type==="note" && (a.title||a.body)){
+      state.notes.unshift({id:uid(),title:String(a.title||"").slice(0,60),body:String(a.body||""),time:Date.now()});
+      done.push("📝 筆記："+(a.title||"（無標題）"));
+    }
+  });
+  return done;
+}
+function renderChat(){
+  const box=document.getElementById("chatBox");
+  if(!state.chat.length){
+    box.innerHTML=`<div class="msg bot">嗨${state.nick?"，"+esc(state.nick):""}！我是${esc(state.title)} 😊\n你可以直接跟我說「下週三早上十點開會」、「提醒我晚上吃藥」，我會幫你記好；也可以問我今天該怎麼安排。</div>`;
+  }else{
+    box.innerHTML=state.chat.map(m=>`<div class="msg ${m.role==="user"?"user":"bot"} ${m.err?"err":""}">${esc(m.content)}${
+      m.acts&&m.acts.length?`<div class="acts">${m.acts.map(a=>`<span class="act">${esc(a)}</span>`).join("")}</div>`:""}</div>`).join("");
+  }
+  if(chatting) box.insertAdjacentHTML("beforeend",`<div class="msg bot" id="typing">${esc(state.title)}思考中…</div>`);
+}
+async function sendChat(){
+  if(chatting) return;
+  const input=document.getElementById("chatInput"); const text=input.value.trim();
+  if(!text) return;
+  if(!state.apiKey){ toast("請先到設定填入 OpenAI 金鑰"); setTimeout(()=>openView("settings"),600); return; }
+  input.value="";
+  state.chat.push({role:"user",content:text});
+  chatting=true; save(); renderChat(); scrollChat();
+  const btn=document.getElementById("chatBtn"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+  try{
+    const history=state.chat.filter(m=>!m.err).slice(-16).map(m=>({role:m.role,content:m.content}));
+    const out=await callOpenAI([{role:"system",content:buildSys()},...history],1200);
+    const {clean,acts}=parseActions(out);
+    const done=applyActions(acts);
+    state.chat.push({role:"assistant",content:clean||"好的！",acts:done});
+    if(done.length) toast(`已幫你新增 ${done.length} 項`);
+  }catch(e){
+    state.chat.push({role:"assistant",content:"抱歉，出了點問題：「"+e.message+"」",err:true});
+  }
+  if(state.chat.length>60) state.chat=state.chat.slice(-60);
+  chatting=false; save();
+  btn.disabled=false; btn.textContent="送出";
+  renderChat(); scrollChat();
+}
+function scrollChat(){ setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}),40); }
+function clearChat(){
+  if(!state.chat.length) return;
+  if(!confirm("確定清空所有對話紀錄？")) return;
+  state.chat=[]; save(); renderChat();
+}
+async function callOpenAI(messages,maxTokens){
+  let lastErr;
+  for(let attempt=0;attempt<3;attempt++){
+    const isG5=/^gpt-5/.test(state.model);
+    const body={model:state.model,messages};
+    if(isG5){ body.max_completion_tokens=(maxTokens||1200)*3; }   // gpt-5 系列：推理也吃額度
+    else{ body.max_tokens=maxTokens||1200; body.temperature=0.6; }
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+state.apiKey},
+      body:JSON.stringify(body)
+    });
+    if(res.ok){ const data=await res.json(); return (data.choices?.[0]?.message?.content||"").trim(); }
+    let m="HTTP "+res.status;
+    try{ const er=await res.json(); m=er.error?.message||m; }catch(e){}
+    if(res.status===429 || /rate limit/i.test(m)){
+      lastErr=m; const wait=2000*(attempt+1);
+      toast(`AI 流量滿了，${wait/1000} 秒後自動重試…`);
+      await new Promise(r=>setTimeout(r,wait));
+      continue;
+    }
+    if(res.status===401) throw new Error("金鑰無效，請到設定確認 OpenAI 金鑰");
+    throw new Error(m);
+  }
+  throw new Error("AI 流量限制，請稍等一分鐘再試。原始訊息："+lastErr);
+}
+
+/* ============ 設定 ============ */
+function fillSettings(){
+  document.getElementById("apiKey").value=state.apiKey;
+  document.getElementById("modelSel").value=state.model;
+  document.getElementById("titleSet").value=state.title;
+  document.getElementById("nickSet").value=state.nick;
+  document.getElementById("aboutSet").value=state.about;
+  document.getElementById("buildTag").textContent="版本 "+state.build;
+}
+function toggleKey(){
+  const k=document.getElementById("apiKey"), b=document.getElementById("toggleKeyBtn");
+  const show=k.type==="password"; k.type=show?"text":"password"; b.textContent=show?"隱藏":"顯示";
+}
+function saveSettings(){
+  state.apiKey=document.getElementById("apiKey").value.trim();
+  state.model=document.getElementById("modelSel").value;
+  state.title=document.getElementById("titleSet").value.trim()||"小乖";
+  state.nick=document.getElementById("nickSet").value.trim();
+  state.about=document.getElementById("aboutSet").value.trim();
+  save(); renderHeader(); toast("設定已儲存"); setTimeout(()=>openView("home"),500);
+}
+function exportData(){
+  const {apiKey,...data}=state;
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`小乖備份-${ymd()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("備份已下載");
+}
+function importData(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d || !Array.isArray(d.todos)) throw 0;
+      if(!confirm("匯入會覆蓋目前的待辦、行程、提醒、筆記與對話，確定嗎？")) return;
+      const key=state.apiKey;
+      localStorage.setItem(STORE_KEY,JSON.stringify({...d,apiKey:key}));
+      state=load(); renderHeader(); fillSettings(); toast("匯入完成");
+    }catch(e){ toast("這不是有效的小乖備份檔"); }
+    inp.value="";
+  };
+  r.readAsText(f);
+}
+function resetAll(){
+  if(!confirm("確定清空所有資料（含金鑰）並回復出廠預設？此動作無法復原。")) return;
+  localStorage.removeItem(STORE_KEY); state=load(); fillSettings(); renderHeader(); toast("已回復出廠預設");
+}
+
+/* ============ 啟動 ============ */
+renderHome();
+checkReminders();
+setInterval(checkReminders,20000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ checkReminders(); if(document.getElementById("view-home").classList.contains("active")) renderHome(); } });
+</script>
+</body>
+</html>
