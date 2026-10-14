@@ -211,7 +211,6 @@ function handleLineGroup_(ev, gid, type) {
   if (ev.type === 'leave') { delete groups[gid]; saveLineGroups_(groups); return; }
   if (ev.type === 'join') {
     if (!inviteOpen_() || !ownerInGroup_(gid, type)) {
-      reply_(ev.replyToken, '小乖只接受主人的邀請，先離開囉 👋');
       leaveLineGroup_(gid, type);
       return;
     }
@@ -284,13 +283,13 @@ function handleLine_(ev) {
   const text = ev.message.text.trim();
   const bind = text.match(/^綁定\s*(\S+)$/);
   if (bind) {
-    if (owner && owner !== uid) return reply_(ev.replyToken, '小乖已經有主人了。');
+    if (owner && owner !== uid) return;   // 已經有主人：別人一律不回
     if (bind[1] !== prop_('SYNC_KEY')) return reply_(ev.replyToken, '同步密碼不對喔，再確認一次。');
     setProp_('OWNER_USER_ID', uid);
     return reply_(ev.replyToken, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。');
   }
   if (!owner) return reply_(ev.replyToken, '請先傳「綁定 你的同步密碼」完成綁定。');
-  if (uid !== owner) return reply_(ev.replyToken, '小乖目前只服務主人喔。');
+  if (uid !== owner) return;   // 只回主人，其他人不回應
 
   const ans = answer_(text);
   const rp = reportLine_();
@@ -735,13 +734,13 @@ function handleTelegram_(update) {
   if (/^\/start\b/.test(text) && !owner) return tgSend_(chatId, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
   const bind = text.match(/^(?:綁定|\/bind)\s*(\S+)$/);
   if (bind) {
-    if (owner && owner !== chatId) return tgSend_(chatId, '小乖已經有主人了。');
+    if (owner && owner !== chatId) return;   // 已經有主人：別人一律不回
     if (bind[1] !== prop_('SYNC_KEY')) return tgSend_(chatId, '同步密碼不對喔，再確認一次。');
     setProp_('TG_OWNER_CHAT_ID', chatId);
     return tgSend_(chatId, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。');
   }
   if (!owner) return tgSend_(chatId, '請先傳「綁定 你的同步密碼」完成綁定。');
-  if (chatId !== owner) return tgSend_(chatId, '小乖目前只服務主人喔。');
+  if (chatId !== owner) return;   // 只回主人，其他人不回應
 
   tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
   const ans = answer_(text.replace(/^\/start\b\s*/, '') || '說明');
