@@ -405,10 +405,36 @@ function quote_(text, image) {
     return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
   }
   parsed.card = /刷卡/.test(text || '');
-  const answer = quoteText_(computeQuote_(prices, parsed));
+  const answer = quoteText_(fitTarget_(prices, parsed, targetPv_(text)));
   logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
   logChat_('assistant', answer);
   return answer;
+}
+
+// 說明裡寫的目標 PV，例如「試算 22萬」「試算 300000」
+function targetPv_(text) {
+  const t = String(text || '').normalize('NFKC');
+  const w = t.match(/(\d+(?:\.\d+)?)\s*萬/);
+  if (w) return Math.round(Number(w[1]) * 10000);
+  const d = t.match(/(\d{5,7})/);
+  return d ? Number(d[1]) : 0;
+}
+
+// 有目標 PV 時：把最後一個有寫顆數的月份拉長（一次加 1 個月），直到總 PV 達標；最多 36 個月
+function fitTarget_(prices, parsed, target) {
+  let r = computeQuote_(prices, parsed);
+  if (!target || !r.isSheet) return r;
+  const filled = (parsed.periods || []).filter(pd => ((pd && pd.rows) || []).some(x => Number(String(x && x.perDose).normalize('NFKC')) > 0));
+  const last = filled[filled.length - 1];
+  const pvOf = q => q.lines.reduce((a, l) => a + l.pv, 0);
+  let m = Math.max(1, Number(last.months) || 1);
+  while (pvOf(r) < target && m < 36) {
+    last.months = ++m;
+    r = computeQuote_(prices, parsed);
+  }
+  r.target = target;
+  r.fitLabel = String(last.label || '');
+  return r;
 }
 
 // 把辨識結果換算成購買清單：明細表依「每次顆數 × 時段 × 30 天 × 月數 ÷ 每盒顆數」無條件進位成盒數
@@ -528,6 +554,7 @@ function quoteText_(r) {
   const who = [r.name ? '購買者 ' + r.name : '', r.introducer ? '介紹人 ' + r.introducer : '', r.date].filter(Boolean).join('｜');
   if (who) out.push(who);
   out.push((r.card ? '💳 刷卡' : '💵 現金') + (r.isSheet ? '｜服用 ' + r.totalMonths + ' 個月' : '') + (days ? '｜預估可使用 ' + days + ' 天' : ''));
+  if (r.target) out.push('🎯 目標 ' + n(r.target) + ' PV：' + (r.fitLabel ? r.fitLabel + '的' : '') + '服用月數自動調整到達標為止');
   if (r.isSheet) {
     out.push('', '【看到的內容】（括號是每次顆數）');
     r.periods.forEach(pd => out.push(pd.label + '（服用 ' + pd.months + ' 個月）：' + pd.rows.join('、')));
