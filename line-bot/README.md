@@ -1,12 +1,12 @@
-# 小乖 × LINE 官方帳號 設定教學
+# 小乖 × LINE／Telegram 設定教學
 
 完成後你可以：
 
-- 在 LINE 上直接跟小乖聊天，叫它幫你記待辦、排行程、設提醒、寫筆記
-- 提醒時間到，小乖會用 LINE 通知你（每 5 分鐘檢查一次）
-- LINE 和網頁版（Assistant.html）看到的是同一份資料，資料存在你自己的 Google 試算表
+- 在 LINE 或 Telegram 上直接跟小乖聊天，叫它幫你記待辦、排行程、設提醒、寫筆記
+- 提醒時間到，小乖會用 LINE／Telegram 通知你（每 5 分鐘檢查一次）
+- LINE、Telegram 和網頁版（Assistant.html）看到的是同一份資料，資料存在你自己的 Google 試算表
 
-整個流程大約 15 分鐘，只需要做一次。
+LINE 和 Telegram 可以兩個都接，也可以只接一個。只要 Telegram 的話，跳過第 1 步和第 4 步，做第 2、3、5 步（要接網頁版再做第 6 步）。整個流程大約 15 分鐘，只需要做一次。
 
 ## 1. 建立 LINE 官方帳號與 Messaging API
 
@@ -29,8 +29,8 @@
 
      | 屬性 | 值 |
      | --- | --- |
-     | `LINE_CHANNEL_ACCESS_TOKEN` | 第 1 步複製的 Channel access token |
      | `OPENAI_API_KEY` | 你的 OpenAI 金鑰（`sk-` 開頭） |
+     | `LINE_CHANNEL_ACCESS_TOKEN` | 第 1 步複製的 Channel access token（只用 Telegram 可不填） |
 
 5. 回到編輯器，上方函式選單選 `setup`，按「執行」。第一次會要求授權，依畫面允許即可。
 6. 執行完看「執行記錄」，會出現 **同步密碼**，抄下來。試算表裡也會多出「待辦、行程、提醒、筆記…」幾個分頁。
@@ -62,7 +62,27 @@
 
 > 按 Webhook 旁的「Verify」可能會顯示失敗，這是因為 Apps Script 會先轉址一次。只要實際傳訊息小乖有回，就是正常的。
 
-## 5. 接上網頁版
+## 5. 接上 Telegram
+
+1. 在 Telegram 搜尋 **@BotFather**，傳 `/newbot`，依指示取名字（例如「小乖」）和帳號名稱（要以 `bot` 結尾，例如 `xiaoguai_yb_bot`）。
+2. BotFather 會回你一串 **token**（像 `123456789:ABC…`），複製起來。
+3. 回到 Apps Script「專案設定 → 指令碼屬性」，新增兩個：
+
+   | 屬性 | 值 |
+   | --- | --- |
+   | `TELEGRAM_BOT_TOKEN` | BotFather 給的 token |
+   | `WEBAPP_URL` | 第 3 步的網頁應用程式網址（結尾是 `/exec`） |
+
+4. 回到編輯器，函式選單選 `setupTelegram`，按「執行」。執行記錄出現 `"ok":true` 就接好了。
+5. 在 Telegram 打開你的機器人，按「開始」，再傳：
+
+   ```
+   綁定 你的同步密碼
+   ```
+
+   看到「綁定完成」就可以聊天了。綁定後只有你能使用。
+
+## 6. 接上網頁版
 
 打開 Assistant.html → 設定 → 「LINE 與雲端同步」，貼上第 3 步的網址和同步密碼，按「儲存並立即同步」。看到「上次同步：…」就完成了。
 
@@ -70,14 +90,14 @@
 
 ## 常見問題
 
-**LINE 上可以做什麼？** 傳「說明」看範例。傳「清除對話」會讓小乖忘掉 LINE 上的聊天內容，待辦和筆記不受影響。目前只看得懂文字訊息。
+**LINE／Telegram 上可以做什麼？** 傳「說明」看範例。傳「清除對話」會讓小乖忘掉聊天內容，待辦和筆記不受影響。目前只看得懂文字訊息。LINE 和 Telegram 共用同一段聊天記憶，在 LINE 說到一半，可以到 Telegram 接著聊。
 
 **要換 AI 模型？** 在指令碼屬性新增 `MODEL`，值填 `gpt-5-mini`（預設是 `gpt-4o-mini`）。
 
 **費用？** Google 試算表與 Apps Script 免費。OpenAI 依用量計費。LINE 一般回覆訊息不計費，但提醒用的是「推播訊息」，免費方案每月有則數上限，同一時間到的提醒會合併成一則送出。
 
-**網頁和 LINE 都會提醒嗎？** 網頁開著時，網頁也會跳提醒，所以有機會收到兩次，屬正常現象。
+**會在哪裡收到提醒？** LINE 和 Telegram 都綁定的話，兩邊都會收到；網頁開著時也會跳提醒，所以有機會收到不只一次，屬正常現象。Telegram 的通知沒有則數限制。
 
 **資料可以直接在試算表改嗎？** 請不要手動改「資料」那一欄，那是程式讀的內容；「摘要」欄只是方便你瀏覽。要改資料請用網頁或 LINE。
 
-**安全性：** 同步密碼等於鑰匙，不要分享給別人。若外流，到指令碼屬性改掉 `SYNC_KEY`，再同步更新 LINE 的 Webhook URL 和網頁設定；若要換綁 LINE 帳號，刪掉 `OWNER_USER_ID` 後重新傳「綁定」。
+**安全性：** 同步密碼等於鑰匙，不要分享給別人。若外流，到指令碼屬性改掉 `SYNC_KEY`，再更新 LINE 的 Webhook URL、重新執行 `setupTelegram`，並更新網頁設定。要換綁帳號的話，刪掉 `OWNER_USER_ID`（LINE）或 `TG_OWNER_CHAT_ID`（Telegram）後重新傳「綁定」。

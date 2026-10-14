@@ -1,10 +1,11 @@
 /**
- * 私人助理小乖：LINE 官方帳號 + 雲端同步（Google Apps Script）
+ * 私人助理小乖：LINE 官方帳號 + Telegram + 雲端同步（Google Apps Script）
  *
- * 一支程式做兩件事：
+ * 一支程式做三件事：
  *  1. LINE Webhook：在 LINE 跟小乖聊天，小乖用 OpenAI 回話，並能幫你新增待辦、行程、提醒、筆記。
- *  2. 雲端同步：Assistant.html 把待辦、行程、提醒、筆記同步到這份試算表，LINE 與網頁看到同一份資料。
- * 另外每 5 分鐘檢查一次提醒，時間到就用 LINE 推播通知你。
+ *  2. Telegram Webhook：在 Telegram 跟小乖聊天，功能與 LINE 相同。LINE、Telegram 可以只接其中一個。
+ *  3. 雲端同步：Assistant.html 把待辦、行程、提醒、筆記同步到這份試算表，LINE、Telegram 與網頁看到同一份資料。
+ * 另外每 5 分鐘檢查一次提醒，時間到就用 LINE／Telegram 通知你。
  *
  * 設定步驟請看同資料夾的 README.md。
  */
@@ -13,9 +14,9 @@ const TZ = 'Asia/Taipei';
 const COLS = ['todos', 'events', 'reminders', 'notes'];
 const SHEETS = {
   todos: '待辦', events: '行程', reminders: '提醒', notes: '筆記',
-  deleted: '刪除紀錄', profile: '個人資料', chat: 'LINE對話',
+  deleted: '刪除紀錄', profile: '個人資料', chat: '聊天紀錄',
 };
-const HISTORY_TURNS = 12;      // 送給 AI 的 LINE 對話則數
+const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 共用）
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 const HELP_TEXT = [
@@ -25,7 +26,7 @@ const HELP_TEXT = [
   '・我這週有什麼行程？',
   '',
   '其他指令：',
-  '・清除對話：讓小乖忘掉 LINE 上的聊天內容（資料不會刪）',
+  '・清除對話：讓小乖忘掉聊天內容（待辦、筆記等資料不會刪）',
 ].join('\n');
 
 /* ============ 設定值（指令碼屬性） ============ */
@@ -63,6 +64,19 @@ function setup() {
   Logger.log('安裝完成！你的同步密碼是：' + prop_('SYNC_KEY'));
 }
 
+/* ============ 接上 Telegram：部署完成後在編輯器選 setupTelegram 執行 ============ */
+function setupTelegram() {
+  if (!prop_('TELEGRAM_BOT_TOKEN')) throw new Error('請先在指令碼屬性填入 TELEGRAM_BOT_TOKEN。');
+  const base = prop_('WEBAPP_URL');
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(base)) throw new Error('請先在指令碼屬性填入 WEBAPP_URL（部署後拿到、結尾是 /exec 的網址）。');
+  const res = tgApi_('setWebhook', {
+    url: base + '?key=' + encodeURIComponent(prop_('SYNC_KEY')),
+    allowed_updates: ['message'],
+    drop_pending_updates: true,
+  });
+  Logger.log('Telegram 回應：' + res);
+}
+
 /* ============ 入口 ============ */
 function doGet() {
   return ContentService.createTextOutput('小乖雲端服務運作中');
@@ -78,6 +92,13 @@ function doPost(e) {
     body.events.forEach(ev => {
       try { handleLine_(ev); } catch (err) { console.error(err); }
     });
+    return text_('OK');
+  }
+
+  // Telegram Webhook（同樣用網址上的 key 驗證）
+  if (body.update_id !== undefined) {
+    if (e.parameter.key !== prop_('SYNC_KEY')) return text_('forbidden');
+    try { handleTelegram_(body); } catch (err) { console.error(err); }
     return text_('OK');
   }
 
@@ -121,13 +142,63 @@ function handleLine_(ev) {
   if (!owner) return reply_(ev.replyToken, '請先傳「綁定 你的同步密碼」完成綁定。');
   if (uid !== owner) return reply_(ev.replyToken, '小乖目前只服務主人喔。');
 
-  if (text === '說明' || /^help$/i.test(text)) return reply_(ev.replyToken, HELP_TEXT);
+  reply_(ev.replyToken, answer_(text));
+}
+
+// LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
+function answer_(text) {
+  if (text === '說明' || /^\/?help$/i.test(text)) return HELP_TEXT;
   if (text === '清除對話') {
     const sh = sheet_('chat');
     if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
-    return reply_(ev.replyToken, '好，LINE 上的聊天內容我忘掉了，你的待辦和筆記都還在。');
+    return '好，聊天內容我忘掉了，你的待辦和筆記都還在。';
   }
-  reply_(ev.replyToken, chat_(text));
+  return chat_(text);
+}
+
+/* ============ Telegram ============ */
+function handleTelegram_(update) {
+  // Apps Script 回應時會轉址一次，Telegram 可能因此重送同一則；用 update_id 去除重複
+  const seenId = Number(prop_('TG_LAST_UPDATE_ID')) || 0;
+  if (update.update_id <= seenId) return;
+  setProp_('TG_LAST_UPDATE_ID', String(update.update_id));
+
+  const msg = update.message;
+  if (!msg || !msg.chat || msg.chat.type !== 'private') return;
+  const chatId = String(msg.chat.id);
+  const owner = prop_('TG_OWNER_CHAT_ID');
+  const text = String(msg.text || '').trim();
+
+  if (!text) {
+    if (chatId === owner) tgSend_(chatId, '小乖目前只看得懂文字訊息喔。');
+    return;
+  }
+  if (/^\/start\b/.test(text) && !owner) return tgSend_(chatId, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
+  const bind = text.match(/^(?:綁定|\/bind)\s*(\S+)$/);
+  if (bind) {
+    if (owner && owner !== chatId) return tgSend_(chatId, '小乖已經有主人了。');
+    if (bind[1] !== prop_('SYNC_KEY')) return tgSend_(chatId, '同步密碼不對喔，再確認一次。');
+    setProp_('TG_OWNER_CHAT_ID', chatId);
+    return tgSend_(chatId, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。');
+  }
+  if (!owner) return tgSend_(chatId, '請先傳「綁定 你的同步密碼」完成綁定。');
+  if (chatId !== owner) return tgSend_(chatId, '小乖目前只服務主人喔。');
+
+  tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
+  tgSend_(chatId, answer_(text.replace(/^\/start\b\s*/, '') || '說明'));
+}
+
+function tgSend_(chatId, text) {
+  tgApi_('sendMessage', { chat_id: chatId, text: String(text).slice(0, 4000) });
+}
+
+function tgApi_(method, payload) {
+  const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/' + method, {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    payload: JSON.stringify(payload),
+  });
+  if (res.getResponseCode() !== 200) console.error('Telegram ' + method + ' 失敗：' + res.getContentText());
+  return res.getContentText();
 }
 
 function chat_(text) {
@@ -180,8 +251,8 @@ function lineApi_(kind, payload) {
 
 /* ============ 提醒（時間驅動觸發條件，每 5 分鐘） ============ */
 function checkReminders() {
-  const owner = prop_('OWNER_USER_ID');
-  if (!owner || !prop_('SHEET_ID')) return;
+  const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
+  if ((!owner && !tgOwner) || !prop_('SHEET_ID')) return;
   const due = withLock_(() => {
     const d = readAll_();
     const now = Date.now();
@@ -204,7 +275,10 @@ function checkReminders() {
     if (msgs.length) writeAll_(d);
     return { msgs: msgs, title: (d.profile && d.profile.title) || '小乖' };
   });
-  if (due.msgs.length) push_(owner, due.title + '提醒你：\n' + due.msgs.join('\n'));
+  if (!due.msgs.length) return;
+  const note = due.title + '提醒你：\n' + due.msgs.join('\n');
+  if (owner && prop_('LINE_CHANNEL_ACCESS_TOKEN')) push_(owner, note);
+  if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, note);
 }
 
 /* ============ OpenAI ============ */
@@ -240,7 +314,7 @@ function buildSys_(d) {
   const notes = d.notes.slice(0, 15)
     .map(n => '- ' + (n.title || '（無標題）') + '：' + String(n.body || '').replace(/\s+/g, ' ').slice(0, 120)).join('\n') || '（無）';
   return '你是「' + (p.title || '小乖') + '」，' + (p.nick || '使用者') + '的私人助理。個性貼心、可靠、說話簡潔溫暖，一律用繁體中文（台灣用語）。\n'
-    + '你現在在 LINE 上聊天：回覆要短，不要用 Markdown 標題、表格或粗體。\n'
+    + '你現在在 LINE 或 Telegram 上聊天：回覆要短，不要用 Markdown 標題、表格或粗體。\n'
     + '現在時間：' + today + ' ' + hm + '（星期' + dow + '）。\n\n'
     + '【關於使用者】\n' + (p.about || '（尚未填寫）') + '\n\n'
     + '【目前未完成待辦】\n' + todos + '\n\n'

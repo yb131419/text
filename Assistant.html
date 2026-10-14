@@ -529,7 +529,7 @@
     </div>
 
     <div class="note">
-      🔑 金鑰與所有資料只存在你自己的瀏覽器（localStorage），對話內容只會送到 OpenAI。開啟下方的「LINE 與雲端同步」後，待辦、行程、提醒、筆記會另外存一份到你自己的 Google 試算表。<br>
+      🔑 金鑰與所有資料只存在你自己的瀏覽器（localStorage），對話內容只會送到 OpenAI。開啟下方的「LINE／Telegram 與雲端同步」後，待辦、行程、提醒、筆記會另外存一份到你自己的 Google 試算表。<br>
       ⚠️ 因金鑰寫在前端，請勿在公用電腦使用，也不要把含金鑰的備份檔分享給他人。
     </div>
 
@@ -551,12 +551,12 @@
     </div>
 
     <div class="field">
-      <label>LINE 與雲端同步</label>
+      <label>LINE／Telegram 與雲端同步</label>
       <input type="text" id="syncUrl" inputmode="url" placeholder="Apps Script 網址：https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false">
       <input type="password" id="syncKey" placeholder="同步密碼" autocomplete="off" spellcheck="false" style="margin-top:9px">
       <div class="btn-row" style="margin-top:9px"><button class="mini" onclick="saveSync()">🔄 儲存並立即同步</button></div>
       <div class="hint" id="syncStatus"></div>
-      <div class="hint">照 line-bot/README.md 架好 Apps Script 後，把網址和同步密碼貼在這裡。之後待辦、行程、提醒、筆記會和 LINE 上的小乖共用，換手機也不怕資料不見。</div>
+      <div class="hint">照 line-bot/README.md 架好 Apps Script 後，把網址和同步密碼貼在這裡。之後待辦、行程、提醒、筆記會和 LINE、Telegram 上的小乖共用，換手機也不怕資料不見。</div>
     </div>
 
     <div class="field">
@@ -613,7 +613,7 @@ const DEFAULTS = {
   reminders:[], // {id, text, at, repeat, fired, src}
   notes:[],     // {id, title, body, time}
   chat:[],      // {role, content, acts?}
-  // 雲端同步（與 LINE 上的小乖共用資料）：每筆資料多一個 u（更新時間），刪除記在 deleted
+  // 雲端同步（與 LINE、Telegram 上的小乖共用資料）：每筆資料多一個 u（更新時間），刪除記在 deleted
   syncUrl:"",
   syncKey:"",
   deleted:{},   // {id: 刪除時間}
