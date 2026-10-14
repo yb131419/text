@@ -17,8 +17,16 @@ const SHEETS = {
   deleted: '刪除紀錄', profile: '個人資料', chat: '聊天紀錄',
 };
 const PRICE_SHEET = '價目表';   // 試算用；第一次試算時自動建立，之後直接在試算表改價格
-const MANAGER_PV = 220000;      // 經理門檻
-const CASH_GIFT_AMOUNT = 20000; // 現金滿 2 萬送 30 顆一瓶
+// 以下規則對齊「彥彬試算系統」（康園試算報表）
+const TARGETS_PV = [220000, 300000];
+const CASH_GIFT_AMOUNT = 20000;    // 現金每滿 2 萬，送「贈品 211(30)」一瓶；刷卡沒有
+const GIFT_NAME = '贈品 211(30)';
+const DAYS_PER_BOX = 15;           // 預估天數＝2 字頭品項最高盒數 × 15 天
+const NEW_MEMBER_PV = 20000;       // 有新入會時，總 PV 要先滿 2 萬才有獎金
+const BONUS_RATES = {
+  '非經理': [[280000, 0.23], [220000, 0.20], [160000, 0.16], [100000, 0.12], [50000, 0.06], [10000, 0.03]],
+  '經理': [[220000, 0.24], [160000, 0.21], [100000, 0.18], [48000, 0.08], [4000, 0.04]],
+};
 const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 共用）
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
@@ -367,7 +375,7 @@ const PACKS = {
 };
 const CODE_ALIAS = { '火山甘露茶': '火山甘露' };
 const CAPPED = ['168', '111', '101'];   // SOP：三個月購買上限 4 盒
-const CAP_BOXES = 4;
+const CAP_BOXES = 4;                 // 每 3 個月的上限，月數更長就等比放寬
 
 function quote_(text, image) {
   if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，請到 Apps Script 的指令碼屬性填入 OPENAI_API_KEY。';
@@ -396,6 +404,7 @@ function quote_(text, image) {
     console.error(err);
     return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
   }
+  parsed.card = /刷卡/.test(text || '');
   const answer = quoteText_(computeQuote_(prices, parsed));
   logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
   logChat_('assistant', answer);
@@ -441,9 +450,10 @@ function computeQuote_(prices, parsed) {
     if (rows.length) periods.push({ label: String((pd && pd.label) || '第' + (i + 1) + '段'), months: months, rows: rows });
   });
   const isSheet = periods.length > 0;
+  const totalMonths = periods.reduce((a, pd) => a + pd.months, 0);
   if (isSheet) {
     const tea = find('火山甘露');
-    if (tea && !boxes[tea.name]) add(tea.name, 1);   // 表上：火山甘露茶第一個月一盒即可
+    if (tea && !boxes[tea.name]) add(tea.name, totalMonths);   // SOP：火山甘露一個月一盒
   }
 
   (parsed.items || []).forEach(it => {
@@ -470,7 +480,13 @@ function computeQuote_(prices, parsed) {
     } else {
       lines.push(line_(byName[normName_(key)], n));
     }
-    if (CAPPED.indexOf(key) >= 0 && n > CAP_BOXES) warn.push(key + ' 共 ' + n + ' 盒，超過三個月上限 ' + CAP_BOXES + ' 盒');
+    const cap = Math.floor(CAP_BOXES * Math.max(3, totalMonths) / 3);
+    if (CAPPED.indexOf(key) >= 0 && n > cap) warn.push(key + ' 共 ' + n + ' 盒，超過上限 ' + cap + ' 盒（每 3 個月 ' + CAP_BOXES + ' 盒）');
+  });
+
+  lines.forEach(l => {
+    const m = l && String(l.name).normalize('NFKC').match(/限(\d+)/);
+    if (m && l.qty > Number(m[1])) warn.push(l.name + ' 限購 ' + m[1] + '，目前 ' + l.qty);
   });
 
   const maint = [];
@@ -486,7 +502,7 @@ function computeQuote_(prices, parsed) {
 
   return {
     name: String(parsed.name || ''), introducer: String(parsed.introducer || ''), date: String(parsed.date || ''),
-    isSheet: isSheet, periods: periods, lines: lines.filter(Boolean), maint: maint.filter(Boolean),
+    isSheet: isSheet, periods: periods, totalMonths: totalMonths, card: !!parsed.card, lines: lines.filter(Boolean), maint: maint.filter(Boolean),
     unknown: unknown.filter((x, i, a) => a.indexOf(x) === i), warn: warn,
   };
 }
@@ -502,30 +518,51 @@ function quoteText_(r) {
       + '。可以拍清楚一點再傳，或直接打字：試算 211 2盒、777Q 1盒';
   }
   const n = x => Number(x).toLocaleString('en-US');
-  const out = ['🧾 試算結果'];
-  const who = [r.name, r.introducer ? '介紹人 ' + r.introducer : '', r.date].filter(Boolean).join('｜');
+  let amount = 0, pv = 0;
+  r.lines.forEach(l => { amount += l.price; pv += l.pv; });
+  const gifts = r.card ? 0 : Math.floor(amount / CASH_GIFT_AMOUNT);
+  const twos = r.lines.filter(l => /^2/.test(l.name)).map(l => l.qty);
+  const days = twos.length ? Math.max.apply(null, twos) * DAYS_PER_BOX : 0;
+
+  const out = ['🧾 康園試算報表'];
+  const who = [r.name ? '購買者 ' + r.name : '', r.introducer ? '介紹人 ' + r.introducer : '', r.date].filter(Boolean).join('｜');
   if (who) out.push(who);
+  out.push((r.card ? '💳 刷卡' : '💵 現金') + (r.isSheet ? '｜服用 ' + r.totalMonths + ' 個月' : '') + (days ? '｜預估可使用 ' + days + ' 天' : ''));
   if (r.isSheet) {
     out.push('', '【看到的內容】（括號是每次顆數）');
     r.periods.forEach(pd => out.push(pd.label + '（服用 ' + pd.months + ' 個月）：' + pd.rows.join('、')));
   }
-  out.push('', '【購買明細】');
-  let boxes = 0, amount = 0, pv = 0;
+  out.push('', '【品項明細】');
   r.lines.forEach(l => {
-    boxes += l.qty; amount += l.price; pv += l.pv;
-    const unit = l.label !== l.name ? l.label + '（' + l.name + ' × ' + l.qty + '）' : l.name + ' × ' + l.qty;
-    out.push(unit);
+    out.push((l.label !== l.name ? l.label + '（' + l.name + ' × ' + l.qty + '）' : l.name + ' × ' + l.qty));
     out.push('　金額 ' + n(l.price) + '｜PV ' + n(l.pv));
   });
-  out.push('', '總金額：' + n(amount) + ' 元', '總 PV：' + n(pv));
-  out.push(pv >= MANAGER_PV ? '✅ 已達經理 ' + n(MANAGER_PV) + ' PV' : '距經理 ' + n(MANAGER_PV) + ' PV 還差 ' + n(MANAGER_PV - pv));
-  if (amount >= CASH_GIFT_AMOUNT) out.push('💡 現金購買滿 2 萬，送 30 顆一瓶（刷卡沒有）');
+  if (gifts) out.push(GIFT_NAME + ' × ' + gifts + '（現金每滿 2 萬送 1 瓶）');
+
+  out.push('', '💰 總金額：NT$ ' + n(amount), '🎯 總 PV：' + n(pv));
+  TARGETS_PV.forEach(t => out.push('距離 ' + (t / 10000) + ' 萬 PV：' + (pv >= t ? '0 🎉 已達標' : n(t - pv))));
+
+  const newMember = r.lines.some(l => /入會|新會員/.test(l.name));
+  out.push('', '【預計獎金】（總金額 × 級距 %，扣稅 10%）');
+  if (newMember && pv < NEW_MEMBER_PV) {
+    out.push('新入會需累積滿 2 萬 PV 才開始計算獎金，目前暫無');
+  } else {
+    Object.keys(BONUS_RATES).forEach(type => {
+      const tier = BONUS_RATES[type].filter(t => pv >= t[0])[0];
+      if (!tier) return out.push(type + '：PV 未達最低門檻');
+      const bonus = Math.floor(amount * tier[1]);
+      out.push(type + ' ' + Math.round(tier[1] * 100) + '%：約 NT$ ' + n(bonus) + '，扣稅後約 NT$ ' + n(Math.floor(bonus * 0.9)));
+    });
+    if (newMember) out.push('（有新入會：總 PV 已滿 2 萬門檻）');
+  }
+
   if (r.maint.length) {
     let ma = 0, mp = 0;
     out.push('', '【保養：之後每個月】');
     r.maint.forEach(l => { ma += l.price; mp += l.pv; out.push(l.label + ' → ' + l.name + ' × ' + l.qty); });
     out.push('每月金額：' + n(ma) + ' 元｜PV ' + n(mp) + '（不含在上面的總計）');
   }
+  if (r.warn.length) out.push('');
   r.warn.forEach(w => out.push('⚠️ ' + w));
   if (r.unknown.length) out.push('', '⚠️ 這些我對不到價目表，沒算進去：' + r.unknown.join('、'));
   out.push('', r.isSheet ? '盒數＝每次顆數 × 時段 × 30 天 × 月數 ÷ 每盒顆數（無條件進位）。字是辨識出來的，請再核對一次。'
