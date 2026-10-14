@@ -31,7 +31,7 @@ const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
-const MENU = [['📋 試算', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['❓ 說明']];
+const MENU = [['📋 試算', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['🔎 找資料', '❓ 說明']];
 
 const HELP_TEXT = [
   '小乖可以幫你 👇',
@@ -40,6 +40,7 @@ const HELP_TEXT = [
   '⏰ 提醒：「明天3點提醒我開會」',
   '📝 記事：「幫我記下 車位B2-35」',
   '📅 行程：「這週有什麼行程？」',
+  '🔎 找資料：「查 關鍵字」或傳語音',
   '',
   '點下面的按鈕也可以',
 ].join('\n');
@@ -57,6 +58,10 @@ const HELP_MORE = [
   '・群組裡開頭打「小乖」才會回',
   '・小乖離開：退出群組',
   '・群組關：離開全部群組',
+  '',
+  '【找資料】',
+  '・查 關鍵字：先找你存的資料，再上網找',
+  '・也可以按「🔎 找資料」再傳語音',
   '',
   '【其他】',
   '・清除對話：忘掉聊天內容（資料不刪）',
@@ -255,8 +260,17 @@ function handleLine_(ev) {
     if (owner && uid === owner) { const ans = image_('', lineImage_(ev.message.id)); const rp = reportLine_(); reply_(ev.replyToken, rp.short || ans, rp.msgs, true); }
     return;
   }
+  if (ev.message.type === 'audio') {
+    if (!owner || uid !== owner) return;
+    let said = '';
+    try { said = transcribe_(lineContent_(ev.message.id), 'voice.m4a'); } catch (err) { console.error(err); }
+    if (!said) return reply_(ev.replyToken, '語音聽不清楚，再說一次或改打字看看。', null, true);
+    const ans = answer_(said);
+    const rp = reportLine_();
+    return reply_(ev.replyToken, rp.short ? '🎤 「' + said + '」\n\n' + rp.short : withVoice_(said, ans), rp.msgs, true);
+  }
   if (ev.message.type !== 'text') {
-    if (uid === owner) reply_(ev.replyToken, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
+    if (uid === owner) reply_(ev.replyToken, '小乖目前看得懂文字、圖片和語音，其他類型還不行喔。');
     return;
   }
 
@@ -276,6 +290,14 @@ function handleLine_(ev) {
   reply_(ev.replyToken, rp.short || ans, rp.msgs, true);
 }
 
+function lineContent_(messageId) {
+  const res = UrlFetchApp.fetch('https://api-data.line.me/v2/bot/message/' + messageId + '/content', {
+    headers: { Authorization: 'Bearer ' + prop_('LINE_CHANNEL_ACCESS_TOKEN') }, muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() !== 200) throw new Error('LINE 檔案下載失敗');
+  return res.getBlob();
+}
+
 // 下載 LINE 圖片，轉成 OpenAI 看得懂的 data URL
 function lineImage_(messageId) {
   const res = UrlFetchApp.fetch('https://api-data.line.me/v2/bot/message/' + messageId + '/content', {
@@ -290,6 +312,17 @@ function answer_(text) {
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
+  // 找資料：「查 xxx」「找資料 xxx」「搜尋 xxx」；只按「找資料」就等下一句關鍵字（或語音）
+  const sq = text.match(/^(?:找資料|查資料|搜尋|上網查|幫我查|幫我搜尋|查(?=[\s：:]))[\s：:]*([\s\S]*)$/);
+  if (sq) {
+    if (sq[1].trim()) return search_(sq[1].trim());
+    setProp_('SEARCH_UNTIL', String(Date.now() + 5 * 60 * 1000));
+    return '好，要找什麼？打關鍵字或傳一段語音給我 🔎';
+  }
+  if (Number(prop_('SEARCH_UNTIL')) > Date.now() && !quoteState_()) {
+    setProp_('SEARCH_UNTIL', '0');
+    return search_(text);
+  }
   const flat = String(text).replace(/\s+/g, '');
   if (/^(邀請小乖|邀小乖|小乖邀請)$/.test(flat)) return groupSwitch_('開');
   const gm = flat.match(/^(?:群組|加入群組|開放群組)(開|關|開啟|關閉|狀態)?$/);
@@ -326,6 +359,82 @@ function answer_(text) {
   return chat_(text);
 }
 
+/* ============ 找資料：先找自己的待辦／行程／筆記，再上網搜尋 ============ */
+function search_(q) {
+  logChat_('user', '找資料：' + q);
+  const out = ['🔎 「' + q + '」'];
+  // 1. 自己的資料
+  try {
+    const data = readAll_(), words = q.toLowerCase().split(/\s+/).filter(Boolean);
+    const NAME = { todos: '待辦', events: '行程', reminders: '提醒', notes: '筆記' };
+    const hits = [];
+    COLS.forEach(c => (data[c] || []).forEach(it => {
+      const s = JSON.stringify(it).toLowerCase();
+      if (words.every(w => s.indexOf(w) >= 0)) hits.push('・' + NAME[c] + '：' + String(it.title || it.text || it.body || '').replace(/\s+/g, ' ').slice(0, 60));
+    }));
+    if (hits.length) out.push('', '📂 你存的資料', hits.slice(0, 5).join('\n') + (hits.length > 5 ? '\n…還有 ' + (hits.length - 5) + ' 筆' : ''));
+  } catch (e) { console.error(e); }
+  // 2. 網路
+  try {
+    const web = webSearch_(q);
+    out.push('', '🌐 網路上找到的', web.text);
+    if (web.links.length) out.push('', '🔗 參考來源', web.links.slice(0, 4).map(l => '・' + l.title.slice(0, 30) + '\n' + l.url).join('\n'));
+  } catch (err) {
+    console.error(err);
+    out.push('', '🌐 網路搜尋暫時失敗（' + err.message + '）');
+  }
+  const answer = out.join('\n');
+  logChat_('assistant', answer.slice(0, 1000));
+  return answer;
+}
+
+// OpenAI Responses API 的網路搜尋工具；指令碼屬性 SEARCH_MODEL 可換模型
+function webSearch_(q) {
+  const res = UrlFetchApp.fetch('https://api.openai.com/v1/responses', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
+    payload: JSON.stringify({
+      model: prop_('SEARCH_MODEL') || 'gpt-4.1-mini',
+      tools: [{ type: 'web_search_preview', user_location: { type: 'approximate', country: 'TW' } }],
+      instructions: '你是小乖，幫使用者上網找資料。用繁體中文（台灣用語）回答，先給一句結論，再條列 3～6 個重點，每點一行、簡短好懂。不要附網址（程式會另外列出來源）。',
+      input: q,
+    }),
+  });
+  const code = res.getResponseCode();
+  if (code === 401) throw new Error('OpenAI 金鑰無效');
+  if (code !== 200) throw new Error('搜尋回應 ' + code);
+  const data = JSON.parse(res.getContentText());
+  let text = '';
+  const links = [], seen = {};
+  (data.output || []).forEach(o => (o.type === 'message' ? o.content || [] : []).forEach(c => {
+    if (c.type !== 'output_text') return;
+    text += c.text || '';
+    (c.annotations || []).forEach(a => {
+      if (a.type === 'url_citation' && a.url && !seen[a.url]) { seen[a.url] = 1; links.push({ url: a.url.replace(/[?&]utm_source=openai$/, ''), title: a.title || a.url }); }
+    });
+  }));
+  // 文字裡的 markdown 連結改成純文字（LINE、Telegram 都不吃 markdown）
+  text = text.replace(/\(\[([^\]]+)\]\([^)]+\)\)/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*\*/g, '').trim();
+  return { text: text || '沒找到相關資料，換個關鍵字試試看。', links: links };
+}
+
+/* ============ 語音：轉成文字再當一般訊息處理 ============ */
+// 回覆前面加上「聽到的內容」，有按鈕的回覆保留按鈕
+function withVoice_(said, ans) {
+  const head = '🎤 「' + said + '」\n\n';
+  return typeof ans === 'object' ? { text: head + ans.text, buttons: ans.buttons } : head + ans;
+}
+
+function transcribe_(blob, filename) {
+  const res = UrlFetchApp.fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'post', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
+    payload: { file: blob.setName(filename), model: prop_('VOICE_MODEL') || 'whisper-1', language: 'zh', prompt: '以下是繁體中文（台灣）的語音。' },
+  });
+  if (res.getResponseCode() !== 200) throw new Error('語音辨識失敗（' + res.getResponseCode() + '）');
+  return String(JSON.parse(res.getContentText()).text || '').trim();
+}
+
 // 圖片：說明以「試算」開頭（或像「幫我算金額」），或 10 分鐘內先傳過「試算」，就走試算；否則一般看圖
 function image_(text, image) {
   const pending = Number(prop_('QUOTE_UNTIL')) > Date.now();
@@ -354,6 +463,22 @@ function handleTelegram_(update) {
   const text = String(msg.text || msg.caption || '').trim();
   const doc = msg.document && /^image\//.test(msg.document.mime_type || '') ? msg.document : null;
   const fileId = msg.photo && msg.photo.length ? msg.photo[msg.photo.length - 1].file_id : doc && doc.file_id;
+  const voice = msg.voice || msg.audio;
+
+  if (voice) {
+    if (!owner || chatId !== owner) return;
+    tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
+    let said;
+    try {
+      const info = JSON.parse(tgApi_('getFile', { file_id: voice.file_id }));
+      const blob = UrlFetchApp.fetch('https://api.telegram.org/file/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/' + info.result.file_path).getBlob();
+      said = transcribe_(blob, msg.voice ? 'voice.ogg' : (voice.file_name || 'audio.m4a'));
+    } catch (err) { console.error(err); return tgSend_(chatId, '語音聽不清楚，再說一次或改打字看看。'); }
+    if (!said) return tgSend_(chatId, '沒聽到內容，再說一次看看。');
+    const ans = answer_(said);
+    const short = sendReportTg_(chatId);
+    return tgSend_(chatId, short ? '🎤 「' + said + '」\n\n' + short : withVoice_(said, ans));
+  }
 
   if (fileId) {
     if (!owner || chatId !== owner) return;
