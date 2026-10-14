@@ -41,7 +41,7 @@ const HELP_TEXT = [
   '📝 記事：「幫我記下 車位B2-35」',
   '📅 行程：「這週有什麼行程？」',
   '📁 本機找：找你存的案例和資料',
-  '🎤 語音：在 Telegram 傳語音，小乖用語音回',
+  '🎤 語音：傳語音給小乖，小乖用語音回',
   '🌐 上網找：上網找資料',
   '',
   '點下面的按鈕也可以',
@@ -71,8 +71,8 @@ const HELP_MORE = [
   '・改分類 名稱：改剛存那筆的分類',
   '・新增分類／分類改名 舊 新／刪除分類',
   '',
-  '【語音對話】（Telegram）',
-  '・傳語音給小乖，小乖也用語音回你',
+  '【語音對話】',
+  '・傳語音給小乖，小乖也用語音回你（LINE、Telegram 都可以）',
   '・語音回覆 開：打字也用語音回',
   '・語音回覆 關：只回文字',
   '',
@@ -280,7 +280,8 @@ function handleLine_(ev) {
     if (!said) return reply_(ev.replyToken, '語音聽不清楚，再說一次或改打字看看。', null, true);
     const ans = answer_(said);
     const rp = reportLine_();
-    return reply_(ev.replyToken, rp.short ? '🎤 「' + said + '」\n\n' + rp.short : withVoice_(said, ans), rp.msgs, true);
+    const voice = !rp.short && voiceMode_() !== 'off' ? lineVoice_(ans) : [];   // 用講的就用講的回
+    return reply_(ev.replyToken, rp.short ? '🎤 「' + said + '」\n\n' + rp.short : withVoice_(said, ans), rp.msgs.concat(voice), true);
   }
   if (ev.message.type !== 'text') {
     if (uid === owner) reply_(ev.replyToken, '小乖目前看得懂文字、圖片和語音，其他類型還不行喔。');
@@ -300,7 +301,8 @@ function handleLine_(ev) {
 
   const ans = answer_(text);
   const rp = reportLine_();
-  reply_(ev.replyToken, rp.short || ans, rp.msgs, true);
+  const voice = !rp.short && voiceMode_() === 'always' && !/^語音回覆/.test(text) ? lineVoice_(ans) : [];
+  reply_(ev.replyToken, rp.short || ans, rp.msgs.concat(voice), true);
 }
 
 function lineContent_(messageId) {
@@ -798,17 +800,43 @@ function speechText_(ans) {
   return t;
 }
 
-function tts_(text) {
+function tts_(text, format) {
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/audio/speech', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
     payload: JSON.stringify({
       model: prop_('TTS_MODEL') || 'gpt-4o-mini-tts', voice: prop_('TTS_VOICE') || 'nova', input: text,
-      instructions: '用台灣口音的中文，語氣親切、自然、像貼心的助理，速度適中。', response_format: 'opus',
+      instructions: '用台灣口音的中文，語氣親切、自然、像貼心的助理，速度適中。', response_format: format || 'opus',
     }),
   });
   if (res.getResponseCode() !== 200) throw new Error('語音合成失敗（' + res.getResponseCode() + '）：' + res.getContentText().slice(0, 200));
-  return res.getBlob().setName('xiaoguai.ogg');
+  return res.getBlob().setName('xiaoguai.' + (format === 'mp3' ? 'mp3' : 'ogg'));
+}
+
+// LINE 的語音訊息要一個公開網址：存到雲端硬碟「小乖語音回覆」資料夾、設「知道連結的人都能看」
+// （使用者 2026-10-14 打字同意「同意 LINE 語音回覆用公開連結」）；超過 2 天的舊檔自動丟垃圾桶
+const VOICE_FOLDER = '小乖語音回覆';
+function lineVoice_(ans) {
+  const t = speechText_(ans);
+  if (!t) return [];
+  try {
+    const it = DriveApp.getFoldersByName(VOICE_FOLDER);
+    const folder = it.hasNext() ? it.next() : DriveApp.createFolder(VOICE_FOLDER);
+    cleanVoice_(folder);
+    const file = folder.createFile(tts_(t, 'mp3').setName('小乖語音_' + Date.now() + '.mp3'));
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const ms = Math.min(600000, Math.max(1500, t.replace(/\s/g, '').length * 230 + 800));   // 中文大約一秒 4～5 個字
+    return [{ type: 'audio', originalContentUrl: 'https://drive.usercontent.google.com/download?id=' + file.getId() + '&export=download', duration: ms }];
+  } catch (e) { console.error('LINE 語音回覆失敗：' + e.message); return []; }
+}
+
+function cleanVoice_(folder) {
+  const cut = Date.now() - 2 * 864e5, files = folder.getFiles();
+  let n = 0;
+  while (files.hasNext() && n < 20) {
+    const f = files.next();
+    if (f.getDateCreated().getTime() < cut) { f.setTrashed(true); n++; }
+  }
 }
 
 // Telegram 用語音訊息回（失敗就算了，文字已經送出）
