@@ -16,6 +16,9 @@ const SHEETS = {
   todos: '待辦', events: '行程', reminders: '提醒', notes: '筆記',
   deleted: '刪除紀錄', profile: '個人資料', chat: '聊天紀錄',
 };
+const PRICE_SHEET = '價目表';   // 試算用；第一次試算時自動建立，之後直接在試算表改價格
+const MANAGER_PV = 220000;      // 經理門檻
+const CASH_GIFT_AMOUNT = 20000; // 現金滿 2 萬送 30 顆一瓶
 const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 共用）
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
@@ -24,6 +27,8 @@ const HELP_TEXT = [
   '・明天下午三點提醒我打電話給媽媽',
   '・幫我記下：車位在 B2-35',
   '・我這週有什麼行程？',
+  '・傳訂單圖片，說明欄打「試算」，小乖會算出每項數量、金額和 PV',
+  '・也可以直接打字：試算 211 2盒、777Q 1盒',
   '・傳圖片（可加一句說明，例如「幫我記下來」），小乖會讀出內容幫你整理',
   '',
   '其他指令：',
@@ -131,7 +136,7 @@ function handleLine_(ev) {
   }
   if (ev.type !== 'message' || !ev.replyToken) return;
   if (ev.message.type === 'image') {
-    if (owner && uid === owner) reply_(ev.replyToken, chat_('', lineImage_(ev.message.id)));
+    if (owner && uid === owner) reply_(ev.replyToken, image_('', lineImage_(ev.message.id)));
     return;
   }
   if (ev.message.type !== 'text') {
@@ -170,7 +175,24 @@ function answer_(text) {
     if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
     return '好，聊天內容我忘掉了，你的待辦和筆記都還在。';
   }
+  const q = text.match(/^試算[\s：:]*([\s\S]*)$/);
+  if (q) {
+    if (q[1].trim()) return quote_(q[1].trim());
+    setProp_('QUOTE_UNTIL', String(Date.now() + 10 * 60 * 1000));
+    return '好，請傳訂單圖片給我，我來算數量、金額和 PV。';
+  }
   return chat_(text);
+}
+
+// 圖片：說明以「試算」開頭（或像「幫我算金額」），或 10 分鐘內先傳過「試算」，就走試算；否則一般看圖
+function image_(text, image) {
+  const pending = Number(prop_('QUOTE_UNTIL')) > Date.now();
+  const t = String(text || '').trim();
+  if (pending || /^(試算|計算|算)/.test(t) || /算.{0,4}(金額|PV)/i.test(t)) {
+    setProp_('QUOTE_UNTIL', '0');
+    return quote_(t.replace(/^(試算|計算|算)\s*/, ''), image);
+  }
+  return chat_(text, image);
 }
 
 /* ============ Telegram ============ */
@@ -194,7 +216,7 @@ function handleTelegram_(update) {
     let img;
     try { img = tgImage_(fileId, doc && doc.mime_type); }
     catch (err) { console.error(err); return tgSend_(chatId, '圖片讀取失敗，再傳一次看看。'); }
-    return tgSend_(chatId, chat_(text, img));
+    return tgSend_(chatId, image_(text, img));
   }
   if (!text) {
     if (chatId === owner) tgSend_(chatId, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
@@ -332,10 +354,183 @@ function checkReminders() {
   if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, note);
 }
 
+/* ============ 試算（金額與 PV） ============ */
+// AI 只負責「看出買了什麼、幾個」，金額和 PV 一律由程式照價目表計算，不讓 AI 心算
+function quote_(text, image) {
+  if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，請到 Apps Script 的指令碼屬性填入 OPENAI_API_KEY。';
+  const prices = prices_();
+  const sys = '你是訂單辨識助手。從使用者給的圖片或文字中，找出購買的品項和數量，'
+    + '把每一項對應到下面「價目表品項」裡最符合的名稱（name 必須一字不差照抄價目表）。'
+    + '數量沒寫就當 1；「2盒」「x2」「*2」都代表數量 2。對應不到的放進 unknown（照原文）。'
+    + '只輸出 JSON：{"items":[{"name":"價目表品項","qty":1}],"unknown":["原文"]}\n\n價目表品項：\n'
+    + prices.map(p => p.name).join('\n');
+  const user = image
+    ? [{ type: 'text', text: text || '請辨識這張訂單的品項與數量' }, { type: 'image_url', image_url: { url: image, detail: 'high' } }]
+    : text;
+  let parsed;
+  try {
+    parsed = JSON.parse(callOpenAI_(sys, [{ role: 'user', content: user }], true));
+  } catch (err) {
+    console.error(err);
+    return '抱歉，這次沒辨識成功（' + err.message + '），再傳一次看看。';
+  }
+  const answer = quoteText_(priceItems_(prices, parsed));
+  logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
+  logChat_('assistant', answer);
+  return answer;
+}
+
+function priceItems_(prices, parsed) {
+  const byName = {};
+  prices.forEach(p => { byName[normName_(p.name)] = p; });
+  const lines = {}, order = [];
+  const unknown = (parsed.unknown || []).map(String).filter(Boolean);
+  (parsed.items || []).forEach(it => {
+    const p = byName[normName_(it && it.name)];
+    const qty = Math.max(1, Math.round(Number(String(it && it.qty).normalize('NFKC')) || 1));
+    if (!p) { if (it && it.name) unknown.push(String(it.name)); return; }
+    if (!lines[p.name]) { lines[p.name] = { name: p.name, qty: 0, pv: p.pv, price: p.price }; order.push(p.name); }
+    lines[p.name].qty += qty;
+  });
+  return { items: order.map(n => lines[n]), unknown: unknown };
+}
+
+function quoteText_(r) {
+  if (!r.items.length) {
+    return '我沒從裡面找到價目表上的品項' + (r.unknown.length ? '（看到：' + r.unknown.join('、') + '）' : '')
+      + '。可以拍清楚一點再傳，或直接打字：試算 211 2盒、777Q 1盒';
+  }
+  const n = x => Number(x).toLocaleString('en-US');
+  let qty = 0, amount = 0, pv = 0;
+  const out = ['🧾 試算結果', ''];
+  r.items.forEach(it => {
+    qty += it.qty; amount += it.price * it.qty; pv += it.pv * it.qty;
+    out.push(it.name + ' × ' + it.qty);
+    out.push('　金額 ' + n(it.price * it.qty) + '｜PV ' + n(it.pv * it.qty));
+  });
+  out.push('', '共 ' + r.items.length + ' 項、' + qty + ' 件', '總金額：' + n(amount) + ' 元', '總 PV：' + n(pv));
+  out.push(pv >= MANAGER_PV ? '✅ 已達經理 ' + n(MANAGER_PV) + ' PV' : '距經理 ' + n(MANAGER_PV) + ' PV 還差 ' + n(MANAGER_PV - pv));
+  if (amount >= CASH_GIFT_AMOUNT) out.push('💡 現金購買滿 2 萬，送 30 顆一瓶（刷卡沒有）');
+  if (r.unknown.length) out.push('', '⚠️ 這些我對不到價目表，沒算進去：' + r.unknown.join('、'));
+  out.push('', '數量是從圖片辨識的，請再核對一次。');
+  return out.join('\n');
+}
+
+// 全形半形、空白、括號統一，避免「(Ａ)」「（A）」對不上
+function normName_(s) {
+  return String(s || '').normalize('NFKC').replace(/\s+/g, '').toUpperCase();
+}
+
+function prices_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(PRICE_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(PRICE_SHEET);
+    const rows = DEFAULT_PRICES.map(l => l.split('|')).map(r => [r[0], Number(r[1]), Number(r[2])]);
+    sh.getRange(1, 1, 1, 3).setValues([['品項', 'PV', '金額']]).setFontWeight('bold');
+    sh.getRange(2, 1, rows.length, 3).setValues(rows);
+    sh.setFrozenRows(1);
+  }
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  const num = v => Number(String(v).normalize('NFKC').replace(/[,\s]/g, '')) || 0;
+  return sh.getRange(2, 1, last - 1, 3).getValues()
+    .filter(r => String(r[0]).trim())
+    .map(r => ({ name: String(r[0]).trim(), pv: num(r[1]), price: num(r[2]) }));
+}
+
+// 第一次試算時寫進「價目表」分頁；之後改價格請直接改試算表，不用改這裡
+const DEFAULT_PRICES = [
+  '新入會(9號）|17280|29800',
+  '新入會(草本）男|9000|15400',
+  '新入會(草本）女|9000|15400',
+  '2711AB(1)限8盒|3600|4880',
+  '2711AB(4)限2組|12600|17920',
+  '211|2160|2960',
+  '300|2160|2980',
+  '299A|2280|3240',
+  '火山甘露|2250|3220',
+  '200|2280|3240',
+  '201|2160|2960',
+  '202|2160|2880',
+  '205|2160|2880',
+  '209|2280|3240',
+  '210|2280|3240',
+  '211A|2280|3240',
+  '220|2160|2960',
+  '222|2280|3240',
+  '233|2160|2960',
+  '240|2160|2960',
+  '255A|2280|3240',
+  '260|2160|2960',
+  '266|2160|2960',
+  '268|2280|3240',
+  '270|2280|3240',
+  '280|2160|2880',
+  '286|2160|2880',
+  '288|2160|2880',
+  '289|2280|3240',
+  '290|2160|2960',
+  '295|2160|2980',
+  '299|2280|3240',
+  '701|2160|2980',
+  '702|2160|2880',
+  '703|2160|2880',
+  '705|2160|2880',
+  '706|2160|2880',
+  '707|2160|2880',
+  '708|2280|3240',
+  '747AB|2880|4000',
+  '777Q|3600|4880',
+  '777Q(4)|12600|17920',
+  '大女王|7680|10240',
+  '極樂鳥|2880|4000',
+  '101|2160|2880',
+  '111|2280|3240',
+  '168|2280|3240',
+  '金色果(2）|2000|3040',
+  '海神泥|2250|3050',
+  '復甦精華露|2160|2960',
+  '潔面乳|1350|1880',
+  '玫瑰化妝水|1350|1880',
+  '植萃粉底乳|800|1120',
+  '彼拉提斯精油|2160|2960',
+  '隱形面膜|1800|2480',
+  '命運1號|2700|3680',
+  '命運9號（2)|9720|12960',
+  '冰晶球（大）|4050|5550',
+  '冰晶球（小）|3900|5350',
+  '親密潔淨露 (3)|3150|4320',
+  '密集保濕精華液|2100|2880',
+  '保濕澎潤日霜|1350|1800',
+  '閃耀眼膜|2100|2880',
+  '深層保濕再生精萃|1050|1450',
+  '保濕全能日霜|2100|2880',
+  '水光肌黃金精萃|2900|3980',
+  '青春眼膠|1350|1880',
+  '紓壓晚霜|2100|2960',
+  '緊緻濃縮精華液|3000|4080',
+  '逆齡晚霜|4050|5550',
+  '淡斑修護霜|2000|2700',
+  '逆齡眼霜|2100|2880',
+  '贈品 211(30)|0|0',
+  '入*會「 211 」|0|0',
+  '入*會「 101 」|0|0',
+  '入*會「 707 」|0|0',
+  '入*會「 9號兩組」|0|0',
+  '女人三寶(Ａ)|52560|74760',
+  '女人三寶(Ｂ)|77520|108280',
+  '男人三寶(Ａ)|35760|52760',
+  '男人三寶(Ｂ)|48360|70680',
+  '駐顏回春(Ａ)|51840|75640',
+  '駐顏回春(Ｂ)|71280|101560'
+];
+
 /* ============ OpenAI ============ */
-function callOpenAI_(system, messages) {
+function callOpenAI_(system, messages, asJson) {
   const model = prop_('MODEL') || 'gpt-4o-mini';
   const body = { model: model, messages: [{ role: 'system', content: system }].concat(messages) };
+  if (asJson) body.response_format = { type: 'json_object' };
   if (/^gpt-5/.test(model)) body.max_completion_tokens = 4000;
   else { body.max_tokens = 2500; body.temperature = 0.6; }
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
