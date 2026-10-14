@@ -92,14 +92,14 @@ function doPost(e) {
     body.events.forEach(ev => {
       try { handleLine_(ev); } catch (err) { console.error(err); }
     });
-    return text_('OK');
+    return ack_();
   }
 
   // Telegram Webhook（同樣用網址上的 key 驗證）
   if (body.update_id !== undefined) {
     if (e.parameter.key !== prop_('SYNC_KEY')) return text_('forbidden');
     try { handleTelegram_(body); } catch (err) { console.error(err); }
-    return text_('OK');
+    return ack_();
   }
 
   // 網頁同步
@@ -482,4 +482,6 @@ function fmtAt_(ms) { return Utilities.formatDate(new Date(ms), TZ, "yyyy-MM-dd'
 function fmtTime_(ms) { return ms ? Utilities.formatDate(new Date(ms), TZ, 'yyyy-MM-dd HH:mm') : ''; }
 function uid_() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function text_(s) { return ContentService.createTextOutput(s); }
+// Webhook 回應：ContentService 會先轉址（302），Telegram 會當成失敗而重送、拖慢後面的訊息；HtmlService 直接回 200
+function ack_() { return HtmlService.createHtmlOutput('OK'); }
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
