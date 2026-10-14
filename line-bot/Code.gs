@@ -103,6 +103,9 @@ function doPost(e) {
     return ack_();
   }
 
+  // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
+  if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
+
   // 網頁同步
   if (body.action === 'sync') {
     if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return json_({ ok: false, error: '同步密碼錯誤' });
