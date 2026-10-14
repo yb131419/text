@@ -398,6 +398,7 @@ function caseSheet_() {
     sh.appendRow(CASE_HEAD);
     sh.setFrozenRows(1);
   }
+  newestFirst_(sh, CASE_HEAD.length);
   return sh;
 }
 
@@ -459,10 +460,11 @@ function saveTgCase_(msg, photoId, video, doc, caption) {
   const join = a => (Array.isArray(a) ? a : []).map(String).filter(Boolean).join('、');
   const row = withLock_(() => {
     const sh = caseSheet_();
-    sh.appendRow([new Date(), info.category, type, join(info.products), join(info.people), text, String(info.summary || ''), join(info.keywords), src, fid]);
-    return sh.getLastRow();
+    const now = new Date();
+    prependRow_(sh, [now, info.category, type, join(info.products), join(info.people), text, String(info.summary || ''), join(info.keywords), src, fid]);
+    return now.getTime();
   });
-  setProp_('CASE_LAST_ROW', String(row));
+  setProp_('CASE_LAST_TIME', String(row));
   const NAME = { photo: '圖片', video: '影片', animation: '動圖', document: '檔案', text: '文字' };
   const tags = [join(info.products), join(info.people)].filter(Boolean).join('｜');
   return {
@@ -478,11 +480,13 @@ function chunk_(arr, n) { const out = []; for (let i = 0; i < arr.length; i += n
 
 // 「改分類 見證案例」：改最近存的那一筆；分類不存在就新增
 function recatCase_(name) {
-  const row = Number(prop_('CASE_LAST_ROW'));
+  const t = Number(prop_('CASE_LAST_TIME'));
   const sh = ss_().getSheetByName(CASE_SHEET);
-  if (!row || !sh || row > sh.getLastRow()) return '找不到剛剛存的案例。';
+  const n = sh ? Math.min(sh.getLastRow() - 1, 50) : 0;
+  const idx = n > 0 && t ? sh.getRange(2, 1, n, 1).getValues().findIndex(r => r[0] instanceof Date && r[0].getTime() === t) : -1;
+  if (idx < 0) return '找不到剛剛存的案例。';
   addCaseCat_(name);
-  sh.getRange(row, 2).setValue(name);
+  sh.getRange(idx + 2, 2).setValue(name);
   return '✅ 已改成【' + name + '】';
 }
 
@@ -492,7 +496,7 @@ function allCases_() {
   return sh.getRange(2, 1, sh.getLastRow() - 1, CASE_HEAD.length).getValues().map(r => ({
     time: r[0], cat: String(r[1] || '其他'), type: String(r[2]), products: String(r[3] || ''), people: String(r[4] || ''),
     text: String(r[5] || ''), summary: String(r[6] || ''), keywords: String(r[7] || ''), src: String(r[8] || ''), fid: String(r[9] || ''),
-  })).reverse();   // 新的在前
+  }));   // 工作表本來就是新的在上面
 }
 
 function findCases_(words) {
@@ -2001,10 +2005,12 @@ function readAll_() {
 function writeAll_(d) {
   const ss = ss_();
   COLS.forEach(c => {
-    const rows = (d[c] || []).map(x => [x.id, fmtTime_(x.u), summary_(c, x), JSON.stringify(x)]);
+    // 最新的在最上面（依建立時間，沒有就用更新時間）
+    const rows = (d[c] || []).slice().sort((x, y) => (y.time || y.u || 0) - (x.time || x.u || 0))
+      .map(x => [x.id, fmtTime_(x.u), summary_(c, x), JSON.stringify(x)]);
     replaceRows_(ss.getSheetByName(SHEETS[c]), rows, 4);
   });
-  replaceRows_(ss.getSheetByName(SHEETS.deleted), Object.keys(d.deleted || {}).map(id => [id, d.deleted[id]]), 2);
+  replaceRows_(ss.getSheetByName(SHEETS.deleted), Object.keys(d.deleted || {}).map(id => [id, d.deleted[id]]).sort((x, y) => y[1] - x[1]), 2);
   replaceRows_(ss.getSheetByName(SHEETS.profile), [[JSON.stringify(d.profile || {})]], 1);
 }
 
@@ -2025,8 +2031,8 @@ function recentChat_(n) {
   const sh = sheet_('chat');
   const last = sh.getLastRow();
   if (last < 2) return [];
-  const start = Math.max(2, last - n + 1);
-  const rows = sh.getRange(start, 2, last - start + 1, 2).getValues();
+  newestFirst_(sh, 3);
+  const rows = sh.getRange(2, 2, Math.min(n, last - 1), 2).getValues().reverse();   // 工作表新的在上面，給 AI 要照時間順序
   const msgs = rows.filter(r => r[0] === 'user' || r[0] === 'assistant').map(r => ({ role: r[0], content: String(r[1]) }));
   while (msgs.length && msgs[0].role !== 'user') msgs.shift();
   return msgs;
@@ -2034,8 +2040,30 @@ function recentChat_(n) {
 
 function logChat_(role, content) {
   const sh = sheet_('chat');
-  sh.appendRow([new Date(), role, content]);
-  if (sh.getLastRow() > 501) sh.deleteRows(2, sh.getLastRow() - 501);
+  newestFirst_(sh, 3);
+  prependRow_(sh, [new Date(), role, content]);
+  if (sh.getLastRow() > 501) sh.deleteRows(502, sh.getLastRow() - 501);   // 最舊的在最下面，從下面刪
+}
+
+// 工作表一律「最新的在最上面」：新資料插在標題下第 2 列
+function prependRow_(sh, row) {
+  sh.insertRowBefore(2);
+  sh.getRange(2, 1, 1, row.length).setValues([row]).setFontWeight('normal');
+}
+
+// 舊的工作表是新的在下面，第一次用到時整張上下翻過來（之後就不用再翻）
+function newestFirst_(sh, width) {
+  const key = 'NEWEST_FIRST_' + sh.getName();
+  if (prop_(key)) return;
+  const last = sh.getLastRow();
+  if (last > 2) {
+    const a = sh.getRange(2, 1).getValue(), b = sh.getRange(last, 1).getValue();
+    if (a instanceof Date && b instanceof Date && a.getTime() < b.getTime()) {
+      const rng = sh.getRange(2, 1, last - 1, width);
+      rng.setValues(rng.getValues().reverse());
+    }
+  }
+  setProp_(key, '1');
 }
 
 /* ============ 小工具 ============ */
