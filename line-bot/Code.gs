@@ -42,7 +42,8 @@ const HELP_TEXT = [
   '',
   '其他指令：',
   '・清除對話：讓小乖忘掉聊天內容（待辦、筆記等資料不會刪）',
-  '・群組開／群組關：決定小乖能不能被邀進 LINE 群組（關的時候會離開所有群組）',
+  '・邀請小乖：之後 10 分鐘內，由你把小乖邀進 LINE 群組（別人邀請小乖會馬上退出）',
+  '・群組關：小乖離開所有群組；群組：看小乖在幾個群組',
   '・在群組裡：訊息開頭打「小乖」小乖才會回（只回主人）；打「小乖離開」小乖就退出那個群組',
 ].join('\n');
 
@@ -138,26 +139,38 @@ function doPost(e) {
 }
 
 /* ============ LINE 群組 ============ */
-// 主人決定小乖能不能進群組：私訊打「群組開」「群組關」（預設關）。群組名單記在 LINE_GROUPS，關的時候全部離開
-function groupAllowed_() { return prop_('GROUP_ALLOW') === 'on'; }
+// 只有主人能把小乖邀進群組：主人先私訊「邀請小乖」開 10 分鐘的邀請時間，而且主人本人要在那個群組裡；
+// 其他人邀請（或超過時間）小乖一進群組就馬上退出。LINE 不會告訴我們是誰邀的，所以用這兩個條件確認
+const INVITE_MINUTES = 10;
+function inviteOpen_() { return Number(prop_('GROUP_INVITE_UNTIL')) > Date.now(); }
 function lineGroups_() { try { return JSON.parse(prop_('LINE_GROUPS') || '{}'); } catch (e) { return {}; } }
 function saveLineGroups_(g) { setProp_('LINE_GROUPS', JSON.stringify(g)); }
 
 function groupSwitch_(cmd) {
   if (/開/.test(cmd)) {
-    setProp_('GROUP_ALLOW', 'on');
-    return '✅ 已開放：現在可以把小乖邀進 LINE 群組了。\n在群組裡，訊息開頭打「小乖」小乖才會回，而且只回你；打「小乖離開」小乖就退出。\n（LINE 官方帳號後台也要打開「加入群組或多人聊天室」）';
+    setProp_('GROUP_INVITE_UNTIL', String(Date.now() + INVITE_MINUTES * 60 * 1000));
+    return '✅ 接下來 ' + INVITE_MINUTES + ' 分鐘內，請你自己把小乖邀進群組（你本人要在群組裡）。\n別人邀請小乖，小乖會馬上退出。\n在群組裡，訊息開頭打「小乖」小乖才會回，而且只回你；打「小乖離開」小乖就退出。';
   }
   if (/關/.test(cmd)) {
-    setProp_('GROUP_ALLOW', 'off');
+    setProp_('GROUP_INVITE_UNTIL', '0');
     const groups = lineGroups_();
     Object.keys(groups).forEach(id => leaveLineGroup_(id, groups[id]));
     saveLineGroups_({});
     const n = Object.keys(groups).length;
-    return '⛔ 已關閉：小乖不會再加入群組' + (n ? '，也已經離開目前的 ' + n + ' 個群組。' : '。');
+    return '⛔ 已關閉' + (n ? '，小乖已經離開目前的 ' + n + ' 個群組。' : '，小乖現在不在任何群組。') + '\n之後要再加入，私訊「邀請小乖」。';
   }
   const n = Object.keys(lineGroups_()).length;
-  return '小乖加入群組目前是「' + (groupAllowed_() ? '開' : '關') + '」' + (n ? '，在 ' + n + ' 個群組裡' : '') + '。\n打「群組開」或「群組關」切換。';
+  return '小乖目前在 ' + n + ' 個群組。\n要邀小乖進新群組：先私訊「邀請小乖」，再由你在 ' + INVITE_MINUTES + ' 分鐘內邀請。\n要小乖離開全部群組：「群組關」。';
+}
+
+// 主人本人在不在這個群組（LINE 查得到群組成員的個人資料就代表在）
+function ownerInGroup_(gid, type) {
+  const owner = prop_('OWNER_USER_ID');
+  if (!owner) return false;
+  const res = UrlFetchApp.fetch('https://api.line.me/v2/bot/' + (type === 'room' ? 'room' : 'group') + '/' + gid + '/member/' + owner, {
+    muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + prop_('LINE_CHANNEL_ACCESS_TOKEN') },
+  });
+  return res.getResponseCode() === 200;
 }
 
 function leaveLineGroup_(id, type) {
@@ -171,20 +184,21 @@ function handleLineGroup_(ev, gid, type) {
   const groups = lineGroups_();
   if (ev.type === 'leave') { delete groups[gid]; saveLineGroups_(groups); return; }
   if (ev.type === 'join') {
-    if (!groupAllowed_()) {
-      reply_(ev.replyToken, '小乖目前沒有開放加入群組，先離開囉。（主人可以私訊小乖「群組開」）');
+    if (!inviteOpen_() || !ownerInGroup_(gid, type)) {
+      reply_(ev.replyToken, '小乖只接受主人的邀請，先離開囉 👋');
       leaveLineGroup_(gid, type);
       return;
     }
+    setProp_('GROUP_INVITE_UNTIL', '0');   // 一次邀請只用一次
     groups[gid] = type; saveLineGroups_(groups);
     reply_(ev.replyToken, '大家好，我是小乖 🙋‍♀️\n我只回主人的訊息：訊息開頭打「小乖」我才會回；主人打「小乖離開」我就退出群組。');
     return;
   }
   if (ev.type !== 'message' || !ev.replyToken) return;
   const uid = ev.source.userId, owner = prop_('OWNER_USER_ID');
+  // 不是主人邀進來的群組（例如舊版時加入的）：一有訊息就離開
+  if (!groups[gid]) { leaveLineGroup_(gid, type); return; }
   if (!owner || uid !== owner) return;   // 群組裡別人的訊息一律不回
-  if (!groupAllowed_()) { leaveLineGroup_(gid, type); delete groups[gid]; saveLineGroups_(groups); return; }
-  if (!groups[gid]) { groups[gid] = type; saveLineGroups_(groups); }
   if (ev.message.type === 'image') {
     // 群組裡的圖片：主人先打「小乖 試算」才會讀，免得把大家聊天的照片都拿去算
     if (Number(prop_('QUOTE_UNTIL')) > Date.now()) {
@@ -259,7 +273,9 @@ function lineImage_(messageId) {
 // LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
 function answer_(text) {
   if (text === '說明' || /^\/?help$/i.test(text)) return HELP_TEXT;
-  const gm = String(text).replace(/\s+/g, '').match(/^(?:群組|加入群組|開放群組)(開|關|開啟|關閉|狀態)?$/);
+  const flat = String(text).replace(/\s+/g, '');
+  if (/^(邀請小乖|邀小乖|小乖邀請)$/.test(flat)) return groupSwitch_('開');
+  const gm = flat.match(/^(?:群組|加入群組|開放群組)(開|關|開啟|關閉|狀態)?$/);
   if (gm) return groupSwitch_(gm[1] || '狀態');
   if (text === '清除對話') {
     const sh = sheet_('chat');
