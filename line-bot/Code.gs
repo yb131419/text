@@ -375,6 +375,9 @@ const PACKS = {
 };
 const CODE_ALIAS = { '火山甘露茶': '火山甘露' };
 const CAPPED = ['168', '111', '101'];   // SOP：三個月購買上限 4 盒
+// SOP 購買建議二：這些品項照「每月固定盒數」算，不看顆數
+const FIXED_MONTHLY = { '2711AB': 3, '777Q': 2, '168': 2, '111': 2, '101': 2 };
+const MIN_2711AB = 3;                    // SOP：新人必須買滿三盒
 const CAP_BOXES = 4;                 // 每 3 個月的上限，月數更長就等比放寬
 
 function quote_(text, image) {
@@ -411,6 +414,30 @@ function quote_(text, image) {
   return answer;
 }
 
+// SOP：現金購買 211 可少算——贈品 211(30)（每瓶 30 顆）和入會送的 211 盒數先扣掉，211 只買不夠的部分。
+// 贈品數又看總金額，所以來回算到穩定為止；刷卡沒有贈品，不扣
+function applyCash211_(r) {
+  if (r.card || !r.isSheet) return r;   // 打字或訂單照原數量，不幫你改
+  const l = r.lines.filter(x => normName_(x.name) === '211')[0];
+  if (!l || !l.qty) return r;
+  const need = l.qty, unitP = l.price / l.qty, unitPv = l.pv / l.qty;
+  const joined = r.lines.filter(x => /入.*會/.test(x.name) && /211/.test(x.name)).reduce((a, x) => a + x.qty, 0);
+  const others = r.lines.filter(x => x !== l).reduce((a, x) => a + x.price, 0);
+  let qty = need, gifts = 0;
+  for (let i = 0; i < 10; i++) {
+    gifts = Math.floor((others + qty * unitP) / CASH_GIFT_AMOUNT);
+    const next = Math.max(0, need - joined - Math.floor(gifts * 30 / 90));
+    if (next === qty) break;
+    qty = next;
+  }
+  if (qty === need) return r;
+  l.qty = qty; l.price = unitP * qty; l.pv = unitPv * qty;
+  if (!qty) r.lines = r.lines.filter(x => x !== l);
+  r.notes = (r.notes || []).concat(['現金：211 需要 ' + need + ' 盒，扣掉' + (joined ? '入會送的 ' + joined + ' 盒和' : '')
+    + '贈品 211(30) ' + gifts + ' 瓶（' + gifts * 30 + ' 顆），只買 ' + qty + ' 盒']);
+  return r;
+}
+
 // 說明裡寫的目標 PV，例如「試算 22萬」「試算 300000」
 function targetPv_(text) {
   const t = String(text || '').normalize('NFKC');
@@ -422,7 +449,8 @@ function targetPv_(text) {
 
 // 有目標 PV 時：把最後一個有寫顆數的月份拉長（一次加 1 個月），直到總 PV 達標；最多 36 個月
 function fitTarget_(prices, parsed, target) {
-  let r = computeQuote_(prices, parsed);
+  const calc = () => applyCash211_(computeQuote_(prices, parsed));
+  let r = calc();
   if (!target || !r.isSheet) return r;
   const filled = (parsed.periods || []).filter(pd => ((pd && pd.rows) || []).some(x => Number(String(x && x.perDose).normalize('NFKC')) > 0));
   const last = filled[filled.length - 1];
@@ -430,7 +458,7 @@ function fitTarget_(prices, parsed, target) {
   let m = Math.max(1, Number(last.months) || 1);
   while (pvOf(r) < target && m < 36) {
     last.months = ++m;
-    r = computeQuote_(prices, parsed);
+    r = calc();
   }
   r.target = target;
   r.fitLabel = String(last.label || '');
@@ -456,7 +484,8 @@ function computeQuote_(prices, parsed) {
     const p = pack ? byName[normName_(pack.single)] : find(code);
     if (!p) return null;
     const pills = perDose * times * DAYS_PER_MONTH * months;
-    return { key: pack ? normName_(code) : p.name, n: Math.ceil(pills / (p.perBox || 90)) };
+    const fixed = FIXED_MONTHLY[normName_(code)];
+    return { key: pack ? normName_(code) : p.name, n: fixed ? fixed * months : Math.ceil(pills / (p.perBox || 90)) };
   };
 
   const periods = [];
@@ -496,7 +525,13 @@ function computeQuote_(prices, parsed) {
   const lines = [];
   const warn = [];
   order.forEach(key => {
-    const n = boxes[key];
+    let n = boxes[key];
+    const cap = Math.floor(CAP_BOXES * Math.max(3, totalMonths) / 3);
+    if (isSheet && CAPPED.indexOf(key) >= 0 && n > cap) {
+      warn.push(key + ' 算出 ' + n + ' 盒，依 SOP 上限（每 3 個月 ' + CAP_BOXES + ' 盒）調成 ' + cap + ' 盒');
+      n = cap;
+    }
+    if (isSheet && key === '2711AB' && n < MIN_2711AB) n = MIN_2711AB;
     const pack = PACKS[key];
     if (pack) {
       const sets = Math.min(Math.floor(n / pack.size), pack.maxSets);
@@ -506,8 +541,6 @@ function computeQuote_(prices, parsed) {
     } else {
       lines.push(line_(byName[normName_(key)], n));
     }
-    const cap = Math.floor(CAP_BOXES * Math.max(3, totalMonths) / 3);
-    if (CAPPED.indexOf(key) >= 0 && n > cap) warn.push(key + ' 共 ' + n + ' 盒，超過上限 ' + cap + ' 盒（每 3 個月 ' + CAP_BOXES + ' 盒）');
   });
 
   lines.forEach(l => {
@@ -589,7 +622,8 @@ function quoteText_(r) {
     r.maint.forEach(l => { ma += l.price; mp += l.pv; out.push(l.label + ' → ' + l.name + ' × ' + l.qty); });
     out.push('每月金額：' + n(ma) + ' 元｜PV ' + n(mp) + '（不含在上面的總計）');
   }
-  if (r.warn.length) out.push('');
+  if (r.warn.length || (r.notes || []).length) out.push('');
+  (r.notes || []).forEach(w => out.push('💡 ' + w));
   r.warn.forEach(w => out.push('⚠️ ' + w));
   if (r.unknown.length) out.push('', '⚠️ 這些我對不到價目表，沒算進去：' + r.unknown.join('、'));
   out.push('', r.isSheet ? '盒數＝每次顆數 × 時段 × 30 天 × 月數 ÷ 每盒顆數（無條件進位）。字是辨識出來的，請再核對一次。'
