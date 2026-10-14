@@ -245,7 +245,24 @@
   .mini.warn{color:#A8442E;border-color:rgba(168,68,46,.25);}
 
   /* ---------- 對話 ---------- */
-  .chat-box{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+  /* 聊天視窗：全螢幕版面 */
+  body.chat-mode .topbar{display:none;}
+  body.chat-mode .app{max-width:760px;padding-bottom:0;}
+  #view-chat.active{display:flex;flex-direction:column;height:100vh;height:100dvh;padding:0;}
+  #view-chat.active>*{animation:none;}
+  .chat-head{display:flex;align-items:center;gap:12px;padding:12px 14px;flex:0 0 auto;
+    background:linear-gradient(168deg,#2E2415 0%,#1E1A14 78%);color:#fff;border-radius:0 0 22px 22px;
+    box-shadow:0 8px 24px rgba(30,25,18,.2);}
+  .chat-head .back{width:42px;height:42px;background:rgba(255,255,255,.1);border-color:rgba(217,184,115,.22);color:#fff;box-shadow:none;}
+  .chat-av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:21px;flex:0 0 auto;
+    background:linear-gradient(160deg,#8B6FBF,#6B4E9E);box-shadow:0 0 0 2px rgba(217,184,115,.4);}
+  .chat-who{flex:1;min-width:0;}
+  .chat-who b{display:block;font-size:17px;}
+  .chat-who span{font-size:12px;color:rgba(255,255,255,.62);}
+  .chat-head .icon-btn{width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.1);
+    border:1px solid rgba(217,184,115,.22);color:#fff;font-size:17px;flex:0 0 auto;}
+  .chat-box{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:10px;padding:16px 14px 10px;}
+  .chat-box.drag{outline:2.5px dashed var(--c-chat);outline-offset:-10px;background:rgba(107,78,158,.05);}
   .msg{max-width:86%;padding:11px 14px;border-radius:18px;font-size:15px;line-height:1.65;
     white-space:pre-wrap;word-break:break-word;box-shadow:0 1px 2px rgba(30,25,18,.05);}
   .msg.user{align-self:flex-end;background:linear-gradient(165deg,#2E2415,var(--ink));color:#fff;border-bottom-right-radius:6px;}
@@ -254,9 +271,54 @@
   .msg .acts{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;}
   .msg .act{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:12px;background:rgba(31,138,114,.1);
     color:var(--accent);border:1px solid rgba(31,138,114,.25);white-space:normal;}
-  .chat-in{position:sticky;bottom:0;background:linear-gradient(transparent,var(--paper) 22%);padding:14px 0 6px;}
-  .chat-in .input-card{margin-bottom:0;}
-  .chat-in textarea{min-height:56px;}
+  .msg code{background:rgba(30,25,18,.07);padding:1px 5px;border-radius:6px;font-size:.92em;}
+  .msg-time{font-size:10.5px;color:var(--ink-faint);margin-top:-5px;}
+  .msg-time.r{align-self:flex-end;} .msg-time.l{align-self:flex-start;}
+  .m-atts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .m-atts:last-child{margin-bottom:0;}
+  .m-att{position:relative;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.12);}
+  .m-att img{display:block;width:112px;height:112px;object-fit:cover;cursor:zoom-in;}
+  .m-att .badge{position:absolute;left:6px;bottom:6px;font-size:11px;font-weight:700;color:#fff;
+    background:rgba(0,0,0,.55);padding:2px 7px;border-radius:9px;}
+  .m-file{display:flex;align-items:center;gap:8px;padding:9px 11px;font-size:13px;max-width:220px;}
+  .m-file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .typing{display:inline-flex;gap:4px;align-items:center;}
+  .typing i{width:7px;height:7px;border-radius:50%;background:var(--ink-faint);animation:bounce 1.2s infinite;}
+  .typing i:nth-child(2){animation-delay:.15s;} .typing i:nth-child(3){animation-delay:.3s;}
+  @keyframes bounce{0%,60%,100%{transform:none;opacity:.5;}30%{transform:translateY(-5px);opacity:1;}}
+
+  .composer{flex:0 0 auto;padding:8px 12px calc(10px + env(safe-area-inset-bottom));background:var(--paper);
+    border-top:1px solid var(--line-2);}
+  .pending{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;}
+  .pending:empty{display:none;}
+  .p-att{position:relative;flex:0 0 auto;width:68px;height:68px;border-radius:13px;overflow:hidden;
+    background:var(--paper-2);border:1px solid var(--line);display:grid;place-items:center;font-size:12px;text-align:center;}
+  .p-att img{width:100%;height:100%;object-fit:cover;}
+  .p-att .nm{position:absolute;left:0;right:0;bottom:0;font-size:10px;background:rgba(0,0,0,.5);color:#fff;
+    padding:1px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .p-att .x{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);
+    color:#fff;font-size:14px;line-height:22px;}
+  .p-att.busy{color:var(--ink-faint);}
+  .c-row{display:flex;align-items:flex-end;gap:8px;}
+  .c-btn{width:46px;height:46px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-size:20px;
+    background:var(--paper-2);border:1.5px solid var(--line);color:var(--ink-soft);transition:transform .18s var(--spring);}
+  .c-btn:active{transform:scale(.9);}
+  .c-btn.rec{background:#E0613B;color:#fff;border-color:transparent;animation:pulse 1.4s infinite;}
+  .c-input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:23px;background:var(--paper-2);
+    padding:11px 16px;font-size:16px;line-height:1.45;color:var(--ink);outline:none;resize:none;max-height:140px;min-height:46px;}
+  .c-input:focus{border-color:var(--c-chat);}
+  .c-send{width:46px;height:46px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+    background:var(--c-chat);color:#fff;font-size:19px;box-shadow:0 6px 16px rgba(107,78,158,.35);}
+  .c-send:disabled{opacity:.5;}
+  .att-menu{display:none;gap:8px;flex-wrap:wrap;padding:2px 2px 10px;}
+  .att-menu.open{display:flex;}
+  .att-menu button{flex:1 1 0;min-width:72px;padding:10px 6px;border-radius:14px;background:var(--paper-2);
+    border:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .att-menu button b{font-size:21px;}
+  body.chat-mode .toast{bottom:calc(84px + env(safe-area-inset-bottom));}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:none;place-items:center;padding:16px;}
+  .lightbox.open{display:grid;}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:10px;}
 
   /* ---------- 設定 ---------- */
   .field{margin-bottom:22px;}
@@ -431,20 +493,31 @@
 
   <!-- 對話 -->
   <section id="view-chat" class="view">
-    <div class="ws-head">
-      <button class="back" onclick="openView('home')">‹</button>
-      <div class="ws-ic" style="background:rgba(107,78,158,.14)">💬</div>
-      <div class="ws-title"><h2 id="chatTitle">和小乖聊聊</h2><p>小乖看得到你的待辦、行程、提醒和筆記，也能幫你新增</p></div>
+    <div class="chat-head">
+      <button class="back" onclick="openView('home')" aria-label="返回">‹</button>
+      <div class="chat-av">🐾</div>
+      <div class="chat-who"><b id="chatTitle">小乖</b><span>看得到你的待辦、行程、提醒和筆記</span></div>
+      <button class="icon-btn" onclick="clearChat()" aria-label="清空對話">🗑️</button>
     </div>
     <div class="chat-box" id="chatBox"></div>
-    <div class="chat-in">
-      <div class="input-card">
-        <textarea id="chatInput" placeholder="想問什麼、想記什麼都可以…" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey))sendChat()"></textarea>
-        <div class="input-actions">
-          <button class="mini" onclick="clearChat()">清空對話</button>
-          <button class="run-btn" style="background:var(--c-chat)" id="chatBtn" onclick="sendChat()">送出</button>
-        </div>
+    <div class="composer">
+      <div class="att-menu" id="attMenu">
+        <button onclick="pickFile('photo')"><b>🖼️</b>照片</button>
+        <button onclick="pickFile('camera')"><b>📷</b>拍照</button>
+        <button onclick="pickFile('video')"><b>🎬</b>影片</button>
+        <button onclick="pickFile('file')"><b>📄</b>檔案</button>
       </div>
+      <div class="pending" id="pending"></div>
+      <div class="c-row">
+        <button class="c-btn" id="attBtn" onclick="toggleAttMenu()" aria-label="附加檔案">＋</button>
+        <textarea class="c-input" id="chatInput" rows="1" placeholder="輸入訊息…"></textarea>
+        <button class="c-btn" id="micBtn" onclick="toggleMic()" aria-label="語音輸入">🎤</button>
+        <button class="c-send" id="chatBtn" onclick="sendChat()" aria-label="送出">➤</button>
+      </div>
+      <input type="file" id="fPhoto" accept="image/*" multiple hidden onchange="addFiles(this)">
+      <input type="file" id="fCamera" accept="image/*" capture="environment" hidden onchange="addFiles(this)">
+      <input type="file" id="fVideo" accept="video/*" hidden onchange="addFiles(this)">
+      <input type="file" id="fFile" accept="image/*,video/*,application/pdf,.pdf,text/*,.txt,.md,.csv,.json" multiple hidden onchange="addFiles(this)">
     </div>
   </section>
 
@@ -513,6 +586,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')"><img id="lightboxImg" alt=""></div>
 
 <script>
 /* ============ 預設資料 ============ */
@@ -520,7 +594,7 @@ const STORE_KEY = "xiaoguai_v1";
 const MODELS = {"claude-opus-5-5":"Opus 5.5","claude-sonnet-5-5":"Sonnet 5.5","claude-haiku-5-5":"Haiku 5.5"};
 const DEFAULTS = {
   schema:1,
-  build:"2026.10.14-v2-claude",
+  build:"2026.10.14-v3-chat",
   title:"小乖",
   nick:"",
   about:"",
@@ -587,9 +661,10 @@ function openView(v){
   document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
   document.getElementById("view-"+v).classList.add("active");
   window.scrollTo(0,0);
+  document.body.classList.toggle("chat-mode",v==="chat");
   ({home:renderHome, todos:renderTodos, schedule:renderEvents, reminders:renderReminders,
     notes:renderNotes, chat:renderChat, settings:fillSettings})[v]?.();
-  if(v==="chat") setTimeout(()=>window.scrollTo(0,document.body.scrollHeight),60);
+  if(v==="chat") scrollChat(true);
 }
 function toggleHeader(){ document.getElementById("topbar").classList.toggle("min"); }
 
@@ -598,7 +673,7 @@ function renderHeader(){
   document.getElementById("titleInput").value=state.title;
   document.getElementById("miniTitle").textContent=state.title;
   document.title="私人助理"+state.title;
-  document.getElementById("chatTitle").textContent="和"+state.title+"聊聊";
+  document.getElementById("chatTitle").textContent=state.title;
   const on=!!state.apiKey;
   document.getElementById("keyDot").classList.toggle("on",on);
   document.getElementById("keyStatus").textContent = on
@@ -657,7 +732,7 @@ function renderHome(){
     {v:"notes",ic:"📝",c:"var(--c-note)",bg:"rgba(199,144,43,.14)",name:"筆記",n:state.notes.length,
       sub: state.notes.length? `最近：${state.notes[0].title||"（無標題）"}` : "靈感、清單、隨手記"},
     {v:"chat",ic:"💬",c:"var(--c-chat)",bg:"rgba(107,78,158,.14)",name:"和"+state.title+"聊聊",n:null,
-      sub: lastChat? lastChat.content.replace(/\s+/g," ").slice(0,40) : "問問題、排計畫、口述記事都可以"}
+      sub: lastChat? (lastChat.content||"").replace(/\s+/g," ").slice(0,40) : "問問題、排計畫、口述記事都可以"}
   ];
   document.getElementById("entryList").innerHTML=E.map(e=>`
     <div class="lib-entry" onclick="openView('${e.v}')">
@@ -919,7 +994,10 @@ ${s.notes}
   {"type":"note","title":"標題","body":"內容"}
 ]
 \`\`\`
-沒有要新增東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。`;
+沒有要新增東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。
+
+【使用者傳來的附件】
+使用者可能傳圖片、影片擷取的畫面（依時間排列，沒有聲音）、PDF 或文字檔。請仔細看內容再回答；若附件裡有日期、時間、待辦或值得記下的資訊（例如邀請函、收據、課表），主動問要不要記下，或在使用者要求時用 actions 新增。`;
 }
 function parseActions(text){
   const m=text.match(/```actions\s*([\s\S]*?)```/);
@@ -953,51 +1031,216 @@ function applyActions(acts){
   });
   return done;
 }
+/* ---- 附件處理：圖片壓縮、影片擷取畫面、PDF、文字檔 ---- */
+let pending=[];          // {id, kind, name, thumb, blocks, busy}
+const MAX_PDF = 20*1024*1024;
+function toggleAttMenu(force){
+  const m=document.getElementById("attMenu");
+  m.classList.toggle("open", force===undefined? !m.classList.contains("open") : force);
+  document.getElementById("attBtn").textContent=m.classList.contains("open")?"×":"＋";
+}
+function pickFile(k){
+  toggleAttMenu(false);
+  document.getElementById({photo:"fPhoto",camera:"fCamera",video:"fVideo",file:"fFile"}[k]).click();
+}
+function addFiles(inp){ handleFiles([...inp.files]); inp.value=""; }
+function handleFiles(files){
+  files.forEach(f=>{
+    const t=f.type||"", n=f.name||"附件";
+    let kind = t.startsWith("image/")?"image" : t.startsWith("video/")?"video" : t==="application/pdf"||/\.pdf$/i.test(n)?"pdf"
+      : t.startsWith("audio/")?"audio" : (t.startsWith("text/")||/\.(txt|md|csv|json)$/i.test(n))?"text" : "";
+    if(kind==="audio"){ toast("Claude 目前聽不懂音檔，請改用 🎤 語音輸入",3500); return; }
+    if(!kind){ toast("不支援這種檔案："+n,3000); return; }
+    if(pending.length>=10){ toast("一次最多 10 個附件"); return; }
+    const item={id:uid(),kind,name:n,thumb:"",blocks:[],busy:true};
+    pending.push(item); renderPending();
+    prepAttachment(item,f).then(()=>{ item.busy=false; renderPending(); })
+      .catch(e=>{ pending=pending.filter(x=>x!==item); renderPending(); toast("讀取失敗："+n+"（"+e.message+"）",3500); });
+  });
+}
+async function prepAttachment(item,f){
+  if(item.kind==="image"){
+    const img=await loadImage(f);
+    const full=drawScaled(img,1568,.85);
+    item.thumb=drawScaled(img,240,.7);
+    item.blocks=[imgBlock(full)];
+  }else if(item.kind==="video"){
+    const {frames,dur}=await videoFrames(f);
+    item.thumb=frames[0].thumb;
+    item.dur=dur;
+    item.blocks=[{type:"text",text:`以下是影片「${item.name}」（長約 ${Math.round(dur)} 秒）平均擷取的 ${frames.length} 張畫面，依時間排列（影片聲音無法傳送）：`},
+      ...frames.map(fr=>imgBlock(fr.full))];
+  }else if(item.kind==="pdf"){
+    if(f.size>MAX_PDF) throw new Error("PDF 超過 20MB");
+    const b64=(await readAs(f,"dataURL")).split(",")[1];
+    item.blocks=[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64},title:item.name}];
+  }else{
+    let txt=await readAs(f,"text");
+    if(txt.length>100000) txt=txt.slice(0,100000)+"\n…（檔案太長，已截取前 100000 字）";
+    item.blocks=[{type:"text",text:`檔案「${item.name}」的內容：\n${txt}`}];
+  }
+}
+function readAs(f,how){
+  return new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.onerror=()=>bad(new Error("無法讀取"));
+    how==="text"? r.readAsText(f) : r.readAsDataURL(f); });
+}
+function loadImage(f){
+  return new Promise((ok,bad)=>{ const u=URL.createObjectURL(f); const im=new Image();
+    im.onload=()=>{ URL.revokeObjectURL(u); ok(im); }; im.onerror=()=>{ URL.revokeObjectURL(u); bad(new Error("圖片格式無法開啟")); }; im.src=u; });
+}
+function drawScaled(src,max,q){
+  const w=src.videoWidth||src.naturalWidth||src.width, h=src.videoHeight||src.naturalHeight||src.height;
+  const k=Math.min(1,max/Math.max(w,h));
+  const c=document.createElement("canvas"); c.width=Math.round(w*k); c.height=Math.round(h*k);
+  const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(src,0,0,c.width,c.height);
+  return c.toDataURL("image/jpeg",q);
+}
+function imgBlock(dataUrl){ return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:dataUrl.split(",")[1]}}; }
+async function videoFrames(f){
+  const u=URL.createObjectURL(f);
+  const v=document.createElement("video"); v.muted=true; v.playsInline=true; v.preload="auto"; v.src=u;
+  try{
+    await new Promise((ok,bad)=>{ v.onloadeddata=ok; v.onerror=()=>bad(new Error("影片格式無法開啟")); setTimeout(()=>bad(new Error("影片載入逾時")),20000); });
+    const dur=isFinite(v.duration)&&v.duration>0? v.duration : 1;
+    const n=Math.max(1,Math.min(8,Math.ceil(dur/3)));
+    const frames=[];
+    for(let i=0;i<n;i++){
+      const t=n===1? Math.min(.5,dur/2) : dur*(i+.5)/n;
+      await new Promise(ok=>{ v.onseeked=ok; v.currentTime=t; setTimeout(ok,4000); });
+      frames.push({full:drawScaled(v,1024,.8), thumb: i===0? drawScaled(v,240,.7) : ""});
+    }
+    return {frames,dur};
+  }finally{ URL.revokeObjectURL(u); }
+}
+function renderPending(){
+  const ic={pdf:"📄",text:"📝"};
+  document.getElementById("pending").innerHTML=pending.map(a=>`
+    <div class="p-att ${a.busy?"busy":""}">
+      ${a.busy? '<span class="mini-spin"></span>' : a.thumb? `<img src="${a.thumb}" alt="">` : `<span style="font-size:24px">${ic[a.kind]||"📎"}</span>`}
+      <span class="nm">${a.kind==="video"?"🎬 ":""}${esc(a.name)}</span>
+      <button class="x" onclick="removePending('${a.id}')" aria-label="移除">×</button>
+    </div>`).join("");
+}
+function removePending(id){ pending=pending.filter(a=>a.id!==id); renderPending(); }
+
+/* ---- 語音輸入（瀏覽器內建語音辨識） ---- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null;
+function toggleMic(){
+  if(!SR){ toast("這個瀏覽器不支援語音輸入，可用鍵盤上的麥克風",3500); return; }
+  if(rec){ rec.stop(); return; }
+  const inp=document.getElementById("chatInput"); const base=inp.value;
+  rec=new SR(); rec.lang="zh-TW"; rec.interimResults=true; rec.continuous=true;
+  rec.onresult=e=>{ let t=""; for(const r of e.results) t+=r[0].transcript; inp.value=base+t; autoGrow(); };
+  rec.onerror=e=>{ if(e.error==="not-allowed") toast("請允許使用麥克風"); };
+  rec.onend=()=>{ rec=null; document.getElementById("micBtn").classList.remove("rec"); };
+  rec.start(); document.getElementById("micBtn").classList.add("rec"); toast("開始聽囉，再按一次結束");
+}
+
+/* ---- 對話 ---- */
+function md(s){
+  return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/`([^`\n]+)`/g,"<code>$1</code>")
+    .replace(/^#{1,4}\s*(.+)$/gm,"<b>$1</b>");
+}
+function attHTML(atts){
+  if(!atts||!atts.length) return "";
+  return `<div class="m-atts">${atts.map(a=> a.thumb
+    ? `<div class="m-att"><img src="${a.thumb}" alt="" onclick="zoom(this.src)">${a.kind==="video"?`<span class="badge">🎬 ${a.dur?Math.round(a.dur)+" 秒":"影片"}</span>`:""}</div>`
+    : `<div class="m-att m-file">${a.kind==="pdf"?"📄":a.kind==="text"?"📝":"🖼️"}<span>${esc(a.name)}</span></div>`).join("")}</div>`;
+}
+function zoom(src){ document.getElementById("lightboxImg").src=src; document.getElementById("lightbox").classList.add("open"); }
 function renderChat(){
   const box=document.getElementById("chatBox");
+  let html="";
   if(!state.chat.length){
-    box.innerHTML=`<div class="msg bot">嗨${state.nick?"，"+esc(state.nick):""}！我是${esc(state.title)} 😊\n你可以直接跟我說「下週三早上十點開會」、「提醒我晚上吃藥」，我會幫你記好；也可以問我今天該怎麼安排。</div>`;
+    html=`<div class="msg bot">嗨${state.nick?"，"+esc(state.nick):""}！我是${esc(state.title)} 😊\n你可以直接跟我說「下週三早上十點開會」、「提醒我晚上吃藥」，我會幫你記好。\n也可以按左下角的＋傳照片、影片或檔案給我，例如拍張收據、傳一段影片，我幫你看看。</div>`;
   }else{
-    box.innerHTML=state.chat.map(m=>`<div class="msg ${m.role==="user"?"user":"bot"} ${m.err?"err":""}">${esc(m.content)}${
-      m.acts&&m.acts.length?`<div class="acts">${m.acts.map(a=>`<span class="act">${esc(a)}</span>`).join("")}</div>`:""}</div>`).join("");
+    html=state.chat.map(m=>{
+      const me=m.role==="user";
+      return `<div class="msg ${me?"user":"bot"} ${m.err?"err":""}">${attHTML(m.atts)}${me?esc(m.content):md(m.content)}${
+        m.acts&&m.acts.length?`<div class="acts">${m.acts.map(a=>`<span class="act">${esc(a)}</span>`).join("")}</div>`:""}</div>`
+        + (m.t?`<div class="msg-time ${me?"r":"l"}">${timeStr(m.t)}</div>`:"");
+    }).join("");
   }
-  if(chatting) box.insertAdjacentHTML("beforeend",`<div class="msg bot" id="typing">${esc(state.title)}思考中…</div>`);
+  if(chatting) html+=`<div class="msg bot"><span class="typing"><i></i><i></i><i></i></span></div>`;
+  box.innerHTML=html;
+}
+function attDesc(atts){
+  return (atts||[]).map(a=>({image:"圖片",video:"影片",pdf:"PDF",text:"文字檔"}[a.kind]||"附件")+"「"+a.name+"」").join("、");
 }
 async function sendChat(){
   if(chatting) return;
+  if(pending.some(a=>a.busy)){ toast("附件還在處理中，請稍等一下"); return; }
   const input=document.getElementById("chatInput"); const text=input.value.trim();
-  if(!text) return;
+  if(!text && !pending.length) return;
   if(!state.apiKey){ toast("請先到設定填入 Claude API 金鑰"); setTimeout(()=>openView("settings"),600); return; }
-  input.value="";
-  state.chat.push({role:"user",content:text});
+  if(rec) rec.stop();
+  const atts=pending; pending=[]; renderPending(); toggleAttMenu(false);
+  input.value=""; autoGrow();
+  const userMsg={role:"user",content:text,t:Date.now(),
+    atts:atts.map(a=>({kind:a.kind,name:a.name,thumb:a.thumb,dur:a.dur}))};
+  state.chat.push(userMsg);
   chatting=true; save(); renderChat(); scrollChat();
-  const btn=document.getElementById("chatBtn"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+  document.getElementById("chatBtn").disabled=true;
   try{
-    const history=state.chat.filter(m=>!m.err).slice(-16).map(m=>({role:m.role,content:m.content}));
-    const out=await callClaude(buildSys(),history);
+    const hist=state.chat.filter(m=>!m.err).slice(-16);
+    const msgs=hist.map(m=>{
+      if(m===userMsg){
+        const blocks=atts.flatMap(a=>a.blocks);
+        blocks.push({type:"text",text:text||"（使用者傳了附件，請看看內容並回應）"});
+        return {role:"user",content:blocks};
+      }
+      const extra=m.atts&&m.atts.length? `\n（當時附上：${attDesc(m.atts)}）` : "";
+      return {role:m.role,content:(m.content||"")+extra};
+    });
+    const out=await callClaude(buildSys(),msgs);
     const {clean,acts}=parseActions(out);
     const done=applyActions(acts);
-    state.chat.push({role:"assistant",content:clean||"好的！",acts:done});
+    state.chat.push({role:"assistant",content:clean||"好的！",acts:done,t:Date.now()});
     if(done.length) toast(`已幫你新增 ${done.length} 項`);
   }catch(e){
-    state.chat.push({role:"assistant",content:"抱歉，出了點問題：「"+e.message+"」",err:true});
+    state.chat.push({role:"assistant",content:"抱歉，出了點問題：「"+e.message+"」",err:true,t:Date.now()});
   }
-  if(state.chat.length>60) state.chat=state.chat.slice(-60);
+  trimChat();
   chatting=false; save();
-  btn.disabled=false; btn.textContent="送出";
+  document.getElementById("chatBtn").disabled=false;
   renderChat(); scrollChat();
 }
-function scrollChat(){ setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}),40); }
+function trimChat(){
+  if(state.chat.length>60) state.chat=state.chat.slice(-60);
+  // 縮圖佔空間：只保留最近 20 則訊息的縮圖
+  state.chat.slice(0,-20).forEach(m=>(m.atts||[]).forEach(a=>{ a.thumb=""; }));
+}
+function scrollChat(instant){
+  setTimeout(()=>{ const b=document.getElementById("chatBox"); b.scrollTo({top:b.scrollHeight,behavior:instant?"auto":"smooth"}); },40);
+}
 function clearChat(){
   if(!state.chat.length) return;
   if(!confirm("確定清空所有對話紀錄？")) return;
   state.chat=[]; save(); renderChat();
 }
+function autoGrow(){ const t=document.getElementById("chatInput"); t.style.height="auto"; if(t.value) t.style.height=Math.min(t.scrollHeight+3,140)+"px"; }
+(function initComposer(){
+  const inp=document.getElementById("chatInput"), box=document.getElementById("chatBox");
+  inp.addEventListener("input",autoGrow);
+  inp.addEventListener("keydown",e=>{
+    const touch=matchMedia("(pointer:coarse)").matches;
+    if(e.key==="Enter" && !e.isComposing && (e.metaKey||e.ctrlKey||(!touch&&!e.shiftKey))){ e.preventDefault(); sendChat(); }
+  });
+  inp.addEventListener("paste",e=>{
+    const fs=[...(e.clipboardData?.files||[])]; if(fs.length){ e.preventDefault(); handleFiles(fs); }
+  });
+  ["dragenter","dragover"].forEach(ev=>box.addEventListener(ev,e=>{ e.preventDefault(); box.classList.add("drag"); }));
+  ["dragleave","drop"].forEach(ev=>box.addEventListener(ev,e=>{ e.preventDefault(); box.classList.remove("drag"); }));
+  box.addEventListener("drop",e=>handleFiles([...(e.dataTransfer?.files||[])]));
+})();
+
 async function callClaude(system,messages){
   // Claude API 一則對話必須以 user 開頭、且 user／assistant 交替
   messages=messages.reduce((acc,m)=>{
     const last=acc[acc.length-1];
-    if(last && last.role===m.role) last.content+="\n\n"+m.content; else acc.push({...m});
+    const blocks=typeof m.content==="string"? [{type:"text",text:m.content||"…"}] : m.content;
+    if(last && last.role===m.role) last.content.push(...blocks); else acc.push({role:m.role,content:[...blocks]});
     return acc;
   },[]);
   while(messages.length && messages[0].role!=="user") messages=messages.slice(1);
