@@ -228,7 +228,9 @@ function handleTelegram_(update) {
     let img;
     try { img = tgImage_(fileId, doc && doc.mime_type); }
     catch (err) { console.error(err); return tgSend_(chatId, '圖片讀取失敗，再傳一次看看。'); }
-    return tgSend_(chatId, image_(text, img));
+    const ans = image_(text, img);
+    sendReportTg_(chatId);
+    return tgSend_(chatId, ans);
   }
   if (!text) {
     if (chatId === owner) tgSend_(chatId, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
@@ -246,7 +248,9 @@ function handleTelegram_(update) {
   if (chatId !== owner) return tgSend_(chatId, '小乖目前只服務主人喔。');
 
   tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
-  tgSend_(chatId, answer_(text.replace(/^\/start\b\s*/, '') || '說明'));
+  const ans = answer_(text.replace(/^\/start\b\s*/, '') || '說明');
+  sendReportTg_(chatId);
+  tgSend_(chatId, ans);
 }
 
 // 下載 Telegram 圖片，轉成 OpenAI 看得懂的 data URL
@@ -423,6 +427,7 @@ function quote_(text, image, fallbackToChat) {
   parsed.newMember = !/舊會員|不入會|非新/.test(text || '');
   parsed.gender = /男/.test(text || '') ? '男' : (/女/.test(text || '') ? '女' : '');
   const result = fitTarget_(prices, parsed, targetPv_(text));
+  LAST_QUOTE_ = result.lines.length ? result : null;
   if (result.isSheet) result.byMonths = [1, 2, 3].map(m => byMonths_(prices, parsed, m));
   const answer = quoteText_(result);
   logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
@@ -615,17 +620,32 @@ function line_(p, qty, label) {
   return { name: p.name, label: label || p.name, qty: qty, price: p.price * qty, pv: p.pv * qty };
 }
 
+// 文字和圖片共用的數字：總金額、PV、贈品、天數、獎金
+function reportData_(r) {
+  let amount = 0, pv = 0;
+  r.lines.forEach(l => { amount += l.price; pv += l.pv; });
+  const gifts = r.card ? 0 : Math.floor(amount / CASH_GIFT_AMOUNT);
+  const twos = r.lines.filter(l => /^2/.test(l.name)).map(l => l.qty);
+  const days = twos.length ? Math.max.apply(null, twos) * DAYS_PER_BOX : 0;
+  const newMember = r.lines.some(l => /入會|新會員/.test(l.name));
+  const bonus = Object.keys(BONUS_RATES).map(type => {
+    const tier = BONUS_RATES[type].filter(t => pv >= t[0])[0];
+    if (!tier) return { type: type, tier: null };
+    const b = Math.floor(amount * tier[1]);
+    return { type: type, tier: tier, pct: Math.round(tier[1] * 100), amount: b, afterTax: Math.floor(b * 0.9), from: tier[0] };
+  });
+  return { amount: amount, pv: pv, gifts: gifts, days: days, newMember: newMember,
+    bonusBlocked: newMember && pv < NEW_MEMBER_PV, bonus: bonus };
+}
+
 function quoteText_(r) {
   if (!r.lines.length) {
     return '我沒從裡面找到價目表上的品項' + (r.unknown.length ? '（看到：' + r.unknown.join('、') + '）' : '')
       + '。可以拍清楚一點再傳，或直接打字：試算 211 2盒、777Q 1盒';
   }
   const n = x => Number(x).toLocaleString('en-US');
-  let amount = 0, pv = 0;
-  r.lines.forEach(l => { amount += l.price; pv += l.pv; });
-  const gifts = r.card ? 0 : Math.floor(amount / CASH_GIFT_AMOUNT);
-  const twos = r.lines.filter(l => /^2/.test(l.name)).map(l => l.qty);
-  const days = twos.length ? Math.max.apply(null, twos) * DAYS_PER_BOX : 0;
+  const d = reportData_(r);
+  const amount = d.amount, pv = d.pv, gifts = d.gifts, days = d.days;
 
   const out = ['🧾 康園試算報表'];
   const who = [r.name ? '購買者 ' + r.name : '', r.introducer ? '介紹人 ' + r.introducer : '', r.date].filter(Boolean).join('｜');
@@ -646,18 +666,12 @@ function quoteText_(r) {
   out.push('', '💰 總金額：NT$ ' + n(amount), '🎯 總 PV：' + n(pv));
   TARGETS_PV.forEach(t => out.push('距離 ' + (t / 10000) + ' 萬 PV：' + (pv >= t ? '0 🎉 已達標' : n(t - pv))));
 
-  const newMember = r.lines.some(l => /入會|新會員/.test(l.name));
   out.push('', '【預計獎金】（總金額 × 級距 %，扣稅 10%）');
-  if (newMember && pv < NEW_MEMBER_PV) {
+  if (d.bonusBlocked) {
     out.push('新入會需累積滿 2 萬 PV 才開始計算獎金，目前暫無');
   } else {
-    Object.keys(BONUS_RATES).forEach(type => {
-      const tier = BONUS_RATES[type].filter(t => pv >= t[0])[0];
-      if (!tier) return out.push(type + '：PV 未達最低門檻');
-      const bonus = Math.floor(amount * tier[1]);
-      out.push(type + ' ' + Math.round(tier[1] * 100) + '%：約 NT$ ' + n(bonus) + '，扣稅後約 NT$ ' + n(Math.floor(bonus * 0.9)));
-    });
-    if (newMember) out.push('（有新入會：總 PV 已滿 2 萬門檻）');
+    d.bonus.forEach(b => out.push(b.tier ? b.type + ' ' + b.pct + '%：約 NT$ ' + n(b.amount) + '，扣稅後約 NT$ ' + n(b.afterTax) : b.type + '：PV 未達最低門檻'));
+    if (d.newMember) out.push('（有新入會：總 PV 已滿 2 萬門檻）');
   }
 
   if (r.byMonths) {
@@ -788,6 +802,180 @@ const DEFAULT_PRICES = [
   '駐顏回春(Ａ)|51840|75640',
   '駐顏回春(Ｂ)|71280|101560'
 ];
+
+/* ============ 試算報表圖片（Telegram） ============ */
+// 用 Google 簡報畫一張「康園試算報表」風格的圖：建立暫時的簡報 → 一次 batchUpdate 畫好 → 取 PNG 縮圖 → 刪掉簡報。
+// 圖片直接傳到 Telegram，另外存一份到自己雲端硬碟的「小乖試算報表」資料夾（不公開）。
+let LAST_QUOTE_ = null;
+const REPORT_FOLDER = '小乖試算報表';
+const C = {
+  bg: '#1c1c1c', card: '#262626', gold: '#d4af37', gold2: '#f0c75e', teal: '#2ee6c5', purple: '#c084fc',
+  white: '#ffffff', grey: '#9a9a9a', head: '#2f6fb5', row1: '#ffffff', row2: '#eef1f5', ink: '#222222', qty: '#b07a00', green: '#4ade80',
+};
+
+// 第一次使用前在編輯器執行一次，讓 Google 授權「簡報」與「雲端硬碟」權限
+function authorizeReport() {
+  const id = slidesApi_('post', '', { title: '小乖授權測試' }).presentationId;
+  SlidesApp.openById(id);
+  DriveApp.getFileById(id).setTrashed(true);
+  Logger.log('授權完成，可以產生試算報表圖片了。');
+}
+
+function slidesApi_(method, path, body) {
+  const opt = {
+    method: method, contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+  };
+  if (body) opt.payload = JSON.stringify(body);
+  const res = UrlFetchApp.fetch('https://slides.googleapis.com/v1/presentations' + path, opt);
+  if (res.getResponseCode() !== 200) throw new Error('Slides ' + res.getResponseCode() + '：' + res.getContentText().slice(0, 300));
+  return JSON.parse(res.getContentText());
+}
+
+function rgb_(hex) {
+  const h = hex.replace('#', '');
+  return { red: parseInt(h.slice(0, 2), 16) / 255, green: parseInt(h.slice(2, 4), 16) / 255, blue: parseInt(h.slice(4, 6), 16) / 255 };
+}
+
+// 組出畫報表的 Slides 請求（拆出來方便測試）；回傳 { W, H, build(slideId) }
+function reportLayout_(r) {
+  const d = reportData_(r);
+  const n = x => Number(x).toLocaleString('en-US');
+  const rows = r.lines.map(l => [l.name, l.qty, Math.round(l.price / l.qty), Math.round(l.pv / l.qty), l.price, l.pv]);
+  if (d.gifts) rows.push([GIFT_NAME, d.gifts, 0, 0, 0, 0]);
+
+  const W = 540, X = 20, TW = 500, ROW = 22;
+  const tableTop = 128;
+  const tableH = (rows.length + 1) * ROW;
+  let y = tableTop + tableH + 16;
+  const sumTop = y; y += 84;
+  const tgtTop = y; y += 70;
+  const bonusTop = y; const bonusH = d.bonusBlocked ? 50 : 30 + d.bonus.length * 22; y += bonusH + 10;
+  const footTop = y; y += 26;
+
+  const build = slide => {
+    const req = [];
+    req.push({ updatePageProperties: { objectId: slide, pageProperties: { pageBackgroundFill: { solidFill: { color: { rgbColor: rgb_(C.bg) } } } }, fields: 'pageBackgroundFill.solidFill.color' } });
+    let k = 0;
+    const place = (w, h, x, yy) => ({ pageObjectId: slide,
+      size: { width: { magnitude: w, unit: 'PT' }, height: { magnitude: h, unit: 'PT' } },
+      transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: yy, unit: 'PT' } });
+    const style = (size, color, bold) => ({ fontSize: { magnitude: size, unit: 'PT' }, bold: !!bold, fontFamily: 'Noto Sans TC',
+      foregroundColor: { opaqueColor: { rgbColor: rgb_(color) } } });
+    const box = (x, yy, w, h, fill, outline) => {
+      const id = 'b' + (k++);
+      req.push({ createShape: { objectId: id, shapeType: 'ROUND_RECTANGLE', elementProperties: place(w, h, x, yy) } });
+      req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill.solidFill.color,outline', shapeProperties: {
+        shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(fill) } } },
+        outline: { outlineFill: { solidFill: { color: { rgbColor: rgb_(outline) } } }, weight: { magnitude: 1, unit: 'PT' } } } } });
+    };
+    const text = (str, x, yy, w, h, size, color, bold, align) => {
+      const id = 't' + (k++);
+      req.push({ createShape: { objectId: id, shapeType: 'TEXT_BOX', elementProperties: place(w, h, x, yy) } });
+      req.push({ insertText: { objectId: id, text: String(str) } });
+      req.push({ updateTextStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: style(size, color, bold) } });
+      req.push({ updateParagraphStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'alignment', style: { alignment: align || 'CENTER' } } });
+      req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: 'MIDDLE' }, fields: 'contentAlignment' } });
+    };
+
+    // 標題區
+    text('『彥彬🌿試算系統』', X, 6, TW, 16, 8, C.grey, false, 'END');
+    text('🌿 康園試算報表', X, 20, TW, 34, 22, C.white, true);
+    box(X, 58, TW, 32, C.card, C.gold);
+    text((r.card ? '💳 刷卡' : '💵 現金') + (d.days ? '　｜　📦 預估可使用天數 ' + d.days + ' 天' : ''), X, 58, TW, 32, 12, C.gold2, true);
+    text('購買者：' + (r.name || '—') + '　　試算者：小乖', X, 96, TW, 24, 11, C.white, true);
+
+    // 品項表
+    const tbl = 'tbl';
+    const cols = [150, 46, 62, 62, 90, 90];
+    req.push({ createTable: { objectId: tbl, rows: rows.length + 1, columns: 6, elementProperties: place(TW, tableH, X, tableTop) } });
+    cols.forEach((w, i) => req.push({ updateTableColumnProperties: { objectId: tbl, columnIndices: [i], fields: 'columnWidth',
+      tableColumnProperties: { columnWidth: { magnitude: w, unit: 'PT' } } } }));
+    req.push({ updateTableRowProperties: { objectId: tbl, rowIndices: rows.map((_, i) => i + 1).concat([0]), fields: 'minRowHeight',
+      tableRowProperties: { minRowHeight: { magnitude: ROW, unit: 'PT' } } } });
+    const cell = (ri, ci, str, color, bold, fill) => {
+      const loc = { rowIndex: ri, columnIndex: ci };
+      req.push({ insertText: { objectId: tbl, cellLocation: loc, text: String(str) } });
+      req.push({ updateTextStyle: { objectId: tbl, cellLocation: loc, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily',
+        style: style(ci === 1 ? 11 : 9, color, bold) } });
+      req.push({ updateParagraphStyle: { objectId: tbl, cellLocation: loc, textRange: { type: 'ALL' }, fields: 'alignment', style: { alignment: 'CENTER' } } });
+      req.push({ updateTableCellProperties: { objectId: tbl, tableRange: { location: loc, rowSpan: 1, columnSpan: 1 },
+        fields: 'tableCellBackgroundFill.solidFill.color,contentAlignment',
+        tableCellProperties: { tableCellBackgroundFill: { solidFill: { color: { rgbColor: rgb_(fill) } } }, contentAlignment: 'MIDDLE' } } });
+    };
+    ['品項名稱', '數量', '單價', 'PV', '小計金額', '小計PV'].forEach((h, ci) => cell(0, ci, h, C.white, true, C.head));
+    rows.forEach((rw, i) => rw.forEach((v, ci) => cell(i + 1, ci, v, ci === 1 ? C.qty : C.ink, ci === 1, i % 2 ? C.row2 : C.row1)));
+
+    // 總金額／總 PV
+    const half = (TW - 10) / 2;
+    box(X, sumTop, half, 74, C.card, C.gold);
+    text('💰 總金額 NT$', X, sumTop + 6, half, 20, 11, C.white, true);
+    text(n(d.amount), X, sumTop + 28, half, 40, 24, C.gold2, true);
+    box(X + half + 10, sumTop, half, 74, C.card, C.gold);
+    text('🎯 總 PV', X + half + 10, sumTop + 6, half, 20, 11, C.white, true);
+    text(n(d.pv), X + half + 10, sumTop + 28, half, 40, 24, C.teal, true);
+
+    // 距離 22 萬／30 萬
+    box(X, tgtTop, TW, 60, C.card, C.gold);
+    TARGETS_PV.forEach((t, i) => {
+      const x = X + i * (TW / 2);
+      text('距離 ' + (t / 10000) + ' 萬 PV', x, tgtTop + 4, TW / 2, 20, 10, C.white, true);
+      text(d.pv >= t ? '0 🎉 已達標' : n(t - d.pv), x, tgtTop + 24, TW / 2, 30, 18, d.pv >= t ? C.green : C.purple, true);
+    });
+
+    // 預計獎金
+    box(X, bonusTop, TW, bonusH, '#16302a', '#1f7a5c');
+    if (d.bonusBlocked) {
+      text('🆕 新入會需累積滿 20,000 PV 才開始計算獎金，目前暫無', X, bonusTop + 10, TW, 30, 11, C.white, true);
+    } else {
+      text('預計獎金（總金額 × 級距 %｜扣稅 10% 後）', X, bonusTop + 4, TW, 22, 10, C.grey, false);
+      d.bonus.forEach((b, i) => text(b.tier
+        ? (b.type === '經理' ? '🏅 ' : '👤 ') + b.type + ' ' + b.pct + '%：約 NT$ ' + n(b.amount) + '　扣稅後 NT$ ' + n(b.afterTax)
+        : b.type + '：PV 未達最低門檻', X, bonusTop + 26 + i * 22, TW, 22, 11, b.type === '經理' ? C.gold2 : C.teal, true));
+    }
+    text('小乖自動試算｜數量依圖片辨識，請再核對　' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), X, footTop, TW, 20, 8, C.grey);
+    return req;
+  };
+  return { W: W, H: y, build: build };
+}
+
+// 把試算畫成 PNG（失敗回 null，不影響文字回覆）
+function reportPng_(r) {
+  if (!r) return null;
+  let pid = null;
+  try {
+    const L = reportLayout_(r);
+    const created = slidesApi_('post', '', { title: '小乖試算報表', pageSize: { width: { magnitude: L.W, unit: 'PT' }, height: { magnitude: L.H, unit: 'PT' } } });
+    pid = created.presentationId;
+    const page = created.slides[0];
+    const req = (page.pageElements || []).map(e => ({ deleteObject: { objectId: e.objectId } })).concat(L.build(page.objectId));
+    slidesApi_('post', '/' + pid + ':batchUpdate', { requests: req });
+    const th = slidesApi_('get', '/' + pid + '/pages/' + page.objectId + '/thumbnail?thumbnailProperties.mimeType=PNG&thumbnailProperties.thumbnailSize=LARGE');
+    return UrlFetchApp.fetch(th.contentUrl).getBlob()
+      .setName('試算報表_' + (r.name || '') + '_' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm') + '.png');
+  } catch (err) {
+    console.error('報表圖片失敗：' + err.message);
+    return null;
+  } finally {
+    if (pid) try { DriveApp.getFileById(pid).setTrashed(true); } catch (e) { console.error(e); }
+  }
+}
+
+// Telegram：有剛算好的試算就先傳圖片，並在自己的雲端硬碟留一份
+function sendReportTg_(chatId) {
+  const r = LAST_QUOTE_; LAST_QUOTE_ = null;
+  const png = reportPng_(r);
+  if (!png) return;
+  try {
+    const it = DriveApp.getFoldersByName(REPORT_FOLDER);
+    (it.hasNext() ? it.next() : DriveApp.createFolder(REPORT_FOLDER)).createFile(png.copyBlob().setName(png.getName()));
+  } catch (e) { console.error(e); }
+  const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
+    method: 'post', muteHttpExceptions: true,
+    payload: { chat_id: String(chatId), photo: png, caption: '康園試算報表' + (r.name ? '｜' + r.name : '') },
+  });
+  if (res.getResponseCode() !== 200) console.error('Telegram sendPhoto 失敗：' + res.getContentText());
+}
 
 /* ============ OpenAI ============ */
 function callOpenAI_(system, messages, asJson) {
