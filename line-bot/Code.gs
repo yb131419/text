@@ -441,7 +441,9 @@ function quote_(text, image, fallbackToChat) {
     + '請先在 raw 裡依欄位把每一列逐字抄下來（例如「一：>711AB 3 ✓✓」），抄完再整理成 periods。\n'
     + '【情況二：一般訂單或打字清單】直接寫品項和數量（盒）的，放進 items，name 要一字不差照抄價目表品項，數量沒寫就當 1。\n'
     + '對應不到價目表的放進 unknown（照原文）。\n'
-    + '只輸出 JSON：{"name":"","introducer":"","date":"","raw":["一：肝 211 3 ✓✓"],'
+    + '表上任何地方（空白處、備註、角落）如果有寫試算條件，也要抄出來：payment 寫「現金」或「刷卡」；target 寫目標，例如「22萬PV」「金額 30萬」；'
+    + 'buyMonths 是寫明「買幾個月」的數字；join 是入會方式「女」「男」「九號」「舊會員」；monthsWritten：各欄「服用 N 月」的 N 有手寫填上就是 true。沒寫的一律留空，不要猜。\n'
+    + '只輸出 JSON：{"name":"","introducer":"","date":"","payment":"","target":"","buyMonths":"","join":"","monthsWritten":false,"raw":["一：肝 211 3 ✓✓"],'
     + '"periods":[{"label":"第一個月","months":1,"rows":[{"code":"211","perDose":3,"times":2}]}],'
     + '"maintenance":[{"code":"211","perDose":3,"times":2}],'
     + '"items":[{"name":"價目表品項","qty":1}],"unknown":["原文"]}\n\n'
@@ -483,8 +485,12 @@ function quote_(text, image, fallbackToChat) {
   if (fallbackToChat && !hasRows) return chat_(text, image);
   logChat_('user', (image ? '（傳了一張訂單圖片要試算）' : '試算 ') + (text || ''));
   const opts = quoteOpts_(text);
-  // 明細表：先問付款方式、要買多少 PV 或金額、買滿幾個月，都回答了才算（說明欄已經寫了就直接算）
-  if (filledPeriods_(parsed).length) return askOrQuote_(prices, { parsed: parsed, opts: opts, ts: Date.now() });
+  // 明細表：四個問題（付款、PV 或金額、買滿幾個月、入會方式）明細表上或說明欄已經寫了就不再問，其餘才問
+  if (filledPeriods_(parsed).length) {
+    const fromSheet = sheetOpts_(parsed);
+    const merged = Object.assign({}, fromSheet.opts, opts);
+    return askOrQuote_(prices, { parsed: parsed, opts: merged, sheetSaid: fromSheet.said, ts: Date.now() });
+  }
   return finishQuote_(prices, parsed, Object.assign({ card: false }, opts));
 }
 
@@ -525,6 +531,25 @@ function quoteOpts_(text) {
   // 只說「照明細表」：數量照明細表、也不追目標
   if (o.months === 'sheet' && !o.target) { o.target = { kind: 'none' }; o.targetImplied = true; }
   return o;
+}
+
+// 明細表上手寫的試算條件 → 跟說明欄同樣的格式；said 是要顯示給人看「表上寫了什麼」
+function sheetOpts_(parsed) {
+  const str = v => String(v == null ? '' : v).normalize('NFKC').trim();
+  const pay = str(parsed.payment), tgt = str(parsed.target), bm = str(parsed.buyMonths), join = str(parsed.join);
+  const o = {}, said = [];
+  if (/刷卡/.test(pay)) { o.card = true; said.push('刷卡'); } else if (/現金/.test(pay)) { o.card = false; said.push('現金'); }
+  if (tgt) {
+    const t = quoteOpts_(/PV|金額|元|NT/i.test(tgt) ? tgt : tgt + 'PV').target;
+    if (t && t.kind !== 'none') { o.target = t; said.push(tgt); }
+  }
+  const m = Number(bm.replace(/[^\d]/g, ''));
+  if (m > 0) { o.months = m; said.push('買 ' + m + ' 個月'); }
+  else if (parsed.monthsWritten === true || parsed.monthsWritten === 'true') { o.months = 'sheet'; said.push('月數照表上寫的'); }
+  const j = quoteOpts_(join);
+  if (j.gender) { o.gender = j.gender; said.push(j.gender === '九號' ? '九號入會' : j.gender + '生入會'); }
+  else if (j.newMember === false) { o.newMember = false; said.push('舊會員'); }
+  return { opts: o, said: said };
 }
 
 // 試算前改正明細表：改／加／刪 編號（可指定第幾個月；顆數、次數可省略）
@@ -573,6 +598,7 @@ function askOrQuote_(prices, st) {
           return (ok ? '' : '❓') + x.code + '（' + x.perDose + '×' + (Number(x.times) || 2) + '）';
         }).join('、')));
       if (unsure) intro.push('❓ 是看不清楚、價目表沒有的編號，請幫我改正');
+      if ((st.sheetSaid || []).length) intro.push('📝 表上寫了：' + st.sheetSaid.join('、') + '（這幾題就不再問）');
       intro.push('有讀錯可以直接打：「改 255A 3顆」「刪 270」「加 260 3顆」「第二個月 加 211 3顆」，改完會再給你看一次', '');
       st.asked = true;
     }
