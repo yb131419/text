@@ -1033,7 +1033,8 @@ function reportLayout_(r) {
   return { W: W, H: y, build: build };
 }
 
-// 把試算畫成 PNG（失敗回 null，不影響文字回覆）
+// 把試算畫成 PNG（失敗回 null，原因放在 REPORT_ERR_，不影響文字回覆）
+let REPORT_ERR_ = '';
 function reportPng_(r) {
   if (!r) return null;
   let pid = null;
@@ -1048,6 +1049,7 @@ function reportPng_(r) {
     return UrlFetchApp.fetch(th.contentUrl).getBlob()
       .setName('試算報表_' + (r.name || '') + '_' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm') + '.png');
   } catch (err) {
+    REPORT_ERR_ = err.message;
     console.error('報表圖片失敗：' + err.message);
     return null;
   } finally {
@@ -1058,8 +1060,16 @@ function reportPng_(r) {
 // Telegram：有剛算好的試算就先傳圖片，並在自己的雲端硬碟留一份
 function sendReportTg_(chatId) {
   const r = LAST_QUOTE_; LAST_QUOTE_ = null;
+  if (!r) return;
+  REPORT_ERR_ = '';
   const png = reportPng_(r);
-  if (!png) return;
+  if (!png) {
+    const why = /401|403|scope|permission|權限|授權/i.test(REPORT_ERR_)
+      ? '還沒授權，請在 Apps Script 函式選單選 authorizeReport → 執行 → 允許，再部署新版本。'
+      : REPORT_ERR_.slice(0, 300);
+    tgSend_(chatId, '報表圖片沒產生（文字試算如下）。原因：' + why);
+    return;
+  }
   try {
     const it = DriveApp.getFoldersByName(REPORT_FOLDER);
     (it.hasNext() ? it.next() : DriveApp.createFolder(REPORT_FOLDER)).createFile(png.copyBlob().setName(png.getName()));
@@ -1068,7 +1078,10 @@ function sendReportTg_(chatId) {
     method: 'post', muteHttpExceptions: true,
     payload: { chat_id: String(chatId), photo: png, caption: '康園試算報表' + (r.name ? '｜' + r.name : '') },
   });
-  if (res.getResponseCode() !== 200) console.error('Telegram sendPhoto 失敗：' + res.getContentText());
+  if (res.getResponseCode() !== 200) {
+    console.error('Telegram sendPhoto 失敗：' + res.getContentText());
+    tgSend_(chatId, '報表圖片傳送失敗：' + res.getContentText().slice(0, 200));
+  }
 }
 
 /* ============ OpenAI ============ */
