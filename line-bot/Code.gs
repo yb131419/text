@@ -145,7 +145,7 @@ function handleLine_(ev) {
   }
   if (ev.type !== 'message' || !ev.replyToken) return;
   if (ev.message.type === 'image') {
-    if (owner && uid === owner) { const ans = image_('', lineImage_(ev.message.id)); reply_(ev.replyToken, ans, reportLine_()); }
+    if (owner && uid === owner) { const ans = image_('', lineImage_(ev.message.id)); const rp = reportLine_(); reply_(ev.replyToken, rp.short || ans, rp.msgs); }
     return;
   }
   if (ev.message.type !== 'text') {
@@ -165,7 +165,8 @@ function handleLine_(ev) {
   if (uid !== owner) return reply_(ev.replyToken, '小乖目前只服務主人喔。');
 
   const ans = answer_(text);
-  reply_(ev.replyToken, ans, reportLine_());
+  const rp = reportLine_();
+  reply_(ev.replyToken, rp.short || ans, rp.msgs);
 }
 
 // 下載 LINE 圖片，轉成 OpenAI 看得懂的 data URL
@@ -243,8 +244,8 @@ function handleTelegram_(update) {
     try { img = tgImage_(fileId, doc && doc.mime_type); }
     catch (err) { console.error(err); return tgSend_(chatId, '圖片讀取失敗，再傳一次看看。'); }
     const ans = image_(text, img);
-    sendReportTg_(chatId);
-    return tgSend_(chatId, ans);
+    const short = sendReportTg_(chatId);
+    return tgSend_(chatId, short || ans);
   }
   if (!text) {
     if (chatId === owner) tgSend_(chatId, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
@@ -263,8 +264,8 @@ function handleTelegram_(update) {
 
   tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
   const ans = answer_(text.replace(/^\/start\b\s*/, '') || '說明');
-  sendReportTg_(chatId);
-  tgSend_(chatId, ans);
+  const short = sendReportTg_(chatId);
+  tgSend_(chatId, short || ans);
 }
 
 // 下載 Telegram 圖片，轉成 OpenAI 看得懂的 data URL
@@ -916,6 +917,7 @@ const DEFAULT_PRICES = [
 // 圖片直接傳到 Telegram，另外存一份到自己雲端硬碟的「小乖試算報表」資料夾（不公開）。
 let LAST_QUOTE_ = null;
 const REPORT_FOLDER = '小乖試算報表';
+const REPORT_BY = '彥彬｜助理小乖';   // 報表上的「試算者」
 const C = {
   bg: '#1c1c1c', card: '#262626', gold: '#d4af37', gold2: '#f0c75e', teal: '#2ee6c5', purple: '#c084fc',
   white: '#ffffff', grey: '#9a9a9a', head: '#2f6fb5', row1: '#ffffff', row2: '#eef1f5', ink: '#222222', qty: '#b07a00', green: '#4ade80',
@@ -1015,7 +1017,7 @@ function reportLayout_(r) {
     text('🌿 康園試算報表', X, 20, TW, 34, 22, C.white, true);
     box(X, 58, TW, 32, C.card, C.gold);
     text((r.card ? '💳 刷卡' : '💵 現金') + (d.days ? '　｜　📦 預估可使用天數 ' + d.days + ' 天' : ''), X, 58, TW, 32, 12, C.gold2, true);
-    text('購買者：' + (r.name || '—') + '　　試算者：彥彬｜助理小乖', X, 96, TW, 24, 11, C.white, true);
+    text('購買者：' + (r.name || '—') + '　　試算者：' + REPORT_BY, X, 96, TW, 24, 11, C.white, true);
 
     // 品項表：用色塊和文字框排，欄位對齊不受表格自動撐高影響
     // 欄位：品項（下方小字：單價｜PV）｜數量｜小計金額｜小計 PV
@@ -1161,12 +1163,12 @@ function scaleReq_(reqs, sc, ox, oy) {
 // Telegram：有剛算好的試算就先傳圖片，並在自己的雲端硬碟留一份
 function sendReportTg_(chatId) {
   const r = LAST_QUOTE_; LAST_QUOTE_ = null;
-  if (!r) return;
+  if (!r) return null;
   REPORT_ERR_ = '';
   const png = reportPng_(r);
   if (!png) {
     tgSend_(chatId, reportErrText_());
-    return;
+    return null;
   }
   try { saveReport_(png); } catch (e) { console.error(e); }
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
@@ -1176,13 +1178,15 @@ function sendReportTg_(chatId) {
   if (res.getResponseCode() !== 200) {
     console.error('Telegram sendPhoto 失敗：' + res.getContentText());
     tgSend_(chatId, '報表圖片傳送失敗：' + res.getContentText().slice(0, 200));
+    return null;
   }
+  return shortQuote_(r);
 }
 
 // LINE：圖片要公開網址，所以存到雲端硬碟後設成「知道連結的人都能看」（2026-10-14 使用者同意）
 function reportLine_() {
   const r = LAST_QUOTE_; LAST_QUOTE_ = null;
-  if (!r) return [];
+  if (!r) return { msgs: [] };
   REPORT_ERR_ = '';
   const png = reportPng_(r);
   try {
@@ -1190,12 +1194,30 @@ function reportLine_() {
     const file = saveReport_(png);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     const url = 'https://lh3.googleusercontent.com/d/' + file.getId();
-    return [{ type: 'image', originalContentUrl: url, previewImageUrl: url }];
+    return { msgs: [{ type: 'image', originalContentUrl: url, previewImageUrl: url }], short: shortQuote_(r) };
   } catch (err) {
     REPORT_ERR_ = REPORT_ERR_ || err.message;
     console.error('LINE 報表圖片失敗：' + REPORT_ERR_);
-    return [{ type: 'text', text: reportErrText_() }];
+    return { msgs: [{ type: 'text', text: reportErrText_() }] };
   }
+}
+
+// 有報表圖片時，文字只留重點（明細都在圖片上）
+function shortQuote_(r) {
+  const d = reportData_(r);
+  return ['🌿 康園試算報表', '',
+    '購買者：' + (r.name || '—'),
+    '試算者：' + REPORT_BY,
+    '預估使用：' + (d.days ? cnMonths_(d.days) : '—'),
+    '付款方式：' + (r.card ? '💳 刷卡' : '💵 現金')].join('\n');
+}
+
+// 天數換成「五個半月」這種說法（以 30 天為一個月，取到半個月）
+function cnMonths_(days) {
+  const half = Math.round(days / 15), m = Math.floor(half / 2), h = half % 2;
+  const CN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+  if (!m) return h ? '半個月' : days + ' 天';
+  return (CN[m] || String(m)) + '個' + (h ? '半' : '') + '月';
 }
 
 function saveReport_(png) {
