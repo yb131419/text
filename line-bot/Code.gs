@@ -190,6 +190,11 @@ function answer_(text) {
   const st = quoteState_();
   if (st) {
     if (/^取消/.test(text)) { clearQuoteState_(); return '好，這次試算先取消。'; }
+    if (sheetEdit_(st, text)) {
+      logChat_('user', text);
+      st.asked = false;   // 改完重新列出看到的內容
+      return askOrQuote_(prices_(), st);
+    }
     const o = quoteOpts_(text);
     if (o.targetImplied && st.opts.target) { delete o.target; }
     delete o.targetImplied;
@@ -429,7 +434,10 @@ function quote_(text, image, fallbackToChat) {
     + '「顆數」（每次吃幾顆）、「早／中／晚」打勾。只收「顆數有寫數字」的列；顆數空白的列（例如沒用到的月份裡印好的 211）不要收。'
     + 'times 是該列有幾個時段要吃：表格的早、晚通常是印好的勾，就算 2；中也有勾才算 3。'
     + '整欄都沒寫顆數的月份不要放。最右邊的「保養」欄放進 maintenance。左上角有日期、地點，姓名、介紹人照抄；姓名是購買者的人名，不是產品名稱（例如「火山甘露」是產品），看不清楚就留空。'
-    + '手寫的 2 常寫得像 >，例如「>60」是 260、「>55A」是 255A、「>711AB」是 2711AB、「7770」「777Q」是 777Q。\n'
+    + '手寫的 2 常寫得像 >，例如「>60」是 260、「>55A」是 255A、「>711AB」是 2711AB、「7770」「777Q」是 777Q。'
+    + '請由上到下一列一列讀，不要跳列、不要把兩列合併；同一欄裡同一個編號只出現一次。'
+    + '編號一定是下面價目表裡有的品項編號（例如 211、211A、255A、260、299A、300），讀出來不在價目表裡時，挑字形最像的那個；真的看不出來就照原樣寫，程式會標成看不清楚請人確認。'
+    + '顆數通常是 1～6 的小數字。\n'
     + '【情況二：一般訂單或打字清單】直接寫品項和數量（盒）的，放進 items，name 要一字不差照抄價目表品項，數量沒寫就當 1。\n'
     + '對應不到價目表的放進 unknown（照原文）。\n'
     + '只輸出 JSON：{"name":"","introducer":"","date":"",'
@@ -442,7 +450,8 @@ function quote_(text, image, fallbackToChat) {
     : text;
   let parsed;
   try {
-    parsed = JSON.parse(callOpenAI_(sys, [{ role: 'user', content: user }], true));
+    // 看手寫明細表用比較強的模型（指令碼屬性 QUOTE_MODEL 可改），一般聊天仍用 MODEL
+    parsed = JSON.parse(callOpenAI_(sys, [{ role: 'user', content: user }], true, prop_('QUOTE_MODEL') || 'gpt-4o'));
   } catch (err) {
     console.error(err);
     if (fallbackToChat) return chat_(text, image);
@@ -500,16 +509,53 @@ function quoteOpts_(text) {
   return o;
 }
 
+// 試算前改正明細表：改／加／刪 編號（可指定第幾個月；顆數、次數可省略）
+function sheetEdit_(st, text) {
+  const t = String(text || '').normalize('NFKC').trim();
+  const m = t.match(/^(?:第?\s*([一二三四五六123456])\s*(?:個月|月|欄)?\s*)?(改|加|刪|删|移除|減掉|去掉)\s*([0-9A-Za-z][0-9A-Za-z()]*)\s*(?:(\d+)\s*顆?)?\s*(?:[x×*]\s*(\d)\s*次?|(\d)\s*次)?$/i);
+  if (!m) return false;
+  const CN = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6 };
+  const filled = filledPeriods_(st.parsed);
+  if (!filled.length) return false;
+  const idx = m[1] ? (CN[m[1]] || Number(m[1])) - 1 : -1;
+  if (idx >= filled.length) return false;
+  const targets = idx >= 0 ? [filled[idx]] : filled;
+  const code = m[3].toUpperCase(), key = normName_(code);
+  const dose = m[4] ? Number(m[4]) : 0, times = Number(m[5] || m[6]) || 0;
+  const same = x => normName_(x.code) === key;
+  if (/刪|删|移除|減掉|去掉/.test(m[2])) {
+    targets.forEach(pd => { pd.rows = pd.rows.filter(x => !same(x)); });
+    return true;
+  }
+  const hits = [];
+  if (m[2] === '改') targets.forEach(pd => pd.rows.filter(same).forEach(x => hits.push(x)));
+  if (hits.length) {
+    hits.forEach(x => { if (dose) x.perDose = dose; if (times) x.times = times; });
+  } else {
+    (idx >= 0 ? filled[idx] : filled[0]).rows.push({ code: code, perDose: dose || 3, times: times || 2 });
+  }
+  return true;
+}
+
 function askOrQuote_(prices, st) {
   const joinAsked = st.opts.gender || st.opts.newMember === false;
   if (st.opts.card === undefined || !st.opts.target || !st.opts.months || !joinAsked) {
     const intro = [];
     if (!st.asked) {
       const p = st.parsed;
-      intro.push('📋 收到' + (p.name ? ' ' + p.name + ' 的' : '') + '明細表，我看到：');
-      filledPeriods_(p).forEach(pd => intro.push((pd.label || '') + '（服用 ' + (Number(pd.months) || 1) + ' 個月）：'
-        + pd.rows.filter(x => Number(String(x.perDose).normalize('NFKC')) > 0).map(x => x.code + '(' + x.perDose + ')').join('、')));
-      intro.push('');
+      const known = {};
+      prices.forEach(x => { known[normName_(x.name)] = 1; });
+      Object.keys(CODE_ALIAS).forEach(k => { known[normName_(k)] = 1; });
+      let unsure = 0;
+      intro.push('📋 收到' + (p.name ? ' ' + p.name + ' 的' : '') + '明細表，我看到：（括號是每次幾顆 × 一天幾次）');
+      filledPeriods_(p).forEach(pd => intro.push('【' + (pd.label || '') + '｜服用 ' + (Number(pd.months) || 1) + ' 個月】\n'
+        + pd.rows.filter(x => Number(String(x.perDose).normalize('NFKC')) > 0).map(x => {
+          const ok = known[normName_(x.code)] || FIXED_MONTHLY[normName_(x.code)];
+          if (!ok) unsure++;
+          return (ok ? '' : '❓') + x.code + '（' + x.perDose + '×' + (Number(x.times) || 2) + '）';
+        }).join('、')));
+      if (unsure) intro.push('❓ 是看不清楚、價目表沒有的編號，請幫我改正');
+      intro.push('有讀錯可以直接打：「改 255A 3顆」「刪 270」「加 260 3顆」「第二個月 加 211 3顆」，改完會再給你看一次', '');
       st.asked = true;
     }
     saveQuoteState_(st);
@@ -1241,8 +1287,8 @@ function reportErrText_() {
 }
 
 /* ============ OpenAI ============ */
-function callOpenAI_(system, messages, asJson) {
-  const model = prop_('MODEL') || 'gpt-4o-mini';
+function callOpenAI_(system, messages, asJson, modelOverride) {
+  const model = modelOverride || prop_('MODEL') || 'gpt-4o-mini';
   const body = { model: model, messages: [{ role: 'system', content: system }].concat(messages) };
   if (asJson) body.response_format = { type: 'json_object' };
   if (/^gpt-5/.test(model)) body.max_completion_tokens = 4000;
