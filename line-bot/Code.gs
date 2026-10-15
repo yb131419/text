@@ -554,6 +554,7 @@ const STRAT_THEMES = [
 ];
 const STRAT_AGAIN = '🔁 再寫一篇', STRAT_SWITCH = '🪶 換主題';
 const STRAT_FOLDER = '小乖軍師圖卡';
+const STRAT_NO_TAG = /康園道|分享|大健康/;   // 使用者指定：標籤不要出現這些字
 let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各自把它畫成圖卡送出
 
 function stratMenu_() {
@@ -586,7 +587,7 @@ function strategist_(k) {
     '你是「智囊軍師」，彥彬的社群文案高手，用《康園道》風格寫一篇可以直接貼到 Facebook、Instagram、LINE 的文案。',
     '【康園道寫作風格】短句為主，每句獨立一行有節奏；先描述一個大家都有的現象，讓人對號入座；用反問引發思考（例如「你有沒有發現⋯⋯」「可是很奇怪⋯⋯」）；段落間留白；像朋友分享，不說教、不推銷；繁體台灣用語。',
     '【本次主題】' + th.guide,
-    '【版式】標題 12 字內，一句話點出主題；內文 3 到 5 段，每段 1 到 3 句短句，全文 140 到 200 字；最後一句反骨金句：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋；再給 5 個主題標籤。',
+    '【版式】標題 12 字內，一句話點出主題；內文 3 到 5 段，每段 1 到 3 句短句，全文 140 到 200 字；最後一句反骨金句：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋；再給 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
     hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
     '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","title":"標題","body":"內文，句子之間換行，段落之間空一行","gold":"反骨金句","tags":["#詞","#詞","#詞","#詞","#詞"]}',
@@ -604,10 +605,13 @@ function strategist_(k) {
     body: String(c.body || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim(),
     gold: String(c.gold || '').replace(/^【?反骨金句】?[：:]?/, '').trim(),
     tags: (Array.isArray(c.tags) ? c.tags : String(c.tags || '').split(/\s+/)).map(s => String(s).trim()).filter(Boolean)
+      .filter(s => !STRAT_NO_TAG.test(s))
       .map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
   };
   // 火山草本（含軍師判定成火山草本）：結尾一定要附「以上是個人感受」
   card.note = k === 'herb' || /火山草本/.test(card.cat) ? '以上是個人感受' : '';
+  // 圖卡上方寫「生活筆記「主題」」（軍師判定就寫它選的分類）
+  card.topic = k === 'auto' ? (card.cat || '生活') : th.name.replace(/主題$/, '');
   card.label = k === 'auto' ? '智囊軍師判定' + (card.cat ? '・' + card.cat : '') : th.name;
   hist.unshift(card.title);
   setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
@@ -668,7 +672,7 @@ function cardLayout_(c) {
     };
     shape('RECTANGLE', 16, 16, W - 32, H - 32, null, '#C9A56A');
     shape('RECTANGLE', 22, 22, W - 44, H - 44, null, '#4A3F2C');
-    text('🪶  智 囊 軍 師　·　' + c.label, X, 40, TW, 22, 10, '#C9A56A', { bold: true });
+    text('生活筆記「' + (c.topic || c.label) + '」', X, 38, TW, 24, 13, '#C9A56A', { bold: true });
     shape('RECTANGLE', W / 2 - 24, 70, 48, 1, '#C9A56A', null);
     text(c.title, X, 82, TW, 70, c.title.length > 10 ? 22 : 26, '#F1DFB4', { bold: true, serif: true });
     text(c.body, X, top, TW, BH, fs, '#EDE6D6', { align: 'START', valign: 'TOP', ls: 150 });
@@ -679,7 +683,7 @@ function cardLayout_(c) {
     if (c.note) text(c.note, X, noteTop, TW, 20, 10, '#B9AE98');
     if (c.tags.length) text(c.tags.join('  '), X, tagTop, TW, 20, 9, '#9C8F78');
     shape('RECTANGLE', W / 2 - 60, footTop - 8, 120, 0.6, '#4A3F2C', null);
-    text('彥彬｜智囊軍師　' + Utilities.formatDate(new Date(), TZ, 'yyyy.MM.dd'), X, footTop, TW, 18, 8, '#8A7F6B');
+    text('彥彬｜生活筆記　' + Utilities.formatDate(new Date(), TZ, 'yyyy.MM.dd'), X, footTop, TW, 18, 8, '#8A7F6B');
     return req;
   };
   return { W: W, H: H, build: build };
