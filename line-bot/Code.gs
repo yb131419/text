@@ -122,6 +122,7 @@ const HELP_MORE = [
   '・Telegram 轉傳時說明打「#見證案例」也可以；LINE 傳影片一律存進案例庫',
   '・LINE、Telegram 存的見證兩邊都看得到、都能轉傳',
   '・按「💬 見證案例」看見證：圖片影片會直接傳出來，長按就能轉傳',
+  '・改說明：存好時或見證卡片上按「✏️ 改說明」，再打新的說明（打「取消」不改）',
   '・案例分類：看每類有幾筆；改分類 名稱：改剛存那筆的分類',
   '・新增分類／分類改名 舊 新／刪除分類',
   '',
@@ -577,6 +578,8 @@ function answer_(text) {
   if (vc) return voicePick_(vc[1] || '');
   const sm = settingsMenu_(t2, raw);   // 「⚙️ 設定」按鈕：改圖卡署名、文案標題
   if (sm) return sm;
+  const ce = caseEdit_(t2, raw);   // 「✏️ 改說明」：改某一則圖片／影片的說明
+  if (ce) return ce;
   const ad = addPending_(t2, raw);   // 「➕ 新增行程」「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
@@ -1202,8 +1205,8 @@ function storeCase_(type, text, fid, imgFn, src, force) {
     text: '📁 已存進【' + info.category + '】（' + NAME[type] + '）'
       + (info.summary || text ? '\n' + String(info.summary || text).replace(/\s+/g, ' ').slice(0, 60) : '')
       + (tags ? '\n🏷️ ' + tags : '')
-      + '\n分錯了按下面的分類就能改',
-    buttons: chunk_(cats.filter(c => c !== info.category).map(c => '改分類 ' + c), 2).slice(0, 4),
+      + '\n要改說明按「✏️ 改說明」；分錯了按下面的分類就能改',
+    buttons: [['✏️ 改說明']].concat(chunk_(cats.filter(c => c !== info.category).map(c => '改分類 ' + c), 2).slice(0, 4)),
   };
 }
 
@@ -1373,16 +1376,47 @@ function caseBubble_(c) {
       { type: 'text', text: [c.cat, KIND[c.type] || '', day].filter(Boolean).join(' · '), size: 'xxs', color: '#B08D57', weight: 'bold' },
       { type: 'text', text: String(c.summary || c.text || '（沒有說明）').replace(/\s+/g, ' ').slice(0, 80), size: 'sm', weight: 'bold', color: '#2A2118', wrap: true, maxLines: 3 },
     ].concat(tags ? [{ type: 'text', text: '🏷️ ' + tags, size: 'xxs', color: '#9A8B74', wrap: true, maxLines: 2 }] : []) },
-    footer: { type: 'box', layout: 'vertical', paddingAll: '12px', paddingTop: '0px', contents: [{
-      type: 'box', layout: 'horizontal', justifyContent: 'center', paddingAll: '10px', cornerRadius: '10px',
+    footer: { type: 'box', layout: 'horizontal', spacing: 'sm', paddingAll: '12px', paddingTop: '0px', contents: [{
+      type: 'box', layout: 'horizontal', justifyContent: 'center', paddingAll: '10px', cornerRadius: '10px', flex: 3,
       background: { type: 'linearGradient', angle: '120deg', startColor: '#E9D3A2', endColor: '#C9A56A' },
       action: { type: 'message', label: '分享', text: '📤 分享案例 ' + caseKey_(c) },
-      contents: [{ type: 'text', text: '📤 分享', size: 'sm', weight: 'bold', color: '#2A2118', flex: 0 }] }] },
+      contents: [{ type: 'text', text: '📤 分享', size: 'sm', weight: 'bold', color: '#2A2118', flex: 0 }] }, {
+      type: 'box', layout: 'horizontal', justifyContent: 'center', paddingAll: '10px', cornerRadius: '10px', flex: 2,
+      borderWidth: '1px', borderColor: '#E8DCC4', backgroundColor: '#FFFFFF',
+      action: { type: 'message', label: '改說明', text: '✏️ 改說明 ' + caseKey_(c) },
+      contents: [{ type: 'text', text: '✏️ 改說明', size: 'sm', color: '#2A2118', flex: 0 }] }] },
   };
   if (img) b.hero = { type: 'image', url: img, size: 'full', aspectRatio: '4:3', aspectMode: 'cover',
     action: { type: 'uri', label: '看原檔', uri: 'https://drive.google.com/file/d/' + ids[0] + '/view' } };
   return b;
 }
+// 「✏️ 改說明」（剛存的那一則）或「✏️ 改說明 代號」（卡片上的那一則）：下一句就是新的說明
+function caseEdit_(t, raw) {
+  const flat = String(t || '').replace(/\s+/g, '');
+  const pend = prop_('CASE_EDIT');
+  if (pend) {
+    setProp_('CASE_EDIT', '');
+    const menuWord = [].concat.apply([], MENU.concat(MENU_GROUPS, QUICK)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
+    if (Number(prop_('CASE_EDIT_UNTIL')) > Date.now() && !menuWord && !/^改說明/.test(flat)) {
+      if (/^(取消|不改|算了)$/.test(flat)) return { text: '好，不改。', buttons: MENU };
+      const c = allCases_().find(x => caseKey_(x) === pend);
+      if (!c) return '找不到這一則了，可能已經刪掉。';
+      const v = String(raw || t).trim().slice(0, 500);
+      setCaseCol_(c, 6, v); setCaseCol_(c, 7, v.replace(/\s+/g, ' ').slice(0, 60));
+      return { text: '✅ 說明改好了：\n' + v, buttons: [['💬 見證案例']].concat(MENU) };
+    }
+  }
+  const m = flat.match(/^改說明(\w*)$/);
+  if (!m) return null;
+  const list = allCases_();
+  const last = Number(prop_('CASE_LAST_TIME'));
+  const c = m[1] ? list.find(x => caseKey_(x) === m[1]) : list.find(x => x.time instanceof Date && x.time.getTime() === last);
+  if (!c) return '找不到要改的那一則。';
+  setProp_('CASE_EDIT', caseKey_(c));
+  setProp_('CASE_EDIT_UNTIL', String(Date.now() + 5 * 60 * 1000));
+  return { text: '✏️ 請打這一則的新說明（可以分好幾行）。\n\n目前是：\n' + (c.text || c.summary || '（沒有說明）') + '\n\n（打「取消」就不改）', buttons: [['取消']] };
+}
+
 // 「📤 分享案例 時間」：把那一則單獨傳出來（LINE 傳圖片／影片，Telegram 傳原檔），長按就能轉傳
 function shareCase_(key) {
   const c = allCases_().find(x => String(caseKey_(x)) === String(key));
