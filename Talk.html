@@ -209,12 +209,17 @@ async function micStart(){
   if(blob.size<1500||heardAny===false){convOff(conv?'對話先停在這裡，要講話再按麥克風':'沒錄到聲音，再按一次麥克風');return;}
   const fr=new FileReader();fr.onload=()=>send($('q').value,null,{b64:String(fr.result).split(',')[1],mime:mt.split(';')[0]});fr.readAsDataURL(blob);};
  mr.start(250);micUI(true);hint.textContent=conv&&$('loop').checked?'我在聽…（連續對話中，說「結束」或不說話就停）':'我在聽…講完停一下會自動送出，或再按一次麥克風';
- // 講完安靜 1.5 秒就自動送出；一直沒講話 8 秒就停
+ // 講完安靜 3 秒才自動送出（中間想一下、換氣不會被切掉）；一直沒講話 8 秒就停；最長 2 分鐘
+ // 門檻跟著環境噪音調整：先量 0.4 秒的背景聲，小聲講話也算有在講
  try{actx=new (window.AudioContext||window.webkitAudioContext)();const an=actx.createAnalyser();an.fftSize=1024;actx.createMediaStreamSource(stream).connect(an);
-  const d=new Uint8Array(an.fftSize),t0=Date.now();let heard=false,last=Date.now();heardAny=false;
+  const d=new Uint8Array(an.fftSize),t0=Date.now();let heard=false,last=Date.now(),floor=0,th=10;heardAny=false;
   const tick=()=>{if(!mr)return;an.getByteTimeDomainData(d);let m=0;for(let i=0;i<d.length;i++)m=Math.max(m,Math.abs(d[i]-128));
-   if(m>14){heard=true;heardAny=true;last=Date.now();}
-   if((heard&&Date.now()-last>1500)||(!heard&&Date.now()-t0>8000)||Date.now()-t0>60000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){}
+   if(Date.now()-t0<700){floor=Math.max(floor,m);th=Math.min(14,Math.max(6,floor+5));}
+   else if(m>th){heard=true;heardAny=true;last=Date.now();}
+   const quiet=Date.now()-last;
+   if(heard&&quiet>1200&&quiet<=3000&&!/送出/.test(hint.textContent))hint.textContent='還在聽…沒話要說就會送出（也可以按麥克風直接送）';
+   if(heard&&quiet<=1200&&/送出/.test(hint.textContent))hint.textContent='我在聽…';
+   if((heard&&quiet>3000)||(!heard&&Date.now()-t0>8000)||Date.now()-t0>120000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){}
 }
 function micStop(){if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(e){micCleanup();return;}stopT=setTimeout(micCleanup,1500);}else micCleanup();}
 $('mic').onclick=()=>{unlock();if(window.speechSynthesis)speechSynthesis.cancel();$('au').pause();if(recOn)return micStop();if(busy)return;convOn();micStart();};
