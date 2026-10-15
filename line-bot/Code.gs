@@ -146,6 +146,14 @@ function doGet(e) {
   return ContentService.createTextOutput('小乖雲端服務運作中');
 }
 
+function talkLink_() {
+  let url = '';
+  try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { console.error(e); }
+  if (!url) return '找不到網址：請到 Apps Script「部署 → 管理部署作業」複製網頁應用程式網址，後面加 ?key=同步密碼&page=talk';
+  return '🐾 小乖對話頁（點開就能用）：\n' + url + '?key=' + prop_('SYNC_KEY') + '&page=talk'
+    + '\n\n在 Safari 打開後按「分享 →加入主畫面」，桌面就有小乖。這個網址有你的密碼，不要給別人。';
+}
+
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
 function talk(key, q, image) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
@@ -397,6 +405,7 @@ function answer_(text) {
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
+  if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
   const vm = String(text).replace(/\s+/g, '').match(/^(?:語音回覆|語音對話|用語音回)(開|關|開啟|關閉|自動)?$/);
   if (vm) return voiceSwitch_(vm[1] || '');
   // 案例分類：列分類、看某一類、改剛存那筆的分類
