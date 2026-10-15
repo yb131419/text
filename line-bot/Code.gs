@@ -621,10 +621,13 @@ function strategist_(k) {
     '你是「智囊軍師」，彥彬的社群文案高手，用《康園道》風格寫一篇可以直接貼到 Facebook、Instagram、LINE 的文案。',
     '【康園道寫作風格】短句為主，每句獨立一行有節奏；先描述一個大家都有的現象，讓人對號入座；用反問引發思考（例如「你有沒有發現⋯⋯」「可是很奇怪⋯⋯」）；段落間留白；像朋友分享，不說教、不推銷；繁體台灣用語。',
     '【本次主題】' + th.guide,
-    '【版式】標題 12 字內，一句話點出主題；內文 3 到 5 段，每段 1 到 3 句短句，全文 140 到 200 字；最後一句反骨金句：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋；再給 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
+    '【要寫兩個版本，內容不能一樣】',
+    '①文字貼文（post）：直接貼在 FB／IG／LINE 的完整文案。有自己的標題（post_title，15 字內）；用一個具體生活場景或小故事開頭，慢慢帶出道理，4 到 6 段，全文 220 到 320 字；結尾用一句問句邀請大家留言。',
+    '②圖卡（card）：放在圖片上的精簡版，不是貼文的節錄。標題（title）12 字內，跟貼文標題不同；內文（body）3 到 4 行、每行 8 到 16 字，全部 50 到 90 字，是這個主題最核心的觀點；最後一句反骨金句（gold）：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
+    '兩個版本共用 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
     hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
-    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","title":"標題","body":"內文，句子之間換行，段落之間空一行","gold":"反骨金句","tags":["#詞","#詞","#詞","#詞","#詞"]}',
+    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","title":"圖卡標題","body":"圖卡內文，每行一句","gold":"反骨金句","tags":["#詞","#詞","#詞","#詞","#詞"]}',
   ].filter(Boolean).join('\n');
   let c = null;
   try {
@@ -638,6 +641,8 @@ function strategist_(k) {
     theme: th.name, cat: String(c.cat || '').replace(/主題$/, ''), title: String(c.title || th.name).trim(),
     body: String(c.body || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim(),
     gold: String(c.gold || '').replace(/^【?反骨金句】?[：:]?/, '').trim(),
+    ptitle: String(c.post_title || c.title || th.name).trim(),
+    post: String(c.post || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim(),
     tags: (Array.isArray(c.tags) ? c.tags : String(c.tags || '').split(/\s+/)).map(s => String(s).trim()).filter(Boolean)
       .filter(s => !STRAT_NO_TAG.test(s))
       .map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
@@ -654,8 +659,13 @@ function strategist_(k) {
 }
 
 // 文案全文（可以直接複製貼上）
+// 文字貼文跟圖卡分開寫：文字用貼文版（post），圖卡用精簡版（title／body／gold）
+function postText_(c) {
+  return [c.ptitle, '', c.post || c.body, '', c.post ? '' : c.gold, c.note, '', c.tags.join(' ')]
+    .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
+}
 function stratText_(c) {
-  return ['🪶 智囊軍師｜' + c.label, '', c.title, '', c.body, '', c.gold, c.note, '', c.tags.join(' ')]
+  return ['🪶 智囊軍師｜' + c.label, '', postText_(c)]
     .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
 }
 
@@ -666,7 +676,7 @@ function cardLayout_(c) {
   const lines = (s, size, w) => String(s || '').split('\n')
     .reduce((n, l) => n + Math.max(1, Math.ceil(units(l) / Math.floor((w - 14) / size))), 0);
   const bodyH = fs => lines(c.body, fs, TW) * fs * 1.85 + 12;   // 行距 150% × 字體本身約 1.2 倍
-  let fs = 16;
+  let fs = 20;   // 圖卡內文短，字放大一點；太長才縮到 12
   while (fs > 12 && bodyH(fs) > 380) fs--;
   const BH = bodyH(fs);
   const goldH = c.gold ? lines(c.gold, 13, TW - 40) * 13 * 1.6 + 28 : 0;
@@ -677,6 +687,7 @@ function cardLayout_(c) {
   const tagTop = y; y += 22;
   const footTop = Math.max(y + 16, 625);
   const H = footTop + 50;
+  const sh = Math.max(0, Math.round((footTop - (y + 16)) / 2));   // 內容短時，標題到標籤整塊往下移到中間
 
   const build = slide => {
     const req = [];
@@ -708,14 +719,14 @@ function cardLayout_(c) {
     shape('RECTANGLE', 22, 22, W - 44, H - 44, null, '#4A3F2C');
     text('生活筆記「' + (c.topic || c.label) + '」', X, 38, TW, 24, 13, '#C9A56A', { bold: true });
     shape('RECTANGLE', W / 2 - 24, 70, 48, 1, '#C9A56A', null);
-    text(c.title, X, 82, TW, 70, c.title.length > 10 ? 22 : 26, '#F1DFB4', { bold: true, serif: true });
-    text(c.body, X, top, TW, BH, fs, '#EDE6D6', { align: 'START', valign: 'TOP', ls: 150 });
+    text(c.title, X, 82 + sh, TW, 70, c.title.length > 10 ? 22 : 26, '#F1DFB4', { bold: true, serif: true });
+    text(c.body, X, top + sh, TW, BH, fs, '#EDE6D6', { align: 'START', valign: 'TOP', ls: 150 });
     if (c.gold) {
-      shape('ROUND_RECTANGLE', X, goldTop, TW, goldH, '#1E1A14', '#C9A56A');
-      text(c.gold, X + 20, goldTop, TW - 40, goldH, 13, '#E9D3A2', { bold: true, serif: true, ls: 130 });
+      shape('ROUND_RECTANGLE', X, goldTop + sh, TW, goldH, '#1E1A14', '#C9A56A');
+      text(c.gold, X + 20, goldTop + sh, TW - 40, goldH, 13, '#E9D3A2', { bold: true, serif: true, ls: 130 });
     }
-    if (c.note) text(c.note, X, noteTop, TW, 20, 10, '#B9AE98');
-    if (c.tags.length) text(c.tags.join('  '), X, tagTop, TW, 20, 9, '#9C8F78');
+    if (c.note) text(c.note, X, noteTop + sh, TW, 20, 10, '#B9AE98');
+    if (c.tags.length) text(c.tags.join('  '), X, tagTop + sh, TW, 20, 9, '#9C8F78');
     shape('RECTANGLE', W / 2 - 60, footTop - 8, 120, 0.6, '#4A3F2C', null);
     text('彥彬｜生活筆記　' + Utilities.formatDate(new Date(), TZ, 'yyyy.MM.dd'), X, footTop, TW, 18, 8, '#8A7F6B');
     return req;
@@ -783,7 +794,7 @@ function cardApi_(ask) {
   REPORT_ERR_ = '';
   const png = cardPng_(c);
   if (png) try { saveCard_(png); } catch (e) { console.error(e); }
-  return { ok: true, title: c.title, text: [c.title, '', c.body, '', c.gold, c.note, '', c.tags.join(' ')].join('\n').replace(/\n{3,}/g, '\n\n').trim(),
+  return { ok: true, title: c.title, text: postText_(c),
     img: png ? Utilities.base64Encode(png.getBytes()) : '', err: png ? '' : cardErrText_() };
 }
 
