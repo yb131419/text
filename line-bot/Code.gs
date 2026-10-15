@@ -129,8 +129,25 @@ function setupTelegram() {
 }
 
 /* ============ 入口 ============ */
-function doGet() {
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  // 「嘿 Siri，小乖」：iPhone 捷徑把聽到的話用 ?key=同步密碼&ask=… 傳進來，小乖回一段可以直接念出來的文字
+  if (p.ask !== undefined) {
+    if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請檢查捷徑裡的網址。');
+    return ContentService.createTextOutput(askByVoice_(String(p.ask)));
+  }
   return ContentService.createTextOutput('小乖雲端服務運作中');
+}
+
+function askByVoice_(q) {
+  q = q.trim();
+  if (!q) return '我在，請說。';
+  if (/^(沒事了?|沒有了?|結束|掰掰|再見|不用了?|謝謝)[。！!]?$/.test(q)) return '好，有事再叫我。';
+  CURRENT_TG_CHAT_ = '';
+  let ans;
+  try { ans = answer_(q); } catch (err) { console.error(err); return '小乖現在有點問題，等一下再試試看。'; }
+  LAST_QUOTE_ = null;   // 語音沒辦法看報表圖片
+  return speechText_(ans) || '好的。';
 }
 
 function doPost(e) {
