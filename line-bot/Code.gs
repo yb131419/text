@@ -727,8 +727,8 @@ function cardLayout_(c) {
     }
     if (c.note) text(c.note, X, noteTop + sh, TW, 20, 10, '#B9AE98');
     if (c.tags.length) text(c.tags.join('  '), X, tagTop + sh, TW, 20, 9, '#9C8F78');
-    shape('RECTANGLE', W / 2 - 60, footTop - 8, 120, 0.6, '#4A3F2C', null);
-    text('彥彬｜生活筆記　' + Utilities.formatDate(new Date(), TZ, 'yyyy.MM.dd'), X, footTop, TW, 18, 8, '#8A7F6B');
+    shape('RECTANGLE', W / 2 - 70, footTop - 10, 140, 0.8, '#C9A56A', null);
+    text(CARD_BY, X, footTop - 3, TW, 24, 14, '#F1DFB4', { bold: true });
     return req;
   };
   return { W: W, H: H, build: build };
@@ -2355,6 +2355,7 @@ const DEFAULT_PRICES = [
 let LAST_QUOTE_ = null;
 const REPORT_FOLDER = '小乖試算報表';
 const REPORT_BY = '彥彬｜特助小乖';   // 報表上的「試算者」
+const CARD_BY = '彥彬｜生活筆記 @238zwwwu';   // 智囊軍師圖卡底部署名
 const C = {
   bg: '#1c1c1c', card: '#262626', gold: '#d4af37', gold2: '#f0c75e', teal: '#2ee6c5', purple: '#c084fc',
   white: '#ffffff', grey: '#9a9a9a', head: '#2f6fb5', row1: '#ffffff', row2: '#eef1f5', ink: '#222222', qty: '#b07a00', green: '#4ade80',
