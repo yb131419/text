@@ -139,14 +139,37 @@ function doGet(e) {
   return ContentService.createTextOutput('小乖雲端服務運作中');
 }
 
-function askByVoice_(q) {
+function askByVoice_(q, image) {
   q = q.trim();
+  if (image) return askPhoto_(q, image);
   if (!q) return '我在，請說。';
   if (/^(沒事了?|沒有了?|結束|掰掰|再見|不用了?|謝謝)[。！!]?$/.test(q)) return '好，有事再叫我。';
   CURRENT_TG_CHAT_ = '';
   let ans;
   try { ans = answer_(q); } catch (err) { console.error(err); return '小乖現在有點問題，等一下再試試看。'; }
   LAST_QUOTE_ = null;   // 語音沒辦法看報表圖片
+  return speechText_(ans) || '好的。';
+}
+
+// 捷徑從手機相簿選照片傳來（base64）：明細表就試算，報表傳到 Telegram；其他照片就看圖回答
+function askPhoto_(q, b64) {
+  CURRENT_TG_CHAT_ = '';
+  const raw = String(b64).replace(/^data:[^,]*,/, '').replace(/\s+/g, '');
+  if (raw.length < 100) return '照片沒有收到，再試一次看看。';
+  if (raw.length > 14e6) return '照片太大了，請在捷徑裡先「調整影像大小」寬度 1500 再傳。';
+  const img = 'data:image/jpeg;base64,' + raw;
+  let ans;
+  try { ans = image_(q, img); } catch (err) { console.error(err); return '照片讀取失敗，等一下再試試看。'; }
+  const tg = prop_('TG_OWNER_CHAT_ID');
+  if (LAST_QUOTE_) {
+    if (tg) {
+      const short = sendReportTg_(tg);
+      tgSend_(tg, short || ans);
+      return '試算好了，報表和明細已經傳到 Telegram。';
+    }
+    LAST_QUOTE_ = null;
+  }
+  // 試算的問題（現金還是刷卡…）也用講的問，回答時再叫一次小乖就好
   return speechText_(ans) || '好的。';
 }
 
@@ -172,6 +195,12 @@ function doPost(e) {
 
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
+
+  // 「嘿小乖」捷徑傳照片（POST JSON：{ action:'ask', key, ask, image: base64 }）
+  if (body.action === 'ask') {
+    if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return text_('同步密碼不對，請檢查捷徑裡的設定。');
+    return text_(askByVoice_(String(body.ask || ''), body.image || ''));
+  }
 
   // 網頁同步
   if (body.action === 'sync') {
