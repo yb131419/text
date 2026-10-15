@@ -100,7 +100,7 @@ const HELP_TEXT = [
   '',
   '🪶 軍師：選主題，寫文案＋圖卡',
   '💬 見證：按「新增見證」再傳圖片影片，之後看、轉傳分享',
-  '📋 試算：直接傳明細表照片',
+  '📋 試算：先按「試算」再傳明細表照片',
   '📅 行程：新增、今天、這週、刪除',
   '📝 筆記：新增筆記、看筆記和待辦',
   '📁 搜尋：本機找、上網找',
@@ -125,7 +125,8 @@ const HELP_MORE = [
   '・新增分類／分類改名 舊 新／刪除分類',
   '',
   '【📋 試算】',
-  '・傳明細表 → 回答 4 題就出報表',
+  '・先按「📋 試算」再傳明細表 → 回答 4 題就出報表',
+  '・LINE 沒按試算就傳圖片，小乖會問要「試算這張／存成見證／看圖說明」',
   '・讀錯可打：改 255A 3顆／刪 270／加 260 3顆',
   '・打「取消」停止試算',
   '',
@@ -495,6 +496,11 @@ function handleLine_(ev) {
       try { res = saveLineCase_(ev.message.id, ev.message.type); } catch (err) { console.error(err); res = '存檔失敗：' + err.message; }
       return reply_(ev.replyToken, res, null, true);
     }
+    // 先按「📋 試算」再傳圖片才試算；沒按就先問這張要做什麼（圖片記著，按按鈕再處理）
+    if (!(Number(prop_('QUOTE_UNTIL')) > Date.now())) {
+      setProp_('LINE_LAST_IMG', ev.message.id + '|' + Date.now());
+      return reply_(ev.replyToken, { text: '📷 收到圖片，要做什麼？\n（要試算也可以先按「📋 試算」再傳圖片）', buttons: LINE_IMG_BTNS.concat(QUICK) });
+    }
     const ans = image_('', lineImage_(ev.message.id)); const rp = reportLine_(); reply_(ev.replyToken, rp.short || ans, rp.msgs, true);
     return;
   }
@@ -578,6 +584,8 @@ function answer_(text) {
     setProp_('CASE_UNTIL', String(Date.now() + 10 * 60 * 1000));
     return { text: '➕ 新增見證\n\n接下來 10 分鐘傳的圖片、影片，都會存成【見證案例】（可以一次選好幾張）。\n傳完按「✅ 存好了」。\n\n存好後按「💬 見證案例」就能看、轉傳分享。', buttons: [PHOTO_BTNS, ['✅ 存好了']] };
   }
+  const lp = lineImgPick_(t2.replace(/\s+/g, ''));   // LINE 傳圖片後按「試算這張／存成見證／看圖說明」
+  if (lp) return lp;
   if (casePending_() && /^(存好了|完成|好了|結束)$/.test(t2.replace(/\s+/g, ''))) {
     setProp_('CASE_UNTIL', '0');
     return { text: '✅ 見證收好了。按「💬 見證案例」可以看、轉傳分享。', buttons: [['💬 見證案例']].concat(QUICK) };
@@ -1147,10 +1155,10 @@ function saveTgCase_(msg, photoId, video, doc, caption) {
 }
 
 // 存一筆案例：說明有「#分類」或按了「➕ 新增見證」就用那個分類，否則讓 AI 分類
-function storeCase_(type, text, fid, imgFn, src) {
+function storeCase_(type, text, fid, imgFn, src, force) {
   const cats = caseCats_();
   // 說明裡寫「#見證案例」就直接用這個分類
-  let forced = casePending_();
+  let forced = force || casePending_();
   const tag = text.match(/#(\S+)/);
   if (tag && cats.indexOf(tag[1]) >= 0) { forced = tag[1]; text = text.replace(tag[0], '').trim(); }
   let info = { category: forced || '其他', products: [], people: [], summary: '', keywords: [] };
@@ -1193,6 +1201,20 @@ function recatCase_(name) {
 }
 
 // 「➕ 新增見證」按下後 10 分鐘內傳的圖片、影片都存成這個分類
+// LINE 沒按試算就傳的圖片：給這三個選擇
+const LINE_IMG_BTNS = [['📋 試算這張', '💬 存成見證'], ['🖼️ 看圖說明']];
+function lineImgPick_(flat) {
+  const m = flat.match(/^(試算這張|存成見證|看圖說明)$/);
+  if (!m) return null;
+  const v = String(prop_('LINE_LAST_IMG') || '').split('|');
+  if (!v[0] || Date.now() - Number(v[1]) > 30 * 60 * 1000) return '找不到剛剛的圖片了，請再傳一次。';
+  setProp_('LINE_LAST_IMG', '');
+  try {
+    if (m[1] === '存成見證') return saveLineCase_(v[0], 'image', caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
+    return image_(m[1] === '試算這張' ? '試算' : '幫我看這張圖，說明內容', lineImage_(v[0]));
+  } catch (e) { console.error(e); return '圖片讀取失敗（LINE 的圖片放太久會拿不到），請再傳一次。'; }
+}
+
 function casePending_() {
   return Number(prop_('CASE_UNTIL')) > Date.now() ? prop_('CASE_PENDING') || '' : '';
 }
@@ -1204,7 +1226,7 @@ function caseFolder_() {
   const it = DriveApp.getFoldersByName(CASE_FOLDER);
   return it.hasNext() ? it.next() : DriveApp.createFolder(CASE_FOLDER);
 }
-function saveLineCase_(messageId, type) {
+function saveLineCase_(messageId, type, forced) {
   const folder = caseFolder_();
   const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmmss');
   const put = (blob, name) => {
@@ -1221,7 +1243,7 @@ function saveLineCase_(messageId, type) {
       if (res.getResponseCode() === 200) { img = res.getBlob(); fid += '|' + put(img.copyBlob(), '案例_' + stamp + '_預覽.jpg'); }
     } catch (e) { console.error('影片預覽圖失敗：' + e.message); }
   } else img = blob;
-  return storeCase_(type === 'video' ? 'video' : 'photo', '', fid, () => img ? dataUrl_(img) : '', 'LINE');
+  return storeCase_(type === 'video' ? 'video' : 'photo', '', fid, () => img ? dataUrl_(img) : '', 'LINE', forced);
 }
 // Telegram 存的圖片／影片：第一次在 LINE 看時從 Telegram 下載一份放雲端硬碟（記在「雲端硬碟」欄），之後兩邊共用
 function caseDrive_(c) {
