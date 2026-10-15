@@ -147,13 +147,28 @@ function doGet(e) {
   return ContentService.createTextOutput('小乖雲端服務運作中');
 }
 
-function talkLink_() {
+// 對話頁網址：小乖網址放在 ?u= 裡，第一次打開會自動填好，只要輸入同步密碼（密碼不放網址）
+let TALK_URL_ = null;
+function talkUrl_() {
+  if (TALK_URL_ !== null) return TALK_URL_;
   let url = '';
   try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { console.error(e); }
-  // 小乖網址放在 # 後面，第一次打開會自動填好，只要輸入同步密碼（密碼不放網址）
-  return '🐾 小乖對話頁：\n' + TALK_PAGE + (url ? '#u=' + encodeURIComponent(url) : '')
+  TALK_URL_ = TALK_PAGE + (url ? '?u=' + encodeURIComponent(url) : '');
+  return TALK_URL_;
+}
+
+function talkLink_() {
+  return '🐾 小乖對話頁：\n' + talkUrl_()
     + '\n\n第一次打開只要輸入同步密碼（會藏起來、記在手機上）。在 Safari 按「分享 → 加入主畫面」，桌面就有小乖。';
 }
+
+// 「🐾 對話頁」按鈕直接打開網頁：LINE 用網址按鈕（開到 Safari，麥克風才能用），Telegram 用 Web App 按鈕
+const TALK_BTN = '🐾 對話頁';
+function lineQuick_(t) {
+  if (t === TALK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
+  return { type: 'action', action: { type: 'message', label: t.slice(0, 20), text: t } };
+}
+function tgKey_(t) { return t === TALK_BTN ? { text: t, web_app: { url: talkUrl_() } } : { text: t }; }
 
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
 function talk(key, q, image, voice, audio64, audioType) {
@@ -1081,8 +1096,8 @@ function tgSend_(chatId, msg) {
   tgApi_('sendMessage', { chat_id: chatId, text: String(rich ? msg.text : msg).slice(0, 4000),
     // 試算的問題用一次性的按鈕；其他回覆一律帶常用功能按鈕
     reply_markup: rich && msg.buttons
-      ? { keyboard: msg.buttons.map(row => row.map(t => ({ text: t }))), one_time_keyboard: msg.buttons !== MENU && msg.buttons[0] !== MENU[0], resize_keyboard: true }
-      : { keyboard: MENU.map(row => row.map(t => ({ text: t }))), resize_keyboard: true, is_persistent: true } });
+      ? { keyboard: msg.buttons.map(row => row.map(tgKey_)), one_time_keyboard: msg.buttons !== MENU && msg.buttons[0] !== MENU[0], resize_keyboard: true }
+      : { keyboard: MENU.map(row => row.map(tgKey_)), resize_keyboard: true, is_persistent: true } });
 }
 
 function tgApi_(method, payload) {
@@ -1141,7 +1156,7 @@ function reply_(replyToken, msg, extra, menu) {
   const buttons = rich && msg.buttons ? msg.buttons : menu ? MENU : null;   // menu：私訊主人時附常用功能按鈕
   if (buttons) {
     m.quickReply = { items: [].concat.apply([], buttons).slice(0, 13)
-      .map(t => ({ type: 'action', action: { type: 'message', label: t.slice(0, 20), text: t } })) };
+      .map(lineQuick_) };
   }
   lineApi_('reply', { replyToken: replyToken, messages: (extra || []).concat([m]).slice(0, 5) });
 }

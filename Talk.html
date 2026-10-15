@@ -42,7 +42,7 @@ let KEY='',URL='';const $=id=>document.getElementById(id);
 try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');KEY=c.key||'';URL=c.url||'';
  if(!KEY||!URL){const a=JSON.parse(localStorage.getItem('xiaoguai_v1')||'{}');KEY=KEY||a.syncKey||'';URL=URL||a.syncUrl||'';}}catch(e){}
 // 從小乖傳的連結打開：網址在 #u= 後面，自動填好，再把 # 清掉
-try{const m=location.hash.match(/[#&]u=([^&]+)/);if(m){const u=decodeURIComponent(m[1]);if(/^https:\/\/script\.google\.com\//.test(u)){URL=u.replace(/\?.*$/,'');try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');c.url=URL;localStorage.setItem('xg_talk',JSON.stringify(c));}catch(e){}}history.replaceState(null,'',location.pathname);}}catch(e){}
+try{const m=location.search.match(/[?&]u=([^&]+)/)||location.hash.match(/[#&]u=([^&]+)/);if(m){const u=decodeURIComponent(m[1]);if(/^https:\/\/script\.google\.com\//.test(u)){URL=u.replace(/\?.*$/,'');try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');c.url=URL;localStorage.setItem('xg_talk',JSON.stringify(c));}catch(e){}}history.replaceState(null,'',location.pathname);}}catch(e){}
 function saveCfg(){try{localStorage.setItem('xg_talk',JSON.stringify({key:KEY,url:URL}));}catch(e){}}
 function login(msg){$('lgmsg').textContent=msg||(URL?'第一次使用，請輸入同步密碼（只要輸入一次，會記在這支手機上）。':'第一次使用，請貼上小乖網址（結尾是 /exec），再輸入同步密碼。最簡單：在 LINE 或 Telegram 跟小乖打「對話頁」，點它給的連結，網址就會自動填好。');$('url').value=URL;$('pw').value='';$('login').style.display='flex';}
 $('pwgo').onclick=()=>{const u=$('url').value.trim().replace(/\?.*$/,''),k=$('pw').value.trim()||KEY;if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){$('lgmsg').textContent='網址要是 https://script.google.com/macros/s/…/exec';return;}if(!k)return;URL=u;KEY=k;saveCfg();$('login').style.display='none';};
