@@ -537,6 +537,8 @@ function answer_(text) {
     setProp_('QUOTE_UNTIL', String(Date.now() + 10 * 60 * 1000));
     return { text: '好，請傳訂單圖片給我，我來算數量、金額和 PV。', buttons: [PHOTO_BTNS] };
   }
+  const dn = delByName_(text);   // 「刪除 開會」「🗑️ 刪 開會」：照名稱直接刪，不經過 AI
+  if (dn) return dn;
   if (/^(今天行程|今日行程|今天的行程|今天有什麼行程[？?]?)$/.test(flat)) return listToday_();
   if (/^(我的待辦|待辦|待辦清單|我的待辦事項)$/.test(flat)) return listTodos_();
   if (/^(我的筆記|筆記)$/.test(flat)) return listNotes_();
@@ -1466,8 +1468,16 @@ function listToday_() {
     .map(r => '・' + String(r.at).slice(11, 16) + '　' + r.text);
   const head = '⏰ 今天 ' + today.slice(5).replace('-', '/') + '（星期' + WEEK[now.getDay()] + '）';
   if (!evs.length && !rms.length) return head + '\n\n今天沒有行程，也沒有提醒。';
-  return [head, ''].concat(evs.length ? ['🗓️ 行程'].concat(evs) : [], evs.length && rms.length ? [''] : [],
-    rms.length ? ['🔔 提醒'].concat(rms) : [], ['', '要刪掉哪一筆，跟我說「刪除 名稱」就好。']).join('\n');
+  const dels = d.events.filter(e => e.date === today).map(e => e.title)
+    .concat(d.reminders.filter(r => !r.fired && String(r.at).slice(0, 10) === today).map(r => r.text));
+  return { buttons: delBtns_(dels), text: [head, ''].concat(evs.length ? ['🗓️ 行程'].concat(evs) : [], evs.length && rms.length ? [''] : [],
+    rms.length ? ['🔔 提醒'].concat(rms) : [], ['', '要刪掉哪一筆，按下面的 🗑️ 按鈕，或跟我說「刪除 名稱」。']).join('\n') };
+}
+// 每一筆一個「🗑️ 刪 名稱」按鈕（最多 8 個），後面接常用功能
+function delBtns_(labels) {
+  const seen = {};
+  const b = labels.filter(t => t && !seen[t] && (seen[t] = 1)).slice(0, 8).map(t => '🗑️ 刪 ' + t);
+  return [b].concat(MENU);
 }
 function listTodos_() {
   const list = readAll_().todos.filter(x => !x.done).slice(0, 30)
@@ -1475,9 +1485,51 @@ function listTodos_() {
   return list.length ? ['✅ 我的待辦（' + list.length + '）', ''].concat(list).join('\n') : '✅ 目前沒有待辦。';
 }
 function listNotes_() {
-  const list = readAll_().notes.slice(0, 15)
-    .map(n => '・' + (n.title || String(n.body || '').replace(/\s+/g, ' ').slice(0, 20) || '（無標題）'));
-  return list.length ? ['📝 最近筆記', ''].concat(list, ['', '要看哪一篇，跟我說「找 名稱」。']).join('\n') : '📝 目前沒有筆記。';
+  const names = readAll_().notes.slice(0, 15).map(noteName_);
+  const list = names.map(t => '・' + t);
+  return list.length ? { buttons: delBtns_(names), text: ['📝 最近筆記', ''].concat(list, ['', '要看哪一篇，跟我說「找 名稱」；要刪掉就按下面的 🗑️ 按鈕。']).join('\n') } : '📝 目前沒有筆記。';
+}
+function noteName_(n) { return n.title || String(n.body || '').replace(/\s+/g, ' ').slice(0, 20) || '（無標題）'; }
+
+// 照名稱刪除：「刪除今天的開會」「刪掉楊子賢試算資料那筆筆記」「🗑️ 刪 開會」
+// 只找到一筆就直接刪（寫進刪除紀錄，同步不會加回來）；好幾筆就列按鈕讓使用者選；找不到交給 AI
+function delByName_(text) {
+  const m = String(text || '').replace(/\s+/g, '').match(/^(?:幫我|請)?(?:刪除|刪掉|刪|移除|清除|拿掉)(.+)$/);
+  if (!m) return null;
+  let q = m[1].replace(/^(掉|一下|今天|明天|後天|的|那筆|這筆|那個|這個|一筆)+/, '')
+    .replace(/(那筆|這筆|那個|這個|一筆|的)?(行程|筆記|待辦|提醒)?(吧|了|喔)?$/, '').replace(/(那筆|這筆|的)$/, '');
+  if (!q) return null;
+  const kind = /行程/.test(m[1]) ? 'events' : /筆記/.test(m[1]) ? 'notes' : /待辦/.test(m[1]) ? 'todos' : /提醒/.test(m[1]) ? 'reminders' : '';
+  const names = { events: '行程', notes: '筆記', todos: '待辦', reminders: '提醒' };
+  const label = (c, x) => c === 'notes' ? noteName_(x) : (x.title || x.text || '');
+  const flat = t => String(t || '').replace(/\s+/g, '');
+  const find = d => {
+    const hits = [];
+    Object.keys(names).filter(c => !kind || c === kind).forEach(c => (d[c] || []).forEach(x => {
+      if (c === 'todos' && x.done) return;
+      if (c === 'reminders' && x.fired) return;
+      const L = flat(label(c, x));
+      if (L && (L === q || (q.length >= 2 && L.indexOf(q) >= 0) || (L.length >= 2 && q.indexOf(L) >= 0))) hits.push({ c: c, x: x, L: L });
+    }));
+    const exact = hits.filter(h => h.L === q);   // 名稱完全一樣的優先（按 🗑️ 按鈕時）
+    return exact.length ? exact : hits;
+  };
+  const hits0 = find(readAll_());
+  if (!hits0.length) return null;
+  const same = hits0.every(h => h.L === hits0[0].L);
+  if (!same) return { text: '找到 ' + hits0.length + ' 筆，按你要刪的那一筆：', buttons: [hits0.slice(0, 8).map(h => '🗑️ 刪 ' + label(h.c, h.x))].concat(MENU) };
+  const done = withLock_(() => {
+    const d = readAll_(), hit = find(d)[0];
+    if (!hit) return '';
+    const now = Date.now(), id = hit.x.id;
+    d[hit.c] = d[hit.c].filter(x => x.id !== id); d.deleted[id] = now;
+    if (hit.c === 'events') d.reminders = d.reminders.filter(r => { if (r.src === id) { d.deleted[r.id] = now; return false; } return true; });
+    writeAll_(d);
+    return '🗑️ 已刪除' + names[hit.c] + '：' + label(hit.c, hit.x);
+  });
+  if (!done) return null;
+  logChat_('user', text); logChat_('assistant', done);
+  return done + (hits0.length > 1 ? '\n（還有 ' + (hits0.length - 1) + ' 筆同名的，要刪再按一次）' : '');
 }
 
 function reply_(replyToken, msg, extra, menu) {
