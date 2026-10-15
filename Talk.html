@@ -227,16 +227,20 @@ function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)retur
  .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+e.message+'）';});}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 // 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
-let mr=null,chunks=[],stream=null,actx=null,recOn=false,stopT=null,heardAny=null;
+let mr=null,chunks=[],stream=null,actx=null,recOn=false,stopT=null,heardAny=null,relT=null;
 function micUI(on){recOn=on;$('mic').classList.toggle('on',on);$('mic').innerHTML=on?'<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg>';}
-// 全部關掉：錄音、麥克風、音量偵測（不管停在哪一步都關得掉）
-function micCleanup(){clearTimeout(stopT);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}if(actx){actx.close().catch(()=>{});actx=null;}mr=null;micUI(false);}
+// 停止錄音和音量偵測；麥克風先不關（iPhone 每次重新開麥克風都要再按一次「允許」），5 分鐘沒用或離開頁面才真的關
+function micCleanup(){clearTimeout(stopT);if(actx){actx.close().catch(()=>{});actx=null;}mr=null;micUI(false);clearTimeout(relT);if(stream)relT=setTimeout(micRelease,300000);}
+function micRelease(){clearTimeout(relT);if(recOn)return;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&!recOn)micRelease();});
+const micLive=()=>stream&&stream.getAudioTracks().some(t=>t.readyState==='live');
 function kb(msg){$('q').focus();hint.textContent=msg||'點鍵盤右下角的 🎤 講話，講完按「傳送」';}
 async function micStart(){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder)return kb();
  micUI(true);hint.textContent='開麥克風中…';
- try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
- catch(e){micCleanup();return kb('麥克風被擋住了：請到「設定 → Safari → 麥克風」選允許，或先按鍵盤上的 🎤 講話');}
+ clearTimeout(relT);
+ try{if(!micLive())stream=await navigator.mediaDevices.getUserMedia({audio:true});}
+ catch(e){stream=null;micCleanup();return kb('麥克風被擋住了：請到「設定 → App → Safari → 麥克風」選「允許」，或先按鍵盤上的 🎤 講話');}
  if(!recOn){micCleanup();hint.textContent='';return;}   // 開麥克風途中又按了一次＝取消
  const type=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
  try{mr=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream);}catch(e){micCleanup();return kb();}
