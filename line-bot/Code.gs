@@ -99,7 +99,7 @@ const HELP_TEXT = [
   '小乖可以幫你 👇（按「💎 選單」看全部卡片）',
   '',
   '🪶 軍師：選主題，寫文案＋圖卡',
-  '💬 見證：看見證、轉傳分享（存的時候打 #見證案例）',
+  '💬 見證：按「新增見證」再傳圖片影片，之後看、轉傳分享',
   '📋 試算：直接傳明細表照片',
   '📅 行程：新增、今天、這週、刪除',
   '📝 筆記：新增筆記、看筆記和待辦',
@@ -117,8 +117,9 @@ const HELP_MORE = [
   '・按「⚙️ 設定」看、改圖卡署名和文案標題（打「預設」改回原本的）',
   '',
   '【💬 見證分享】',
-  '・圖片、影片、文字轉傳給小乖就會存進案例庫，說明打「#見證案例」存成見證',
-  '・按「💬 見證案例」看見證：Telegram 會直接傳出圖片影片，長按就能轉傳',
+  '・按「➕ 新增見證」後 10 分鐘內傳的圖片、影片都存成見證（LINE、Telegram 都可以），傳完按「✅ 存好了」',
+  '・Telegram 轉傳時說明打「#見證案例」也可以；LINE 傳影片一律存進案例庫',
+  '・按「💬 見證案例」看見證：圖片影片會直接傳出來，長按就能轉傳',
   '・案例分類：看每類有幾筆；改分類 名稱：改剛存那筆的分類',
   '・新增分類／分類改名 舊 新／刪除分類',
   '',
@@ -485,8 +486,15 @@ function handleLine_(ev) {
     return;
   }
   if (ev.type !== 'message' || !ev.replyToken) return;
-  if (ev.message.type === 'image') {
-    if (owner && uid === owner) { const ans = image_('', lineImage_(ev.message.id)); const rp = reportLine_(); reply_(ev.replyToken, rp.short || ans, rp.msgs, true); }
+  if (ev.message.type === 'image' || ev.message.type === 'video') {
+    if (!owner || uid !== owner) return;
+    // 按了「➕ 新增見證」：圖片、影片存進案例庫；影片一律當案例存
+    if (ev.message.type === 'video' || casePending_()) {
+      let res;
+      try { res = saveLineCase_(ev.message.id, ev.message.type); } catch (err) { console.error(err); res = '存檔失敗：' + err.message; }
+      return reply_(ev.replyToken, res, null, true);
+    }
+    const ans = image_('', lineImage_(ev.message.id)); const rp = reportLine_(); reply_(ev.replyToken, rp.short || ans, rp.msgs, true);
     return;
   }
   if (ev.message.type === 'audio') {
@@ -519,8 +527,9 @@ function handleLine_(ev) {
   const ans = answer_(text);
   const rp = reportLine_();
   const card = cardLine_();
-  const voice = !rp.short && !card.length && voiceMode_() === 'always' && !/^語音回覆/.test(text) ? lineVoice_(ans) : [];
-  reply_(ev.replyToken, rp.short || ans, rp.msgs.concat(card, voice), true);
+  const media = caseLine_();   // 看見證／案例時的圖片、影片
+  const voice = !rp.short && !card.length && !media.length && voiceMode_() === 'always' && !/^語音回覆/.test(text) ? lineVoice_(ans) : [];
+  reply_(ev.replyToken, rp.short || ans, rp.msgs.concat(card, media, voice), true);
 }
 
 function lineContent_(messageId) {
@@ -563,7 +572,15 @@ function answer_(text) {
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
   if (/^見證(案例)?$/.test(t2.replace(/\s+/g, ''))) return browseCat_(caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
-  if (/^新增見證$/.test(t2.replace(/\s+/g, ''))) return { text: '➕ 新增見證\n\n把見證的圖片、影片或文字轉傳給小乖，說明裡打「#見證案例」就會存進見證分類。\n存好後按「💬 見證案例」就能看、轉傳分享。', buttons: [PHOTO_BTNS].concat(QUICK) };
+  if (/^新增見證$/.test(t2.replace(/\s+/g, ''))) {
+    setProp_('CASE_PENDING', caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
+    setProp_('CASE_UNTIL', String(Date.now() + 10 * 60 * 1000));
+    return { text: '➕ 新增見證\n\n接下來 10 分鐘傳的圖片、影片，都會存成【見證案例】（可以一次選好幾張）。\n傳完按「✅ 存好了」。\n\n存好後按「💬 見證案例」就能看、轉傳分享。', buttons: [PHOTO_BTNS, ['✅ 存好了']] };
+  }
+  if (casePending_() && /^(存好了|完成|好了|結束)$/.test(t2.replace(/\s+/g, ''))) {
+    setProp_('CASE_UNTIL', '0');
+    return { text: '✅ 見證收好了。按「💬 見證案例」可以看、轉傳分享。', buttons: [['💬 見證案例']].concat(QUICK) };
+  }
   const cs = stratSetting_(t2);   // 「設定署名 …」「設定標題 …」
   if (cs) return cs;
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
@@ -1121,19 +1138,24 @@ function saveTgCase_(msg, photoId, video, doc, caption) {
   const fname = video && video.file_name ? String(video.file_name).replace(/\.[^.]+$/, '') : '';
   if (fname && text.indexOf(fname) < 0) text = (text ? text + ' ' : '') + '〔' + fname + '〕';
   if (type === 'text' && !text) return '這則沒有內容可以存。';
+  const o = msg.forward_origin || {};
+  const src = (o.chat && o.chat.title) || (o.sender_user && o.sender_user.first_name) || o.sender_user_name
+    || (msg.forward_from_chat && msg.forward_from_chat.title) || (msg.forward_from && msg.forward_from.first_name) || '';
+  return storeCase_(type, text, fid, () => thumb ? tgImage_(thumb) : '', src);
+}
+
+// 存一筆案例：說明有「#分類」或按了「➕ 新增見證」就用那個分類，否則讓 AI 分類
+function storeCase_(type, text, fid, imgFn, src) {
   const cats = caseCats_();
   // 說明裡寫「#見證案例」就直接用這個分類
-  let forced = '';
+  let forced = casePending_();
   const tag = text.match(/#(\S+)/);
   if (tag && cats.indexOf(tag[1]) >= 0) { forced = tag[1]; text = text.replace(tag[0], '').trim(); }
   let info = { category: forced || '其他', products: [], people: [], summary: '', keywords: [] };
   try {
-    info = classifyCase_(type, text, thumb ? tgImage_(thumb) : '', cats);
+    info = classifyCase_(type, text, imgFn() || '', cats);
     if (forced) info.category = forced;
   } catch (e) { console.error('案例分類失敗：' + e.message); }
-  const o = msg.forward_origin || {};
-  const src = (o.chat && o.chat.title) || (o.sender_user && o.sender_user.first_name) || o.sender_user_name
-    || (msg.forward_from_chat && msg.forward_from_chat.title) || (msg.forward_from && msg.forward_from.first_name) || '';
   const join = a => (Array.isArray(a) ? a : []).map(String).filter(Boolean).join('、');
   const row = withLock_(() => {
     const sh = caseSheet_();
@@ -1166,6 +1188,49 @@ function recatCase_(name) {
   if (cats.indexOf(name) < 0) return { text: '沒有【' + name + '】這個分類，選一個現有的；要新的分類請打「新增分類 ' + name + '」。', buttons: chunk_(cats.map(c => '改分類 ' + c), 2).slice(0, 5) };
   sh.getRange(idx + 2, 2).setValue(name);
   return '✅ 已改成【' + name + '】';
+}
+
+// 「➕ 新增見證」按下後 10 分鐘內傳的圖片、影片都存成這個分類
+function casePending_() {
+  return Number(prop_('CASE_UNTIL')) > Date.now() ? prop_('CASE_PENDING') || '' : '';
+}
+
+// LINE 傳來的案例圖片／影片存雲端硬碟「小乖案例庫」，設成知道連結的人都能看，LINE 才能再傳出來分享
+// file_id 欄存「drive:檔案ID」（影片是「drive:影片ID|預覽圖ID」）
+const CASE_FOLDER = '小乖案例庫';
+function caseFolder_() {
+  const it = DriveApp.getFoldersByName(CASE_FOLDER);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(CASE_FOLDER);
+}
+function saveLineCase_(messageId, type) {
+  const folder = caseFolder_();
+  const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmmss');
+  const put = (blob, name) => {
+    const f = folder.createFile(blob.setName(name));
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return f.getId();
+  };
+  const blob = lineContent_(messageId);
+  let fid = 'drive:' + put(blob, '案例_' + stamp + (type === 'video' ? '.mp4' : '.jpg')), img = null;
+  if (type === 'video') {
+    try {
+      const res = UrlFetchApp.fetch('https://api-data.line.me/v2/bot/message/' + messageId + '/content/preview', {
+        headers: { Authorization: 'Bearer ' + prop_('LINE_CHANNEL_ACCESS_TOKEN') }, muteHttpExceptions: true });
+      if (res.getResponseCode() === 200) { img = res.getBlob(); fid += '|' + put(img.copyBlob(), '案例_' + stamp + '_預覽.jpg'); }
+    } catch (e) { console.error('影片預覽圖失敗：' + e.message); }
+  } else img = blob;
+  return storeCase_(type === 'video' ? 'video' : 'photo', '', fid, () => img ? dataUrl_(img) : '', 'LINE');
+}
+const driveIds_ = fid => String(fid).slice(6).split('|');
+const driveImg_ = id => 'https://lh3.googleusercontent.com/d/' + id;
+const driveFile_ = id => 'https://drive.usercontent.google.com/download?id=' + id + '&export=download';
+// 瀏覽案例時，雲端硬碟裡的圖片／影片在 LINE 直接傳出來（一次最多 4 個）
+let CASE_LINE_ = [];
+function caseLine_() { const m = CASE_LINE_; CASE_LINE_ = []; return m; }
+function lineCaseMsg_(c) {
+  const ids = driveIds_(c.fid);
+  if (c.type === 'video') return ids[1] ? { type: 'video', originalContentUrl: driveFile_(ids[0]), previewImageUrl: driveImg_(ids[1]) } : null;
+  return { type: 'image', originalContentUrl: driveImg_(ids[0]), previewImageUrl: driveImg_(ids[0]) };
 }
 
 function allCases_() {
@@ -1229,7 +1294,13 @@ function caseLines_(title, list) {
   const media = list.filter(c => c.type !== 'text' && c.fid);
   if (media.length) {
     if (CURRENT_TG_CHAT_) { media.slice(0, 5).forEach(c => sendTgCase_(CURRENT_TG_CHAT_, c)); out.push('（最新 ' + Math.min(5, media.length) + ' 個圖片／影片已傳在上面）'); }
-    else out.push('（圖片／影片存在 Telegram，到 Telegram 查就會直接傳給你）');
+    else {
+      const drv = media.filter(c => /^drive:/.test(c.fid)).slice(0, 4);
+      CASE_LINE_ = drv.map(lineCaseMsg_).filter(Boolean);
+      if (CASE_LINE_.length) out.push('（最新 ' + CASE_LINE_.length + ' 個圖片／影片在上面，長按就能轉傳分享）');
+      drv.filter(c => c.type === 'video').forEach(c => out.push('🎬 影片連結：https://drive.google.com/file/d/' + driveIds_(c.fid)[0] + '/view'));
+      if (media.length > drv.length) out.push('（在 Telegram 存的圖片／影片，到 Telegram 查就會直接傳給你）');
+    }
   }
   return out.join('\n');
 }
@@ -1239,7 +1310,7 @@ function sendTgCase_(chatId, c) {
   const m = { photo: ['sendPhoto', 'photo'], video: ['sendVideo', 'video'], animation: ['sendAnimation', 'animation'], document: ['sendDocument', 'document'] }[c.type];
   if (!m) return;
   const p = { chat_id: chatId, caption: cap };
-  p[m[1]] = c.fid;
+  p[m[1]] = /^drive:/.test(c.fid) ? (c.type === 'photo' ? driveImg_(driveIds_(c.fid)[0]) : driveFile_(driveIds_(c.fid)[0])) : c.fid;
   tgApi_(m[0], p);
 }
 
@@ -1488,7 +1559,7 @@ function handleTelegram_(update) {
   // 案例庫：轉傳過來的圖片／影片／文字，或說明打「存」的，存起來之後可以用「查 關鍵字」找回來
   const forwarded = !!(msg.forward_origin || msg.forward_date || msg.forward_from || msg.forward_from_chat);
   const video = msg.video || msg.animation || (msg.document && !doc ? msg.document : null);
-  if (owner && chatId === owner && (video || forwarded || ((fileId || video) && /^(存|存案例|案例|收藏)/.test(text)))) {
+  if (owner && chatId === owner && (video || forwarded || (fileId && casePending_()) || ((fileId || video) && /^(存|存案例|案例|收藏)/.test(text)))) {
     tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
     return tgSend_(chatId, saveTgCase_(msg, fileId, video, doc, text.replace(/^(存案例|存|案例|收藏)[\s：:]*/, '')));
   }
@@ -1566,6 +1637,7 @@ function tgSend_(chatId, msg) {
   let rich = msg && typeof msg === 'object';
   // Telegram 沒辦法用按鈕打開相簿，「選照片／拍照」按鈕拿掉，改帶一般選單
   if (rich && msg.buttons && msg.buttons.length === 1 && msg.buttons[0] === PHOTO_BTNS) msg = { text: msg.text + '\n（按左下角的迴紋針 📎 選照片）' };
+  else if (rich && msg.buttons && msg.buttons.indexOf(PHOTO_BTNS) >= 0) msg = { text: msg.text + '\n（按左下角的迴紋針 📎 選照片）', buttons: msg.buttons.filter(r => r !== PHOTO_BTNS) };
   rich = msg && typeof msg === 'object' && !!msg.buttons;
   if (msg && typeof msg === 'object' && !msg.buttons) msg = msg.text;
   tgApi_('sendMessage', { chat_id: chatId, text: String(rich ? msg.text : msg).slice(0, 4000),
