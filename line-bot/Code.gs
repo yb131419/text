@@ -31,7 +31,7 @@ const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
-const MENU = [['📋 試算', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '❓ 說明']];
+const MENU = [['🐾 對話頁', '📋 試算'], ['⏰ 今天行程', '✅ 我的待辦'], ['📝 我的筆記', '📁 本機找'], ['🌐 上網找', '🗂️ 案例分類'], ['❓ 說明']];
 
 const HELP_TEXT = [
   '小乖可以幫你 👇',
@@ -157,11 +157,16 @@ function talkLink_() {
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
 function talk(key, q, image) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
-  ASK_SHOW_ = '';
+  ASK_SHOW_ = ''; ASK_BTNS_ = [];
   const say = askByVoice_(String(q || ''), image || '');
-  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, '') };
+  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_ };
 }
-let ASK_SHOW_ = '';
+let ASK_SHOW_ = '', ASK_BTNS_ = [];
+// 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
+function askButtons_(ans) {
+  const b = ans && typeof ans === 'object' && ans.buttons;
+  ASK_BTNS_ = b && b !== MENU ? [].concat.apply([], b).filter(t => t !== '🐾 對話頁').slice(0, 12) : [];
+}
 
 function askByVoice_(q, image) {
   q = q.trim();
@@ -172,6 +177,7 @@ function askByVoice_(q, image) {
   let ans;
   try { ans = answer_(q); } catch (err) { console.error(err); return '小乖現在有點問題，等一下再試試看。'; }
   ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
+  askButtons_(ans);
   const tg = prop_('TG_OWNER_CHAT_ID');
   if (LAST_QUOTE_ && tg) {   // 回答完試算問題就出報表：圖片傳到 Telegram
     const short = sendReportTg_(tg);
@@ -192,6 +198,7 @@ function askPhoto_(q, b64) {
   let ans;
   try { ans = image_(q, img); } catch (err) { console.error(err); return '照片讀取失敗，等一下再試試看。'; }
   ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
+  askButtons_(ans);
   const tg = prop_('TG_OWNER_CHAT_ID');
   if (LAST_QUOTE_) {
     if (tg) {
@@ -2390,8 +2397,13 @@ button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;backgrou
 #mic{width:64px;height:64px;font-size:30px;background:var(--accent);color:#fff}
 #mic.on{animation:p 1s infinite}@keyframes p{50%{transform:scale(1.08);box-shadow:0 0 0 10px rgba(255,138,61,.25)}}
 #hint{text-align:center;color:var(--soft);font-size:14px;padding:0 16px 6px}
+#chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#chips::-webkit-scrollbar{display:none}
+.chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
+.chip.ask{background:var(--accent);color:#fff;border-color:var(--accent)}
 </style></head><body>
 <header><b>🐾 小乖</b><small><label><input type="checkbox" id="spk" checked> 🔊 念出來</label></small></header>
+<div id="chips"></div>
 <div id="log"><div class="m xg">嗨，我是小乖！按橘色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
 <div id="hint"></div>
 <div id="bar"><button id="cam" title="照片">📷</button><input id="q" placeholder="打字或按鍵盤上的麥克風" enterkeyhint="send"><button id="mic" title="講話">🎤</button></div>
@@ -2399,10 +2411,14 @@ button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;backgrou
 <script>
 const KEY=__KEY__;const $=id=>document.getElementById(id);const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;
+const MENU=['📋 試算','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','❓ 說明'];
+function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=t;
+ b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';$('file').click();return;}send(t);};c.appendChild(b);});}
+chips();
 function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;d.appendChild(i);}if(t){d.appendChild(document.createTextNode(t));}log.appendChild(d);log.scrollTop=1e9;return d;}
 function speak(t){if(!$('spk').checked||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u);}
 function send(q,img){if(busy)return;q=(q||'').trim();if(!q&&!img)return;busy=true;add(q,'me',img);$('q').value='';const w=add('小乖想一下…','xg');hint.textContent='';
- google.script.run.withSuccessHandler(r=>{busy=false;w.textContent=r.show||r.say;speak(r.say);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'');}
+ google.script.run.withSuccessHandler(r=>{busy=false;w.textContent=r.show||r.say;chips(r.buttons);speak(r.say);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'');}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 $('mic').onclick=()=>{if(window.speechSynthesis)speechSynthesis.cancel();
