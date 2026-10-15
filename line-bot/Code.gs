@@ -541,6 +541,12 @@ function answer_(text) {
   const dn = delByName_(text);   // 「刪除 開會」「🗑️ 刪 開會」：照名稱直接刪，不經過 AI
   if (dn) return dn;
   if (/^(今天行程|今日行程|今天的行程|今天有什麼行程[？?]?)$/.test(flat)) return listToday_();
+  const da = dayAsk_(flat);
+  if (da) {   // 記進聊天紀錄，接著問「那後天呢」AI 才接得上
+    const ls = listDays_(da[0], da[1], da[2]);
+    logChat_('user', text); logChat_('assistant', String(ls.text || ls));
+    return ls;
+  }
   if (/^(我的待辦|待辦|待辦清單|我的待辦事項)$/.test(flat)) return listTodos_();
   if (/^(我的筆記|筆記)$/.test(flat)) return listNotes_();
   if (/^(選照片|拍照)$/.test(text)) return '請按左下角的迴紋針 📎 選明細表照片傳給我，我會自動試算。';
@@ -1213,7 +1219,7 @@ function voiceSwitch_(w) {
 // 把回覆變成講話的稿子：去掉表情符號、符號和網址，太長只念前面
 function speechText_(ans) {
   let t = String(ans && typeof ans === 'object' ? ans.text : ans || '');
-  t = t.replace(/https?:\/\/\S+/g, '')
+  t = t.replace(/\n?要刪掉哪一筆[^\n]*/g, '').replace(/https?:\/\/\S+/g, '')
     .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '')
     .replace(/[*_#`>｜|【】「」]/g, ' ').replace(/[─—=]{2,}/g, ' ').replace(/^[・\-•]\s*/gm, '')
     .replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim();
@@ -1473,20 +1479,75 @@ function allowedActs_(text, acts, prev) {
 }
 
 // 「今天行程」「我的待辦」「我的筆記」按鈕：直接照資料列出來，不經過 AI（不會亂加東西）
-function listToday_() {
+function listToday_() { return listDays_(0, 0, '今天'); }
+
+// 問行程（今天／明天／後天／這週／下週／星期五／10月20日）：照日期整齊排好，不經過 AI
+// a、b 是從今天算起的天數（含頭尾）
+function listDays_(a, b, label) {
   const d = readAll_();
-  const now = new Date(), today = Utilities.formatDate(now, TZ, 'yyyy-MM-dd');
-  const evs = d.events.filter(e => e.date === today).sort(evCmp_)
-    .map(e => '・' + (e.time || '整天') + '　' + e.title + (e.place ? '＠' + e.place : ''));
-  const rms = d.reminders.filter(r => !r.fired && String(r.at).slice(0, 10) === today)
-    .sort((a, b) => String(a.at).localeCompare(String(b.at)))
-    .map(r => '・' + String(r.at).slice(11, 16) + '　' + r.text);
-  const head = '⏰ 今天 ' + today.slice(5).replace('-', '/') + '（星期' + WEEK[now.getDay()] + '）';
-  if (!evs.length && !rms.length) return head + '\n\n今天沒有行程，也沒有提醒。';
-  const dels = d.events.filter(e => e.date === today).map(e => e.title)
-    .concat(d.reminders.filter(r => !r.fired && String(r.at).slice(0, 10) === today).map(r => r.text));
-  return { buttons: delBtns_(dels), text: [head, ''].concat(evs.length ? ['🗓️ 行程'].concat(evs) : [], evs.length && rms.length ? [''] : [],
-    rms.length ? ['🔔 提醒'].concat(rms) : [], ['', '要刪掉哪一筆，按下面的 🗑️ 按鈕，或跟我說「刪除 名稱」。']).join('\n') };
+  const day = n => Utilities.formatDate(new Date(Date.now() + n * 864e5), TZ, 'yyyy-MM-dd');
+  const from = day(a), to = day(b);
+  const md = ds => Number(ds.slice(5, 7)) + '/' + Number(ds.slice(8, 10));
+  const wk = ds => WEEK[new Date(ds + 'T12:00:00+08:00').getDay()];
+  const inR = ds => ds >= from && ds <= to;
+  const evs = d.events.filter(e => inR(e.date)).sort(evCmp_);
+  const rms = d.reminders.filter(r => !r.fired && inR(String(r.at).slice(0, 10)))
+    .sort((x, y) => String(x.at).localeCompare(String(y.at)));
+  const one = from === to;
+  const head = one ? '⏰ ' + label + ' ' + md(from) + '（星期' + wk(from) + '）'
+    : '🗓️ ' + label + '行程（' + md(from) + '～' + md(to) + '）';
+  if (!evs.length && !rms.length) return head + '\n\n' + label + '沒有行程，也沒有提醒。';
+  const evLine = e => '・' + (e.time || '整天') + '　' + e.title + (e.place ? '＠' + e.place : '');
+  const rmLine = r => '・' + String(r.at).slice(11, 16) + '　🔔 ' + r.text;
+  let body = [];
+  if (one) {
+    body = (evs.length ? ['🗓️ 行程'].concat(evs.map(evLine)) : [])
+      .concat(evs.length && rms.length ? [''] : [], rms.length ? ['🔔 提醒'].concat(rms.map(r => '・' + String(r.at).slice(11, 16) + '　' + r.text)) : []);
+  } else {
+    const days = {};
+    evs.forEach(e => (days[e.date] = days[e.date] || []).push({ k: (e.time || '00:00') + '0', t: evLine(e) }));
+    rms.forEach(r => { const ds = String(r.at).slice(0, 10); (days[ds] = days[ds] || []).push({ k: String(r.at).slice(11, 16) + '1', t: rmLine(r) }); });
+    Object.keys(days).sort().forEach((ds, i) => {
+      if (i) body.push('');
+      body.push('▍' + md(ds) + '（' + wk(ds) + '）');
+      days[ds].sort((x, y) => x.k.localeCompare(y.k)).forEach(x => body.push(x.t));
+    });
+  }
+  const dels = evs.map(e => e.title).concat(rms.map(r => r.text));
+  return { buttons: delBtns_(dels), text: [head, ''].concat(body, ['', '要刪掉哪一筆，按下面的 🗑️ 按鈕，或跟我說「刪除 名稱」。']).join('\n') };
+}
+
+// 「明天行程」「這週有什麼行程？」「星期五的安排」→ [起, 迄, 標題]；不是問行程就回 null
+function dayAsk_(flat) {
+  const t = flat.replace(/[，,。.！!？?]/g, '');
+  if (/刪|取消|移除|記|加|新增|安排一|提醒我|排/.test(t.replace(/安排$/, ''))) return null;
+  const m = t.match(/^(?:我)?(今天|今日|明天|明日|後天|大後天|這週|這禮拜|這星期|本週|下週|下禮拜|下星期|(?:這|下)?(?:週|星期|禮拜)[一二三四五六日天]|\d{1,2}[月\/]\d{1,2}[日號]?)(?:的|有)?(?:什麼|哪些)?(?:行程|安排|事情?)(?:嗎|呢)?$/);
+  if (!m) return null;
+  const w = m[1], now = new Date();
+  const dow = Number(Utilities.formatDate(now, TZ, 'u')) % 7;   // 0＝星期日
+  const simple = { 今天: 0, 今日: 0, 明天: 1, 明日: 1, 後天: 2, 大後天: 3 };
+  if (w in simple) return [simple[w], simple[w], w.replace('今日', '今天').replace('明日', '明天')];
+  const toSun = (7 - dow) % 7;   // 這週算到星期日
+  if (/^(這週|這禮拜|這星期|本週)$/.test(w)) return [0, toSun, '這週'];
+  if (/^(下週|下禮拜|下星期)$/.test(w)) return [toSun + 1, toSun + 7, '下週'];
+  const wd = w.match(/^(這|下)?(?:週|星期|禮拜)([一二三四五六日天])$/);
+  if (wd) {
+    const target = '日一二三四五六'.indexOf(wd[2] === '天' ? '日' : wd[2]);
+    let n = (target - dow + 7) % 7;
+    if (wd[1] === '下') n = toSun + 1 + (target + 6) % 7;
+    return [n, n, '星期' + (wd[2] === '天' ? '日' : wd[2])];
+  }
+  const dm = w.match(/^(\d{1,2})[月\/](\d{1,2})/);
+  if (dm) {
+    const y = Number(Utilities.formatDate(now, TZ, 'yyyy'));
+    const today = new Date(Utilities.formatDate(now, TZ, 'yyyy-MM-dd') + 'T12:00:00+08:00');
+    let dt = new Date(y + '-' + ('0' + dm[1]).slice(-2) + '-' + ('0' + dm[2]).slice(-2) + 'T12:00:00+08:00');
+    if (isNaN(dt)) return null;
+    if (dt < today - 864e5 * 1) dt = new Date(dt.getTime() + 365 * 864e5);
+    const n = Math.round((dt - today) / 864e5);
+    return [n, n, Number(dm[1]) + '/' + Number(dm[2])];
+  }
+  return null;
 }
 // 每一筆一個「🗑️ 刪 名稱」按鈕（最多 8 個），後面接常用功能
 function delBtns_(labels) {
@@ -2636,6 +2697,7 @@ function buildSys_(d) {
     .map(n => '- [' + n.id + '] ' + (n.title || '（無標題）') + '：' + String(n.body || '').replace(/\s+/g, ' ').slice(0, 120)).join('\n') || '（無）';
   return '你是「' + (p.title || '小乖') + '」，' + (p.nick || '使用者') + '的私人助理。個性貼心、可靠、說話簡潔溫暖，一律用繁體中文（台灣用語）。\n'
     + '你現在在 LINE 或 Telegram 上聊天：回覆要短，不要用 Markdown 標題、表格或粗體。\n'
+    + '列出行程、提醒或待辦時，一筆一行、照時間排好，格式像「・15:00　開會＠公司」；不同天先寫一行「▍10/16（四）」再列那天的。\n'
     + '你看得懂使用者傳來的圖片：收到圖片就直接讀出內容，不要說你看不到圖片。\n'
     + '現在時間：' + today + ' ' + hm + '（星期' + dow + '）。\n\n'
     + '【關於使用者】\n' + (p.about || '（尚未填寫）') + '\n\n'
