@@ -285,7 +285,7 @@ function askByVoice_(q, image) {
   if (image) return askPhoto_(q, image);
   if (!q) return '我在，請說。';
   if (/^(沒事了?|沒有了?|結束|掰掰|再見|不用了?|謝謝)[。！!]?$/.test(q)) return '好，有事再叫我。';
-  CURRENT_TG_CHAT_ = '';
+  CURRENT_TG_CHAT_ = ''; LINE_MODE_ = false;
   VOICE_ONLY_ = !TALK_MODE_;
   let ans;
   try { ans = answer_(q); } catch (err) { console.error(err); return '小乖現在有點問題，等一下再試試看。'; }
@@ -480,6 +480,7 @@ function handleLineGroup_(ev, gid, type) {
 /* ============ LINE ============ */
 function handleLine_(ev) {
   CURRENT_TG_CHAT_ = '';   // LINE 傳不了 Telegram 的檔案，案例圖片只列出數量
+  LINE_MODE_ = true;       // 案例用卡片輪播顯示
   const src = ev.source || {};
   if (src.type === 'group' || src.type === 'room') return handleLineGroup_(ev, src.groupId || src.roomId, src.type);
   const uid = ev.source && ev.source.userId;
@@ -514,7 +515,7 @@ function handleLine_(ev) {
     const rp = reportLine_();
     const card = cardLine_();   // 智囊軍師的圖卡
     const voice = !rp.short && !card.length && voiceMode_() !== 'off' ? lineVoice_(ans) : [];   // 用講的就用講的回
-    return reply_(ev.replyToken, rp.short ? '🎤 「' + said + '」\n\n' + rp.short : withVoice_(said, ans), rp.msgs.concat(card, voice), true);
+    return reply_(ev.replyToken, rp.short ? '🎤 「' + said + '」\n\n' + rp.short : withVoice_(said, ans), rp.msgs.concat(card, caseLine_(), voice).slice(0, 4), true);
   }
   if (ev.message.type !== 'text') {
     if (uid === owner) reply_(ev.replyToken, '小乖目前看得懂文字、圖片和語音，其他類型還不行喔。');
@@ -600,6 +601,9 @@ function answer_(text) {
   if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
   const bc = text.match(/^(?:看分類\s*)?(.+?)（\d+）$/) || text.match(/^看分類\s*(.+)$/);
   if (bc && caseCats_().indexOf(bc[1].trim()) >= 0) return browseCat_(bc[1].trim());
+  const sc = text.match(/^分享案例\s*(\w+)$/); if (sc) return shareCase_(sc[1]);
+  const np = text.match(/^(.+?)\s*第(\d+)頁$/);
+  if (np && caseCats_().indexOf(np[1].trim()) >= 0) return browseCat_(np[1].trim(), np[2]);
   const ac = text.match(/^新增分類\s*(\S+)$/); if (ac) return editCaseCat_('add', ac[1]);
   const mc = text.match(/^(?:分類改名|改分類名稱?)\s*(\S+)\s*(?:改成|→|->)?\s*(\S+)$/); if (mc) return editCaseCat_('rename', mc[1], mc[2]);
   const dc = text.match(/^(?:刪除分類|刪分類)\s*(\S+)$/); if (dc) return editCaseCat_('delete', dc[1]);
@@ -1323,10 +1327,60 @@ function caseCatsMenu_() {
   };
 }
 
-function browseCat_(cat) {
+function browseCat_(cat, page) {
   const list = allCases_().filter(c => c.cat === cat);
   if (!list.length) return { text: '【' + cat + '】還沒有案例。轉傳圖片、影片或文字給小乖就會存進來。', buttons: MENU };
-  return { text: caseLines_('【' + cat + '】共 ' + list.length + ' 筆，最新的：', list), buttons: MENU };
+  if (!LINE_MODE_) return { text: caseLines_('【' + cat + '】共 ' + list.length + ' 筆，最新的：', list), buttons: MENU };
+  // LINE：一筆一張卡片，左右滑；按「📤 分享」才把那一則的圖片／影片傳出來，畫面不會一長串
+  const pages = Math.ceil(list.length / CASE_PAGE), p = Math.min(Math.max(Number(page) || 1, 1), pages);
+  const part = list.slice((p - 1) * CASE_PAGE, p * CASE_PAGE);
+  CASE_LINE_ = [{ type: 'flex', altText: '【' + cat + '】共 ' + list.length + ' 筆', contents: { type: 'carousel', contents: part.map(caseBubble_) } }];
+  const next = p < pages ? [['➡️ ' + cat + ' 第' + (p + 1) + '頁']] : [];
+  return { text: '【' + cat + '】共 ' + list.length + ' 筆' + (pages > 1 ? '（第 ' + p + '／' + pages + ' 頁）' : '')
+    + '\n左右滑看，按「📤 分享」就會把那一則傳出來，長按就能轉傳。', buttons: next.concat(MENU) };
+}
+
+// LINE 案例卡片：上面縮圖、中間摘要、下面「📤 分享」
+const CASE_PAGE = 10;
+let LINE_MODE_ = false;
+const caseKey_ = c => (c.time instanceof Date ? c.time.getTime() : 0) + String(c.fid || '').replace(/[^\w]/g, '').slice(-6);   // 同一毫秒存的也分得開
+function caseBubble_(c) {
+  const d = ['photo', 'video', 'animation'].indexOf(c.type) >= 0 ? caseDrive_(c) : '';
+  const ids = d ? driveIds_(d) : [];
+  const img = !d ? '' : c.type === 'photo' ? driveImg_(ids[0]) : ids[1] ? driveImg_(ids[1]) : 'https://yb131419.github.io/Tezhu/xiaoguai.jpg';
+  const KIND = { photo: '🖼️ 圖片', video: '🎬 影片', animation: '🎞️ 動圖', document: '📄 檔案', text: '📝 文字' };
+  const day = c.time instanceof Date ? Utilities.formatDate(c.time, TZ, 'M/d') : '';
+  const tags = [c.products, c.people].filter(Boolean).join('｜');
+  const b = {
+    type: 'bubble', size: 'kilo',
+    styles: { body: { backgroundColor: '#FBF8F2' }, footer: { backgroundColor: '#FBF8F2' } },
+    body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'sm', contents: [
+      { type: 'text', text: [c.cat, KIND[c.type] || '', day].filter(Boolean).join(' · '), size: 'xxs', color: '#B08D57', weight: 'bold' },
+      { type: 'text', text: String(c.summary || c.text || '（沒有說明）').replace(/\s+/g, ' ').slice(0, 80), size: 'sm', weight: 'bold', color: '#2A2118', wrap: true, maxLines: 3 },
+    ].concat(tags ? [{ type: 'text', text: '🏷️ ' + tags, size: 'xxs', color: '#9A8B74', wrap: true, maxLines: 2 }] : []) },
+    footer: { type: 'box', layout: 'vertical', paddingAll: '12px', paddingTop: '0px', contents: [{
+      type: 'box', layout: 'horizontal', justifyContent: 'center', paddingAll: '10px', cornerRadius: '10px',
+      background: { type: 'linearGradient', angle: '120deg', startColor: '#E9D3A2', endColor: '#C9A56A' },
+      action: { type: 'message', label: '分享', text: '📤 分享案例 ' + caseKey_(c) },
+      contents: [{ type: 'text', text: '📤 分享', size: 'sm', weight: 'bold', color: '#2A2118', flex: 0 }] }] },
+  };
+  if (img) b.hero = { type: 'image', url: img, size: 'full', aspectRatio: '4:3', aspectMode: 'cover',
+    action: { type: 'uri', label: '看原檔', uri: 'https://drive.google.com/file/d/' + ids[0] + '/view' } };
+  return b;
+}
+// 「📤 分享案例 時間」：把那一則單獨傳出來（LINE 傳圖片／影片，Telegram 傳原檔），長按就能轉傳
+function shareCase_(key) {
+  const c = allCases_().find(x => String(caseKey_(x)) === String(key));
+  if (!c) return '找不到這一則了，可能已經刪掉。';
+  const words = String(c.text || c.summary || '').trim();
+  if (c.type === 'text') return words || '（這則沒有內容）';
+  if (CURRENT_TG_CHAT_) { sendTgCase_(CURRENT_TG_CHAT_, c); return '📤 已傳在上面，長按就能轉傳。'; }
+  const d = caseDrive_(c);
+  if (!d) return '這個檔案太大，LINE 拿不到，請到 Telegram 查「見證案例」。';
+  CASE_LINE_ = [lineCaseMsg_(c, d)];
+  return '📤 長按上面的' + (c.type === 'photo' ? '圖片' : '影片') + '就能轉傳。'
+    + (c.type !== 'photo' ? '\n（影片打不開就點：https://drive.google.com/file/d/' + driveIds_(d)[0] + '/view ）' : '')
+    + (words ? '\n\n' + words : '');
 }
 
 // 列出案例（每筆一行：圖示＋摘要＋標籤），圖片／影片在 Telegram 另外傳原檔
@@ -1600,7 +1654,7 @@ function handleTelegram_(update) {
   const doc = msg.document && /^image\//.test(msg.document.mime_type || '') ? msg.document : null;
   const fileId = msg.photo && msg.photo.length ? msg.photo[msg.photo.length - 1].file_id : doc && doc.file_id;
   const voice = msg.voice || msg.audio;
-  CURRENT_TG_CHAT_ = chatId;
+  CURRENT_TG_CHAT_ = chatId; LINE_MODE_ = false;
 
   // 案例庫：轉傳過來的圖片／影片／文字，或說明打「存」的，存起來之後可以用「查 關鍵字」找回來
   const forwarded = !!(msg.forward_origin || msg.forward_date || msg.forward_from || msg.forward_from_chat);
