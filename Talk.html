@@ -1,5 +1,6 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><title>小乖</title>
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="小乖"><meta name="theme-color" content="#100E0B">
+<script>try{if(localStorage.getItem("xg_theme")==="light"){document.documentElement.dataset.theme="light";document.querySelector('meta[name=theme-color]').content="#F3EEE5";}}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png"><link rel="apple-touch-icon" href="https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png">
 <style>
@@ -37,7 +38,7 @@ header{padding:14px 16px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap
 header b{font-family:var(--serif);font-size:22px;letter-spacing:3px;background:var(--champ);-webkit-background-clip:text;background-clip:text;color:transparent;display:flex;align-items:center;gap:10px}
 header b i{font-style:normal;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:17px;border:1px solid rgba(220,195,148,.6);color:var(--gold);-webkit-text-fill-color:var(--gold);background:#0B0A08}
 header small{color:var(--soft);font-size:13px}header small input{accent-color:#C9A56A;vertical-align:-2px}
-#gear,#clr{width:38px;height:38px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:16px}
+#thm,#gear,#clr{width:38px;height:38px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:16px}
 #chips{padding:12px 16px 10px}
 .chip{background:transparent;border:1px solid var(--line);color:rgba(243,238,229,.82);font-size:14px;letter-spacing:.5px;padding:7px 14px}
 .chip.ask{background:var(--champ);color:#1A150D;border-color:transparent;font-weight:600}
@@ -67,8 +68,24 @@ header small{color:var(--soft);font-size:13px}header small input{accent-color:#C
 #vs ol{margin:0;padding-left:22px;font-size:15px;line-height:1.75}#vs li{margin-bottom:8px}#vs li b{color:var(--gold)}
 #vs .cp{width:100%;height:48px;border-radius:14px;margin:6px 0 14px;background:var(--champ);color:#1A150D;font-size:16px;font-weight:700;letter-spacing:1px}
 #vs .x{width:100%;height:42px;border-radius:12px;margin-top:6px;background:transparent;border:1px solid var(--line);color:var(--soft);font-size:15px}
+
+/* 白色系列（右上 ☀／☾ 切換，跟小乖主頁共用） */
+html[data-theme=light]{color-scheme:light;--bg:#F3EEE5;--card:#FFFDF8;--ink:#14120F;--soft:rgba(20,18,15,.55);--me:#1C1915;--gold:#8A6A37;--line:rgba(120,92,48,.2)}
+html[data-theme=light] body{background:radial-gradient(ellipse 120% 50% at 50% -10%,rgba(176,141,87,.16),transparent 60%),var(--bg)}
+html[data-theme=light] header b{background:linear-gradient(135deg,#8A6A37,#B08D57 50%,#8A6A37);-webkit-background-clip:text;background-clip:text}
+html[data-theme=light] header b i{background:#14120F;color:#DCC394;-webkit-text-fill-color:#DCC394}
+html[data-theme=light] .chip{color:#3A3226;background:#FFFDF8}
+html[data-theme=light] .chip.ask{background:var(--champ);color:#1A150D}
+html[data-theme=light] .me{color:#F3EEE5;border-color:transparent}
+html[data-theme=light] .xg{background:#FFFDF8;border:1px solid var(--line);box-shadow:0 10px 24px -16px rgba(60,44,20,.35)}
+html[data-theme=light] #bar{background:rgba(243,238,229,.92)}
+html[data-theme=light] #q{background:#FFFDF8}
+html[data-theme=light] #login,html[data-theme=light] #vs{background:rgba(20,18,15,.45)}
+html[data-theme=light] #login .box,html[data-theme=light] #vs .box{background:#FFFDF8;border-color:var(--line)}
+html[data-theme=light] #url,html[data-theme=light] #pw{background:#F3EEE5!important}
+html[data-theme=light] #vs li b{color:#8A6A37}
 </style></head><body>
-<header><b><i>乖</i>小乖</b><button id="gear" type="button" title="設定" style="margin-left:auto">⚙︎</button><button id="clr" type="button" title="清除對話紀錄">🗑</button><small style="margin-left:0"><label><input type="checkbox" id="spk" checked> 🔊 念出來</label> <label><input type="checkbox" id="loop" checked> 🔁 連續</label></small></header>
+<header><b><i>乖</i>小乖</b><button id="thm" type="button" title="切換白色／黑色" style="margin-left:auto"></button><button id="gear" type="button" title="設定">⚙︎</button><button id="clr" type="button" title="清除對話紀錄">🗑</button><small style="margin-left:0"><label><input type="checkbox" id="spk" checked> 🔊 念出來</label> <label><input type="checkbox" id="loop" checked> 🔁 連續</label></small></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
 <div id="hint"></div>
@@ -107,6 +124,9 @@ $('vscp').onclick=async()=>{const t=URL+'?key='+encodeURIComponent(KEY)+'&ask=';
  try{await navigator.clipboard.writeText(t);ok=true;}catch(e){}
  if(!ok){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{ok=document.execCommand('copy');}catch(e){}a.remove();}
  $('vscp').textContent=ok?'✓ 已複製，照下面步驟做':'複製失敗，請到設定確認網址';};
+function paintThm(){const l=document.documentElement.dataset.theme==='light';$('thm').textContent=l?'☾':'☀︎';document.querySelector('meta[name=theme-color]').content=l?'#F3EEE5':'#100E0B';}
+$('thm').onclick=()=>{const l=document.documentElement.dataset.theme!=='light';if(l)document.documentElement.dataset.theme='light';else delete document.documentElement.dataset.theme;try{localStorage.setItem('xg_theme',l?'light':'dark');}catch(e){}paintThm();};
+paintThm();
 function saveCfg(){try{localStorage.setItem('xg_talk',JSON.stringify({key:KEY,url:URL}));}catch(e){}}
 function login(msg){$('lgmsg').textContent=msg||(URL?'第一次使用，請輸入同步密碼（只要輸入一次，會記在這支手機上）。':'第一次使用，請貼上小乖網址（結尾是 /exec），再輸入同步密碼。最簡單：在 LINE 或 Telegram 跟小乖打「對話頁」，點它給的連結，網址就會自動填好。');$('url').value=URL;$('pw').value='';$('login').style.display='flex';}
 $('pwgo').onclick=()=>{const u=$('url').value.trim().replace(/\?.*$/,''),k=$('pw').value.trim()||KEY;if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){$('lgmsg').textContent='網址要是 https://script.google.com/macros/s/…/exec';return;}if(!k)return;URL=u;KEY=k;saveCfg();$('login').style.display='none';};
