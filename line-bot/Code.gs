@@ -448,13 +448,13 @@ function answer_(text) {
   if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
   const vm = String(text).replace(/\s+/g, '').match(/^(?:語音回覆|語音對話|用語音回)(開|關|開啟|關閉|自動)?$/);
   if (vm) return voiceSwitch_(vm[1] || '');
-  const vc = String(text).match(/^(?:換聲音|聲音|語音聲音)\s*([a-zA-Z]+)?$/);
-  if (vc) {
-    const ok = ['shimmer', 'nova', 'coral', 'sage', 'alloy', 'ballad', 'verse', 'fable', 'ash', 'echo', 'onyx'];
-    const v = String(vc[1] || '').toLowerCase();
-    if (v && ok.indexOf(v) >= 0) { setProp_('TTS_VOICE', v); return '🎤 小乖的聲音改成 ' + v + ' 了，傳一段語音給我就能聽聽看。'; }
-    return '🎤 現在的聲音：' + (prop_('TTS_VOICE') || 'shimmer') + '\n\n女生聲音可以選：shimmer（柔和，預設）、coral（溫暖）、nova（明亮）、sage（沉穩）\n試聽：https://www.openai.fm\n要換就打「換聲音 coral」';
-  }
+  // 換真人語音：「換聲音」列出可選的聲音按鈕；按「🎤 柔和 shimmer」或打「換聲音 coral」「換回原本的聲音」就換
+  const t2 = String(text).replace(/\s+/g, ' ').trim();
+  if (/^(換回)?原本(的)?(聲音|語音)$/.test(t2.replace(/ /g, ''))) return voicePick_('nova');
+  const vb = t2.match(/^(?:原本|柔和|溫暖|沉穩|男聲) ([a-z]+)$/i);
+  if (vb) return voicePick_(vb[1]);
+  const vc = t2.match(/^(?:換聲音|聲音|語音聲音|換語音|真人語音) ?([a-zA-Z]+)?$/);
+  if (vc) return voicePick_(vc[1] || '');
   // 案例分類：列分類、看某一類、改剛存那筆的分類
   if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
   const bc = text.match(/^(?:看分類\s*)?(.+?)（\d+）$/) || text.match(/^看分類\s*(.+)$/);
@@ -906,6 +906,26 @@ function transcribe_(blob, filename) {
 // 語音回覆模式：auto＝你傳語音才用語音回（預設）、always＝打字也用語音回、off＝只回文字
 function voiceMode_() { return prop_('VOICE_REPLY') || 'auto'; }
 
+// 真人語音（OpenAI）：原本是 nova；2026-10-15 使用者要求換回原本，並可自由切換
+const VOICES = [['nova', '原本', '明亮親切'], ['shimmer', '柔和', '輕聲細語'], ['coral', '溫暖', '溫柔有活力'], ['sage', '沉穩', '平靜成熟'], ['ash', '男聲', '穩重的男生']];
+const VOICE_OK = ['nova', 'shimmer', 'coral', 'sage', 'ash', 'alloy', 'ballad', 'verse', 'fable', 'echo', 'onyx'];
+function ttsVoice_() {
+  if (!prop_('VOICE_RESET_V2')) { setProp_('TTS_VOICE', 'nova'); setProp_('VOICE_RESET_V2', '1'); }   // 一次性換回原本的 nova
+  const v = prop_('TTS_VOICE');
+  return VOICE_OK.indexOf(v) >= 0 ? v : 'nova';
+}
+function voicePick_(v) {
+  v = String(v || '').toLowerCase();
+  const btns = [VOICES.slice(0, 2), VOICES.slice(2, 4), VOICES.slice(4)].map(r => r.map(x => '🎤 ' + x[1] + ' ' + x[0]));
+  const name = x => { const f = VOICES.filter(y => y[0] === x)[0]; return f ? f[1] + '（' + x + '，' + f[2] + '）' : x; };
+  if (v && VOICE_OK.indexOf(v) >= 0) {
+    ttsVoice_(); setProp_('TTS_VOICE', v);
+    return { text: '🎤 好，小乖的聲音換成 ' + name(v) + ' 了，你聽聽看。\n\n想再換就按下面的按鈕。', buttons: btns };
+  }
+  return { text: '🎤 現在的聲音：' + name(ttsVoice_()) + '\n\n按下面的按鈕換聲音（換完小乖會用新聲音跟你說話）：\n'
+    + VOICES.map(x => '・' + x[1] + '：' + x[2]).join('\n') + '\n\n試聽全部：https://www.openai.fm', buttons: btns };
+}
+
 function voiceSwitch_(w) {
   if (/開/.test(w)) setProp_('VOICE_REPLY', 'always');
   else if (/關/.test(w)) setProp_('VOICE_REPLY', 'off');
@@ -931,8 +951,10 @@ function tts_(text, format) {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
     payload: JSON.stringify({
-      model: prop_('TTS_MODEL') || 'gpt-4o-mini-tts', voice: prop_('TTS_VOICE') || 'shimmer', input: text,
-      instructions: '用台灣口音的中文，聲音柔和、溫柔、輕聲細語，像貼心的女生助理在身邊說話；語氣放鬆、不要太亢奮，速度稍慢一點，句子之間自然停頓。', response_format: format || 'opus',
+      model: prop_('TTS_MODEL') || 'gpt-4o-mini-tts', voice: ttsVoice_(), input: text,
+      instructions: ttsVoice_() === 'shimmer'
+        ? '用台灣口音的中文，聲音柔和、溫柔、輕聲細語，像貼心的女生助理在身邊說話；語氣放鬆、不要太亢奮，速度稍慢一點，句子之間自然停頓。'
+        : '用台灣口音的中文，語氣親切、自然、像貼心的助理，速度適中。', response_format: format || 'opus',
     }),
   });
   if (res.getResponseCode() !== 200) throw new Error('語音合成失敗（' + res.getResponseCode() + '）：' + res.getContentText().slice(0, 200));
