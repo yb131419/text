@@ -32,6 +32,60 @@ const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
 const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '⚙️ 設定'], ['❓ 說明']];
+// 快速回覆只留最常用的 5 個，其他收進「💎 選單」精品卡片（LINE 輪播卡片；Telegram／對話頁用分組按鈕）
+const MENU_BTN = '💎 選單';
+const QUICK = [['🐾 對話頁', '📋 試算', '✅ 我的待辦'], ['🪶 智囊軍師', MENU_BTN]];
+const MENU_CARDS = [
+  { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片'], ['🐾 對話頁', '語音・選照片']] },
+  { en: 'DAILY', title: '每日行程', sub: '行程、待辦、筆記，一手掌握', items: [['⏰ 今天行程', '今日安排'], ['✅ 我的待辦', '未完成事項'], ['📝 我的筆記', '記下的重點']] },
+  { en: 'ARCHIVE', title: '資料搜尋', sub: '本機、網路、案例，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋'], ['🗂️ 案例分類', '案例整理']] },
+  { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['⚙️ 設定', '署名・標題'], ['❓ 說明', '使用方式']] },
+];
+const MENU_GROUPS = MENU_CARDS.map(c => c.items.map(i => i[0]));
+// 回覆按鈕裡的整組常用選單換成精簡的 5 個（試算問題等專屬按鈕照留）
+function quick_(b) {
+  if (!b || b === QUICK) return b;
+  if (b === MENU) return QUICK;
+  const rest = b.filter(r => MENU.indexOf(r) < 0);
+  return rest.length === b.length ? b : rest.concat(QUICK);
+}
+function menuCard_() {
+  const text = '💎 小乖功能選單\n' + MENU_CARDS.map(c => '\n【' + c.title + '】\n' + c.items.map(i => i[0] + '　' + i[1]).join('\n')).join('\n');
+  return { text: text, buttons: MENU_GROUPS, flex: menuFlex_() };
+}
+// 黑金精品風輪播卡片：每類一張，按一下就送出那個功能
+function menuFlex_() {
+  const GOLD = '#C9A86A', CREAM = '#F3E6C8', MUTE = '#8C8577', INK = '#0B0B0D';
+  const act = t => t === TALK_BTN
+    ? { type: 'uri', label: '對話頁', uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' }
+    : { type: 'message', label: t.slice(0, 20), text: t };
+  const name = t => t.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+  const row = (it, first) => ({
+    type: 'box', layout: 'horizontal', alignItems: 'center', paddingAll: '13px', cornerRadius: '12px',
+    borderWidth: '1px', borderColor: first ? GOLD : '#3A3328', backgroundColor: first ? GOLD : '#16140F',
+    action: act(it[0]), contents: [
+      { type: 'text', text: name(it[0]), size: 'sm', weight: 'bold', color: first ? INK : CREAM, flex: 0 },
+      { type: 'text', text: it[1], size: 'xxs', color: first ? '#3A2E1A' : MUTE, align: 'end', flex: 1, margin: 'md' },
+      { type: 'text', text: '›', size: 'md', weight: 'bold', color: first ? INK : GOLD, flex: 0, margin: 'md' },
+    ] });
+  return { type: 'carousel', contents: MENU_CARDS.map((c, i) => ({
+    type: 'bubble', size: 'kilo',
+    styles: { body: { backgroundColor: INK } },
+    body: { type: 'box', layout: 'vertical', paddingAll: '22px', contents: [
+      { type: 'box', layout: 'horizontal', contents: [
+        { type: 'text', text: '小乖 · PRIVATE', size: 'xxs', weight: 'bold', color: GOLD, flex: 1 },
+        { type: 'text', text: '0' + (i + 1) + ' / 0' + MENU_CARDS.length, size: 'xxs', color: '#6E6A62', align: 'end', flex: 0 },
+      ] },
+      { type: 'text', text: c.en.split('').join(' '), size: 'xxs', color: MUTE, margin: 'xxl' },
+      { type: 'text', text: c.title, size: 'xxl', weight: 'bold', color: CREAM, margin: 'sm' },
+      { type: 'box', layout: 'vertical', width: '28px', height: '2px', backgroundColor: GOLD, margin: 'md', contents: [{ type: 'filler' }] },
+      { type: 'text', text: c.sub, size: 'xs', color: '#A39C8E', wrap: true, margin: 'md' },
+      { type: 'box', layout: 'vertical', spacing: 'sm', margin: 'xl', contents: c.items.map((it, k) => row(it, k === 0)) },
+      { type: 'filler' },
+      { type: 'text', text: '彥彬｜特助小乖', size: 'xxs', color: '#5E5A52', align: 'center', margin: 'xl' },
+    ] },
+  })) };
+}
 
 const HELP_TEXT = [
   '小乖可以幫你 👇',
@@ -45,7 +99,7 @@ const HELP_TEXT = [
   '🎤 語音：傳語音給小乖，小乖用語音回',
   '🌐 上網找：上網找資料',
   '',
-  '點下面的按鈕也可以',
+  '按「💎 選單」看全部功能卡片',
 ].join('\n');
 
 const HELP_MORE = [
@@ -208,8 +262,8 @@ let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', TALK_MODE_ = false, VOICE_ONL
 const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
-  const b = ans && typeof ans === 'object' && ans.buttons;
-  ASK_BTNS_ = b && b !== MENU ? [].concat.apply([], b).filter(t => t !== '🐾 對話頁').slice(0, 12) : [];
+  const b = quick_(ans && typeof ans === 'object' && ans.buttons);
+  ASK_BTNS_ = b && b !== QUICK ? [].concat.apply([], b).filter(t => t !== '🐾 對話頁').slice(0, 12) : [];
 }
 
 function askByVoice_(q, image) {
@@ -482,6 +536,7 @@ function answer_(text) {
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
+  if (/^(選單|功能選單|功能|主選單|menu)$/i.test(text.replace(/\s+/g, ''))) return menuCard_();
   if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
   const vm = String(text).replace(/\s+/g, '').match(/^(?:語音回覆|語音對話|用語音回)(開|關|開啟|關閉|自動)?$/);
   if (vm) return voiceSwitch_(vm[1] || '');
@@ -696,7 +751,7 @@ function settingsMenu_(t, raw) {
   const pend = prop_('SET_PENDING');
   if (pend) {
     setProp_('SET_PENDING', '');
-    const menuWord = [].concat.apply([], MENU.concat(SET_BTNS)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
+    const menuWord = [].concat.apply([], MENU.concat(SET_BTNS, QUICK)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
     if (Number(prop_('SET_UNTIL')) > Date.now() && !menuWord) {
       if (/^(取消|不改|算了)$/.test(flat)) return { text: '好，不改。', buttons: MENU };
       return { text: stratSetting_('設定' + (pend === 'by' ? '署名 ' : '標題 ') + (raw || t)), buttons: MENU };
@@ -1479,9 +1534,9 @@ function tgSend_(chatId, msg) {
   if (msg && typeof msg === 'object' && !msg.buttons) msg = msg.text;
   tgApi_('sendMessage', { chat_id: chatId, text: String(rich ? msg.text : msg).slice(0, 4000),
     // 試算的問題用一次性的按鈕；其他回覆一律帶常用功能按鈕
-    reply_markup: rich && msg.buttons
-      ? { keyboard: msg.buttons.map(row => row.map(tgKey_)), one_time_keyboard: msg.buttons !== MENU && msg.buttons[0] !== MENU[0], resize_keyboard: true }
-      : { keyboard: MENU.map(row => row.map(tgKey_)), resize_keyboard: true, is_persistent: true } });
+    reply_markup: rich && msg.buttons && msg.buttons !== MENU
+      ? { keyboard: quick_(msg.buttons).map(row => row.map(tgKey_)), one_time_keyboard: msg.buttons[0] !== MENU[0], resize_keyboard: true }
+      : { keyboard: QUICK.map(row => row.map(tgKey_)), resize_keyboard: true, is_persistent: true } });
 }
 
 function tgApi_(method, payload) {
@@ -1685,8 +1740,10 @@ function delByName_(text) {
 
 function reply_(replyToken, msg, extra, menu) {
   const rich = msg && typeof msg === 'object';
-  const m = { type: 'text', text: String(rich ? msg.text : msg).slice(0, 5000) };
-  const buttons = rich && msg.buttons ? msg.buttons : menu ? MENU : null;   // menu：私訊主人時附常用功能按鈕
+  const m = rich && msg.flex ? { type: 'flex', altText: '💎 小乖功能選單', contents: msg.flex }
+    : { type: 'text', text: String(rich ? msg.text : msg).slice(0, 5000) };
+  // menu：私訊主人時附常用功能按鈕（精簡成 5 個，其他在「💎 選單」卡片裡）
+  const buttons = rich && msg.flex ? QUICK : quick_(rich && msg.buttons ? msg.buttons : menu ? MENU : null);
   if (buttons) {
     m.quickReply = { items: [].concat.apply([], buttons).slice(0, 13)
       .map(lineQuick_) };
