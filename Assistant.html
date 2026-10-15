@@ -1207,13 +1207,13 @@ function renderNotes(){
 function snapshot(){
   const t=ymd();
   const todos=state.todos.filter(x=>!x.done).slice(0,40)
-    .map(x=>`- ${x.text}${x.due?`（期限 ${x.due}）`:""}${x.pri==="high"?"［重要］":""}`).join("\n")||"（無）";
+    .map(x=>`- [${x.id}] ${x.text}${x.due?`（期限 ${x.due}）`:""}${x.pri==="high"?"［重要］":""}`).join("\n")||"（無）";
   const evs=state.events.filter(e=>e.date>=t).sort(evCmp).slice(0,30)
-    .map(e=>`- ${e.date} ${e.time||"整天"} ${e.title}${e.place?"＠"+e.place:""}`).join("\n")||"（無）";
+    .map(e=>`- [${e.id}] ${e.date} ${e.time||"整天"} ${e.title}${e.place?"＠"+e.place:""}`).join("\n")||"（無）";
   const rms=state.reminders.filter(r=>!r.fired).sort((a,b)=>a.at.localeCompare(b.at)).slice(0,30)
-    .map(r=>`- ${r.at.replace("T"," ")} ${r.text}${r.repeat!=="none"?`（${r.repeat==="daily"?"每天":"每週"}）`:""}`).join("\n")||"（無）";
-  const notes=state.notes.slice(0,15)
-    .map(n=>`- ${n.title||"（無標題）"}：${(n.body||"").replace(/\s+/g," ").slice(0,120)}`).join("\n")||"（無）";
+    .map(r=>`- [${r.id}] ${r.at.replace("T"," ")} ${r.text}${r.repeat!=="none"?`（${r.repeat==="daily"?"每天":"每週"}）`:""}`).join("\n")||"（無）";
+  const notes=state.notes.slice(0,40)
+    .map(n=>`- [${n.id}] ${n.title||"（無標題）"}：${(n.body||"").replace(/\s+/g," ").slice(0,120)}`).join("\n")||"（無）";
   return {todos,evs,rms,notes};
 }
 function buildSys(){
@@ -1236,17 +1236,20 @@ ${s.rms}
 【最近筆記】
 ${s.notes}
 
-【你可以直接幫使用者新增資料】
-當使用者要你記下、安排、提醒某件事時，先用一兩句話回覆確認，然後在回覆最後附上一個 \`\`\`actions 程式碼區塊，內容是 JSON 陣列，格式如下（只放需要的項目，日期時間一律換算成絕對值）：
+【你可以直接幫使用者新增、刪除資料】
+當使用者要你記下、安排、提醒、刪除或完成某件事時，先用一兩句話回覆確認，然後在回覆最後附上一個 \`\`\`actions 程式碼區塊，內容是 JSON 陣列，格式如下（只放需要的項目，日期時間一律換算成絕對值）：
 \`\`\`actions
 [
   {"type":"todo","text":"繳電話費","due":"YYYY-MM-DD","pri":"normal 或 high"},
   {"type":"event","title":"牙醫回診","date":"YYYY-MM-DD","time":"HH:MM","place":"地點"},
   {"type":"reminder","text":"打電話給媽媽","at":"YYYY-MM-DDTHH:MM","repeat":"none 或 daily 或 weekly"},
-  {"type":"note","title":"標題","body":"內容"}
+  {"type":"note","title":"標題","body":"內容"},
+  {"type":"delete","id":"上面清單方括號裡的 id"},
+  {"type":"done","id":"待辦的 id（標記完成）"}
 ]
 \`\`\`
-沒有要新增東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。
+刪除或完成時，id 一定要照抄上面清單方括號裡的值，找不到對應的項目就問使用者是哪一筆，不要假裝已經刪掉。
+沒有要新增或刪除東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。
 
 【使用者傳來的附件】
 使用者可能傳圖片、影片擷取的畫面（依時間排列，沒有聲音）、PDF 或文字檔。請仔細看內容再回答；若附件裡有日期、時間、待辦或值得記下的資訊（例如邀請函、收據、課表），主動問要不要記下，或在使用者要求時用 actions 新增。`;
@@ -1279,6 +1282,18 @@ function applyActions(acts){
     }else if(a.type==="note" && (a.title||a.body)){
       state.notes.unshift({id:uid(),title:String(a.title||"").slice(0,60),body:String(a.body||""),time:Date.now()});
       done.push("📝 筆記："+(a.title||"（無標題）"));
+    }else if((a.type==="delete"||a.type==="done") && a.id){
+      // 從清單拿掉後，save() 會把它記進刪除紀錄並同步到雲端
+      const id=String(a.id).replace(/^\[|\]$/g,"").trim();
+      const names={todos:"待辦",events:"行程",reminders:"提醒",notes:"筆記"};
+      Object.keys(names).some(c=>{
+        const i=state[c].findIndex(x=>x.id===id);
+        if(i<0) return false;
+        const x=state[c][i], label=x.text||x.title||"（無標題）";
+        if(a.type==="done" && c==="todos"){ x.done=true; x.doneAt=Date.now(); done.push("☑️ 完成待辦："+label); }
+        else{ state[c].splice(i,1); done.push("🗑️ 刪除"+names[c]+"："+label); }
+        return true;
+      });
     }
   });
   return done;
@@ -1449,7 +1464,7 @@ async function sendChat(){
     const {clean,acts}=parseActions(out);
     const done=applyActions(acts);
     state.chat.push({role:"assistant",content:clean||"好的！",acts:done,t:Date.now()});
-    if(done.length) toast(`已幫你新增 ${done.length} 項`);
+    if(done.length) toast(`已幫你處理 ${done.length} 項`);
   }catch(e){
     state.chat.push({role:"assistant",content:"抱歉，出了點問題：「"+e.message+"」",err:true,t:Date.now()});
   }

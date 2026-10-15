@@ -60,6 +60,13 @@ header small{color:var(--soft);font-size:13px}header small input{accent-color:#C
 #pwshow{background:transparent;border:1px solid var(--line)}
 #pwgo{background:var(--champ);color:#1A150D;font-family:var(--serif);letter-spacing:4px;font-weight:700}
 #logout{background:transparent;border:1px solid var(--line)!important;color:var(--soft)}
+#vs{position:fixed;inset:0;background:rgba(5,4,3,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#vs .box{background:#1B1814;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));width:100%;max-width:520px;max-height:88vh;overflow:auto}
+#vs h3{margin:0 0 4px;font-family:var(--serif);letter-spacing:2px;color:var(--gold);font-size:19px}
+#vs p{color:var(--soft);font-size:14px;margin:0 0 12px}
+#vs ol{margin:0;padding-left:22px;font-size:15px;line-height:1.75}#vs li{margin-bottom:8px}#vs li b{color:var(--gold)}
+#vs .cp{width:100%;height:48px;border-radius:14px;margin:6px 0 14px;background:var(--champ);color:#1A150D;font-size:16px;font-weight:700;letter-spacing:1px}
+#vs .x{width:100%;height:42px;border-radius:12px;margin-top:6px;background:transparent;border:1px solid var(--line);color:var(--soft);font-size:15px}
 </style></head><body>
 <header><b><i>乖</i>小乖</b><button id="gear" type="button" title="設定" style="margin-left:auto">⚙︎</button><button id="clr" type="button" title="清除對話紀錄">🗑</button><small style="margin-left:0"><label><input type="checkbox" id="spk" checked> 🔊 念出來</label> <label><input type="checkbox" id="loop" checked> 🔁 連續</label></small></header>
 <div id="chips"></div>
@@ -71,6 +78,21 @@ header small{color:var(--soft);font-size:13px}header small input{accent-color:#C
 <input id="url" type="url" inputmode="url" placeholder="小乖網址：https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:8px;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)">
 <div class="row"><input id="pw" type="password" autocomplete="current-password" placeholder="同步密碼"><button id="pwshow" type="button">👁</button></div>
 <button id="pwgo" type="button">開始使用</button><button id="logout" type="button" style="margin-top:8px;width:100%;height:40px;border-radius:12px;font-size:15px">清除這支手機的設定</button></div></div>
+<div id="vs"><div class="box"><h3>🎙️ 說「嘿 小乖」就能問</h3>
+<p>做一次就好：之後不用打開網頁，直接說「嘿 小乖」，小乖聽完會念答案給你聽。需要 iOS 18 以上。</p>
+<button class="cp" id="vscp" type="button">① 複製小乖專用網址</button>
+<ol>
+<li>打開 <b>捷徑</b> App，按右上角 <b>＋</b>。</li>
+<li>搜尋並加入 <b>聽寫文字</b>，語言選 <b>中文（台灣）</b>。</li>
+<li>加入 <b>URL 編碼</b>（會自動接上「聽寫的文字」）。</li>
+<li>加入 <b>文字</b>：先貼上剛剛複製的網址，再在網址最後面點一下，選上方變數 <b>已編碼的 URL</b>。</li>
+<li>加入 <b>取得 URL 內容</b>，再加入 <b>朗讀文字</b>。</li>
+<li>點最上面的名稱，改成 <b>小乖</b>，按完成。</li>
+<li>到 <b>設定 → 輔助使用 → 語音快捷指令</b>，按 <b>加入動作</b>，選捷徑 <b>小乖</b>。</li>
+<li>照畫面念三次 <b>嘿 小乖</b>，完成。</li>
+</ol>
+<p style="margin-top:10px">之後說「嘿 小乖」再講要問的事，例如「明天有什麼行程」，一次問一件事。網址裡有你的同步密碼，請不要傳給別人。</p>
+<button class="x" id="vsx" type="button">關閉</button></div></div>
 <script>
 let KEY='',URL='';const $=id=>document.getElementById(id);
 // 設定記在這支手機（localStorage），網址列不會出現密碼；小乖主頁（Assistant.html）設過同步的話直接沿用
@@ -78,6 +100,13 @@ try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');KEY=c.key||'';URL=
  if(!KEY||!URL){const a=JSON.parse(localStorage.getItem('xiaoguai_v1')||'{}');KEY=KEY||a.syncKey||'';URL=URL||a.syncUrl||'';}}catch(e){}
 // 從小乖傳的連結打開：網址在 #u= 後面，自動填好，再把 # 清掉
 try{const m=location.search.match(/[?&]u=([^&]+)/)||location.hash.match(/[#&]u=([^&]+)/);if(m){const u=decodeURIComponent(m[1]);if(/^https:\/\/script\.google\.com\//.test(u)){URL=u.replace(/\?.*$/,'');try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');c.url=URL;localStorage.setItem('xg_talk',JSON.stringify(c));}catch(e){}}history.replaceState(null,'',location.pathname);}}catch(e){}
+function vsOpen(){if(!KEY||!URL){login();return;}$('vscp').textContent='① 複製小乖專用網址';$('vs').style.display='flex';}
+$('vsx').onclick=()=>{$('vs').style.display='none';};
+$('vs').onclick=e=>{if(e.target.id==='vs')$('vs').style.display='none';};
+$('vscp').onclick=async()=>{const t=URL+'?key='+encodeURIComponent(KEY)+'&ask=';let ok=false;
+ try{await navigator.clipboard.writeText(t);ok=true;}catch(e){}
+ if(!ok){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{ok=document.execCommand('copy');}catch(e){}a.remove();}
+ $('vscp').textContent=ok?'✓ 已複製，照下面步驟做':'複製失敗，請到設定確認網址';};
 function saveCfg(){try{localStorage.setItem('xg_talk',JSON.stringify({key:KEY,url:URL}));}catch(e){}}
 function login(msg){$('lgmsg').textContent=msg||(URL?'第一次使用，請輸入同步密碼（只要輸入一次，會記在這支手機上）。':'第一次使用，請貼上小乖網址（結尾是 /exec），再輸入同步密碼。最簡單：在 LINE 或 Telegram 跟小乖打「對話頁」，點它給的連結，網址就會自動填好。');$('url').value=URL;$('pw').value='';$('login').style.display='flex';}
 $('pwgo').onclick=()=>{const u=$('url').value.trim().replace(/\?.*$/,''),k=$('pw').value.trim()||KEY;if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){$('lgmsg').textContent='網址要是 https://script.google.com/macros/s/…/exec';return;}if(!k)return;URL=u;KEY=k;saveCfg();$('login').style.display='none';};
@@ -86,9 +115,9 @@ $('gear').onclick=()=>login('修改連線設定（密碼留空就沿用原本的
 $('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
 if(!KEY||!URL)login();const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;
-const MENU=['📋 試算','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','❓ 說明'];
+const MENU=['📋 試算','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','🎙️ 語音快捷指令','❓ 說明'];
 function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=t;
- b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';$('file').click();return;}send(t);};c.appendChild(b);});}
+ b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';$('file').click();return;}if(t==='🎙️ 語音快捷指令'){vsOpen();return;}send(t);};c.appendChild(b);});}
 chips();
 // 對話紀錄存在這支手機（關掉再開還在）：最多 200 則，照片存成小縮圖
 const LOGK='xg_talk_log';

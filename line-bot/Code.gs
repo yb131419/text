@@ -1145,7 +1145,7 @@ function chat_(text, image) {
       return res;
     });
   }
-  const answer = [parsed.clean || '好的！'].concat(done.length ? ['', '已幫你新增：'].concat(done) : []).join('\n');
+  const answer = [parsed.clean || '好的！'].concat(done.length ? ['', '已幫你處理：'].concat(done) : []).join('\n');
   logChat_('assistant', answer);
   return answer;
 }
@@ -2215,13 +2215,13 @@ function buildSys_(d) {
   const hm = Utilities.formatDate(now, TZ, 'HH:mm');
   const dow = WEEK[Number(Utilities.formatDate(now, TZ, 'u')) % 7];
   const todos = d.todos.filter(x => !x.done).slice(0, 40)
-    .map(x => '- ' + x.text + (x.due ? '（期限 ' + x.due + '）' : '') + (x.pri === 'high' ? '［重要］' : '')).join('\n') || '（無）';
+    .map(x => '- [' + x.id + '] ' + x.text + (x.due ? '（期限 ' + x.due + '）' : '') + (x.pri === 'high' ? '［重要］' : '')).join('\n') || '（無）';
   const evs = d.events.filter(e => e.date >= today).sort(evCmp_).slice(0, 30)
-    .map(e => '- ' + e.date + ' ' + (e.time || '整天') + ' ' + e.title + (e.place ? '＠' + e.place : '')).join('\n') || '（無）';
+    .map(e => '- [' + e.id + '] ' + e.date + ' ' + (e.time || '整天') + ' ' + e.title + (e.place ? '＠' + e.place : '')).join('\n') || '（無）';
   const rms = d.reminders.filter(r => !r.fired).sort((a, b) => String(a.at).localeCompare(String(b.at))).slice(0, 30)
-    .map(r => '- ' + String(r.at).replace('T', ' ') + ' ' + r.text + (r.repeat && r.repeat !== 'none' ? '（' + (r.repeat === 'daily' ? '每天' : '每週') + '）' : '')).join('\n') || '（無）';
-  const notes = d.notes.slice(0, 15)
-    .map(n => '- ' + (n.title || '（無標題）') + '：' + String(n.body || '').replace(/\s+/g, ' ').slice(0, 120)).join('\n') || '（無）';
+    .map(r => '- [' + r.id + '] ' + String(r.at).replace('T', ' ') + ' ' + r.text + (r.repeat && r.repeat !== 'none' ? '（' + (r.repeat === 'daily' ? '每天' : '每週') + '）' : '')).join('\n') || '（無）';
+  const notes = d.notes.slice(0, 40)
+    .map(n => '- [' + n.id + '] ' + (n.title || '（無標題）') + '：' + String(n.body || '').replace(/\s+/g, ' ').slice(0, 120)).join('\n') || '（無）';
   return '你是「' + (p.title || '小乖') + '」，' + (p.nick || '使用者') + '的私人助理。個性貼心、可靠、說話簡潔溫暖，一律用繁體中文（台灣用語）。\n'
     + '你現在在 LINE 或 Telegram 上聊天：回覆要短，不要用 Markdown 標題、表格或粗體。\n'
     + '你看得懂使用者傳來的圖片：收到圖片就直接讀出內容，不要說你看不到圖片。\n'
@@ -2231,17 +2231,20 @@ function buildSys_(d) {
     + '【接下來的行程】\n' + evs + '\n\n'
     + '【尚未觸發的提醒】\n' + rms + '\n\n'
     + '【最近筆記】\n' + notes + '\n\n'
-    + '【你可以直接幫使用者新增資料】\n'
-    + '當使用者要你記下、安排、提醒某件事時，先用一兩句話回覆確認，然後在回覆最後附上一個 ```actions 程式碼區塊，內容是 JSON 陣列，格式如下（只放需要的項目，日期時間一律換算成絕對值）：\n'
+    + '【你可以直接幫使用者新增、刪除資料】\n'
+    + '當使用者要你記下、安排、提醒、刪除或完成某件事時，先用一兩句話回覆確認，然後在回覆最後附上一個 ```actions 程式碼區塊，內容是 JSON 陣列，格式如下（只放需要的項目，日期時間一律換算成絕對值）：\n'
     + '```actions\n'
     + '[\n'
     + '  {"type":"todo","text":"繳電話費","due":"YYYY-MM-DD","pri":"normal 或 high"},\n'
     + '  {"type":"event","title":"牙醫回診","date":"YYYY-MM-DD","time":"HH:MM","place":"地點"},\n'
     + '  {"type":"reminder","text":"打電話給媽媽","at":"YYYY-MM-DDTHH:MM","repeat":"none 或 daily 或 weekly"},\n'
-    + '  {"type":"note","title":"標題","body":"內容"}\n'
+    + '  {"type":"note","title":"標題","body":"內容"},\n'
+    + '  {"type":"delete","id":"上面清單方括號裡的 id"},\n'
+    + '  {"type":"done","id":"待辦的 id（標記完成）"}\n'
     + ']\n'
     + '```\n'
-    + '沒有要新增東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。';
+    + '刪除或完成時，id 一定要照抄上面清單方括號裡的值，找不到對應的項目就問使用者是哪一筆，不要假裝已經刪掉。\n'
+    + '沒有要新增或刪除東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。';
 }
 
 function parseActions_(text) {
@@ -2276,6 +2279,23 @@ function applyActions_(d, acts) {
     } else if (a.type === 'note' && (a.title || a.body)) {
       d.notes.unshift({ id: uid_(), title: String(a.title || '').slice(0, 60), body: String(a.body || ''), time: now, u: now });
       done.push('📝 筆記：' + (a.title || '（無標題）'));
+    } else if ((a.type === 'delete' || a.type === 'done') && a.id) {
+      // 刪除要記進「刪除紀錄」，網頁同步時才不會把它又加回來
+      const id = String(a.id).replace(/^\[|\]$/g, '').trim();
+      const names = { todos: '待辦', events: '行程', reminders: '提醒', notes: '筆記' };
+      Object.keys(names).some(c => {
+        const i = (d[c] || []).findIndex(x => x.id === id);
+        if (i < 0) return false;
+        const x = d[c][i], label = x.text || x.title || '（無標題）';
+        if (a.type === 'done' && c === 'todos') {
+          x.done = true; x.doneAt = now; x.u = now;
+          done.push('☑️ 完成待辦：' + label);
+        } else {
+          d[c].splice(i, 1); d.deleted[id] = now;
+          done.push('🗑️ 刪除' + names[c] + '：' + label);
+        }
+        return true;
+      });
     }
   });
   return done;
