@@ -31,12 +31,13 @@ const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
-const MENU = [['🐾 對話頁', '📋 試算'], ['⏰ 今天行程', '✅ 我的待辦'], ['📝 我的筆記', '📁 本機找'], ['🌐 上網找', '🗂️ 案例分類'], ['❓ 說明']];
+const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '❓ 說明']];
 
 const HELP_TEXT = [
   '小乖可以幫你 👇',
   '',
   '📋 試算：直接傳明細表照片',
+  '🪶 智囊軍師：選六大主題，寫文案＋圖卡',
   '⏰ 提醒：「明天3點提醒我開會」',
   '📝 記事：「幫我記下 車位B2-35」',
   '📅 行程：「這週有什麼行程？」',
@@ -54,6 +55,11 @@ const HELP_MORE = [
   '・傳明細表 → 回答 4 題就出報表',
   '・讀錯可打：改 255A 3顆／刪 270／加 260 3顆',
   '・打「取消」停止試算',
+  '',
+  '【智囊軍師】',
+  '・按「🪶 智囊軍師」選主題：軍師判定、健康、火山草本、觀念、經營、網路行銷',
+  '・寫好的文案會畫成圖卡一起給你，長按圖片可以存',
+  '・按「🔁 再寫一篇」同主題換一篇',
   '',
   '【群組】',
   '・邀請小乖：10 分鐘內由你邀進群組',
@@ -177,7 +183,7 @@ function tgKey_(t) { return t === TALK_BTN ? { text: t, web_app: { url: talkUrl_
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
 function talk(key, q, image, voice, audio64, audioType) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
-  ASK_SHOW_ = ''; ASK_BTNS_ = [];
+  ASK_SHOW_ = ''; ASK_BTNS_ = []; ASK_IMG_ = ''; TALK_MODE_ = true;
   let heard = '';
   if (audio64) {   // 對話頁按麥克風錄的音：先轉文字
     const mt = String(audioType || 'audio/mp4');
@@ -192,9 +198,9 @@ function talk(key, q, image, voice, audio64, audioType) {
   if (voice && say && prop_('OPENAI_API_KEY')) {   // 用跟 LINE／Telegram 一樣的小乖聲音念
     try { audio = Utilities.base64Encode(tts_(say, 'mp3').getBytes()); } catch (e) { console.error(e.message); }
   }
-  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard };
+  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_ };
 }
-let ASK_SHOW_ = '', ASK_BTNS_ = [];
+let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', TALK_MODE_ = false;
 const TALK_PAGE = 'https://yb131419.github.io/text/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
@@ -219,6 +225,11 @@ function askByVoice_(q, image) {
     return '試算好了，報表已經傳到 Telegram。';
   }
   LAST_QUOTE_ = null;
+  if (LAST_CARD_) {   // 智囊軍師：對話頁直接顯示圖卡；捷徑（嘿 小乖）就傳到 Telegram
+    if (TALK_MODE_) { ASK_IMG_ = cardData_(); return '文案和圖卡寫好了，在畫面上，長按圖卡可以存。'; }
+    if (tg) { sendCardTg_(tg); tgSend_(tg, ans); return '文案和圖卡寫好了，已經傳到 Telegram。'; }
+    LAST_CARD_ = null;
+  }
   return speechText_(ans) || '好的。';
 }
 
@@ -402,8 +413,9 @@ function handleLine_(ev) {
     if (!said) return reply_(ev.replyToken, '語音聽不清楚，再說一次或改打字看看。', null, true);
     const ans = answer_(said);
     const rp = reportLine_();
-    const voice = !rp.short && voiceMode_() !== 'off' ? lineVoice_(ans) : [];   // 用講的就用講的回
-    return reply_(ev.replyToken, rp.short ? '🎤 「' + said + '」\n\n' + rp.short : withVoice_(said, ans), rp.msgs.concat(voice), true);
+    const card = cardLine_();   // 智囊軍師的圖卡
+    const voice = !rp.short && !card.length && voiceMode_() !== 'off' ? lineVoice_(ans) : [];   // 用講的就用講的回
+    return reply_(ev.replyToken, rp.short ? '🎤 「' + said + '」\n\n' + rp.short : withVoice_(said, ans), rp.msgs.concat(card, voice), true);
   }
   if (ev.message.type !== 'text') {
     if (uid === owner) reply_(ev.replyToken, '小乖目前看得懂文字、圖片和語音，其他類型還不行喔。');
@@ -423,8 +435,9 @@ function handleLine_(ev) {
 
   const ans = answer_(text);
   const rp = reportLine_();
-  const voice = !rp.short && voiceMode_() === 'always' && !/^語音回覆/.test(text) ? lineVoice_(ans) : [];
-  reply_(ev.replyToken, rp.short || ans, rp.msgs.concat(voice), true);
+  const card = cardLine_();
+  const voice = !rp.short && !card.length && voiceMode_() === 'always' && !/^語音回覆/.test(text) ? lineVoice_(ans) : [];
+  reply_(ev.replyToken, rp.short || ans, rp.msgs.concat(card, voice), true);
 }
 
 function lineContent_(messageId) {
@@ -459,6 +472,9 @@ function answer_(text) {
   if (vb) return voicePick_(vb[1]);
   const vc = t2.match(/^(?:換聲音|聲音|語音聲音|換語音|真人語音) ?([a-zA-Z]+)?$/);
   if (vc) return voicePick_(vc[1] || '');
+  // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
+  const sp = stratPick_(t2);
+  if (sp) return sp === 'menu' ? stratMenu_() : strategist_(sp);
   // 案例分類：列分類、看某一類、改剛存那筆的分類
   if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
   const bc = text.match(/^(?:看分類\s*)?(.+?)（\d+）$/) || text.match(/^看分類\s*(.+)$/);
@@ -517,6 +533,215 @@ function answer_(text) {
   }
   if (/^(選照片|拍照)$/.test(text)) return '請按左下角的迴紋針 📎 選明細表照片傳給我，我會自動試算。';
   return chat_(text);
+}
+
+/* ============ 智囊軍師：一鍵選六大主題，寫文案＋圖卡 ============ */
+// 六大主題對齊「智囊軍師」(asset/Work.html) 的資料收集分類；按主題按鈕就寫一篇文案，並畫成圖卡（跟試算報表一樣用簡報畫成圖片）
+const STRAT_BTN = '🪶 智囊軍師';
+const STRAT_THEMES = [
+  { k: 'auto', btn: '🪶 軍師判定', name: '智囊軍師判定',
+    guide: '請你（智囊軍師）先在五大分類中判斷今天最適合發文的方向：觀念、健康、火山草本、經營、網路行銷，cat 填所選分類，再依該分類的規則寫：觀念只談觀念與生活道理，不寫身體、毒素、排毒；健康用大健康原理的比喻切入，案例只說個人感受、不寫療效；火山草本只寫理念、生活場景與包裝故事，不寫功效；經營寫給新手能照著做的方向，不提收入或成效保證；網路行銷只寫經營技巧，不寫業績。' },
+  { k: 'health', btn: '🌿 健康主題', name: '健康主題',
+    guide: '【健康分享】以大健康原理與生活比喻（例如鍋子、水管、警察、蒼蠅）解釋身體的道理；案例只說個人感受，遵守合規，不寫療效、不寫治療或改善疾病、不做前後對比。' },
+  { k: 'herb', btn: '🌱 火山草本', name: '火山草本',
+    guide: '【火山草本】只寫產品的理念、日常使用的生活場景與包裝故事（例如一天中怎麼使用、為什麼選擇它、包裝上想傳達的心意）。不寫功效、成分的療效描述，不使用治療、改善疾病、藥效等字眼，不做前後對比。' },
+  { k: 'concept', btn: '💡 觀念主題', name: '觀念主題',
+    guide: '【觀念分享】只講觀念與道理（財富觀、經營觀、人生觀、自律、選擇等），用對比與反問帶出思考。嚴禁出現身體、毒素、排毒、保健、療效等字眼，不寫成健康文章。' },
+  { k: 'biz', btn: '🧭 經營主題', name: '經營主題',
+    guide: '【經營方向】寫給完全新手看、能照著做的經營方向與心法（例如專屬邀約訊息、第一次面談、把你會的事拆成步驟、每天的節奏），用一個具體的生活場景切入。只給方向與做法，不提收入或成效保證。' },
+  { k: 'net', btn: '📣 網路行銷', name: '網路行銷',
+    guide: '【網路行銷】只寫經營技巧，例如如何讓人停留（開頭的鉤子、前三秒、段落節奏）、如何回留言（回覆的語氣與引導互動的方式）等實用做法。不寫業績、收入、獲利或任何成效保證，不提具體金額。' },
+];
+const STRAT_AGAIN = '🔁 再寫一篇', STRAT_SWITCH = '🪶 換主題';
+const STRAT_FOLDER = '小乖軍師圖卡';
+let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各自把它畫成圖卡送出
+
+function stratMenu_() {
+  const b = STRAT_THEMES.map(t => t.btn);
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成圖卡：', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6)] };
+}
+
+// 認得「健康主題」「智囊軍師 健康」「軍師判定」「再寫一篇」這些說法；不是就回 null
+function stratPick_(text) {
+  const t = String(text || '').replace(/\s+/g, '');
+  if (/^(智囊軍師|軍師|智囊|換主題|寫文案|軍師文案)$/.test(t)) return 'menu';
+  if (/^(再寫一篇|再一篇|換一篇)$/.test(t)) return prop_('STRAT_LAST') || 'menu';
+  let r = t.replace(/^(智囊軍師|軍師)(?=.)/, '');
+  const pre = r !== t;
+  r = r.replace(/文案$/, '');
+  const map = { 軍師判定: 'auto', 智囊軍師判定: 'auto', 健康主題: 'health', 火山草本: 'herb', 觀念主題: 'concept', 經營主題: 'biz', 網路行銷: 'net' };
+  if (map[r]) return map[r];
+  if (pre) return { 判定: 'auto', 健康: 'health', 觀念: 'concept', 經營: 'biz' }[r] || null;
+  return null;
+}
+
+function strategist_(k) {
+  const th = STRAT_THEMES.filter(t => t.k === k)[0];
+  if (!th) return stratMenu_();
+  if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，沒辦法寫文案。';
+  setProp_('STRAT_LAST', k);
+  let hist = [];
+  try { hist = JSON.parse(prop_('STRAT_HIST') || '[]'); } catch (e) { hist = []; }
+  const sys = [
+    '你是「智囊軍師」，彥彬的社群文案高手，用《康園道》風格寫一篇可以直接貼到 Facebook、Instagram、LINE 的文案。',
+    '【康園道寫作風格】短句為主，每句獨立一行有節奏；先描述一個大家都有的現象，讓人對號入座；用反問引發思考（例如「你有沒有發現⋯⋯」「可是很奇怪⋯⋯」）；段落間留白；像朋友分享，不說教、不推銷；繁體台灣用語。',
+    '【本次主題】' + th.guide,
+    '【版式】標題 12 字內，一句話點出主題；內文 3 到 5 段，每段 1 到 3 句短句，全文 140 到 200 字；最後一句反骨金句：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋；再給 5 個主題標籤。',
+    '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
+    hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
+    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","title":"標題","body":"內文，句子之間換行，段落之間空一行","gold":"反骨金句","tags":["#詞","#詞","#詞","#詞","#詞"]}',
+  ].filter(Boolean).join('\n');
+  let c = null;
+  try {
+    const out = callOpenAI_(sys, [{ role: 'user', content: '請寫一篇「' + th.name + '」的文案。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。' }]);
+    c = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+  } catch (err) {
+    console.error('智囊軍師失敗：' + err.message);
+    return { text: '文案這次沒寫出來，再按一次試試看。', buttons: [[STRAT_AGAIN, STRAT_SWITCH]] };
+  }
+  const card = {
+    theme: th.name, cat: String(c.cat || '').replace(/主題$/, ''), title: String(c.title || th.name).trim(),
+    body: String(c.body || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim(),
+    gold: String(c.gold || '').replace(/^【?反骨金句】?[：:]?/, '').trim(),
+    tags: (Array.isArray(c.tags) ? c.tags : String(c.tags || '').split(/\s+/)).map(s => String(s).trim()).filter(Boolean)
+      .map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
+  };
+  // 火山草本（含軍師判定成火山草本）：結尾一定要附「以上是個人感受」
+  card.note = k === 'herb' || /火山草本/.test(card.cat) ? '以上是個人感受' : '';
+  card.label = k === 'auto' ? '智囊軍師判定' + (card.cat ? '・' + card.cat : '') : th.name;
+  hist.unshift(card.title);
+  setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
+  LAST_CARD_ = card;
+  return { text: stratText_(card), buttons: [[STRAT_AGAIN, STRAT_SWITCH]].concat(MENU) };
+}
+
+// 文案全文（可以直接複製貼上）
+function stratText_(c) {
+  return ['🪶 智囊軍師｜' + c.label, '', c.title, '', c.body, '', c.gold, c.note, '', c.tags.join(' ')]
+    .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
+}
+
+// 圖卡版面（直式 4:5，黑曜石＋香檳金，跟小乖頁面同一套風格）
+function cardLayout_(c) {
+  const W = 540, X = 50, TW = 440;
+  const units = l => Array.from(l).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1), 0);
+  const lines = (s, size, w) => String(s || '').split('\n')
+    .reduce((n, l) => n + Math.max(1, Math.ceil(units(l) / Math.floor((w - 14) / size))), 0);
+  const bodyH = fs => lines(c.body, fs, TW) * fs * 1.85 + 12;   // 行距 150% × 字體本身約 1.2 倍
+  let fs = 16;
+  while (fs > 12 && bodyH(fs) > 380) fs--;
+  const BH = bodyH(fs);
+  const goldH = c.gold ? lines(c.gold, 13, TW - 40) * 13 * 1.6 + 28 : 0;
+  const top = 168;
+  let y = top + BH + 14;
+  const goldTop = y; y += goldH + (c.gold ? 12 : 0);
+  const noteTop = y; y += c.note ? 22 : 0;
+  const tagTop = y; y += 22;
+  const footTop = Math.max(y + 16, 625);
+  const H = footTop + 50;
+
+  const build = slide => {
+    const req = [];
+    let k = 0;
+    req.push({ updatePageProperties: { objectId: slide, pageProperties: { pageBackgroundFill: { solidFill: { color: { rgbColor: rgb_('#12100D') } } } }, fields: 'pageBackgroundFill.solidFill.color' } });
+    const place = (w, h, x, yy) => ({ pageObjectId: slide,
+      size: { width: { magnitude: w, unit: 'PT' }, height: { magnitude: h, unit: 'PT' } },
+      transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: yy, unit: 'PT' } });
+    const shape = (type, x, yy, w, h, fill, outline) => {
+      const id = 'xg_cs_' + (k++);
+      req.push({ createShape: { objectId: id, shapeType: type, elementProperties: place(w, h, x, yy) } });
+      req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill,outline', shapeProperties: {
+        shapeBackgroundFill: fill ? { solidFill: { color: { rgbColor: rgb_(fill) } } } : { propertyState: 'NOT_RENDERED' },
+        outline: outline ? { outlineFill: { solidFill: { color: { rgbColor: rgb_(outline) } } }, weight: { magnitude: 0.75, unit: 'PT' } } : { propertyState: 'NOT_RENDERED' } } } });
+    };
+    const text = (str, x, yy, w, h, size, color, o) => {
+      o = o || {};
+      const id = 'xg_ct_' + (k++);
+      req.push({ createShape: { objectId: id, shapeType: 'TEXT_BOX', elementProperties: place(w, h, x, yy) } });
+      req.push({ insertText: { objectId: id, text: String(str) } });
+      req.push({ updateTextStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: {
+        fontSize: { magnitude: size, unit: 'PT' }, bold: !!o.bold, fontFamily: o.serif ? 'Noto Serif TC' : 'Noto Sans TC',
+        foregroundColor: { opaqueColor: { rgbColor: rgb_(color) } } } } });
+      req.push({ updateParagraphStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'alignment,lineSpacing',
+        style: { alignment: o.align || 'CENTER', lineSpacing: o.ls || 100 } } });
+      req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: o.valign || 'MIDDLE' }, fields: 'contentAlignment' } });
+    };
+    shape('RECTANGLE', 16, 16, W - 32, H - 32, null, '#C9A56A');
+    shape('RECTANGLE', 22, 22, W - 44, H - 44, null, '#4A3F2C');
+    text('🪶  智 囊 軍 師　·　' + c.label, X, 40, TW, 22, 10, '#C9A56A', { bold: true });
+    shape('RECTANGLE', W / 2 - 24, 70, 48, 1, '#C9A56A', null);
+    text(c.title, X, 82, TW, 70, c.title.length > 10 ? 22 : 26, '#F1DFB4', { bold: true, serif: true });
+    text(c.body, X, top, TW, BH, fs, '#EDE6D6', { align: 'START', valign: 'TOP', ls: 150 });
+    if (c.gold) {
+      shape('ROUND_RECTANGLE', X, goldTop, TW, goldH, '#1E1A14', '#C9A56A');
+      text(c.gold, X + 20, goldTop, TW - 40, goldH, 13, '#E9D3A2', { bold: true, serif: true, ls: 130 });
+    }
+    if (c.note) text(c.note, X, noteTop, TW, 20, 10, '#B9AE98');
+    if (c.tags.length) text(c.tags.join('  '), X, tagTop, TW, 20, 9, '#9C8F78');
+    shape('RECTANGLE', W / 2 - 60, footTop - 8, 120, 0.6, '#4A3F2C', null);
+    text('彥彬｜智囊軍師　' + Utilities.formatDate(new Date(), TZ, 'yyyy.MM.dd'), X, footTop, TW, 18, 8, '#8A7F6B');
+    return req;
+  };
+  return { W: W, H: H, build: build };
+}
+
+function cardPng_(c) {
+  return layoutPng_(cardLayout_(c), '智囊軍師_' + c.theme + '_' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm') + '.png');
+}
+
+function saveCard_(png) {
+  const it = DriveApp.getFoldersByName(STRAT_FOLDER);
+  return (it.hasNext() ? it.next() : DriveApp.createFolder(STRAT_FOLDER)).createFile(png.copyBlob().setName(png.getName()));
+}
+
+function cardErrText_() {
+  return '圖卡這次沒畫出來（文案在下面）。原因：' + reportErrText_().replace(/^報表圖片沒產生（文字試算如下）。原因：/, '');
+}
+
+// Telegram：先傳圖卡，再傳文案全文
+function sendCardTg_(chatId) {
+  const c = LAST_CARD_; LAST_CARD_ = null;
+  if (!c) return false;
+  REPORT_ERR_ = '';
+  const png = cardPng_(c);
+  if (!png) { tgSend_(chatId, cardErrText_()); return false; }
+  try { saveCard_(png); } catch (e) { console.error(e); }
+  const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
+    method: 'post', muteHttpExceptions: true,
+    payload: { chat_id: String(chatId), photo: png, caption: '🪶 智囊軍師｜' + c.title },
+  });
+  if (res.getResponseCode() !== 200) console.error('Telegram 圖卡傳送失敗：' + res.getContentText());
+  return true;
+}
+
+// LINE：圖卡存雲端硬碟、設成知道連結的人都能看（跟試算報表一樣），回傳要一起送出的圖片訊息
+function cardLine_() {
+  const c = LAST_CARD_; LAST_CARD_ = null;
+  if (!c) return [];
+  REPORT_ERR_ = '';
+  const png = cardPng_(c);
+  try {
+    if (!png) throw new Error(REPORT_ERR_);
+    const file = saveCard_(png);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const url = 'https://lh3.googleusercontent.com/d/' + file.getId();
+    return [{ type: 'image', originalContentUrl: url, previewImageUrl: url }];
+  } catch (err) {
+    REPORT_ERR_ = REPORT_ERR_ || err.message;
+    console.error('LINE 圖卡失敗：' + REPORT_ERR_);
+    return [{ type: 'text', text: cardErrText_() }];
+  }
+}
+
+// 對話頁：圖卡直接用 data URL 放進回覆，畫面上就看得到
+function cardData_() {
+  const c = LAST_CARD_; LAST_CARD_ = null;
+  if (!c) return '';
+  REPORT_ERR_ = '';
+  const png = cardPng_(c);
+  if (!png) { ASK_SHOW_ = cardErrText_() + '\n\n' + ASK_SHOW_; return ''; }
+  try { saveCard_(png); } catch (e) { console.error(e); }
+  return 'data:image/png;base64,' + Utilities.base64Encode(png.getBytes());
 }
 
 /* ============ 案例庫（Telegram 圖片／影片／文字） ============ */
@@ -1063,8 +1288,9 @@ function handleTelegram_(update) {
     if (!said) return tgSend_(chatId, '沒聽到內容，再說一次看看。');
     const ans = answer_(said);
     const short = sendReportTg_(chatId);
+    const carded = sendCardTg_(chatId);   // 智囊軍師：先傳圖卡
     tgSend_(chatId, short ? '🎤 「' + said + '」\n\n' + short : withVoice_(said, ans));
-    if (!short && voiceMode_() !== 'off') speakTg_(chatId, ans);   // 用講的就用講的回
+    if (!short && !carded && voiceMode_() !== 'off') speakTg_(chatId, ans);   // 用講的就用講的回
     return;
   }
 
@@ -1099,8 +1325,9 @@ function handleTelegram_(update) {
   tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
   const ans = answer_(text.replace(/^\/start\b\s*/, '') || '說明');
   const short = sendReportTg_(chatId);
+  const carded = sendCardTg_(chatId);
   tgSend_(chatId, short || ans);
-  if (!short && voiceMode_() === 'always' && !/^語音回覆/.test(text)) speakTg_(chatId, ans);
+  if (!short && !carded && voiceMode_() === 'always' && !/^語音回覆/.test(text)) speakTg_(chatId, ans);
 }
 
 // 下載 Telegram 圖片，轉成 OpenAI 看得懂的 data URL
@@ -2073,9 +2300,13 @@ function reportLayout_(r) {
 let REPORT_ERR_ = '';
 function reportPng_(r) {
   if (!r) return null;
+  return layoutPng_(reportLayout_(r), '試算報表_' + (r.name || '') + '_' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm') + '.png');
+}
+
+// 把一組版面（{ W, H, build }）用 Google 簡報畫成 PNG；試算報表和智囊軍師圖卡共用
+function layoutPng_(L, fileName) {
   let pid = null;
   try {
-    const L = reportLayout_(r);
     const deck = newDeck_(L.W, L.H);
     pid = deck.pid;
     const page = deck.pres.slides[0];
@@ -2090,11 +2321,10 @@ function reportPng_(r) {
     const req = (page.pageElements || []).map(e => ({ deleteObject: { objectId: e.objectId } })).concat(built);
     slidesApi_('post', '/' + pid + ':batchUpdate', { requests: req });
     const th = slidesApi_('get', '/' + pid + '/pages/' + page.objectId + '/thumbnail?thumbnailProperties.mimeType=PNG&thumbnailProperties.thumbnailSize=LARGE');
-    return UrlFetchApp.fetch(th.contentUrl).getBlob()
-      .setName('試算報表_' + (r.name || '') + '_' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm') + '.png');
+    return UrlFetchApp.fetch(th.contentUrl).getBlob().setName(fileName);
   } catch (err) {
     REPORT_ERR_ = err.message;
-    console.error('報表圖片失敗：' + err.message);
+    console.error('圖片失敗：' + err.message);
     return null;
   } finally {
     if (pid) try { DriveApp.getFileById(pid).setTrashed(true); } catch (e) { console.error(e); }
