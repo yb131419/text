@@ -53,36 +53,42 @@ function menuCard_() {
   const text = '💎 小乖功能選單\n' + MENU_CARDS.map(c => '\n【' + c.title + '】\n' + c.items.map(i => i[0] + '　' + i[1]).join('\n')).join('\n');
   return { text: text, buttons: MENU_GROUPS, flex: menuFlex_() };
 }
-// 黑金精品風輪播卡片：每類一張，按一下就送出那個功能
+// 象牙白＋香檳金精品風輪播卡片：每類一張，按一下就送出那個功能
 function menuFlex_() {
-  const GOLD = '#C9A86A', CREAM = '#F3E6C8', MUTE = '#8C8577', INK = '#0B0B0D';
+  const GOLD = '#B08D57', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
   const act = t => t === TALK_BTN
     ? { type: 'uri', label: '對話頁', uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' }
     : { type: 'message', label: t.slice(0, 20), text: t };
   const name = t => t.replace(/^[^\p{L}\p{N}]+/u, '').trim();
   const row = (it, first) => ({
     type: 'box', layout: 'horizontal', alignItems: 'center', paddingAll: '13px', cornerRadius: '12px',
-    borderWidth: '1px', borderColor: first ? GOLD : '#3A3328', backgroundColor: first ? GOLD : '#16140F',
+    borderWidth: '1px', borderColor: first ? '#C9A56A' : LINE,
+    background: first ? { type: 'linearGradient', angle: '120deg', startColor: '#E9D3A2', endColor: '#C9A56A' } : undefined,
+    backgroundColor: first ? '#D9BC85' : '#FFFFFF',
     action: act(it[0]), contents: [
-      { type: 'text', text: name(it[0]), size: 'sm', weight: 'bold', color: first ? INK : CREAM, flex: 0 },
-      { type: 'text', text: it[1], size: 'xxs', color: first ? '#3A2E1A' : MUTE, align: 'end', flex: 1, margin: 'md' },
+      { type: 'text', text: name(it[0]), size: 'sm', weight: 'bold', color: INK, flex: 0 },
+      { type: 'text', text: it[1], size: 'xxs', color: first ? '#5A4630' : SOFT, align: 'end', flex: 1, margin: 'md' },
       { type: 'text', text: '›', size: 'md', weight: 'bold', color: first ? INK : GOLD, flex: 0, margin: 'md' },
     ] });
   return { type: 'carousel', contents: MENU_CARDS.map((c, i) => ({
     type: 'bubble', size: 'kilo',
-    styles: { body: { backgroundColor: INK } },
-    body: { type: 'box', layout: 'vertical', paddingAll: '22px', contents: [
-      { type: 'box', layout: 'horizontal', contents: [
-        { type: 'text', text: '小乖 · PRIVATE', size: 'xxs', weight: 'bold', color: GOLD, flex: 1 },
-        { type: 'text', text: '0' + (i + 1) + ' / 0' + MENU_CARDS.length, size: 'xxs', color: '#6E6A62', align: 'end', flex: 0 },
+    styles: { body: { backgroundColor: '#FBF8F2' } },
+    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [
+      { type: 'box', layout: 'vertical', paddingAll: '22px', paddingBottom: '18px',
+        background: { type: 'linearGradient', angle: '180deg', startColor: '#F4EAD6', endColor: '#FBF8F2' }, contents: [
+        { type: 'box', layout: 'horizontal', contents: [
+          { type: 'text', text: '小乖 · PRIVATE', size: 'xxs', weight: 'bold', color: GOLD, flex: 1 },
+          { type: 'text', text: '0' + (i + 1) + ' / 0' + MENU_CARDS.length, size: 'xxs', color: '#B5A88F', align: 'end', flex: 0 },
+        ] },
+        { type: 'text', text: c.en.split('').join(' '), size: 'xxs', color: SOFT, margin: 'xxl' },
+        { type: 'text', text: c.title, size: 'xxl', weight: 'bold', color: INK, margin: 'sm' },
+        { type: 'box', layout: 'vertical', width: '28px', height: '2px', backgroundColor: '#C9A56A', margin: 'md', contents: [{ type: 'filler' }] },
+        { type: 'text', text: c.sub, size: 'xs', color: '#7D6F5B', wrap: true, margin: 'md' },
       ] },
-      { type: 'text', text: c.en.split('').join(' '), size: 'xxs', color: MUTE, margin: 'xxl' },
-      { type: 'text', text: c.title, size: 'xxl', weight: 'bold', color: CREAM, margin: 'sm' },
-      { type: 'box', layout: 'vertical', width: '28px', height: '2px', backgroundColor: GOLD, margin: 'md', contents: [{ type: 'filler' }] },
-      { type: 'text', text: c.sub, size: 'xs', color: '#A39C8E', wrap: true, margin: 'md' },
-      { type: 'box', layout: 'vertical', spacing: 'sm', margin: 'xl', contents: c.items.map((it, k) => row(it, k === 0)) },
+      { type: 'box', layout: 'vertical', spacing: 'sm', paddingStart: '22px', paddingEnd: '22px', contents: c.items.map((it, k) => row(it, k === 0)) },
       { type: 'filler' },
-      { type: 'text', text: '彥彬｜特助小乖', size: 'xxs', color: '#5E5A52', align: 'center', margin: 'xl' },
+      { type: 'text', text: '彥彬｜特助小乖', size: 'xxs', color: '#B5A88F', align: 'center', margin: 'xl' },
+      { type: 'box', layout: 'vertical', height: '18px', contents: [{ type: 'filler' }] },
     ] },
   })) };
 }
