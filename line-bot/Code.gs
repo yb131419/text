@@ -1264,9 +1264,7 @@ function caseDrive_(c) {
     const f = caseFolder_().createFile(res.getBlob().setName('案例_TG_' + Utilities.formatDate(new Date(c.time || Date.now()), TZ, 'yyyyMMdd_HHmmss') + ext));
     f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     c.drive = 'drive:' + f.getId();
-    const sh = ss_().getSheetByName(CASE_SHEET), t = c.time instanceof Date ? c.time.getTime() : 0;
-    const cell = sh && sh.getRange(c.row, 1).getValue();
-    if (cell instanceof Date && cell.getTime() === t) sh.getRange(c.row, 11).setValue(c.drive);   // 確認還是同一列才寫
+    setCaseCol_(c, 11, c.drive);
     return c.drive;
   } catch (e) { console.error('Telegram 案例複製到雲端硬碟失敗：' + e.message); return ''; }
 }
@@ -1410,8 +1408,29 @@ function sendTgCase_(chatId, c) {
   const m = { photo: ['sendPhoto', 'photo'], video: ['sendVideo', 'video'], animation: ['sendAnimation', 'animation'], document: ['sendDocument', 'document'] }[c.type];
   if (!m) return;
   const p = { chat_id: chatId, caption: cap };
-  p[m[1]] = /^drive:/.test(c.fid) ? (c.type === 'photo' ? driveImg_(driveIds_(c.fid)[0]) : driveFile_(driveIds_(c.fid)[0])) : c.fid;
-  tgApi_(m[0], p);
+  if (!/^drive:/.test(c.fid)) { p[m[1]] = c.fid; return tgApi_(m[0], p); }
+  // LINE 存的（在雲端硬碟）：Telegram 抓不到雲端硬碟的下載網址，改成直接上傳檔案；上傳過一次就記住 Telegram 的 file_id
+  if (/^tg:/.test(c.drive)) { p[m[1]] = c.drive.slice(3); return tgApi_(m[0], p); }
+  const id = driveIds_(c.fid)[0];
+  try {
+    p[m[1]] = DriveApp.getFileById(id).getBlob();
+    p.chat_id = String(chatId);
+    const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/' + m[0], { method: 'post', payload: p, muteHttpExceptions: true });
+    const j = JSON.parse(res.getContentText() || '{}');
+    if (!j.ok) throw new Error(j.description || res.getResponseCode());
+    const r = j.result || {};
+    const fileId = r.photo ? r.photo[r.photo.length - 1].file_id : (r.video || r.animation || r.document || {}).file_id;
+    if (fileId) setCaseCol_(c, 11, 'tg:' + fileId);
+  } catch (e) {
+    console.error('Telegram 傳雲端硬碟檔案失敗：' + e.message);   // 太大（超過 50MB）之類的：改傳連結
+    tgApi_('sendMessage', { chat_id: chatId, text: cap + '\n' + (c.type === 'photo' ? '🖼️ ' : '🎬 ') + 'https://drive.google.com/file/d/' + id + '/view' });
+  }
+}
+// 寫回案例庫某一欄（先確認那一列還是同一筆）
+function setCaseCol_(c, col, val) {
+  const sh = ss_().getSheetByName(CASE_SHEET), t = c.time instanceof Date ? c.time.getTime() : 0;
+  const cell = sh && c.row && sh.getRange(c.row, 1).getValue();
+  if (cell instanceof Date && cell.getTime() === t) sh.getRange(c.row, col).setValue(val);
 }
 
 /* ============ 找資料：先找本機（案例庫、待辦／行程／筆記），沒有才上網 ============ */
