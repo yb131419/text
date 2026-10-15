@@ -60,6 +60,9 @@ const HELP_MORE = [
   '・按「🪶 智囊軍師」選主題：軍師判定、健康、火山草本、觀念、經營、網路行銷',
   '・寫好的文案會畫成圖卡一起給你，長按圖片可以存',
   '・按「🔁 再寫一篇」同主題換一篇',
+  '・設定署名 彥彬｜生活筆記 @248zwwwu：改圖卡底部的字',
+  '・設定標題 🪶 彥彬的文案：改文案最上面那行（後面會接主題）',
+  '・打「設定署名 預設」「設定標題 預設」改回原本的',
   '',
   '【群組】',
   '・邀請小乖：10 分鐘內由你邀進群組',
@@ -482,6 +485,8 @@ function answer_(text) {
   if (vb) return voicePick_(vb[1]);
   const vc = t2.match(/^(?:換聲音|聲音|語音聲音|換語音|真人語音) ?([a-zA-Z]+)?$/);
   if (vc) return voicePick_(vc[1] || '');
+  const cs = stratSetting_(t2);   // 「設定署名 …」「設定標題 …」
+  if (cs) return cs;
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
   const sp = stratPick_(t2);
   if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
@@ -658,6 +663,23 @@ function strategist_(k) {
   return { text: stratText_(card), buttons: [[STRAT_AGAIN, STRAT_SWITCH]].concat(MENU) };
 }
 
+// 使用者自訂：圖卡底部署名、文案最上面的標題（存在指令碼屬性，沒設定就用預設）
+function cardBy_() { return prop_('CARD_BY') || CARD_BY; }
+function stratHead_() { return prop_('STRAT_HEAD') || '🪶 智囊軍師'; }
+function stratSetting_(t) {
+  const m = String(t || '').trim().match(/^(?:設定|修改|更改|改)(圖卡署名|底部署名|署名|文案標題|軍師標題|標題)[\s：:]*(.*)$/);
+  if (!m) return null;
+  const by = /署名/.test(m[1]), key = by ? 'CARD_BY' : 'STRAT_HEAD', name = by ? '圖卡底部署名' : '文案標題';
+  const v = m[2].trim().slice(0, 40), now = by ? cardBy_() : stratHead_() + '｜主題';
+  if (!v) return '目前的' + name + '是：\n' + now + '\n\n要改請打「設定' + (by ? '署名' : '標題') + ' 新的字」，例如：\n設定' + (by ? '署名 彥彬｜生活筆記 @248zwwwu' : '標題 🪶 彥彬的文案');
+  if (/^(預設|恢復預設|改回預設|原本|改回原本)$/.test(v)) {
+    PropertiesService.getScriptProperties().deleteProperty(key);
+    return '好，' + name + '改回預設：\n' + (by ? cardBy_() : stratHead_() + '｜主題');
+  }
+  setProp_(key, v);
+  return '好，' + name + '改成：\n' + (by ? v : v + '｜主題') + '\n\n之後寫的文案都會用這個。' + (by ? '' : '（「｜主題」會自動換成那篇的主題）');
+}
+
 // 文案全文（可以直接複製貼上）
 // 文字貼文跟圖卡分開寫：文字用貼文版（post），圖卡用精簡版（title／body／gold）
 function postText_(c) {
@@ -665,7 +687,7 @@ function postText_(c) {
     .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
 }
 function stratText_(c) {
-  return ['🪶 智囊軍師｜' + c.label, '', postText_(c)]
+  return [stratHead_() + '｜' + c.label, '', postText_(c)]
     .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
 }
 
@@ -728,7 +750,7 @@ function cardLayout_(c) {
     if (c.note) text(c.note, X, noteTop + sh, TW, 20, 10, '#B9AE98');
     if (c.tags.length) text(c.tags.join('  '), X, tagTop + sh, TW, 20, 9, '#9C8F78');
     shape('RECTANGLE', W / 2 - 70, footTop - 10, 140, 0.8, '#C9A56A', null);
-    text(CARD_BY, X, footTop - 3, TW, 24, 14, '#F1DFB4', { bold: true });
+    text(cardBy_(), X, footTop - 3, TW, 24, 14, '#F1DFB4', { bold: true });
     return req;
   };
   return { W: W, H: H, build: build };
@@ -757,7 +779,7 @@ function sendCardTg_(chatId) {
   try { saveCard_(png); } catch (e) { console.error(e); }
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
     method: 'post', muteHttpExceptions: true,
-    payload: { chat_id: String(chatId), photo: png, caption: '🪶 智囊軍師｜' + c.title },
+    payload: { chat_id: String(chatId), photo: png, caption: stratHead_() + '｜' + c.title },
   });
   if (res.getResponseCode() !== 200) console.error('Telegram 圖卡傳送失敗：' + res.getContentText());
   return true;
