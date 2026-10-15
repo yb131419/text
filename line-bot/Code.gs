@@ -1507,6 +1507,7 @@ function checkReminders() {
     const d = readAll_();
     const now = Date.now();
     const msgs = [];
+    const purged = purgePast_(d);   // 順便把過了日期的行程刪掉
     d.reminders.forEach(r => {
       if (r.fired) return;
       const t = parseAt_(r.at);
@@ -1522,13 +1523,24 @@ function checkReminders() {
       }
       r.u = now;
     });
-    if (msgs.length) writeAll_(d);
+    if (msgs.length || purged) writeAll_(d);
     return { msgs: msgs, title: (d.profile && d.profile.title) || '小乖' };
   });
   if (!due.msgs.length) return;
   const note = due.title + '提醒你：\n' + due.msgs.join('\n');
   if (owner && prop_('LINE_CHANNEL_ACCESS_TOKEN')) push_(owner, note);
   if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, note);
+}
+
+// 過了日期的行程自動刪除（連同它的 30 分鐘前提醒），記進刪除紀錄，網頁同步時才不會加回來
+function purgePast_(d) {
+  const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'), now = Date.now();
+  const gone = d.events.filter(e => e.date && e.date < today).map(e => e.id);
+  if (!gone.length) return 0;
+  d.events = d.events.filter(e => gone.indexOf(e.id) < 0);
+  d.reminders = d.reminders.filter(r => gone.indexOf(r.src) < 0);
+  gone.forEach(id => { d.deleted[id] = now; });
+  return gone.length;
 }
 
 /* ============ 試算（金額與 PV） ============ */

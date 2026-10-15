@@ -874,6 +874,7 @@ async function syncNow(manual){
     const m=mergeSync(syncData(),out.data||{});
     SYNC_COLS.forEach(c=>state[c]=m[c]);
     state.deleted=m.deleted;
+    if(purgePast()) syncAgain=true;
     const p=m.profile||{};
     if((p.u||0)>(state.profileU||0)){
       state.title=p.title||state.title; state.nick=p.nick||""; state.about=p.about||""; state.profileU=p.u;
@@ -1101,6 +1102,16 @@ function addEventReminder(ev){
   const at=new Date(`${ev.date}T${ev.time}`); at.setMinutes(at.getMinutes()-30);
   if(at.getTime()>Date.now())
     state.reminders.push({id:uid(),text:`30 分鐘後：${ev.title}${ev.place?"（"+ev.place+"）":""}`,at:localDT(at),repeat:"none",fired:false,src:ev.id});
+}
+// 過了日期的行程自動刪掉（連同它的 30 分鐘前提醒），記進刪除紀錄，同步時 LINE 那邊也會刪
+function purgePast(){
+  const t=ymd(), now=Date.now();
+  const gone=state.events.filter(e=>e.date&&e.date<t).map(e=>e.id);
+  if(!gone.length) return false;
+  state.events=state.events.filter(e=>gone.indexOf(e.id)<0);
+  state.reminders=state.reminders.filter(r=>gone.indexOf(r.src)<0);
+  gone.forEach(id=>{ state.deleted[id]=now; });
+  return true;
 }
 function deleteEvent(id){
   state.events=state.events.filter(e=>e.id!==id);
@@ -1641,6 +1652,7 @@ function resetAll(){
 }
 
 /* ============ 啟動 ============ */
+if(purgePast()) persist();
 resetSeen();
 renderHome();
 syncNow();
