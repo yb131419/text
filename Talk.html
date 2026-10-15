@@ -39,7 +39,7 @@ header{padding:14px 16px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap
 header b{font-family:var(--serif);font-size:22px;letter-spacing:3px;background:var(--champ);-webkit-background-clip:text;background-clip:text;color:transparent;display:flex;align-items:center;gap:10px}
 header b i{font-style:normal;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:17px;border:1px solid rgba(220,195,148,.6);color:var(--gold);-webkit-text-fill-color:var(--gold);background:#0B0A08}
 header small{color:var(--soft);font-size:13px}header small input{accent-color:#C9A56A;vertical-align:-2px}
-#thm,#gear,#clr{width:38px;height:38px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:16px}
+#gear{width:38px;height:38px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:16px}
 #chips{padding:12px 16px 10px}
 .chip{background:transparent;border:1px solid var(--line);color:rgba(243,238,229,.82);font-size:14px;letter-spacing:.5px;padding:7px 14px}
 .chip.ask{background:var(--champ);color:#1A150D;border-color:transparent;font-weight:600}
@@ -100,18 +100,40 @@ body.sel #selbar{display:flex}body.sel #bar,body.sel #chips{display:none}
 #selbar #seln{flex:1;text-align:center;color:var(--soft);font-size:14px}
 #selbar #seldel{background:var(--champ);color:#1A150D;border:none;font-weight:700}#selbar #seldel:disabled{opacity:.4}
 header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
+/* 設定頁（右上 ⚙︎）：聲音、外觀、連線放在一起，密碼只填一次 */
+#login .box{max-height:90vh;overflow:auto}
+#login .sec{margin:16px 0 6px;font-size:13px;letter-spacing:2px;color:var(--gold)}
+#login .sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:16px}
+#login .sw small{display:block;color:var(--soft);font-size:12.5px;margin-top:2px}
+#login .sw input{appearance:none;-webkit-appearance:none;flex:none;width:50px;height:30px;border-radius:15px;background:rgba(127,127,127,.35);position:relative;transition:.2s;margin:0}
+#login .sw input::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}
+#login .sw input:checked{background:#C9A56A}#login .sw input:checked::after{left:23px}
+#login .sw input:disabled{opacity:.4}
+#login .opt{width:100%;height:44px;border-radius:12px;margin-top:6px;background:transparent;border:1px solid var(--line);color:var(--ink);font-size:15px}
+#login #setx{background:var(--champ);color:#1A150D;border:none;font-weight:700;margin-top:16px;letter-spacing:2px}
+#cfgok{color:var(--soft);font-size:14px}#cfg{margin-top:10px}
+#login.first #opts,#login.first #setx,#login.first #logout{display:none}
 </style></head><body>
-<header><b><i>乖</i><span>彥彬｜特助小乖</span></b><button id="thm" type="button" title="切換白色／黑色" style="margin-left:auto"></button><button id="gear" type="button" title="設定">⚙︎</button><button id="clr" type="button" title="清除對話紀錄">🗑</button><small style="margin-left:0"><label><input type="checkbox" id="spk" checked> 🔊 念出來</label> <label><input type="checkbox" id="loop" checked> 🔁 連續</label></small></header>
+<header><b><i>乖</i><span>彥彬｜特助小乖</span></b><button id="gear" type="button" title="設定" style="margin-left:auto">⚙︎</button></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg hello">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
 <div id="hint"></div>
 <div id="selbar"><button id="selno" type="button">取消</button><span id="seln">點訊息來選取</span><button id="selall" type="button">全選</button><button id="seldel" type="button" disabled>刪除</button></div>
 <div id="bar"><button id="cam" title="照片">📷</button><input id="q" placeholder="打字或按鍵盤上的麥克風" enterkeyhint="send"><button id="mic" title="講話"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg></button></div>
 <input type="file" id="file" accept="image/*" hidden><audio id="au" playsinline></audio>
-<div id="login"><div class="box"><b>🔒 連線設定</b><p id="lgmsg"></p>
+<div id="login"><div class="box"><b>⚙︎ 設定</b>
+<div id="opts"><div class="sec">聲音</div>
+<label class="sw"><span>🔊 念出來<small>小乖回答時唸給你聽</small></span><input type="checkbox" id="spk" checked></label>
+<label class="sw"><span>🎙️ 真人語音<small>開：真人般的聲音（稍慢）；關：手機內建聲音（較快）</small></span><input type="checkbox" id="real" checked></label>
+<label class="sw"><span>🔁 連續對話<small>講完自動再聽你說</small></span><input type="checkbox" id="loop" checked></label>
+<div class="sec">外觀</div>
+<button id="thm" type="button" class="opt"></button>
+<div class="sec">連線</div><div id="cfgok">✓ 已連線，密碼已記在這支手機，不用再填</div><button id="cfgedit" type="button" class="opt">修改網址或密碼</button></div>
+<div id="cfg"><p id="lgmsg"></p>
 <input id="url" type="url" inputmode="url" placeholder="小乖網址：https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:8px;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)">
 <div class="row"><input id="pw" type="password" autocomplete="current-password" placeholder="同步密碼"><button id="pwshow" type="button">👁</button></div>
-<button id="pwgo" type="button">開始使用</button><button id="logout" type="button" style="margin-top:8px;width:100%;height:40px;border-radius:12px;font-size:15px">清除這支手機的設定</button></div></div>
+<button id="pwgo" type="button">儲存</button></div>
+<button id="setx" type="button" class="opt">完成</button><button id="logout" type="button" style="margin-top:8px;width:100%;height:40px;border-radius:12px;font-size:15px">清除這支手機的設定</button></div></div>
 <div id="vs"><div class="box"><h3>🎙️ 說「嘿 小乖」就能問</h3>
 <p>做一次就好：之後不用打開網頁，直接說「嘿 小乖」，小乖聽完會念答案給你聽。需要 iOS 18 以上。</p>
 <button class="cp" id="vscp" type="button">① 複製小乖專用網址</button>
@@ -168,7 +190,7 @@ $('vscp').onclick=async()=>{const t=URL+'?key='+encodeURIComponent(KEY)+'&ask=';
  try{await navigator.clipboard.writeText(t);ok=true;}catch(e){}
  if(!ok){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{ok=document.execCommand('copy');}catch(e){}a.remove();}
  $('vscp').textContent=ok?'✓ 已複製，照下面步驟做':'複製失敗，請到設定確認網址';};
-function paintThm(){const l=document.documentElement.dataset.theme==='light';$('thm').textContent=l?'☾':'☀︎';document.querySelector('meta[name=theme-color]').content=l?'#F3EEE5':'#100E0B';}
+function paintThm(){const l=document.documentElement.dataset.theme==='light';$('thm').textContent=l?'☾ 換成黑色系列':'☀︎ 換成白色系列';document.querySelector('meta[name=theme-color]').content=l?'#F3EEE5':'#100E0B';}
 $('thm').onclick=()=>{const l=document.documentElement.dataset.theme!=='light';if(l)document.documentElement.dataset.theme='light';else delete document.documentElement.dataset.theme;try{localStorage.setItem('xg_theme',l?'light':'dark');}catch(e){}paintThm();};
 paintThm();
 async function vsCopy(btn,t,label){let ok=false;try{await navigator.clipboard.writeText(t);ok=true;}catch(e){}
@@ -179,10 +201,19 @@ $('vsk').onclick=()=>vsCopy($('vsk'),KEY,'密碼');
 $('vcu').onclick=()=>vsCopy($('vcu'),URL,'網址');
 $('vck').onclick=()=>vsCopy($('vck'),KEY,'密碼');
 function saveCfg(){try{localStorage.setItem('xg_talk',JSON.stringify({key:KEY,url:URL}));}catch(e){}}
-function login(msg){$('lgmsg').textContent=msg||(URL?'第一次使用，請輸入同步密碼（只要輸入一次，會記在這支手機上）。':'第一次使用，請貼上小乖網址（結尾是 /exec），再輸入同步密碼。最簡單：在 LINE 或 Telegram 跟小乖打「對話頁」，點它給的連結，網址就會自動填好。');$('url').value=URL;$('pw').value='';$('login').style.display='flex';}
-$('pwgo').onclick=()=>{const u=$('url').value.trim().replace(/\?.*$/,''),k=$('pw').value.trim()||KEY;if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){$('lgmsg').textContent='網址要是 https://script.google.com/macros/s/…/exec';return;}if(!k)return;URL=u;KEY=k;saveCfg();$('login').style.display='none';};
+function cfgShow(on){$('cfg').style.display=on?'block':'none';$('cfgedit').style.display=on?'none':'block';$('cfgok').style.display=on||!KEY||!URL?'none':'block';}
+function login(msg){$('login').classList.toggle('first',!KEY||!URL);cfgShow(true);$('pwgo').textContent=!KEY||!URL?'開始使用':'儲存';$('lgmsg').textContent=msg||(URL?'第一次使用，請輸入同步密碼（只要輸入一次，會記在這支手機上）。':'第一次使用，請貼上小乖網址（結尾是 /exec），再輸入同步密碼。最簡單：在 LINE 或 Telegram 跟小乖打「對話頁」，點它給的連結，網址就會自動填好。');$('url').value=URL;$('pw').value='';$('login').style.display='flex';}
+$('pwgo').onclick=()=>{const u=$('url').value.trim().replace(/\?.*$/,''),k=$('pw').value.trim()||KEY;if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){$('lgmsg').textContent='網址要是 https://script.google.com/macros/s/…/exec';return;}if(!k){$('lgmsg').textContent='請輸入同步密碼';return;}const first=$('login').classList.contains('first');URL=u;KEY=k;saveCfg();$('login').classList.remove('first');if(first)$('login').style.display='none';else cfgShow(false);};
 $('logout').onclick=()=>{try{localStorage.removeItem('xg_talk');}catch(e){}KEY='';URL='';login('已清除。要再用請重新設定。');};
-$('gear').onclick=()=>login('修改連線設定（密碼留空就沿用原本的）');
+function setOpen(){if(!KEY||!URL){login();return;}$('login').classList.remove('first');cfgShow(false);$('login').style.display='flex';}
+$('gear').onclick=setOpen;
+$('cfgedit').onclick=()=>{cfgShow(true);$('lgmsg').textContent='修改連線設定（密碼留空就沿用原本的）';$('url').value=URL;$('pw').value='';};
+$('setx').onclick=()=>{$('login').style.display='none';};
+$('login').onclick=e=>{if(e.target.id==='login'&&KEY&&URL)$('login').style.display='none';};
+// 聲音選項記在這支手機
+const OPTK='xg_talk_opt';try{const o=JSON.parse(localStorage.getItem(OPTK)||'{}');['spk','real','loop'].forEach(k=>{if(typeof o[k]==='boolean')$(k).checked=o[k];});}catch(e){}
+function optSave(){$('real').disabled=!$('spk').checked;try{localStorage.setItem(OPTK,JSON.stringify({spk:$('spk').checked,real:$('real').checked,loop:$('loop').checked}));}catch(e){}}
+['spk','real','loop'].forEach(k=>$(k).addEventListener('change',optSave));optSave();
 $('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
 if(!KEY||!URL)login();const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;
@@ -196,11 +227,10 @@ function saveLog(){try{const a=[...log.querySelectorAll('.m')].slice(1).map(d=>{
 function thumb(src,cb){const im=new Image();im.onload=()=>{const s=Math.min(1,240/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',0.6));};im.src=src;}
 function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;if(/^data:/.test(img)&&img.length<20000)i.dataset.th=img;else thumb(img,th=>{i.dataset.th=th;saveLog();});d.appendChild(i);}if(t){d.appendChild(document.createTextNode(t));}log.appendChild(d);log.scrollTop=1e9;return d;}
 try{const old=JSON.parse(localStorage.getItem(LOGK)||'[]');if(old.length){old.forEach(x=>add(x.t,x.c,x.i||null));const d=document.createElement('div');d.className='sep';d.textContent='— 以上是之前的對話 —';log.appendChild(d);log.scrollTop=1e9;}}catch(e){}
-// 刪除對話（像 LINE）：按 🗑 或長按一則訊息 → 勾選單則或多則 → 刪除；全選就是清空
+// 刪除對話（像 LINE）：長按一則訊息 → 勾選單則或多則 → 刪除；全選就是清空
 const pickable=()=>[...log.querySelectorAll('.m:not(.hello)')];
 function selCount(){const n=log.querySelectorAll('.m.pick').length;$('seln').textContent=n?'已選 '+n+' 則':'點訊息來選取';$('seldel').disabled=!n;$('seldel').textContent=n?'刪除（'+n+'）':'刪除';const all=pickable();$('selall').textContent=all.length&&n===all.length?'全不選':'全選';}
 function selMode(on,first){document.body.classList.toggle('sel',on);log.querySelectorAll('.m.pick').forEach(d=>d.classList.remove('pick'));if(on&&first)first.classList.add('pick');if(on)selCount();}
-$('clr').onclick=()=>{if(!pickable().length){hint.textContent='目前沒有對話紀錄';return;}selMode(!document.body.classList.contains('sel'));};
 $('selno').onclick=()=>selMode(false);
 $('selall').onclick=()=>{const all=pickable(),every=all.every(d=>d.classList.contains('pick'));all.forEach(d=>d.classList.toggle('pick',!every));selCount();};
 $('seldel').onclick=()=>{const ps=[...log.querySelectorAll('.m.pick')];if(!ps.length)return;if(!confirm('刪除這 '+ps.length+' 則訊息？刪了就找不回來。'))return;ps.forEach(d=>d.remove());
@@ -222,7 +252,7 @@ function speak(t,audio){if(!$('spk').checked)return next();if(audio){const a=$('
 function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);}
 function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
  if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
- fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked,audio:aud?aud.b64:'',audioType:aud?aud.mime:''})})
+ fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:aud?aud.b64:'',audioType:aud?aud.mime:''})})
  .then(r=>r.json()).then(r=>{busy=false;if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}if(aud)me.textContent='🎤 '+(r.heard||'（沒聽清楚）');w.textContent=r.show||r.say;if(r.img){const i=new Image();i.className='card';i.alt='智囊軍師圖卡';i.onload=()=>{log.scrollTop=1e9;};i.src=r.img;thumb(r.img,th=>{i.dataset.th=th;saveLog();});w.insertBefore(i,w.firstChild);}saveLog();chips(r.buttons);if((r.buttons||[]).indexOf('📷 選照片')>=0){convOff('按上面的「📷 選照片」選明細表，選好就自動試算');}else if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);})
  .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+e.message+'）';});}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
