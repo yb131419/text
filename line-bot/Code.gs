@@ -31,7 +31,7 @@ const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
-const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '❓ 說明']];
+const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '⚙️ 設定'], ['❓ 說明']];
 
 const HELP_TEXT = [
   '小乖可以幫你 👇',
@@ -60,6 +60,7 @@ const HELP_MORE = [
   '・按「🪶 智囊軍師」選主題：軍師判定、健康、火山草本、觀念、經營、網路行銷',
   '・寫好的文案會畫成圖卡一起給你，長按圖片可以存',
   '・按「🔁 再寫一篇」同主題換一篇',
+  '・按「⚙️ 設定」可以看、改圖卡署名和文案標題',
   '・設定署名 彥彬｜生活筆記 @248zwwwu：改圖卡底部的字',
   '・設定標題 🪶 彥彬的文案：改文案最上面那行（後面會接主題）',
   '・打「設定署名 預設」「設定標題 預設」改回原本的',
@@ -477,6 +478,7 @@ function lineImage_(messageId) {
 
 // LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
 function answer_(text) {
+  const raw = String(text || '').trim();   // 原文（「改標題」後打的新標題可能用表情符號開頭）
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
@@ -490,6 +492,8 @@ function answer_(text) {
   if (vb) return voicePick_(vb[1]);
   const vc = t2.match(/^(?:換聲音|聲音|語音聲音|換語音|真人語音) ?([a-zA-Z]+)?$/);
   if (vc) return voicePick_(vc[1] || '');
+  const sm = settingsMenu_(t2, raw);   // 「⚙️ 設定」按鈕：改圖卡署名、文案標題
+  if (sm) return sm;
   const cs = stratSetting_(t2);   // 「設定署名 …」「設定標題 …」
   if (cs) return cs;
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
@@ -683,6 +687,36 @@ function stratSetting_(t) {
   }
   setProp_(key, v);
   return '好，' + name + '改成：\n' + (by ? v : v + '｜主題') + '\n\n之後寫的文案都會用這個。' + (by ? '' : '（「｜主題」會自動換成那篇的主題）');
+}
+
+// 「⚙️ 設定」：列出目前的署名、標題，按「改署名／改標題」後下一句話就是新的內容
+const SET_BTNS = [['✍️ 改署名', '🪶 改標題'], ['↩️ 署名預設', '↩️ 標題預設']];
+function settingsMenu_(t, raw) {
+  const flat = String(t || '').replace(/\s+/g, '');
+  const pend = prop_('SET_PENDING');
+  if (pend) {
+    setProp_('SET_PENDING', '');
+    const menuWord = [].concat.apply([], MENU.concat(SET_BTNS)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
+    if (Number(prop_('SET_UNTIL')) > Date.now() && !menuWord) {
+      if (/^(取消|不改|算了)$/.test(flat)) return { text: '好，不改。', buttons: MENU };
+      return { text: stratSetting_('設定' + (pend === 'by' ? '署名 ' : '標題 ') + (raw || t)), buttons: MENU };
+    }
+  }
+  if (flat === '設定') {
+    return { text: ['⚙️ 設定', '', '✍️ 圖卡署名：' + cardBy_(), '🪶 文案標題：' + stratHead_() + '｜主題', '',
+      '按「改署名」或「改標題」，再打新的字給我就好。'].join('\n'), buttons: SET_BTNS.concat(MENU) };
+  }
+  const ask = flat.match(/^改(署名|標題)$/);
+  if (ask) {
+    const by = ask[1] === '署名';
+    setProp_('SET_PENDING', by ? 'by' : 'head');
+    setProp_('SET_UNTIL', String(Date.now() + 5 * 60 * 1000));
+    return by ? '請打新的圖卡署名，例如：\n彥彬｜生活筆記 @248zwwwu\n\n（打「取消」就不改）'
+      : '請打新的文案標題，例如：\n🪶 彥彬的文案\n後面會自動接「｜主題」\n\n（打「取消」就不改）';
+  }
+  const rs = flat.match(/^(署名|標題)預設$/);
+  if (rs) return { text: stratSetting_('設定' + rs[1] + ' 預設'), buttons: MENU };
+  return null;
 }
 
 // 文案全文（可以直接複製貼上）
