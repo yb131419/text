@@ -2355,7 +2355,7 @@ const DEFAULT_PRICES = [
 let LAST_QUOTE_ = null;
 const REPORT_FOLDER = '小乖試算報表';
 const REPORT_BY = '彥彬｜特助小乖';   // 報表上的「試算者」
-const CARD_BY = '彥彬｜生活筆記 @238zwwwu';   // 智囊軍師圖卡底部署名
+const CARD_BY = '彥彬｜生活筆記 @248zwwwu';   // 智囊軍師圖卡底部署名
 const C = {
   bg: '#1c1c1c', card: '#262626', gold: '#d4af37', gold2: '#f0c75e', teal: '#2ee6c5', purple: '#c084fc',
   white: '#ffffff', grey: '#9a9a9a', head: '#2f6fb5', row1: '#ffffff', row2: '#eef1f5', ink: '#222222', qty: '#b07a00', green: '#4ade80',
