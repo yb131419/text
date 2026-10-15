@@ -717,8 +717,8 @@ function cardLayout_(c) {
     };
     shape('RECTANGLE', 16, 16, W - 32, H - 32, null, '#C9A56A');
     shape('RECTANGLE', 22, 22, W - 44, H - 44, null, '#4A3F2C');
-    text('生活筆記「' + (c.topic || c.label) + '」', X, 38, TW, 24, 13, '#C9A56A', { bold: true });
-    shape('RECTANGLE', W / 2 - 24, 70, 48, 1, '#C9A56A', null);
+    text('生活筆記「' + (c.topic || c.label) + '」', X, 34, TW, 32, 19, '#E9D3A2', { bold: true });
+    shape('RECTANGLE', W / 2 - 30, 72, 60, 1, '#C9A56A', null);
     text(c.title, X, 82 + sh, TW, 70, c.title.length > 10 ? 22 : 26, '#F1DFB4', { bold: true, serif: true });
     text(c.body, X, top + sh, TW, BH, fs, '#EDE6D6', { align: 'START', valign: 'TOP', ls: 150 });
     if (c.gold) {
