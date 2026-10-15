@@ -1765,7 +1765,7 @@ const PACKS = {
 const CODE_ALIAS = { '火山甘露茶': '火山甘露' };
 const CAPPED = ['168', '111', '101'];   // SOP：三個月購買上限 4 盒
 // SOP 購買建議二：這些品項照「每月固定盒數」算，不看顆數
-const FIXED_MONTHLY = { '2711AB': 3, '777Q': 2, '168': 2, '111': 2, '101': 2 };
+const FIXED_MONTHLY = { '2711AB': 3, '777Q': 2, '168': 2, '111': 2, '101': 2, '火山甘露': 1 };   // 火山甘露：SOP 一個月一盒
 const MIN_2711AB = 3;                    // SOP：新人必須買滿三盒
 // 新入會組合與入會贈送（照彥彬試算系統）：女生、男生、九號三種；舊會員不加
 const NEW_MEMBER = {
@@ -1987,9 +1987,21 @@ function finishQuote_(prices, parsed, opts) {
   const target = opts.target && opts.target.kind !== 'none' ? opts.target : null;
   // 有選月數就只算那幾個月（月數優先，2026-10-15 使用者選的），不夠目標只註明還差多少；
   // 沒選月數才照目標把最後一個月份拉長到達標為止
-  const base = months ? sliceMonths_(parsed, months) : parsed;
-  let result = fitTarget_(prices, base, target && !months ? target.value : 0, target ? target.kind : '');
-  if (target && result.isSheet) result = trimToTarget_(prices, base, target, result);
+  let base = months ? sliceMonths_(parsed, months) : parsed;
+  // 要補到目標時，用「保養」欄（211、300、299A 這類基本款）往後補，不要把第三個月的 111／101／168 一起拉長
+  const fill = target && !months;
+  if (fill && (parsed.maintenance || []).length) {
+    const amt = target.kind === 'amount';
+    const r0 = applyCash211_(computeQuote_(prices, base));
+    const got = r0.lines.reduce((a, l) => a + (amt ? l.price : l.pv), 0);
+    if (r0.isSheet && got < target.value) {
+      base = Object.assign({}, base, { maintenance: [],
+        periods: (base.periods || []).concat([{ label: '保養', months: 1, rows: JSON.parse(JSON.stringify(parsed.maintenance)) }]) });
+    }
+  }
+  let result = fitTarget_(prices, base, fill ? target.value : 0, target ? target.kind : '');
+  // 明細表本身就超過目標才照 SOP 刪減；為了達標往後補的，不再回頭刪
+  if (target && result.isSheet && !result.extended) result = trimToTarget_(prices, base, target, result);
   if (months) {
     let note = '🗓️ 買滿 ' + months + ' 個月';
     if (target) {
@@ -2092,10 +2104,13 @@ function fitTarget_(prices, parsed, target, kind) {
   const last = filled[filled.length - 1];
   const pvOf = q => q.lines.reduce((a, l) => a + (kind === 'amount' ? l.price : l.pv), 0);
   let m = Math.max(1, Number(last.months) || 1);
+  let extended = false;
   while (pvOf(r) < target && m < 36) {
     last.months = ++m;
     r = calc();
+    extended = true;
   }
+  r.extended = extended;
   r.target = target;
   r.targetKind = kind || 'pv';
   r.fitLabel = String(last.label || '');
@@ -2210,6 +2225,11 @@ function computeQuote_(prices, parsed) {
     isSheet: isSheet, periods: periods, totalMonths: totalMonths, card: !!parsed.card, lines: lines.filter(Boolean), maint: maint.filter(Boolean),
     unknown: unknown.filter((x, i, a) => a.indexOf(x) === i), warn: warn, notes: notes,
   };
+}
+
+// 報表圖片上的組合價品名比較好懂：「2711AB(4)限2組」→「2711AB 4盒組合」、「2711AB(1)限8盒」→「2711AB 單盒」
+function packName_(name) {
+  return String(name).replace(/^(.+?)\((\d+)\)限\d+組$/, (m, a, b) => a + ' ' + b + '盒組合').replace(/^(.+?)\(1\)限\d+盒$/, '$1 單盒');
 }
 
 function line_(p, qty, label) {
@@ -2488,7 +2508,7 @@ function reportLayout_(r) {
   const d = reportData_(r);
   const n = x => Number(x).toLocaleString('en-US');
   const rows = r.lines.map(l => l.price || l.pv
-    ? { name: l.name, qty: l.qty, sub: '單價 ' + n(Math.round(l.price / l.qty)) + '｜PV ' + n(Math.round(l.pv / l.qty)), amount: 'NT$ ' + n(l.price), pv: n(l.pv) }
+    ? { name: packName_(l.name), qty: l.qty, sub: '單價 ' + n(Math.round(l.price / l.qty)) + '｜PV ' + n(Math.round(l.pv / l.qty)), amount: 'NT$ ' + n(l.price), pv: n(l.pv) }
     : { name: l.name, qty: l.qty, sub: '入會贈送', amount: '贈送', pv: '—' });
   if (d.gifts) rows.push({ name: GIFT_NAME, qty: d.gifts, sub: '現金每滿 2 萬送 1 瓶', amount: '贈品', pv: '—', gift: true });
   const boxes = r.lines.reduce((a, l) => a + l.qty, 0);
