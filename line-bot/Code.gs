@@ -1834,6 +1834,7 @@ function quoteOpts_(text) {
   if (/舊會員|不入會|非新/.test(t)) o.newMember = false;
   if (/[九9]號/.test(t)) o.gender = '九號'; else if (/男/.test(t)) o.gender = '男'; else if (/女/.test(t)) o.gender = '女';
   if (/照(明細)?表|照單/.test(t)) o.months = 'sheet';
+  if (/依\s*PV|PV\s*補|不指定月|不選月|依目標/i.test(t)) o.months = 'none';   // 不選月數，照 PV／金額目標補
   if (/不指定|不用|沒有|都可以|隨便|不限/.test(t)) o.target = { kind: 'none' };
   const CN = { '一': 1, '二': 2, '兩': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10, '十二': 12 };
   const mm = t.match(/(\d+|十二|[一二兩三四五六七八九十])\s*個?月/);
@@ -1898,7 +1899,12 @@ function sheetEdit_(st, text) {
 
 function askOrQuote_(prices, st) {
   const joinAsked = st.opts.gender || st.opts.newMember === false;
-  if (st.opts.card === undefined || !st.opts.target || !st.opts.months || !joinAsked) {
+  // 月數優先：先問月數；選了月數就照月數算（不再問目標），選「依PV補」才問要補到多少
+  // 說明欄或表上只寫了目標、沒寫月數，就當作依目標補
+  const o = st.opts, hasTarget = o.target && o.target.kind !== 'none';
+  if (!o.months && hasTarget) o.months = 'none';
+  const needTarget = o.months === 'none' && !o.target;
+  if (o.card === undefined || !o.months || needTarget || !joinAsked) {
     const intro = [];
     if (!st.asked) {
       const p = st.parsed;
@@ -1922,15 +1928,15 @@ function askOrQuote_(prices, st) {
     if (st.opts.card === undefined) {
       return { text: intro.concat(['1️⃣ 這次是現金還是刷卡？']).join('\n'), buttons: [['💵 現金', '💳 刷卡']] };
     }
-    if (!st.opts.target) {
-      return { text: intro.concat(['2️⃣ 要買多少 PV 或金額？',
-        '可以選下面的按鈕，或直接打：「PV 15萬」「金額 30萬」；沒有目標就選「不指定」']).join('\n'),
-        buttons: [['22萬PV', '30萬PV'], ['不指定']] };
-    }
     if (!st.opts.months) {
-      return { text: intro.concat(['3️⃣ 要買滿幾個月？',
-        '可以選下面的按鈕，或直接打「買滿2個月」；照明細表寫的月數就選「照明細表」']).join('\n'),
-        buttons: [['買滿1個月', '買滿2個月', '買滿3個月'], ['照明細表']] };
+      return { text: intro.concat(['2️⃣ 要買滿幾個月？',
+        '選了月數就照月數算；不選月數、想買到 22萬／30萬 PV 就選「依PV補」']).join('\n'),
+        buttons: [['買滿1個月', '買滿2個月', '買滿3個月'], ['照明細表', '依PV補']] };
+    }
+    if (needTarget) {
+      return { text: intro.concat(['3️⃣ 要補到多少 PV 或金額？',
+        '可以選下面的按鈕，或直接打：「PV 15萬」「金額 30萬」；月數會自動拉長到達標為止']).join('\n'),
+        buttons: [['22萬PV', '30萬PV'], ['照明細表']] };
     }
     return { text: intro.concat(['4️⃣ 入會方式？', '男生、女生、九號三種入會組合；已經是會員就選「舊會員」']).join('\n'),
       buttons: [['👩 女生', '👨 男生'], ['9️⃣ 九號', '舊會員']] };
