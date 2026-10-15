@@ -289,6 +289,12 @@ function doPost(e) {
     return text_(askByVoice_(String(body.ask || ''), body.image || ''));
   }
 
+  // 「嘿 小乖 寫文案」捷徑：POST JSON { action:'card', key, ask:'火山草本' } → { text: 可直接貼的文案, img: 圖卡 PNG 的 base64 }
+  if (body.action === 'card') {
+    if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return json_({ ok: false, text: '同步密碼不對，請檢查捷徑裡的 key。', img: '' });
+    return json_(cardApi_(String(body.ask || '')));
+  }
+
   // 網頁同步
   if (body.action === 'sync') {
     if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return json_({ ok: false, error: '同步密碼錯誤' });
@@ -735,6 +741,21 @@ function cardLine_() {
     console.error('LINE 圖卡失敗：' + REPORT_ERR_);
     return [{ type: 'text', text: cardErrText_() }];
   }
+}
+
+// 捷徑用：寫好文案並畫好圖卡，一次回給捷徑（文案拷貝到剪貼簿、圖卡存到相簿）
+function cardApi_(ask) {
+  const a = ask.replace(/\s+/g, '');
+  let k = stratPick_(a) || stratPick_(a.replace(/主題$/, '')) || stratPick_(a + '主題');
+  if (!k || k === 'menu') return { ok: false, text: '請說主題：' + STRAT_THEMES.map(t => t.btn.replace(/^\S+ /, '')).join('、'), img: '' };
+  const ans = strategist_(k);
+  const c = LAST_CARD_; LAST_CARD_ = null;
+  if (!c) return { ok: false, text: String(ans && ans.text || ans), img: '' };
+  REPORT_ERR_ = '';
+  const png = cardPng_(c);
+  if (png) try { saveCard_(png); } catch (e) { console.error(e); }
+  return { ok: true, title: c.title, text: [c.title, '', c.body, '', c.gold, c.note, '', c.tags.join(' ')].join('\n').replace(/\n{3,}/g, '\n\n').trim(),
+    img: png ? Utilities.base64Encode(png.getBytes()) : '', err: png ? '' : cardErrText_() };
 }
 
 // 對話頁：圖卡直接用 data URL 放進回覆，畫面上就看得到
