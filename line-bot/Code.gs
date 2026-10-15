@@ -119,6 +119,7 @@ const HELP_MORE = [
   '【💬 見證分享】',
   '・按「➕ 新增見證」後 10 分鐘內傳的圖片、影片都存成見證（LINE、Telegram 都可以），傳完按「✅ 存好了」',
   '・Telegram 轉傳時說明打「#見證案例」也可以；LINE 傳影片一律存進案例庫',
+  '・LINE、Telegram 存的見證兩邊都看得到、都能轉傳',
   '・按「💬 見證案例」看見證：圖片影片會直接傳出來，長按就能轉傳',
   '・案例分類：看每類有幾筆；改分類 名稱：改剛存那筆的分類',
   '・新增分類／分類改名 舊 新／刪除分類',
@@ -985,7 +986,7 @@ const CASE_SHEET = '案例庫';
 const CASE_CAT_SHEET = '案例分類';
 // 預設分類；之後可以直接改試算表「案例分類」分頁（一列一個），或打「改分類 新名字」新增
 const CASE_CATS = ['見證案例', '使用前後對比', '產品介紹', '試算報表', '課程活動', '其他'];
-const CASE_HEAD = ['時間', '分類', '類型', '產品', '人物', '說明文字', 'AI 摘要', '關鍵字', '來源', 'file_id'];
+const CASE_HEAD = ['時間', '分類', '類型', '產品', '人物', '說明文字', 'AI 摘要', '關鍵字', '來源', 'file_id', '雲端硬碟'];
 const CASE_ICON = { photo: '🖼️', video: '🎬', animation: '🎞️', document: '📄', text: '📝' };
 let CURRENT_TG_CHAT_ = '';
 let IMG_NOT_ORDER_ = false;   // 沒寫說明的圖片看起來不是訂單／明細表
@@ -1002,6 +1003,7 @@ function caseSheet_() {
     sh.appendRow(CASE_HEAD);
     sh.setFrozenRows(1);
   }
+  if (sh.getRange(1, 11).getValue() !== '雲端硬碟') sh.getRange(1, 11).setValue('雲端硬碟');   // 舊表補上欄位
   migrateOldCases_(ss, sh);
   newestFirst_(sh, CASE_HEAD.length);
   return sh;
@@ -1221,15 +1223,36 @@ function saveLineCase_(messageId, type) {
   } else img = blob;
   return storeCase_(type === 'video' ? 'video' : 'photo', '', fid, () => img ? dataUrl_(img) : '', 'LINE');
 }
+// Telegram 存的圖片／影片：第一次在 LINE 看時從 Telegram 下載一份放雲端硬碟（記在「雲端硬碟」欄），之後兩邊共用
+function caseDrive_(c) {
+  if (/^drive:/.test(c.fid)) return c.fid;
+  if (c.drive) return c.drive;
+  if (!c.fid || ['photo', 'video', 'animation'].indexOf(c.type) < 0) return '';
+  try {
+    const info = JSON.parse(tgApi_('getFile', { file_id: c.fid }));
+    if (!info.ok) return '';   // Telegram 只能下載 20MB 以內的檔案
+    const res = UrlFetchApp.fetch('https://api.telegram.org/file/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/' + info.result.file_path, { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return '';
+    const ext = c.type === 'photo' ? '.jpg' : '.mp4';
+    const f = caseFolder_().createFile(res.getBlob().setName('案例_TG_' + Utilities.formatDate(new Date(c.time || Date.now()), TZ, 'yyyyMMdd_HHmmss') + ext));
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    c.drive = 'drive:' + f.getId();
+    const sh = ss_().getSheetByName(CASE_SHEET), t = c.time instanceof Date ? c.time.getTime() : 0;
+    const cell = sh && sh.getRange(c.row, 1).getValue();
+    if (cell instanceof Date && cell.getTime() === t) sh.getRange(c.row, 11).setValue(c.drive);   // 確認還是同一列才寫
+    return c.drive;
+  } catch (e) { console.error('Telegram 案例複製到雲端硬碟失敗：' + e.message); return ''; }
+}
 const driveIds_ = fid => String(fid).slice(6).split('|');
 const driveImg_ = id => 'https://lh3.googleusercontent.com/d/' + id;
 const driveFile_ = id => 'https://drive.usercontent.google.com/download?id=' + id + '&export=download';
 // 瀏覽案例時，雲端硬碟裡的圖片／影片在 LINE 直接傳出來（一次最多 4 個）
 let CASE_LINE_ = [];
 function caseLine_() { const m = CASE_LINE_; CASE_LINE_ = []; return m; }
-function lineCaseMsg_(c) {
-  const ids = driveIds_(c.fid);
-  if (c.type === 'video') return ids[1] ? { type: 'video', originalContentUrl: driveFile_(ids[0]), previewImageUrl: driveImg_(ids[1]) } : null;
+function lineCaseMsg_(c, d) {
+  const ids = driveIds_(d);
+  if (c.type !== 'photo') return { type: 'video', originalContentUrl: driveFile_(ids[0]),
+    previewImageUrl: ids[1] ? driveImg_(ids[1]) : 'https://yb131419.github.io/Tezhu/xiaoguai.jpg' };   // 沒有預覽圖就用小乖頭像
   return { type: 'image', originalContentUrl: driveImg_(ids[0]), previewImageUrl: driveImg_(ids[0]) };
 }
 
@@ -1237,7 +1260,7 @@ function allCases_() {
   caseCats_();               // 分類表改過的話，案例的分類先跟著改
   const sh = caseSheet_();   // 會順便把舊版案例搬過來
   if (!sh || sh.getLastRow() < 2 || sh.getRange(1, 2).getValue() !== '分類') return [];
-  return sh.getRange(2, 1, sh.getLastRow() - 1, CASE_HEAD.length).getValues().map(r => ({
+  return sh.getRange(2, 1, sh.getLastRow() - 1, CASE_HEAD.length).getValues().map((r, i) => ({ row: i + 2, drive: String(r[10] || ''),
     time: r[0], cat: String(r[1] || '其他'), type: String(r[2]), products: String(r[3] || ''), people: String(r[4] || ''),
     text: String(r[5] || ''), summary: String(r[6] || ''), keywords: String(r[7] || ''), src: String(r[8] || ''), fid: String(r[9] || ''),
   }));   // 工作表本來就是新的在上面
@@ -1295,11 +1318,11 @@ function caseLines_(title, list) {
   if (media.length) {
     if (CURRENT_TG_CHAT_) { media.slice(0, 5).forEach(c => sendTgCase_(CURRENT_TG_CHAT_, c)); out.push('（最新 ' + Math.min(5, media.length) + ' 個圖片／影片已傳在上面）'); }
     else {
-      const drv = media.filter(c => /^drive:/.test(c.fid)).slice(0, 4);
-      CASE_LINE_ = drv.map(lineCaseMsg_).filter(Boolean);
+      const drv = media.filter(c => c.type !== 'document').slice(0, 4).map(c => ({ c: c, d: caseDrive_(c) })).filter(x => x.d);
+      CASE_LINE_ = drv.map(x => lineCaseMsg_(x.c, x.d));
       if (CASE_LINE_.length) out.push('（最新 ' + CASE_LINE_.length + ' 個圖片／影片在上面，長按就能轉傳分享）');
-      drv.filter(c => c.type === 'video').forEach(c => out.push('🎬 影片連結：https://drive.google.com/file/d/' + driveIds_(c.fid)[0] + '/view'));
-      if (media.length > drv.length) out.push('（在 Telegram 存的圖片／影片，到 Telegram 查就會直接傳給你）');
+      drv.filter(x => x.c.type !== 'photo').forEach(x => out.push('🎬 影片連結：https://drive.google.com/file/d/' + driveIds_(x.d)[0] + '/view'));
+      if (media.length > drv.length && !drv.length) out.push('（這些圖片／影片太大或是檔案，到 Telegram 查就會直接傳給你）');
     }
   }
   return out.join('\n');
