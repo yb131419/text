@@ -38,7 +38,7 @@ const QUICK = [['🐾 對話頁', MENU_BTN, '📋 試算'], ['🪶 智囊軍師'
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
   { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['⚙️ 設定', '署名・標題']] },
-  { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🗂️ 案例分類', '全部分類']] },
+  { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類']] },
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
   { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、這週排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '說一句就排好'], ['📅 這週行程', '整週一覽'], ['🗑️ 刪除行程', '點一下就刪']] },
   { en: 'NOTES', title: '我的筆記', sub: '靈感、重點、待辦，隨手記、隨時看', items: [['📝 我的筆記', '全部筆記'], ['✍️ 新增筆記', '打一句就存'], ['✅ 我的待辦', '未完成事項']] },
@@ -100,7 +100,7 @@ const HELP_TEXT = [
   '小乖可以幫你 👇（按「💎 選單」看全部卡片）',
   '',
   '🪶 軍師：選主題，寫文案＋圖卡',
-  '💬 見證：按「新增見證」再傳圖片影片，之後看、轉傳分享',
+  '💬 見證：按「新增見證」再傳圖片影片，之後查詢、轉傳分享',
   '📋 試算：先按「試算」再傳明細表照片',
   '📅 行程：新增、今天、這週、刪除',
   '📝 筆記：新增筆記、看筆記和待辦',
@@ -123,6 +123,7 @@ const HELP_MORE = [
   '・LINE、Telegram 存的見證兩邊都看得到、都能轉傳',
   '・按「💬 見證案例」看見證：圖片影片會直接傳出來，長按就能轉傳',
   '・改說明：存好時或見證卡片上按「✏️ 改說明」，再打新的說明（打「取消」不改）',
+  '・查詢：按「🔍 查詢案例」再打關鍵字（產品、人名、說明都可以），也能直接打「查詢案例 王太太」',
   '・刪除：存好時或見證卡片上按「🗑️ 刪除」，再按「確定刪除」才會刪',
   '・案例分類：看每類有幾筆；改分類 名稱：改剛存那筆的分類',
   '・新增分類／分類改名 舊 新／刪除分類',
@@ -581,6 +582,8 @@ function answer_(text) {
   if (sm) return sm;
   const ce = caseEdit_(t2, raw);   // 「✏️ 改說明」：改某一則圖片／影片的說明
   if (ce) return ce;
+  const cf = caseFind_(t2, raw);   // 「🔍 查詢案例」：打關鍵字找見證
+  if (cf) return cf;
   const cd = caseDel_(t2);   // 「🗑️ 刪除見證」：問過確定才刪
   if (cd) return cd;
   const ad = addPending_(t2, raw);   // 「➕ 新增行程」「✍️ 新增筆記」按下後的下一句
@@ -1348,16 +1351,52 @@ function caseCatsMenu_() {
   };
 }
 
+// 「🔍 查詢案例」：按了問關鍵字，5 分鐘內的下一句就拿來找；也可以直接打「查詢案例 王太太」
+function caseFind_(t, raw) {
+  const flat = String(t || '').replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '');
+  let q = '';
+  const pend = prop_('CASE_FIND');
+  if (pend) {
+    setProp_('CASE_FIND', '');
+    const menuWord = [].concat.apply([], MENU.concat(MENU_GROUPS, QUICK)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
+    if (Number(prop_('CASE_FIND_UNTIL')) > Date.now() && !menuWord && !/^查詢案例/.test(flat)) {
+      if (/^(取消|不用|算了)$/.test(flat)) return { text: '好，不找了。', buttons: MENU };
+      q = String(raw || t).trim();
+    }
+  }
+  if (!q) {
+    const m = String(t || '').replace(/^[^\p{L}\p{N}]+/u, '').trim().match(/^(?:查詢案例|查案例|找案例|找見證|查見證)\s*(.*)$/);
+    if (!m) return null;
+    q = m[1].trim();
+  }
+  if (!q) {
+    setProp_('CASE_FIND', '1');
+    setProp_('CASE_FIND_UNTIL', String(Date.now() + 5 * 60 * 1000));
+    return { text: '🔍 要找什麼見證？打關鍵字就好，例如：\n王太太\n211 皮膚\n\n（產品、人名、說明裡的字都找得到；打「取消」就不找）', buttons: [['取消']] };
+  }
+  const words = q.toLowerCase().split(/[\s,，、]+/).filter(Boolean);
+  const list = allCases_().filter(c => {
+    const hay = [c.cat, c.products, c.people, c.text, c.summary, c.keywords].join(' ').toLowerCase();
+    return words.every(w => hay.indexOf(w) >= 0);
+  });
+  if (!list.length) return { text: '🔍 找不到跟「' + q + '」有關的見證。\n換個關鍵字，或少打幾個字再試試。', buttons: [['🔍 查詢案例', '💬 見證案例']].concat(MENU) };
+  return browseList_('🔍「' + q + '」', list, 1, '');
+}
+
 function browseCat_(cat, page) {
   const list = allCases_().filter(c => c.cat === cat);
   if (!list.length) return { text: '【' + cat + '】還沒有案例。轉傳圖片、影片或文字給小乖就會存進來。', buttons: MENU };
-  if (!LINE_MODE_) return { text: caseLines_('【' + cat + '】共 ' + list.length + ' 筆，最新的：', list), buttons: MENU };
+  return browseList_('【' + cat + '】', list, page, cat);
+}
+// 一串案例：LINE 用卡片輪播（一頁 10 張），Telegram 列文字＋傳原檔；cat 有給才有「下一頁」
+function browseList_(title, list, page, cat) {
+  if (!LINE_MODE_) return { text: caseLines_(title + '共 ' + list.length + ' 筆，最新的：', list), buttons: MENU };
   // LINE：一筆一張卡片，左右滑；按「📤 分享」才把那一則的圖片／影片傳出來，畫面不會一長串
   const pages = Math.ceil(list.length / CASE_PAGE), p = Math.min(Math.max(Number(page) || 1, 1), pages);
   const part = list.slice((p - 1) * CASE_PAGE, p * CASE_PAGE);
-  CASE_LINE_ = [{ type: 'flex', altText: '【' + cat + '】共 ' + list.length + ' 筆', contents: { type: 'carousel', contents: part.map(caseBubble_) } }];
-  const next = p < pages ? [['➡️ ' + cat + ' 第' + (p + 1) + '頁']] : [];
-  return { text: '【' + cat + '】共 ' + list.length + ' 筆' + (pages > 1 ? '（第 ' + p + '／' + pages + ' 頁）' : '')
+  CASE_LINE_ = [{ type: 'flex', altText: title + '共 ' + list.length + ' 筆', contents: { type: 'carousel', contents: part.map(caseBubble_) } }];
+  const next = p < pages && cat ? [['➡️ ' + cat + ' 第' + (p + 1) + '頁']] : [];
+  return { text: title + '共 ' + list.length + ' 筆' + (pages > 1 ? (cat ? '（第 ' + p + '／' + pages + ' 頁）' : '，先列最新的 ' + CASE_PAGE + ' 筆，多打幾個關鍵字可以縮小範圍') : '')
     + '\n左右滑看，按「📤 分享」就會把那一則傳出來，長按就能轉傳。', buttons: next.concat(MENU) };
 }
 
