@@ -165,9 +165,13 @@ function talkLink_() {
 // 「🐾 對話頁」按鈕直接打開網頁：LINE 用網址按鈕（開到 Safari，麥克風才能用），Telegram 用 Web App 按鈕
 const TALK_BTN = '🐾 對話頁';
 function lineQuick_(t) {
+  if (t === PHOTO_BTNS[0]) return { type: 'action', action: { type: 'cameraRoll', label: t } };
+  if (t === PHOTO_BTNS[1]) return { type: 'action', action: { type: 'camera', label: t } };
   if (t === TALK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
   return { type: 'action', action: { type: 'message', label: t.slice(0, 20), text: t } };
 }
+// 試算要照片時給的按鈕：LINE 直接打開相簿／相機，對話頁打開選照片；Telegram 沒有這種按鈕，改成文字提示
+const PHOTO_BTNS = ['📷 選照片', '📸 拍照'];
 function tgKey_(t) { return t === TALK_BTN ? { text: t, web_app: { url: talkUrl_() } } : { text: t }; }
 
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
@@ -509,8 +513,9 @@ function answer_(text) {
   if (q) {
     if (q[1].trim()) return quote_(q[1].trim());
     setProp_('QUOTE_UNTIL', String(Date.now() + 10 * 60 * 1000));
-    return '好，請傳訂單圖片給我，我來算數量、金額和 PV。';
+    return { text: '好，請傳訂單圖片給我，我來算數量、金額和 PV。', buttons: [PHOTO_BTNS] };
   }
+  if (/^(選照片|拍照)$/.test(text)) return '請按左下角的迴紋針 📎 選明細表照片傳給我，我會自動試算。';
   return chat_(text);
 }
 
@@ -1114,7 +1119,11 @@ function dataUrl_(blob, mime) {
 
 // msg：文字，或 { text, buttons: [['按鈕', …], …] }（按鈕按下去會直接送出那段文字）
 function tgSend_(chatId, msg) {
-  const rich = msg && typeof msg === 'object';
+  let rich = msg && typeof msg === 'object';
+  // Telegram 沒辦法用按鈕打開相簿，「選照片／拍照」按鈕拿掉，改帶一般選單
+  if (rich && msg.buttons && msg.buttons.length === 1 && msg.buttons[0] === PHOTO_BTNS) msg = { text: msg.text + '\n（按左下角的迴紋針 📎 選照片）' };
+  rich = msg && typeof msg === 'object' && !!msg.buttons;
+  if (msg && typeof msg === 'object' && !msg.buttons) msg = msg.text;
   tgApi_('sendMessage', { chat_id: chatId, text: String(rich ? msg.text : msg).slice(0, 4000),
     // 試算的問題用一次性的按鈕；其他回覆一律帶常用功能按鈕
     reply_markup: rich && msg.buttons
