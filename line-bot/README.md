@@ -142,4 +142,6 @@ LINE 和 Telegram 可以兩個都接，也可以只接一個。只要 Telegram �
 **小乖看照片（iPhone 捷徑）：** POST JSON `{ "action":"ask", "key":"同步密碼", "ask":"要問的話", "image":"照片 base64" }` 到網頁應用程式網址，回可朗讀的文字。明細表會直接試算，報表和明細傳到 Telegram；其他照片就看圖回答。捷徑：選取照片 → 調整影像大小（寬 1500）→ 轉換影像（JPEG）→ Base64 編碼 → 聽寫文字 → 取得 URL 內容（POST、JSON）→ 朗讀文字。
 
 **小乖對話頁面（不用做捷徑）：** 在 LINE 或 Telegram 打「對話頁」，小乖會直接傳網址。打開 LINE Webhook 網址（`…/exec?key=同步密碼`）再加 `&page=talk`，就是一個像 Siri 的對話頁：按橘色麥克風講話（不能用時改按鍵盤上的麥克風）、按 📷 選照片，小乖用講的回（瀏覽器朗讀）。最上面有快速回覆按鈕（試算、今天行程、待辦…；試算問問題時會換成「現金／刷卡」這類答案按鈕）。LINE、Telegram 的按鈕第一個是「🐾 對話頁」。明細表試算的報表會傳到 Telegram。Safari 按「分享 → 加入主畫面」就像 App。想說「嘿小乖」打開：捷徑只放一個「打開 URL」動作，再到「語音快捷指令」設定。
+
+**密碼不放網址：** 對話頁網址只要 `…/exec?page=talk`，第一次打開會跳出密碼框（可按 👁 顯示），輸入後記在手機上。另有獨立前端網頁 `Talk.html`（GitHub Pages：https://yb131419.github.io/text/Talk.html ，這個 PR 合併後上線），第一次填小乖網址和同步密碼，之後直接用；同一支手機設定過小乖主頁的同步就自動沿用。它用 POST `{action:'talk'}` 呼叫 Apps Script，密碼不會出現在網址列。
 - 語音：Telegram 和 LINE 都能直接傳語音，小乖先轉成文字（whisper-1，VOICE_MODEL 可換）再照一般訊息處理。

@@ -138,8 +138,9 @@ function doGet(e) {
   }
   // 「小乖對話」頁面：手機打開 Webhook 網址再加 &page=talk，加到主畫面就像 App
   if (p.page === 'talk') {
-    if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請用 LINE Webhook 那個網址，後面加 &page=talk');
-    return HtmlService.createHtmlOutput(TALK_HTML.replace('__KEY__', JSON.stringify(p.key)))
+    // 網址可以不帶密碼：頁面第一次會請你輸入，記在這支手機上
+    const k = p.key && p.key === prop_('SYNC_KEY') ? p.key : '';
+    return HtmlService.createHtmlOutput(TALK_HTML.replace('__KEY__', JSON.stringify(k)))
       .setTitle('小乖').addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1')
       .setFaviconUrl('https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png');
   }
@@ -150,8 +151,9 @@ function talkLink_() {
   let url = '';
   try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { console.error(e); }
   if (!url) return '找不到網址：請到 Apps Script「部署 → 管理部署作業」複製網頁應用程式網址，後面加 ?key=同步密碼&page=talk';
-  return '🐾 小乖對話頁（點開就能用）：\n' + url + '?key=' + prop_('SYNC_KEY') + '&page=talk'
-    + '\n\n在 Safari 打開後按「分享 →加入主畫面」，桌面就有小乖。這個網址有你的密碼，不要給別人。';
+  return '🐾 小乖對話頁：\n' + url + '?page=talk'
+    + '\n\n第一次打開要輸入同步密碼（會藏起來、記在手機上）。在 Safari 按「分享 → 加入主畫面」，桌面就有小乖。'
+    + '\n\n獨立網頁版：https://yb131419.github.io/text/Talk.html';
 }
 
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
@@ -234,6 +236,9 @@ function doPost(e) {
 
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
+
+  // 前端「小乖對話」網頁（Talk.html）：回 JSON { say, show, buttons }
+  if (body.action === 'talk') return json_(talk(String(body.key || ''), body.ask, body.image));
 
   // 「嘿小乖」捷徑傳照片（POST JSON：{ action:'ask', key, ask, image: base64 }）
   if (body.action === 'ask') {
@@ -2397,6 +2402,11 @@ button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;backgrou
 #mic{width:64px;height:64px;font-size:30px;background:var(--accent);color:#fff}
 #mic.on{animation:p 1s infinite}@keyframes p{50%{transform:scale(1.08);box-shadow:0 0 0 10px rgba(255,138,61,.25)}}
 #hint{text-align:center;color:var(--soft);font-size:14px;padding:0 16px 6px}
+#login{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
+#login .box{background:var(--card);border-radius:18px;padding:20px;width:100%;max-width:360px}
+#login p{color:var(--soft);font-size:15px;margin:8px 0 12px}#login .row{display:flex;gap:8px}
+#pw{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)}
+#pwgo{margin-top:14px;width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-size:17px}
 #chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 #chips::-webkit-scrollbar{display:none}
 .chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
@@ -2408,8 +2418,16 @@ button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;backgrou
 <div id="hint"></div>
 <div id="bar"><button id="cam" title="照片">📷</button><input id="q" placeholder="打字或按鍵盤上的麥克風" enterkeyhint="send"><button id="mic" title="講話">🎤</button></div>
 <input type="file" id="file" accept="image/*" hidden>
+<div id="login"><div class="box"><b>🔒 小乖同步密碼</b><p id="lgmsg"></p>
+<div class="row"><input id="pw" type="password" autocomplete="current-password" placeholder="同步密碼"><button id="pwshow" type="button">👁</button></div>
+<button id="pwgo" type="button">開始使用</button></div></div>
 <script>
-const KEY=__KEY__;const $=id=>document.getElementById(id);const log=$('log'),hint=$('hint');
+let KEY=__KEY__;const $=id=>document.getElementById(id);
+try{if(KEY)localStorage.setItem('xg_talk_key',KEY);else KEY=localStorage.getItem('xg_talk_key')||'';}catch(e){}
+function login(msg){$('lgmsg').textContent=msg||'第一次使用，請輸入小乖的同步密碼（只要輸入一次，會記在這支手機上）';$('login').style.display='flex';$('pw').value='';}
+$('pwgo').onclick=()=>{const k=$('pw').value.trim();if(!k)return;KEY=k;try{localStorage.setItem('xg_talk_key',KEY);}catch(e){}$('login').style.display='none';};
+$('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
+if(!KEY)login();const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;
 const MENU=['📋 試算','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','❓ 說明'];
 function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=t;
@@ -2418,7 +2436,7 @@ chips();
 function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;d.appendChild(i);}if(t){d.appendChild(document.createTextNode(t));}log.appendChild(d);log.scrollTop=1e9;return d;}
 function speak(t){if(!$('spk').checked||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u);}
 function send(q,img){if(busy)return;q=(q||'').trim();if(!q&&!img)return;busy=true;add(q,'me',img);$('q').value='';const w=add('小乖想一下…','xg');hint.textContent='';
- google.script.run.withSuccessHandler(r=>{busy=false;w.textContent=r.show||r.say;chips(r.buttons);speak(r.say);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'');}
+ google.script.run.withSuccessHandler(r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}w.textContent=r.show||r.say;chips(r.buttons);speak(r.say);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'');}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 $('mic').onclick=()=>{if(window.speechSynthesis)speechSynthesis.cancel();
