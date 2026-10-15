@@ -205,7 +205,7 @@ function talk(key, q, image, voice, audio64, audioType) {
   return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_ };
 }
 let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', TALK_MODE_ = false, VOICE_ONLY_ = false;
-const TALK_PAGE = 'https://yb131419.github.io/text/Talk.html';
+const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
   const b = ans && typeof ans === 'object' && ans.buttons;
