@@ -1422,7 +1422,9 @@ function chat_(text, image) {
   }
 
   const parsed = parseActions_(out);
-  parsed.acts = allowedActs_(text, parsed.acts);   // 使用者沒說要加／刪，就不動資料
+  const asked = parsed.acts.length;
+  parsed.acts = allowedActs_(text, parsed.acts, history.filter(m => m.role === 'user').slice(-2).map(m => m.content));   // 使用者沒說要加／刪，就不動資料
+  if (asked && !parsed.acts.length) parsed.clean = (parsed.clean || '') + '\n\n（這次沒有動到你的資料。要刪除請直接說「刪除○○」）';
   let done = [];
   if (parsed.acts.length) {
     done = withLock_(() => {
@@ -1442,9 +1444,12 @@ function chat_(text, image) {
 const ADD_WORDS = /記|加入|加上|加一|新增|添加|安排|提醒|排入|排進|排一|預約|約了|約好|寫下|存起來|存下|建立|設定|叫我|通知我|別忘|不要忘|待辦|要做|鬧鐘/;
 const WHEN_WORDS = /明天|後天|大後天|今天|今晚|晚上|早上|中午|下午|下週|下禮拜|下星期|星期|禮拜|週[一二三四五六日天]|\d+\s*[點:：]|\d+\s*[月號日]|[一二三四五六七八九十兩]+點/;
 const ASK_WORDS = /什麼|甚麼|嗎|？|\?|幾點|有沒有|有哪些|哪些|查|看看|列出|是不是/;
-const DEL_WORDS = /刪|取消|移除|拿掉|去掉|清掉|完成|做完|搞定|弄好了|不用了|不要了|結束了/;
-function allowedActs_(text, acts) {
-  const t = String(text || '');
+const DEL_WORDS = /刪|取消|移除|拿掉|去掉|清掉|清除|清空|完成|做完|搞定|弄好了|不用了|不要了|結束了/;
+// 使用者只回「是」「好」「確定」這類確認時，看前兩句自己說的話決定能不能加／刪
+const CONFIRM_WORDS = /^(是|是的|對|對的|好|好的|嗯|確定|確認|沒錯|可以|要|對啊|好啊|ok|OK|Ok|yes|刪吧|刪掉吧|刪掉)[\s!！。.～~啊呀喔吧]*$/;
+function allowedActs_(text, acts, prev) {
+  let t = String(text || '');
+  if (CONFIRM_WORDS.test(t.trim())) t += ' ' + (prev || []).join(' ');
   const addOk = ADD_WORDS.test(t) || (WHEN_WORDS.test(t) && !ASK_WORDS.test(t));
   const delOk = DEL_WORDS.test(t);
   return (acts || []).filter(a => a && ((a.type === 'delete' || a.type === 'done') ? delOk : addOk));
@@ -2584,6 +2589,7 @@ function buildSys_(d) {
     + ']\n'
     + '```\n'
     + '刪除或完成時，id 一定要照抄上面清單方括號裡的值，找不到對應的項目就問使用者是哪一筆，不要假裝已經刪掉。\n'
+    + '使用者已經說要刪除、而且你知道是哪一筆時，直接附 actions 刪除，不用再問要不要確認；使用者回「是／好／確定」確認時，這一則就要附 actions 執行，不要只說「稍等，我會處理」。\n'
     + '沒有要新增或刪除東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。';
 }
 
