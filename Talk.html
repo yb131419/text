@@ -148,8 +148,8 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 <li>照畫面念三次 <b>嘿 小乖</b>，完成。</li>
 </ol>
 <p style="margin-top:10px">之後說「嘿 小乖」再講要問的事，例如「明天有什麼行程」，一次問一件事。網址裡有你的同步密碼，請不要傳給別人。</p>
-<h3 style="margin-top:22px">📸 說「嘿 小乖 試算」自動讀最新照片</h3>
-<p>拍好明細表（或截圖）後，直接說「嘿 小乖 試算」，捷徑會自動抓手機裡<b>最新的一張照片</b>傳給小乖，不用選照片。報表會傳到 Telegram。</p>
+<h3 style="margin-top:22px">📸 說「幫我試算」自動讀最新照片</h3>
+<p>拍好明細表（或截圖）後，直接說「幫我試算」，捷徑會自動抓手機裡<b>最新的一張照片</b>傳給小乖，不用選照片。報表會傳到 Telegram。</p>
 <div class="row2"><button class="cp" id="vsu" type="button">複製網址</button><button class="cp" id="vsk" type="button">複製密碼</button></div>
 <ol>
 <li>打開 <b>捷徑</b> App，按 <b>＋</b>，加入 <b>取得最新的照片</b>（數量 1，「包含螢幕截圖」打開）。</li>
@@ -158,10 +158,10 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 <li>加入 <b>Base64 編碼</b>。</li>
 <li>加入 <b>取得 URL 內容</b>：網址貼上剛複製的網址；點「顯示更多」，方法選 <b>POST</b>，要求本文選 <b>JSON</b>，按「新增欄位 → 文字」加四個：<br><b>action</b> 填 ask　<b>key</b> 貼上密碼　<b>ask</b> 填 試算　<b>image</b> 選變數「Base64 編碼的結果」</li>
 <li>加入 <b>朗讀文字</b>，名稱改成 <b>小乖試算</b>，按完成。</li>
-<li>到 <b>設定 → 輔助使用 → 語音快捷指令</b> → 加入動作 → 選 <b>小乖試算</b>，念三次 <b>嘿 小乖 試算</b>。</li>
+<li>到 <b>設定 → 輔助使用 → 語音快捷指令</b> → 加入動作 → 選 <b>小乖試算</b>，念三次 <b>幫我試算</b>。</li>
 </ol>
 <p style="margin-top:10px">也可以在「照片」App 打開明細表 → 分享 → 選 <b>小乖試算</b>（第 1 步改成「接收分享的影像」就能這樣用）。小乖問「現金還是刷卡」時，說「嘿 小乖」再回答就好。</p>
-<h3 style="margin-top:22px">🪶 說「嘿 小乖 寫文案」直接出文案和圖卡</h3>
+<h3 style="margin-top:22px">🪶 說「幫我寫文案」直接出文案和圖卡</h3>
 <p>說完選一個主題，小乖寫好文案、畫好圖卡：<b>文案自動複製</b>（打開 FB／IG／LINE 直接貼上），<b>圖卡自動存到相簿</b>。</p>
 <div class="row2"><button class="cp" id="vcu" type="button">複製網址</button><button class="cp" id="vck" type="button">複製密碼</button></div>
 <ol>
@@ -172,9 +172,10 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 <li>再加入 <b>取得字典值</b>，鍵填 <b>img</b>；點它藍色的輸入，改選 <b>URL 的內容</b>。</li>
 <li>加入 <b>Base64 解碼</b>、<b>儲存到照片圖庫</b>、<b>快速查看</b>。</li>
 <li>名稱改成 <b>小乖寫文案</b>，按完成。</li>
-<li>到 <b>設定 → 輔助使用 → 語音快捷指令</b> → 加入動作 → 選 <b>小乖寫文案</b>，念三次 <b>嘿 小乖 寫文案</b>。</li>
+<li>到 <b>設定 → 輔助使用 → 語音快捷指令</b> → 加入動作 → 選 <b>小乖寫文案</b>，念三次 <b>幫我寫文案</b>。</li>
 </ol>
 <p style="margin-top:10px">第一次執行時，捷徑會問能不能連到小乖、能不能存照片，都按「允許」。</p>
+<p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
 <script>
 let KEY='',URL='';const $=id=>document.getElementById(id);
