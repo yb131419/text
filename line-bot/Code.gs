@@ -37,7 +37,7 @@ const MENU_BTN = '💎 選單';
 const QUICK = [['🐾 對話頁', MENU_BTN, '📋 試算'], ['🪶 智囊軍師', '✅ 我的待辦']];
 const MENU_CARDS = [
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片'], ['🐾 對話頁', '語音・選照片']] },
-  { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、這週排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '說一句就排好'], ['📅 這週行程', '整週一覽'], ['✅ 我的待辦', '未完成事項']] },
+  { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、這週排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '說一句就排好'], ['📅 這週行程', '整週一覽'], ['🗑️ 刪除行程', '點一下就刪'], ['✅ 我的待辦', '未完成事項']] },
   { en: 'NOTES', title: '我的筆記', sub: '靈感與重點，隨手記、隨時看', items: [['📝 我的筆記', '全部筆記'], ['✍️ 新增筆記', '打一句就存']] },
   { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🗂️ 案例分類', '全部分類']] },
   { en: 'SEARCH', title: '資料搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
@@ -623,6 +623,7 @@ function answer_(text) {
     setProp_('QUOTE_UNTIL', String(Date.now() + 10 * 60 * 1000));
     return { text: '好，請傳訂單圖片給我，我來算數量、金額和 PV。', buttons: [PHOTO_BTNS] };
   }
+  if (/^(刪除行程|刪行程|刪掉行程)$/.test(flat)) return listDelEvents_();   // 「🗑️ 刪除行程」按鈕：列出接下來的行程，按一下就刪
   const dn = delByName_(text);   // 「刪除 開會」「🗑️ 刪 開會」：照名稱直接刪，不經過 AI
   if (dn) return dn;
   if (/^(今天行程|今日行程|今天的行程|今天有什麼行程[？?]?)$/.test(flat)) return listToday_();
@@ -1717,6 +1718,16 @@ function delBtns_(labels) {
   const seen = {};
   const b = labels.filter(t => t && !seen[t] && (seen[t] = 1)).slice(0, 8).map(t => '🗑️ 刪 ' + t);
   return [b].concat(MENU);
+}
+// 「🗑️ 刪除行程」：今天起的行程依日期排好，每筆一個刪除按鈕
+function listDelEvents_() {
+  const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+  const evs = readAll_().events.filter(e => e.date >= today).sort(evCmp_);
+  if (!evs.length) return { text: '🗑️ 目前沒有行程可以刪除。', buttons: MENU };
+  const md = ds => Number(ds.slice(5, 7)) + '/' + Number(ds.slice(8, 10));
+  const list = evs.slice(0, 15).map(e => '・' + md(e.date) + ' ' + (e.time || '整天') + '　' + e.title);
+  return { buttons: delBtns_(evs.map(e => e.title)), text: ['🗑️ 刪除行程', ''].concat(list, evs.length > 15 ? ['…還有 ' + (evs.length - 15) + ' 筆'] : [],
+    ['', '按下面要刪的那一筆（最多列 8 個按鈕），或跟我說「刪除 名稱」。']).join('\n') };
 }
 function listTodos_() {
   const list = readAll_().todos.filter(x => !x.done).slice(0, 30)
