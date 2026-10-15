@@ -244,6 +244,7 @@ function askPhoto_(q, b64) {
   if (raw.length < 100) return '照片沒有收到，再試一次看看。';
   if (raw.length > 14e6) return '照片太大了，換一張小一點的再傳。';
   const img = 'data:image/jpeg;base64,' + raw;
+  const before = prop_('QUOTE_STATE');
   let ans;
   try { ans = image_(q, img); } catch (err) { console.error(err); return '照片讀取失敗，等一下再試試看。'; }
   ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
@@ -257,7 +258,11 @@ function askPhoto_(q, b64) {
     }
     LAST_QUOTE_ = null;
   }
-  // 試算的問題（現金還是刷卡…）也用講的問，回答時再叫一次小乖就好
+  // 試算的問題（現金還是刷卡…）傳到 Telegram 用按鈕回答，手機只回一句短的（使用者不要一直念）
+  if (tg && prop_('QUOTE_STATE') && prop_('QUOTE_STATE') !== before) {
+    tgSend_(tg, ans);
+    return '收到明細表，問題傳到 Telegram 了，按按鈕回答就好。';
+  }
   return speechText_(ans) || '好的。';
 }
 
