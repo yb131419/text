@@ -200,7 +200,7 @@ function talk(key, q, image, voice, audio64, audioType) {
   }
   return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_ };
 }
-let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', TALK_MODE_ = false;
+let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', TALK_MODE_ = false, VOICE_ONLY_ = false;
 const TALK_PAGE = 'https://yb131419.github.io/text/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
@@ -214,6 +214,7 @@ function askByVoice_(q, image) {
   if (!q) return '我在，請說。';
   if (/^(沒事了?|沒有了?|結束|掰掰|再見|不用了?|謝謝)[。！!]?$/.test(q)) return '好，有事再叫我。';
   CURRENT_TG_CHAT_ = '';
+  VOICE_ONLY_ = !TALK_MODE_;
   let ans;
   try { ans = answer_(q); } catch (err) { console.error(err); return '小乖現在有點問題，等一下再試試看。'; }
   ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
@@ -480,7 +481,7 @@ function answer_(text) {
   if (vc) return voicePick_(vc[1] || '');
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
   const sp = stratPick_(t2);
-  if (sp) return sp === 'menu' ? stratMenu_() : strategist_(sp);
+  if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
   // 案例分類：列分類、看某一類、改剛存那筆的分類
   if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
   const bc = text.match(/^(?:看分類\s*)?(.+?)（\d+）$/) || text.match(/^看分類\s*(.+)$/);
@@ -575,7 +576,20 @@ function stratMenu_() {
 
 // 認得「健康主題」「智囊軍師 健康」「軍師判定」「再寫一篇」這些說法；不是就回 null
 function stratPick_(text) {
-  const t = String(text || '').replace(/\s+/g, '');
+  // 語音聽寫會帶標點，也常說「小乖寫文案」「幫我寫一篇火山草本的文案」：先去掉標點和稱呼
+  const t = String(text || '').replace(/[\s，,。.！!？?、：:「」]+/g, '').replace(/^(嘿|欸|哈囉)?小乖/, '').replace(/^(幫我|請|請你|麻煩)/, '');
+  if (/^(來|寫|生|產生|生成|出)?(一篇|一則|個)?(文案|貼文)(吧)?$/.test(t)) return 'menu';
+  const fw = t.match(/^(?:來|寫|生|產生|生成|出)(?:一篇|一則|個)?(?:關於|有關)?(.*?)(?:主題)?(?:的)?(?:文案|貼文)(?:吧)?$/);
+  if (fw) {   // 「寫一篇健康的文案」「寫火山草本文案」
+    const w = fw[1];
+    if (/判定|軍師|隨便|你決定|你選/.test(w)) return 'auto';
+    if (/火山|草本/.test(w)) return 'herb';
+    if (/健康/.test(w)) return 'health';
+    if (/觀念/.test(w)) return 'concept';
+    if (/經營|新手/.test(w)) return 'biz';
+    if (/網路|行銷|網銷/.test(w)) return 'net';
+    return 'menu';
+  }
   if (/^(智囊軍師|軍師|智囊|換主題|寫文案|軍師文案)$/.test(t)) return 'menu';
   if (/^(再寫一篇|再一篇|換一篇)$/.test(t)) return prop_('STRAT_LAST') || 'menu';
   let r = t.replace(/^(智囊軍師|軍師)(?=.)/, '');
@@ -752,7 +766,8 @@ function cardLine_() {
 function cardApi_(ask) {
   const a = ask.replace(/\s+/g, '');
   let k = stratPick_(a) || stratPick_(a.replace(/主題$/, '')) || stratPick_(a + '主題');
-  if (!k || k === 'menu') return { ok: false, text: '請說主題：' + STRAT_THEMES.map(t => t.btn.replace(/^\S+ /, '')).join('、'), img: '' };
+  if (k === 'menu' || (!k && !a)) k = 'auto';   // 沒指定主題就讓軍師判定
+  if (!k) return { ok: false, text: '請說主題：' + STRAT_THEMES.map(t => t.btn.replace(/^\S+ /, '')).join('、'), img: '' };
   const ans = strategist_(k);
   const c = LAST_CARD_; LAST_CARD_ = null;
   if (!c) return { ok: false, text: String(ans && ans.text || ans), img: '' };
