@@ -1945,12 +1945,22 @@ function finishQuote_(prices, parsed, opts) {
   parsed.gender = opts.gender || '';
   const months = Number(opts.months) || 0;
   const target = opts.target && opts.target.kind !== 'none' ? opts.target : null;
-  // 先照選的月數取明細表；有 PV／金額目標時一定要買到目標：不夠就把最後一個月份拉長到達標為止
+  // 有選月數就只算那幾個月（月數優先，2026-10-15 使用者選的），不夠目標只註明還差多少；
+  // 沒選月數才照目標把最後一個月份拉長到達標為止
   const base = months ? sliceMonths_(parsed, months) : parsed;
-  let result = fitTarget_(prices, base, target ? target.value : 0, target ? target.kind : '');
+  let result = fitTarget_(prices, base, target && !months ? target.value : 0, target ? target.kind : '');
   if (target && result.isSheet) result = trimToTarget_(prices, base, target, result);
-  if (months) result.goalNote = '🗓️ 買滿 ' + months + ' 個月'
-    + (result.totalMonths > months ? '還不到目標，已補到 ' + result.totalMonths + ' 個月才達標' : '');
+  if (months) {
+    let note = '🗓️ 買滿 ' + months + ' 個月';
+    if (target) {
+      const amt = target.kind === 'amount';
+      const got = result.lines.reduce((a, l) => a + (amt ? l.price : l.pv), 0);
+      const tName = amt ? '金額 NT$ ' + target.value.toLocaleString('en-US') : (target.value / 10000) + '萬PV';
+      note += got >= target.value ? '，已達 ' + tName
+        : '，離 ' + tName + ' 還差 ' + (amt ? 'NT$ ' : '') + (target.value - got).toLocaleString('en-US') + (amt ? '' : ' PV') + '（照月數算，沒有自動補）';
+    }
+    result.goalNote = note;
+  }
   LAST_QUOTE_ = result.lines.length ? result : null;
   if (result.isSheet) result.byMonths = [1, 2, 3].map(m => byMonths_(prices, parsed, m));
   const answer = quoteText_(result);
