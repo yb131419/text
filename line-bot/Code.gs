@@ -537,6 +537,9 @@ function answer_(text) {
     setProp_('QUOTE_UNTIL', String(Date.now() + 10 * 60 * 1000));
     return { text: '好，請傳訂單圖片給我，我來算數量、金額和 PV。', buttons: [PHOTO_BTNS] };
   }
+  if (/^(今天行程|今日行程|今天的行程|今天有什麼行程[？?]?)$/.test(flat)) return listToday_();
+  if (/^(我的待辦|待辦|待辦清單|我的待辦事項)$/.test(flat)) return listTodos_();
+  if (/^(我的筆記|筆記)$/.test(flat)) return listNotes_();
   if (/^(選照片|拍照)$/.test(text)) return '請按左下角的迴紋針 📎 選明細表照片傳給我，我會自動試算。';
   return chat_(text);
 }
@@ -1419,6 +1422,7 @@ function chat_(text, image) {
   }
 
   const parsed = parseActions_(out);
+  parsed.acts = allowedActs_(text, parsed.acts);   // 使用者沒說要加／刪，就不動資料
   let done = [];
   if (parsed.acts.length) {
     done = withLock_(() => {
@@ -1431,6 +1435,44 @@ function chat_(text, image) {
   const answer = [parsed.clean || '好的！'].concat(done.length ? ['', '已幫你處理：'].concat(done) : []).join('\n');
   logChat_('assistant', answer);
   return answer;
+}
+
+// AI 偶爾會自己「幫忙」加行程（例如只是問今天行程，卻加了一筆開會）：
+// 只有使用者的話聽起來是要新增，才接受新增；聽起來是要刪除或完成，才接受刪除／完成
+const ADD_WORDS = /記|加入|加上|加一|新增|添加|安排|提醒|排入|排進|排一|預約|約了|約好|寫下|存起來|存下|建立|設定|叫我|通知我|別忘|不要忘|待辦|要做|鬧鐘/;
+const WHEN_WORDS = /明天|後天|大後天|今天|今晚|晚上|早上|中午|下午|下週|下禮拜|下星期|星期|禮拜|週[一二三四五六日天]|\d+\s*[點:：]|\d+\s*[月號日]|[一二三四五六七八九十兩]+點/;
+const ASK_WORDS = /什麼|甚麼|嗎|？|\?|幾點|有沒有|有哪些|哪些|查|看看|列出|是不是/;
+const DEL_WORDS = /刪|取消|移除|拿掉|去掉|清掉|完成|做完|搞定|弄好了|不用了|不要了|結束了/;
+function allowedActs_(text, acts) {
+  const t = String(text || '');
+  const addOk = ADD_WORDS.test(t) || (WHEN_WORDS.test(t) && !ASK_WORDS.test(t));
+  const delOk = DEL_WORDS.test(t);
+  return (acts || []).filter(a => a && ((a.type === 'delete' || a.type === 'done') ? delOk : addOk));
+}
+
+// 「今天行程」「我的待辦」「我的筆記」按鈕：直接照資料列出來，不經過 AI（不會亂加東西）
+function listToday_() {
+  const d = readAll_();
+  const now = new Date(), today = Utilities.formatDate(now, TZ, 'yyyy-MM-dd');
+  const evs = d.events.filter(e => e.date === today).sort(evCmp_)
+    .map(e => '・' + (e.time || '整天') + '　' + e.title + (e.place ? '＠' + e.place : ''));
+  const rms = d.reminders.filter(r => !r.fired && String(r.at).slice(0, 10) === today)
+    .sort((a, b) => String(a.at).localeCompare(String(b.at)))
+    .map(r => '・' + String(r.at).slice(11, 16) + '　' + r.text);
+  const head = '⏰ 今天 ' + today.slice(5).replace('-', '/') + '（星期' + WEEK[now.getDay()] + '）';
+  if (!evs.length && !rms.length) return head + '\n\n今天沒有行程，也沒有提醒。';
+  return [head, ''].concat(evs.length ? ['🗓️ 行程'].concat(evs) : [], evs.length && rms.length ? [''] : [],
+    rms.length ? ['🔔 提醒'].concat(rms) : [], ['', '要刪掉哪一筆，跟我說「刪除 名稱」就好。']).join('\n');
+}
+function listTodos_() {
+  const list = readAll_().todos.filter(x => !x.done).slice(0, 30)
+    .map(x => '・' + (x.pri === 'high' ? '❗' : '') + x.text + (x.due ? '（' + x.due.slice(5).replace('-', '/') + '）' : ''));
+  return list.length ? ['✅ 我的待辦（' + list.length + '）', ''].concat(list).join('\n') : '✅ 目前沒有待辦。';
+}
+function listNotes_() {
+  const list = readAll_().notes.slice(0, 15)
+    .map(n => '・' + (n.title || String(n.body || '').replace(/\s+/g, ' ').slice(0, 20) || '（無標題）'));
+  return list.length ? ['📝 最近筆記', ''].concat(list, ['', '要看哪一篇，跟我說「找 名稱」。']).join('\n') : '📝 目前沒有筆記。';
 }
 
 function reply_(replyToken, msg, extra, menu) {

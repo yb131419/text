@@ -1451,6 +1451,15 @@ function attHTML(atts){
     ? `<div class="m-att"><img src="${a.thumb}" alt="" onclick="zoom(this.src)">${a.kind==="video"?`<span class="badge">🎬 ${a.dur?Math.round(a.dur)+" 秒":"影片"}</span>`:""}</div>`
     : `<div class="m-att m-file">${a.kind==="pdf"?"📄":a.kind==="text"?"📝":"🖼️"}<span>${esc(a.name)}</span></div>`).join("")}</div>`;
 }
+// 使用者沒說要加／刪就不動資料（AI 偶爾會自己加行程或把看過的圖存成筆記）；跟 Code.gs 的 allowedActs_ 同一套規則
+function allowedActs(text,acts){
+  const t=String(text||"");
+  const addOk=/記|加入|加上|加一|新增|添加|安排|提醒|排入|排進|排一|預約|約了|約好|寫下|存起來|存下|建立|設定|叫我|通知我|別忘|不要忘|待辦|要做|鬧鐘/.test(t)
+    ||(/明天|後天|大後天|今天|今晚|晚上|早上|中午|下午|下週|下禮拜|下星期|星期|禮拜|週[一二三四五六日天]|\d+\s*[點:：]|\d+\s*[月號日]|[一二三四五六七八九十兩]+點/.test(t)
+      &&!/什麼|甚麼|嗎|？|\?|幾點|有沒有|有哪些|哪些|查|看看|列出|是不是/.test(t));
+  const delOk=/刪|取消|移除|拿掉|去掉|清掉|完成|做完|搞定|弄好了|不用了|不要了|結束了/.test(t);
+  return (acts||[]).filter(a=>a&&((a.type==="delete"||a.type==="done")?delOk:addOk));
+}
 function zoom(src){ document.getElementById("lightboxImg").src=src; document.getElementById("lightbox").classList.add("open"); }
 function renderChat(){
   const box=document.getElementById("chatBox");
@@ -1498,7 +1507,7 @@ async function sendChat(){
     });
     const out=await callOpenAI(buildSys(),msgs);
     const {clean,acts}=parseActions(out);
-    const done=applyActions(acts);
+    const done=applyActions(allowedActs(text,acts));
     state.chat.push({role:"assistant",content:clean||"好的！",acts:done,t:Date.now()});
     if(done.length) toast(`已幫你處理 ${done.length} 項`);
   }catch(e){
