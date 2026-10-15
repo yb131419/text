@@ -227,7 +227,7 @@ function askByVoice_(q, image) {
   }
   LAST_QUOTE_ = null;
   if (LAST_CARD_) {   // 智囊軍師：對話頁直接顯示圖卡；捷徑（嘿 小乖）就傳到 Telegram
-    if (TALK_MODE_) { ASK_IMG_ = cardData_(); return '文案和圖卡寫好了，在畫面上，長按圖卡可以存。'; }
+    if (TALK_MODE_) { try { ASK_IMG_ = cardData_(); } catch (e) { console.error(e); ASK_IMG_ = ''; } return '文案和圖卡寫好了，在畫面上，長按圖卡可以存。'; }
     if (tg) { sendCardTg_(tg); tgSend_(tg, ans); return '文案和圖卡寫好了，已經傳到 Telegram。'; }
     LAST_CARD_ = null;
   }
@@ -282,7 +282,10 @@ function doPost(e) {
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
 
   // 前端「小乖對話」網頁（Talk.html）：回 JSON { say, show, buttons }
-  if (body.action === 'talk') return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType));
+  if (body.action === 'talk') {   // 出錯也要回 JSON，對話頁才看得到原因（不然只會顯示「連線有問題」）
+    try { return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType)); }
+    catch (err) { console.error(err); const m = '小乖出了點問題：' + (err && err.message || err); return json_({ say: m, show: m, buttons: [], audio: '', heard: '', img: '' }); }
+  }
 
   // 「嘿小乖」捷徑傳照片（POST JSON：{ action:'ask', key, ask, image: base64 }）
   if (body.action === 'ask') {
