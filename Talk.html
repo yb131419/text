@@ -1,0 +1,81 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><title>小乖</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="小乖"><meta name="theme-color" content="#ff8a3d">
+<link rel="icon" href="https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png"><link rel="apple-touch-icon" href="https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png">
+<style>
+:root{--bg:#fff7f0;--card:#fff;--ink:#3b2a20;--soft:#8a7566;--accent:#ff8a3d;--me:#ffe3cf}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1714;--card:#2a221d;--ink:#f6ece4;--soft:#b8a597;--accent:#ff9d5c;--me:#4a3326}}
+*{box-sizing:border-box}body{margin:0;font:17px/1.6 -apple-system,"PingFang TC","Noto Sans TC",sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column}
+header{padding:14px 16px 6px;display:flex;align-items:center;gap:10px}header b{font-size:20px}header small{color:var(--soft);margin-left:auto}
+#log{flex:1;overflow:auto;padding:8px 16px 16px}
+.m{max-width:85%;margin:8px 0;padding:10px 14px;border-radius:18px;white-space:pre-wrap;word-break:break-word}
+.me{margin-left:auto;background:var(--me)}.xg{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.m img{max-width:100%;border-radius:12px;display:block}
+#bar{padding:10px 12px calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;background:var(--card)}
+#q{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:22px;padding:10px 14px;font:inherit;background:var(--bg);color:var(--ink)}
+button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;background:var(--bg);color:var(--ink)}
+#mic{width:64px;height:64px;font-size:30px;background:var(--accent);color:#fff}
+#mic.on{animation:p 1s infinite}@keyframes p{50%{transform:scale(1.08);box-shadow:0 0 0 10px rgba(255,138,61,.25)}}
+#hint{text-align:center;color:var(--soft);font-size:14px;padding:0 16px 6px}
+#login{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
+#login .box{background:var(--card);border-radius:18px;padding:20px;width:100%;max-width:360px}
+#login p{color:var(--soft);font-size:15px;margin:8px 0 12px}#login .row{display:flex;gap:8px}
+#pw{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)}
+#pwgo{margin-top:14px;width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-size:17px}
+#chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#chips::-webkit-scrollbar{display:none}
+.chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
+.chip.ask{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style></head><body>
+<header><b>🐾 小乖</b><button id="gear" class="chip" type="button" title="設定" style="margin-left:auto">⚙️</button><small style="margin-left:0"><label><input type="checkbox" id="spk" checked> 🔊 念出來</label></small></header>
+<div id="chips"></div>
+<div id="log"><div class="m xg">嗨，我是小乖！按橘色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
+<div id="hint"></div>
+<div id="bar"><button id="cam" title="照片">📷</button><input id="q" placeholder="打字或按鍵盤上的麥克風" enterkeyhint="send"><button id="mic" title="講話">🎤</button></div>
+<input type="file" id="file" accept="image/*" hidden><audio id="au" playsinline></audio>
+<div id="login"><div class="box"><b>🔒 連線設定</b><p id="lgmsg"></p>
+<input id="url" type="url" inputmode="url" placeholder="小乖網址：https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:8px;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)">
+<div class="row"><input id="pw" type="password" autocomplete="current-password" placeholder="同步密碼"><button id="pwshow" type="button">👁</button></div>
+<button id="pwgo" type="button">開始使用</button><button id="logout" type="button" style="margin-top:8px;width:100%;height:40px;border-radius:12px;font-size:15px">清除這支手機的設定</button></div></div>
+<script>
+let KEY='',URL='';const $=id=>document.getElementById(id);
+// 設定記在這支手機（localStorage），網址列不會出現密碼；小乖主頁（Assistant.html）設過同步的話直接沿用
+try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');KEY=c.key||'';URL=c.url||'';
+ if(!KEY||!URL){const a=JSON.parse(localStorage.getItem('xiaoguai_v1')||'{}');KEY=KEY||a.syncKey||'';URL=URL||a.syncUrl||'';}}catch(e){}
+function saveCfg(){try{localStorage.setItem('xg_talk',JSON.stringify({key:KEY,url:URL}));}catch(e){}}
+function login(msg){$('lgmsg').textContent=msg||'第一次使用，請貼上小乖網址（Apps Script 網頁應用程式網址，結尾是 /exec），再輸入同步密碼。只要設定一次，會記在這支手機上，密碼不會出現在網址列。';$('url').value=URL;$('pw').value='';$('login').style.display='flex';}
+$('pwgo').onclick=()=>{const u=$('url').value.trim().replace(/\?.*$/,''),k=$('pw').value.trim()||KEY;if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){$('lgmsg').textContent='網址要是 https://script.google.com/macros/s/…/exec';return;}if(!k)return;URL=u;KEY=k;saveCfg();$('login').style.display='none';};
+$('logout').onclick=()=>{try{localStorage.removeItem('xg_talk');}catch(e){}KEY='';URL='';login('已清除。要再用請重新設定。');};
+$('gear').onclick=()=>login('修改連線設定（密碼留空就沿用原本的）');
+$('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
+if(!KEY||!URL)login();const log=$('log'),hint=$('hint');
+let busy=false,rec=null,photo=null;
+const MENU=['📋 試算','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','❓ 說明'];
+function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=t;
+ b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';$('file').click();return;}send(t);};c.appendChild(b);});}
+chips();
+function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;d.appendChild(i);}if(t){d.appendChild(document.createTextNode(t));}log.appendChild(d);log.scrollTop=1e9;return d;}
+// iPhone 不讓網頁自己出聲：第一次按按鈕時先播一段無聲音檔「解鎖」，之後小乖的語音才放得出來
+const SIL='data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//NwwAAAAAAAAAAAAEluZm8AAAAPAAAABgAAAykAWlpaWlpaWlpaWlpaWlpaWnt7e3t7e3t7e3t7e3t7e3t7nJycnJycnJycnJycnJycnL29vb29vb29vb29vb29vb293t7e3t7e3t7e3t7e3t7e3t7/////////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQCowAAAAAAAAMpso+sIAAAAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NCxKMAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NAxKQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/80LEowAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=';
+function unlock(){const a=$('au');if(!a.dataset.ok){a.src=SIL;const p=a.play();if(p)p.then(()=>{a.dataset.ok=1;}).catch(()=>{});}if(window.speechSynthesis&&!window._su){window._su=1;const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}}
+document.addEventListener('click',unlock,true);document.addEventListener('touchend',unlock,true);
+function speak(t,audio){if(!$('spk').checked)return;if(audio){const a=$('au');a.src='data:audio/mpeg;base64,'+audio;const p=a.play();if(p)p.catch(()=>tts(t));return;}tts(t);}
+function tts(t){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u);}
+function send(q,img){if(busy)return;q=(q||'').trim();if(!q&&!img)return;busy=true;add(q,'me',img);$('q').value='';const w=add('小乖想一下…','xg');hint.textContent='';
+ if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
+ fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked})})
+ .then(r=>r.json()).then(r=>{busy=false;if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}w.textContent=r.show||r.say;chips(r.buttons);speak(r.say,r.audio);})
+ .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+e.message+'）';});}
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+$('mic').onclick=()=>{unlock();if(window.speechSynthesis)speechSynthesis.cancel();$('au').pause();
+ if(!SR){$('q').focus();hint.textContent='點鍵盤右下角的 🎤 講話，講完按「傳送」';return;}
+ if(rec){rec.stop();return;}
+ rec=new SR();rec.lang='zh-TW';rec.interimResults=true;let fin='';
+ rec.onresult=e=>{let t='';for(const r of e.results)t+=r[0].transcript;$('q').value=t;fin=t;};
+ rec.onend=()=>{$('mic').classList.remove('on');rec=null;hint.textContent='';if(fin)send(fin);};
+ rec.onerror=e=>{hint.textContent=e.error==='not-allowed'?'請允許使用麥克風，或改按鍵盤上的 🎤':'沒聽清楚，再按一次';};
+ $('mic').classList.add('on');hint.textContent='我在聽…講完停一下就會送出';rec.start();};
+$('cam').onclick=()=>$('file').click();
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1500/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+ send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
+</script></body></html>

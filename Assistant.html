@@ -529,7 +529,7 @@
     </div>
 
     <div class="note">
-      🔑 金鑰與所有資料只存在你自己的瀏覽器（localStorage），不會上傳到任何伺服器（對話內容只會送到 OpenAI）。<br>
+      🔑 金鑰與所有資料只存在你自己的瀏覽器（localStorage），對話內容只會送到 OpenAI。開啟下方的「LINE／Telegram 與雲端同步」後，待辦、行程、提醒、筆記會另外存一份到你自己的 Google 試算表。<br>
       ⚠️ 因金鑰寫在前端，請勿在公用電腦使用，也不要把含金鑰的備份檔分享給他人。
     </div>
 
@@ -548,6 +548,15 @@
         <option value="gpt-4o-mini">⚡ 快速（gpt-4o-mini · 便宜快，支援圖片）</option>
         <option value="gpt-5-mini">🧠 智慧（gpt-5-mini · 更聰明，支援圖片）</option>
       </select>
+    </div>
+
+    <div class="field">
+      <label>LINE／Telegram 與雲端同步</label>
+      <input type="text" id="syncUrl" inputmode="url" placeholder="Apps Script 網址：https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false">
+      <input type="password" id="syncKey" placeholder="同步密碼" autocomplete="off" spellcheck="false" style="margin-top:9px">
+      <div class="btn-row" style="margin-top:9px"><button class="mini" onclick="saveSync()">🔄 儲存並立即同步</button></div>
+      <div class="hint" id="syncStatus"></div>
+      <div class="hint">照 line-bot/README.md 架好 Apps Script 後，把網址和同步密碼貼在這裡。之後待辦、行程、提醒、筆記會和 LINE、Telegram 上的小乖共用，換手機也不怕資料不見。</div>
     </div>
 
     <div class="field">
@@ -593,7 +602,7 @@ const STORE_KEY = "xiaoguai_v1";
 const MODELS = {"gpt-4o-mini":"gpt-4o-mini","gpt-5-mini":"gpt-5-mini"};
 const DEFAULTS = {
   schema:1,
-  build:"2026.10.14-v4-openai",
+  build:"2026.10.14-v5-line-sync",
   title:"小乖",
   nick:"",
   about:"",
@@ -603,8 +612,16 @@ const DEFAULTS = {
   events:[],    // {id, title, date, time, place, time0}
   reminders:[], // {id, text, at, repeat, fired, src}
   notes:[],     // {id, title, body, time}
-  chat:[]       // {role, content, acts?}
+  chat:[],      // {role, content, acts?}
+  // 雲端同步（與 LINE、Telegram 上的小乖共用資料）：每筆資料多一個 u（更新時間），刪除記在 deleted
+  syncUrl:"",
+  syncKey:"",
+  deleted:{},   // {id: 刪除時間}
+  profileU:0,   // 名字、稱呼、關於我的更新時間
+  lastSync:0,
+  syncErr:""
 };
+const SYNC_COLS = ["todos","events","reminders","notes"];
 
 /* ============ 狀態 ============ */
 let state = load();
@@ -621,6 +638,7 @@ function load(){
       const s = JSON.parse(raw);
       const m = {...DEF, ...s};
       ["todos","events","reminders","notes","chat"].forEach(k=>{ if(!Array.isArray(m[k])) m[k]=[]; });
+      if(!m.deleted || typeof m.deleted!=="object") m.deleted={};
       if(!MODELS[m.model]) m.model=DEFAULTS.model;
       m.build = DEFAULTS.build;
       return withSharedKey(m);
@@ -633,7 +651,106 @@ function withSharedKey(m){
   if(!m.apiKey || /^sk-ant-/.test(m.apiKey)){ try{ const w=JSON.parse(localStorage.getItem("ai_company_v1")||"{}"); if(w.apiKey) m.apiKey=w.apiKey; }catch(e){} }
   return m;
 }
-function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){ toast("儲存失敗：瀏覽器空間不足"); } }
+function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){ toast("儲存失敗：瀏覽器空間不足"); } }
+function save(){ stampChanges(); persist(); scheduleSync(); }
+
+/* ============ 雲端同步（與 LINE 共用） ============ */
+// 每次儲存時比對每筆資料：有變動就蓋上更新時間 u，消失的就記進 deleted。
+// 合併規則與 line-bot/Code.gs 的 merge_() 相同：同一 id 取 u 較新者，刪除時間比資料新就刪掉。
+let seen=null, profileSig="";
+function itemSig(x){ const {u,...r}=x; return JSON.stringify(r); }
+function stampChanges(){
+  const now=Date.now(), next={};
+  SYNC_COLS.forEach(c=>state[c].forEach(x=>{
+    const s=itemSig(x); next[x.id]=s;
+    if(seen && seen[x.id]!==s) x.u=now;
+    else if(!x.u) x.u=x.time||x.time0||now;
+  }));
+  if(seen) Object.keys(seen).forEach(id=>{ if(!(id in next)) state.deleted[id]=now; });
+  seen=next;
+  const ps=JSON.stringify([state.title,state.nick,state.about]);
+  if(profileSig && ps!==profileSig) state.profileU=now;
+  profileSig=ps;
+}
+function resetSeen(){ seen=null; profileSig=""; stampChanges(); }
+function syncData(){
+  const d={deleted:state.deleted,profile:{title:state.title,nick:state.nick,about:state.about,u:state.profileU}};
+  SYNC_COLS.forEach(c=>d[c]=state[c]);
+  return d;
+}
+function mergeSync(a,b){
+  const out={deleted:{}};
+  [a.deleted||{},b.deleted||{}].forEach(src=>Object.keys(src).forEach(id=>{
+    if(!(out.deleted[id]>=src[id])) out.deleted[id]=Number(src[id])||0;
+  }));
+  const cut=Date.now()-60*864e5;
+  Object.keys(out.deleted).forEach(id=>{ if(out.deleted[id]<cut) delete out.deleted[id]; });
+  SYNC_COLS.forEach(c=>{
+    const m={};
+    [...(a[c]||[]),...(b[c]||[])].forEach(x=>{ if(!x||!x.id) return; const p=m[x.id]; if(!p||(x.u||0)>(p.u||0)) m[x.id]=x; });
+    out[c]=Object.values(m).filter(x=>!(out.deleted[x.id]>=(x.u||0)));
+    if(c==="todos"||c==="notes") out[c].sort((x,y)=>(y.time||0)-(x.time||0));
+  });
+  const pa=a.profile||{}, pb=b.profile||{};
+  out.profile=(pb.u||0)>(pa.u||0)?pb:pa;
+  return out;
+}
+function syncOn(){ return !!(state.syncUrl && state.syncKey); }
+let syncing=false, syncAgain=false, syncTimer=null;
+function scheduleSync(){
+  if(!syncOn()) return;
+  clearTimeout(syncTimer); syncTimer=setTimeout(()=>syncNow(),2500);
+}
+async function syncNow(manual){
+  if(!syncOn()){ if(manual) toast("請先填好 Apps Script 網址和同步密碼"); return; }
+  if(syncing){ syncAgain=true; return; }
+  syncing=true;
+  try{
+    stampChanges();
+    let res;
+    try{
+      // text/plain 不會觸發 CORS 預檢，Apps Script 才收得到
+      res=await fetch(state.syncUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body:JSON.stringify({action:"sync",key:state.syncKey,data:syncData()})});
+    }catch(e){ throw new Error("連不上 Apps Script，請檢查網址或網路"); }
+    let out;
+    try{ out=await res.json(); }catch(e){ throw new Error("Apps Script 回應格式不對，請確認部署的存取權是「所有人」"); }
+    if(!out.ok) throw new Error(out.error||"同步失敗");
+    stampChanges();   // 等待回應期間的新修改也要算進去
+    const m=mergeSync(syncData(),out.data||{});
+    SYNC_COLS.forEach(c=>state[c]=m[c]);
+    state.deleted=m.deleted;
+    const p=m.profile||{};
+    if((p.u||0)>(state.profileU||0)){
+      state.title=p.title||state.title; state.nick=p.nick||""; state.about=p.about||""; state.profileU=p.u;
+    }
+    resetSeen();
+    state.lastSync=Date.now(); state.syncErr="";
+    if(manual) toast("已同步，LINE 和網頁的資料一致了");
+  }catch(e){
+    state.syncErr=e.message;
+    if(manual) toast("同步失敗："+e.message,5000);
+  }
+  syncing=false; persist(); refreshView();
+  if(syncAgain){ syncAgain=false; scheduleSync(); }
+}
+// 同步回來後重畫目前畫面（設定與對話畫面不重畫，避免打斷輸入）
+function refreshView(){
+  const v=document.querySelector(".view.active")?.id?.replace("view-","");
+  ({home:renderHome, todos:renderTodos, schedule:renderEvents, reminders:renderReminders, notes:renderNotes})[v]?.();
+  renderSyncStatus();
+}
+function renderSyncStatus(){
+  const el=document.getElementById("syncStatus"); if(!el) return;
+  el.textContent = !syncOn() ? "尚未開啟同步。"
+    : state.syncErr ? "⚠️ 上次同步失敗："+state.syncErr
+    : state.lastSync ? "✓ 上次同步："+timeStr(state.lastSync) : "尚未同步過。";
+}
+function saveSync(){
+  state.syncUrl=document.getElementById("syncUrl").value.trim();
+  state.syncKey=document.getElementById("syncKey").value.trim();
+  persist(); renderSyncStatus(); syncNow(true);
+}
 
 /* ============ 工具 ============ */
 function toast(msg,ms){
@@ -1285,6 +1402,9 @@ function fillSettings(){
   document.getElementById("titleSet").value=state.title;
   document.getElementById("nickSet").value=state.nick;
   document.getElementById("aboutSet").value=state.about;
+  document.getElementById("syncUrl").value=state.syncUrl;
+  document.getElementById("syncKey").value=state.syncKey;
+  renderSyncStatus();
   document.getElementById("buildTag").textContent="版本 "+state.build;
 }
 function toggleKey(){
@@ -1297,10 +1417,12 @@ function saveSettings(){
   state.title=document.getElementById("titleSet").value.trim()||"小乖";
   state.nick=document.getElementById("nickSet").value.trim();
   state.about=document.getElementById("aboutSet").value.trim();
+  state.syncUrl=document.getElementById("syncUrl").value.trim();
+  state.syncKey=document.getElementById("syncKey").value.trim();
   save(); renderHeader(); toast("設定已儲存"); setTimeout(()=>openView("home"),500);
 }
 function exportData(){
-  const {apiKey,...data}=state;
+  const {apiKey,syncKey,...data}=state;
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
   a.download=`小乖備份-${ymd()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
@@ -1314,9 +1436,9 @@ function importData(inp){
       const d=JSON.parse(r.result);
       if(!d || !Array.isArray(d.todos)) throw 0;
       if(!confirm("匯入會覆蓋目前的待辦、行程、提醒、筆記與對話，確定嗎？")) return;
-      const key=state.apiKey;
-      localStorage.setItem(STORE_KEY,JSON.stringify({...d,apiKey:key}));
-      state=load(); renderHeader(); fillSettings(); toast("匯入完成");
+      const {apiKey:key,syncUrl,syncKey}=state;
+      localStorage.setItem(STORE_KEY,JSON.stringify({...d,apiKey:key,syncUrl,syncKey}));
+      state=load(); resetSeen(); scheduleSync(); renderHeader(); fillSettings(); toast("匯入完成");
     }catch(e){ toast("這不是有效的小乖備份檔"); }
     inp.value="";
   };
@@ -1324,14 +1446,17 @@ function importData(inp){
 }
 function resetAll(){
   if(!confirm("確定清空所有資料（含金鑰）並回復出廠預設？此動作無法復原。")) return;
-  localStorage.removeItem(STORE_KEY); state=load(); fillSettings(); renderHeader(); toast("已回復出廠預設");
+  localStorage.removeItem(STORE_KEY); state=load(); resetSeen(); fillSettings(); renderHeader(); toast("已回復出廠預設");
 }
 
 /* ============ 啟動 ============ */
+resetSeen();
 renderHome();
+syncNow();
+setInterval(()=>{ if(!document.hidden) syncNow(); },60000);
 checkReminders();
 setInterval(checkReminders,20000);
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ checkReminders(); if(document.getElementById("view-home").classList.contains("active")) renderHome(); } });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ syncNow(); checkReminders(); if(document.getElementById("view-home").classList.contains("active")) renderHome(); } });
 </script>
 </body>
 </html>
