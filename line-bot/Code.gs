@@ -123,6 +123,7 @@ const HELP_MORE = [
   '・LINE、Telegram 存的見證兩邊都看得到、都能轉傳',
   '・按「💬 見證案例」看見證：圖片影片會直接傳出來，長按就能轉傳',
   '・改說明：存好時或見證卡片上按「✏️ 改說明」，再打新的說明（打「取消」不改）',
+  '・刪除：存好時或見證卡片上按「🗑️ 刪除」，再按「確定刪除」才會刪',
   '・案例分類：看每類有幾筆；改分類 名稱：改剛存那筆的分類',
   '・新增分類／分類改名 舊 新／刪除分類',
   '',
@@ -580,6 +581,8 @@ function answer_(text) {
   if (sm) return sm;
   const ce = caseEdit_(t2, raw);   // 「✏️ 改說明」：改某一則圖片／影片的說明
   if (ce) return ce;
+  const cd = caseDel_(t2);   // 「🗑️ 刪除見證」：問過確定才刪
+  if (cd) return cd;
   const ad = addPending_(t2, raw);   // 「➕ 新增行程」「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
@@ -1205,8 +1208,8 @@ function storeCase_(type, text, fid, imgFn, src, force) {
     text: '📁 已存進【' + info.category + '】（' + NAME[type] + '）'
       + (info.summary || text ? '\n' + String(info.summary || text).replace(/\s+/g, ' ').slice(0, 60) : '')
       + (tags ? '\n🏷️ ' + tags : '')
-      + '\n要改說明按「✏️ 改說明」；分錯了按下面的分類就能改',
-    buttons: [['✏️ 改說明']].concat(chunk_(cats.filter(c => c !== info.category).map(c => '改分類 ' + c), 2).slice(0, 4)),
+      + '\n要改說明按「✏️ 改說明」；不要了按「🗑️ 刪除見證」；分錯了按下面的分類就能改',
+    buttons: [['✏️ 改說明', '🗑️ 刪除見證']].concat(chunk_(cats.filter(c => c !== info.category).map(c => '改分類 ' + c), 2).slice(0, 4)),
   };
 }
 
@@ -1377,14 +1380,18 @@ function caseBubble_(c) {
       { type: 'text', text: String(c.summary || c.text || '（沒有說明）').replace(/\s+/g, ' ').slice(0, 80), size: 'sm', weight: 'bold', color: '#2A2118', wrap: true, maxLines: 3 },
     ].concat(tags ? [{ type: 'text', text: '🏷️ ' + tags, size: 'xxs', color: '#9A8B74', wrap: true, maxLines: 2 }] : []) },
     footer: { type: 'box', layout: 'horizontal', spacing: 'sm', paddingAll: '12px', paddingTop: '0px', contents: [{
-      type: 'box', layout: 'horizontal', justifyContent: 'center', paddingAll: '10px', cornerRadius: '10px', flex: 3,
+      type: 'box', layout: 'horizontal', justifyContent: 'center', paddingAll: '10px', cornerRadius: '10px', flex: 1,
       background: { type: 'linearGradient', angle: '120deg', startColor: '#E9D3A2', endColor: '#C9A56A' },
       action: { type: 'message', label: '分享', text: '📤 分享案例 ' + caseKey_(c) },
       contents: [{ type: 'text', text: '📤 分享', size: 'sm', weight: 'bold', color: '#2A2118', flex: 0 }] }, {
-      type: 'box', layout: 'horizontal', justifyContent: 'center', paddingAll: '10px', cornerRadius: '10px', flex: 2,
+      type: 'box', layout: 'horizontal', justifyContent: 'center', paddingAll: '10px', cornerRadius: '10px', flex: 1,
       borderWidth: '1px', borderColor: '#E8DCC4', backgroundColor: '#FFFFFF',
       action: { type: 'message', label: '改說明', text: '✏️ 改說明 ' + caseKey_(c) },
-      contents: [{ type: 'text', text: '✏️ 改說明', size: 'sm', color: '#2A2118', flex: 0 }] }] },
+      contents: [{ type: 'text', text: '✏️ 說明', size: 'sm', color: '#2A2118', flex: 0 }] }, {
+      type: 'box', layout: 'horizontal', justifyContent: 'center', paddingAll: '10px', cornerRadius: '10px', flex: 1,
+      borderWidth: '1px', borderColor: '#E8DCC4', backgroundColor: '#FFFFFF',
+      action: { type: 'message', label: '刪除', text: '🗑️ 刪除見證 ' + caseKey_(c) },
+      contents: [{ type: 'text', text: '🗑️ 刪除', size: 'sm', color: '#9A5B4A', flex: 0 }] }] },
   };
   if (img) b.hero = { type: 'image', url: img, size: 'full', aspectRatio: '4:3', aspectMode: 'cover',
     action: { type: 'uri', label: '看原檔', uri: 'https://drive.google.com/file/d/' + ids[0] + '/view' } };
@@ -1415,6 +1422,35 @@ function caseEdit_(t, raw) {
   setProp_('CASE_EDIT', caseKey_(c));
   setProp_('CASE_EDIT_UNTIL', String(Date.now() + 5 * 60 * 1000));
   return { text: '✏️ 請打這一則的新說明（可以分好幾行）。\n\n目前是：\n' + (c.text || c.summary || '（沒有說明）') + '\n\n（打「取消」就不改）', buttons: [['取消']] };
+}
+
+// 「🗑️ 刪除見證」（剛存的那一則）或「🗑️ 刪除見證 代號」（卡片上的那一則）：先問，按「確定刪除」才刪
+function caseDel_(t) {
+  const flat = String(t || '').replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '');
+  if (/^不刪了?$/.test(flat)) return { text: '好，留著。', buttons: [['💬 見證案例']].concat(MENU) };
+  const ok = flat.match(/^確定刪除(\w+)$/);
+  const m = ok || flat.match(/^刪除(?:見證|案例|這則)(\w*)$/);
+  if (!m) return null;
+  const list = allCases_();
+  const last = Number(prop_('CASE_LAST_TIME'));
+  const c = m[1] ? list.find(x => caseKey_(x) === m[1]) : list.find(x => x.time instanceof Date && x.time.getTime() === last);
+  if (!c) return '找不到這一則了，可能已經刪掉。';
+  const words = String(c.summary || c.text || '（沒有說明）').replace(/\s+/g, ' ').slice(0, 60);
+  const NAME = { photo: '圖片', video: '影片', animation: '動圖', document: '檔案', text: '文字' };
+  if (!ok) return { text: '🗑️ 要刪掉這一則' + (NAME[c.type] || '') + '嗎？\n' + words + '\n\n刪掉後就找不回來。',
+    buttons: [['🗑️ 確定刪除 ' + caseKey_(c)], ['↩️ 不刪了']] };
+  const done = withLock_(() => {
+    const sh = ss_().getSheetByName(CASE_SHEET), cell = sh && c.row && sh.getRange(c.row, 1).getValue();
+    if (!(cell instanceof Date) || cell.getTime() !== c.time.getTime()) return false;
+    sh.deleteRow(c.row);
+    return true;
+  });
+  if (!done) return '這一則剛好有變動，請再按一次「💬 見證案例」重新找。';
+  // 小乖自己放在雲端硬碟的檔案一起丟到垃圾桶（30 天內還能從垃圾桶救回）
+  [c.fid, c.drive].filter(x => /^drive:/.test(x)).forEach(d => driveIds_(d).forEach(id => {
+    try { DriveApp.getFileById(id).setTrashed(true); } catch (e) {}
+  }));
+  return { text: '🗑️ 已刪除：' + words, buttons: [['💬 見證案例']].concat(MENU) };
 }
 
 // 「📤 分享案例 時間」：把那一則單獨傳出來（LINE 傳圖片／影片，Telegram 傳原檔），長按就能轉傳
