@@ -41,8 +41,10 @@ let KEY='',URL='';const $=id=>document.getElementById(id);
 // 設定記在這支手機（localStorage），網址列不會出現密碼；小乖主頁（Assistant.html）設過同步的話直接沿用
 try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');KEY=c.key||'';URL=c.url||'';
  if(!KEY||!URL){const a=JSON.parse(localStorage.getItem('xiaoguai_v1')||'{}');KEY=KEY||a.syncKey||'';URL=URL||a.syncUrl||'';}}catch(e){}
+// 從小乖傳的連結打開：網址在 #u= 後面，自動填好，再把 # 清掉
+try{const m=location.hash.match(/[#&]u=([^&]+)/);if(m){const u=decodeURIComponent(m[1]);if(/^https:\/\/script\.google\.com\//.test(u)){URL=u.replace(/\?.*$/,'');try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');c.url=URL;localStorage.setItem('xg_talk',JSON.stringify(c));}catch(e){}}history.replaceState(null,'',location.pathname);}}catch(e){}
 function saveCfg(){try{localStorage.setItem('xg_talk',JSON.stringify({key:KEY,url:URL}));}catch(e){}}
-function login(msg){$('lgmsg').textContent=msg||'第一次使用，請貼上小乖網址（Apps Script 網頁應用程式網址，結尾是 /exec），再輸入同步密碼。只要設定一次，會記在這支手機上，密碼不會出現在網址列。';$('url').value=URL;$('pw').value='';$('login').style.display='flex';}
+function login(msg){$('lgmsg').textContent=msg||(URL?'第一次使用，請輸入同步密碼（只要輸入一次，會記在這支手機上）。':'第一次使用，請貼上小乖網址（結尾是 /exec），再輸入同步密碼。最簡單：在 LINE 或 Telegram 跟小乖打「對話頁」，點它給的連結，網址就會自動填好。');$('url').value=URL;$('pw').value='';$('login').style.display='flex';}
 $('pwgo').onclick=()=>{const u=$('url').value.trim().replace(/\?.*$/,''),k=$('pw').value.trim()||KEY;if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){$('lgmsg').textContent='網址要是 https://script.google.com/macros/s/…/exec';return;}if(!k)return;URL=u;KEY=k;saveCfg();$('login').style.display='none';};
 $('logout').onclick=()=>{try{localStorage.removeItem('xg_talk');}catch(e){}KEY='';URL='';login('已清除。要再用請重新設定。');};
 $('gear').onclick=()=>login('修改連線設定（密碼留空就沿用原本的）');
@@ -60,21 +62,36 @@ function unlock(){const a=$('au');if(!a.dataset.ok){a.src=SIL;const p=a.play();i
 document.addEventListener('click',unlock,true);document.addEventListener('touchend',unlock,true);
 function speak(t,audio){if(!$('spk').checked)return;if(audio){const a=$('au');a.src='data:audio/mpeg;base64,'+audio;const p=a.play();if(p)p.catch(()=>tts(t));return;}tts(t);}
 function tts(t){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u);}
-function send(q,img){if(busy)return;q=(q||'').trim();if(!q&&!img)return;busy=true;add(q,'me',img);$('q').value='';const w=add('小乖想一下…','xg');hint.textContent='';
+function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
  if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
- fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked})})
- .then(r=>r.json()).then(r=>{busy=false;if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}w.textContent=r.show||r.say;chips(r.buttons);speak(r.say,r.audio);})
+ fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked,audio:aud?aud.b64:'',audioType:aud?aud.mime:''})})
+ .then(r=>r.json()).then(r=>{busy=false;if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}if(aud)me.textContent='🎤 '+(r.heard||'（沒聽清楚）');w.textContent=r.show||r.say;chips(r.buttons);speak(r.say,r.audio);})
  .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+e.message+'）';});}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-$('mic').onclick=()=>{unlock();if(window.speechSynthesis)speechSynthesis.cancel();$('au').pause();
- if(!SR){$('q').focus();hint.textContent='點鍵盤右下角的 🎤 講話，講完按「傳送」';return;}
- if(rec){rec.stop();return;}
- rec=new SR();rec.lang='zh-TW';rec.interimResults=true;let fin='';
- rec.onresult=e=>{let t='';for(const r of e.results)t+=r[0].transcript;$('q').value=t;fin=t;};
- rec.onend=()=>{$('mic').classList.remove('on');rec=null;hint.textContent='';if(fin)send(fin);};
- rec.onerror=e=>{hint.textContent=e.error==='not-allowed'?'請允許使用麥克風，或改按鍵盤上的 🎤':'沒聽清楚，再按一次';};
- $('mic').classList.add('on');hint.textContent='我在聽…講完停一下就會送出';rec.start();};
+// 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
+let mr=null,chunks=[],stream=null,actx=null;
+function kb(msg){$('q').focus();hint.textContent=msg||'點鍵盤右下角的 🎤 講話，講完按「傳送」';}
+async function micStart(){
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder)return kb();
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
+ catch(e){return kb('麥克風被擋住了：請到「設定 → Safari → 麥克風」選允許，或先按鍵盤上的 🎤 講話');}
+ const type=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+ try{mr=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream);}catch(e){stream.getTracks().forEach(t=>t.stop());return kb();}
+ chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+ mr.onstop=()=>{const mt=(mr&&mr.mimeType)||type||'audio/mp4';mr=null;stream.getTracks().forEach(t=>t.stop());if(actx){actx.close().catch(()=>{});actx=null;}
+  $('mic').classList.remove('on');hint.textContent='';const blob=new Blob(chunks,{type:mt});
+  if(blob.size<1500){hint.textContent='沒錄到聲音，再按一次麥克風';return;}
+  const fr=new FileReader();fr.onload=()=>send($('q').value,null,{b64:String(fr.result).split(',')[1],mime:mt.split(';')[0]});fr.readAsDataURL(blob);};
+ mr.start(250);$('mic').classList.add('on');hint.textContent='我在聽…講完停一下會自動送出，或再按一次麥克風';
+ // 講完安靜 1.5 秒就自動送出；一直沒講話 8 秒就停
+ try{actx=new (window.AudioContext||window.webkitAudioContext)();const an=actx.createAnalyser();an.fftSize=1024;actx.createMediaStreamSource(stream).connect(an);
+  const d=new Uint8Array(an.fftSize),t0=Date.now();let heard=false,last=Date.now();
+  const tick=()=>{if(!mr)return;an.getByteTimeDomainData(d);let m=0;for(let i=0;i<d.length;i++)m=Math.max(m,Math.abs(d[i]-128));
+   if(m>14){heard=true;last=Date.now();}
+   if((heard&&Date.now()-last>1500)||(!heard&&Date.now()-t0>8000)||Date.now()-t0>60000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){}
+}
+function micStop(){if(mr&&mr.state!=='inactive')mr.stop();}
+$('mic').onclick=()=>{unlock();if(window.speechSynthesis)speechSynthesis.cancel();$('au').pause();if(busy)return;if(mr)return micStop();micStart();};
 $('cam').onclick=()=>$('file').click();
 $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1500/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
  send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
