@@ -115,7 +115,7 @@ const HELP_MORE = [
   '【🪶 軍師與設定】',
   '・按「🪶 智囊軍師」選主題：軍師判定、健康、火山草本、觀念、經營、網路行銷',
   '・文案會畫成圖卡一起給你，長按圖片可以存；「🔁 再寫一篇」同主題換一篇',
-  '・按「⚙️ 設定」看、改圖卡署名和文案標題（打「預設」改回原本的）',
+  '・按「⚙️ 設定」看、改圖卡署名、文案標題和「新增見證」的說明（打「預設」改回原本的）',
   '',
   '【💬 見證分享】',
   '・按「➕ 新增見證」後 10 分鐘內傳的圖片、影片都存成見證（LINE、Telegram 都可以），傳完按「✅ 存好了」',
@@ -584,7 +584,7 @@ function answer_(text) {
   if (/^新增見證$/.test(t2.replace(/\s+/g, ''))) {
     setProp_('CASE_PENDING', caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
     setProp_('CASE_UNTIL', String(Date.now() + 10 * 60 * 1000));
-    return { text: '➕ 新增見證\n\n接下來 10 分鐘傳的圖片、影片，都會存成【見證案例】（可以一次選好幾張）。\n傳完按「✅ 存好了」。\n\n存好後按「💬 見證案例」就能看、轉傳分享。', buttons: [PHOTO_BTNS, ['✅ 存好了']] };
+    return { text: '➕ 新增見證\n\n' + caseGuide_(), buttons: [PHOTO_BTNS, ['✅ 存好了']] };
   }
   const lp = lineImgPick_(t2.replace(/\s+/g, ''));   // LINE 傳圖片後按「試算這張／存成見證／看圖說明」
   if (lp) return lp;
@@ -792,7 +792,10 @@ function stratSetting_(t) {
 }
 
 // 「⚙️ 設定」：列出目前的署名、標題，按「改署名／改標題」後下一句話就是新的內容
-const SET_BTNS = [['✍️ 改署名', '🪶 改標題'], ['↩️ 署名預設', '↩️ 標題預設']];
+const SET_BTNS = [['✍️ 改署名', '🪶 改標題'], ['↩️ 署名預設', '↩️ 標題預設'], ['📝 改見證說明', '↩️ 見證說明預設']];
+// 「➕ 新增見證」的說明文字，可以在「⚙️ 設定」改（存在指令碼屬性 CASE_GUIDE）
+const CASE_GUIDE = '接下來 10 分鐘傳的圖片、影片，都會存成【見證案例】（可以一次選好幾張）。\n傳完按「✅ 存好了」。\n\n存好後按「💬 見證案例」就能看、轉傳分享。';
+function caseGuide_() { return prop_('CASE_GUIDE') || CASE_GUIDE; }
 // 「➕ 新增行程」「✍️ 新增筆記」：按了先問內容，5 分鐘內的下一句就照這個新增（回傳改寫後的句子交給 AI）
 function addPending_(t, raw) {
   const flat = String(t || '').replace(/\s+/g, '');
@@ -821,12 +824,17 @@ function settingsMenu_(t, raw) {
     const menuWord = [].concat.apply([], MENU.concat(SET_BTNS, QUICK)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
     if (Number(prop_('SET_UNTIL')) > Date.now() && !menuWord) {
       if (/^(取消|不改|算了)$/.test(flat)) return { text: '好，不改。', buttons: MENU };
+      if (pend === 'case') {
+        setProp_('CASE_GUIDE', String(raw || t).trim().slice(0, 500));
+        return { text: '好，「➕ 新增見證」的說明改成：\n\n' + caseGuide_(), buttons: MENU };
+      }
       return { text: stratSetting_('設定' + (pend === 'by' ? '署名 ' : '標題 ') + (raw || t)), buttons: MENU };
     }
   }
   if (flat === '設定') {
-    return { text: ['⚙️ 設定', '', '✍️ 圖卡署名：' + cardBy_(), '🪶 文案標題：' + stratHead_() + '｜主題', '',
-      '按「改署名」或「改標題」，再打新的字給我就好。'].join('\n'), buttons: SET_BTNS.concat(MENU) };
+    return { text: ['⚙️ 設定', '', '✍️ 圖卡署名：' + cardBy_(), '🪶 文案標題：' + stratHead_() + '｜主題',
+      '📝 見證說明：' + caseGuide_().replace(/\s+/g, ' ').slice(0, 30) + '…', '',
+      '按「改署名」「改標題」或「改見證說明」，再打新的字給我就好。'].join('\n'), buttons: SET_BTNS.concat(MENU) };
   }
   const ask = flat.match(/^改(署名|標題)$/);
   if (ask) {
@@ -835,6 +843,15 @@ function settingsMenu_(t, raw) {
     setProp_('SET_UNTIL', String(Date.now() + 5 * 60 * 1000));
     return by ? '請打新的圖卡署名，例如：\n彥彬｜生活筆記 @248zwwwu\n\n（打「取消」就不改）'
       : '請打新的文案標題，例如：\n🪶 彥彬的文案\n後面會自動接「｜主題」\n\n（打「取消」就不改）';
+  }
+  if (flat === '改見證說明') {
+    setProp_('SET_PENDING', 'case');
+    setProp_('SET_UNTIL', String(Date.now() + 5 * 60 * 1000));
+    return '請打新的「➕ 新增見證」說明（可以分好幾行）。\n\n目前是：\n' + caseGuide_() + '\n\n（打「取消」就不改）';
+  }
+  if (flat === '見證說明預設') {
+    PropertiesService.getScriptProperties().deleteProperty('CASE_GUIDE');
+    return { text: '好，見證說明改回預設：\n\n' + caseGuide_(), buttons: MENU };
   }
   const rs = flat.match(/^(署名|標題)預設$/);
   if (rs) return { text: stratSetting_('設定' + rs[1] + ' 預設'), buttons: MENU };
