@@ -37,8 +37,10 @@ const MENU_BTN = '💎 選單';
 const QUICK = [['🐾 對話頁', '📋 試算', '✅ 我的待辦'], ['🪶 智囊軍師', MENU_BTN]];
 const MENU_CARDS = [
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片'], ['🐾 對話頁', '語音・選照片']] },
-  { en: 'DAILY', title: '每日行程', sub: '行程、待辦、筆記，一手掌握', items: [['⏰ 今天行程', '今日安排'], ['✅ 我的待辦', '未完成事項'], ['📝 我的筆記', '記下的重點']] },
-  { en: 'ARCHIVE', title: '資料搜尋', sub: '本機、網路、案例，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋'], ['🗂️ 案例分類', '案例整理']] },
+  { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、這週排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '說一句就排好'], ['📅 這週行程', '整週一覽'], ['✅ 我的待辦', '未完成事項']] },
+  { en: 'NOTES', title: '我的筆記', sub: '靈感與重點，隨手記、隨時看', items: [['📝 我的筆記', '全部筆記'], ['✍️ 新增筆記', '打一句就存']] },
+  { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🗂️ 案例分類', '全部分類']] },
+  { en: 'SEARCH', title: '資料搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
   { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['⚙️ 設定', '署名・標題'], ['❓ 說明', '使用方式']] },
 ];
 const MENU_GROUPS = MENU_CARDS.map(c => c.items.map(i => i[0]));
@@ -269,7 +271,7 @@ const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
   const b = quick_(ans && typeof ans === 'object' && ans.buttons);
-  ASK_BTNS_ = b && b !== QUICK ? [].concat.apply([], b).filter(t => t !== '🐾 對話頁').slice(0, 12) : [];
+  ASK_BTNS_ = b && b !== QUICK ? [].concat.apply([], b).filter(t => t !== '🐾 對話頁').slice(0, 16) : [];
 }
 
 function askByVoice_(q, image) {
@@ -555,6 +557,11 @@ function answer_(text) {
   if (vc) return voicePick_(vc[1] || '');
   const sm = settingsMenu_(t2, raw);   // 「⚙️ 設定」按鈕：改圖卡署名、文案標題
   if (sm) return sm;
+  const ad = addPending_(t2, raw);   // 「➕ 新增行程」「✍️ 新增筆記」按下後的下一句
+  if (ad && ad.rewrite) return answer_(ad.rewrite);
+  if (ad) return ad;
+  if (/^見證(案例)?$/.test(t2.replace(/\s+/g, ''))) return browseCat_(caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
+  if (/^新增見證$/.test(t2.replace(/\s+/g, ''))) return { text: '➕ 新增見證\n\n把見證的圖片、影片或文字轉傳給小乖，說明裡打「#見證案例」就會存進見證分類。\n存好後按「💬 見證案例」就能看、轉傳分享。', buttons: [PHOTO_BTNS].concat(QUICK) };
   const cs = stratSetting_(t2);   // 「設定署名 …」「設定標題 …」
   if (cs) return cs;
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
@@ -752,6 +759,26 @@ function stratSetting_(t) {
 
 // 「⚙️ 設定」：列出目前的署名、標題，按「改署名／改標題」後下一句話就是新的內容
 const SET_BTNS = [['✍️ 改署名', '🪶 改標題'], ['↩️ 署名預設', '↩️ 標題預設']];
+// 「➕ 新增行程」「✍️ 新增筆記」：按了先問內容，5 分鐘內的下一句就照這個新增（回傳改寫後的句子交給 AI）
+function addPending_(t, raw) {
+  const flat = String(t || '').replace(/\s+/g, '');
+  const pend = prop_('ADD_PENDING');
+  if (pend) {
+    setProp_('ADD_PENDING', '');
+    const menuWord = [].concat.apply([], MENU.concat(MENU_GROUPS, QUICK)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
+    if (Number(prop_('ADD_UNTIL')) > Date.now() && !menuWord) {
+      if (/^(取消|不用|算了)$/.test(flat)) return { text: '好，不新增。', buttons: MENU };
+      return { rewrite: (pend === 'event' ? '新增行程：' : '幫我記下筆記：') + (raw || t) };
+    }
+  }
+  const m = flat.match(/^新增(行程|筆記)$/);
+  if (!m) return null;
+  setProp_('ADD_PENDING', m[1] === '行程' ? 'event' : 'note');
+  setProp_('ADD_UNTIL', String(Date.now() + 5 * 60 * 1000));
+  return { buttons: [['取消']], text: m[1] === '行程'
+    ? '➕ 要新增什麼行程？直接打或用語音說，例如：\n明天下午3點 跟王姐喝咖啡\n10月20日 早上9點 開會\n\n（打「取消」就不新增）'
+    : '✍️ 要記什麼？直接打或用語音說，例如：\n車位在 B2-35\n\n（打「取消」就不新增）' };
+}
 function settingsMenu_(t, raw) {
   const flat = String(t || '').replace(/\s+/g, '');
   const pend = prop_('SET_PENDING');
