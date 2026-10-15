@@ -150,24 +150,33 @@ function doGet(e) {
 function talkLink_() {
   let url = '';
   try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { console.error(e); }
-  if (!url) return '找不到網址：請到 Apps Script「部署 → 管理部署作業」複製網頁應用程式網址，後面加 ?key=同步密碼&page=talk';
-  return '🐾 小乖對話頁：\n' + url + '?page=talk'
-    + '\n\n第一次打開要輸入同步密碼（會藏起來、記在手機上）。在 Safari 按「分享 → 加入主畫面」，桌面就有小乖。'
-    + '\n\n獨立網頁版：https://yb131419.github.io/text/Talk.html';
+  // 小乖網址放在 # 後面，第一次打開會自動填好，只要輸入同步密碼（密碼不放網址）
+  return '🐾 小乖對話頁：\n' + TALK_PAGE + (url ? '#u=' + encodeURIComponent(url) : '')
+    + '\n\n第一次打開只要輸入同步密碼（會藏起來、記在手機上）。在 Safari 按「分享 → 加入主畫面」，桌面就有小乖。';
 }
 
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
-function talk(key, q, image, voice) {
+function talk(key, q, image, voice, audio64, audioType) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
   ASK_SHOW_ = ''; ASK_BTNS_ = [];
+  let heard = '';
+  if (audio64) {   // 對話頁按麥克風錄的音：先轉文字
+    const mt = String(audioType || 'audio/mp4');
+    try {
+      heard = transcribe_(Utilities.newBlob(Utilities.base64Decode(String(audio64)), mt, 'voice.' + (/webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a')), 'voice.' + (/webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a'));
+    } catch (e) { console.error(e.message); }
+    if (!heard) return { say: '沒聽清楚，再說一次看看。', show: '沒聽清楚，再說一次看看。', buttons: [], audio: '', heard: '' };
+    q = heard;
+  }
   const say = askByVoice_(String(q || ''), image || '');
   let audio = '';
   if (voice && say && prop_('OPENAI_API_KEY')) {   // 用跟 LINE／Telegram 一樣的小乖聲音念
     try { audio = Utilities.base64Encode(tts_(say, 'mp3').getBytes()); } catch (e) { console.error(e.message); }
   }
-  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio };
+  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard };
 }
 let ASK_SHOW_ = '', ASK_BTNS_ = [];
+const TALK_PAGE = 'https://yb131419.github.io/text/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
   const b = ans && typeof ans === 'object' && ans.buttons;
@@ -242,7 +251,7 @@ function doPost(e) {
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
 
   // 前端「小乖對話」網頁（Talk.html）：回 JSON { say, show, buttons }
-  if (body.action === 'talk') return json_(talk(String(body.key || ''), body.ask, body.image, body.voice));
+  if (body.action === 'talk') return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType));
 
   // 「嘿小乖」捷徑傳照片（POST JSON：{ action:'ask', key, ask, image: base64 }）
   if (body.action === 'ask') {
@@ -900,8 +909,8 @@ function tts_(text, format) {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
     payload: JSON.stringify({
-      model: prop_('TTS_MODEL') || 'gpt-4o-mini-tts', voice: prop_('TTS_VOICE') || 'nova', input: text,
-      instructions: '用台灣口音的中文，語氣親切、自然、像貼心的助理，速度適中。', response_format: format || 'opus',
+      model: prop_('TTS_MODEL') || 'gpt-4o-mini-tts', voice: prop_('TTS_VOICE') || 'shimmer', input: text,
+      instructions: '用台灣口音的中文，聲音柔和、溫柔、輕聲細語，像貼心的女生助理在身邊說話；語氣放鬆、不要太亢奮，速度稍慢一點，句子之間自然停頓。', response_format: format || 'opus',
     }),
   });
   if (res.getResponseCode() !== 200) throw new Error('語音合成失敗（' + res.getResponseCode() + '）：' + res.getContentText().slice(0, 200));
@@ -2444,18 +2453,33 @@ function unlock(){const a=$('au');if(!a.dataset.ok){a.src=SIL;const p=a.play();i
 document.addEventListener('click',unlock,true);document.addEventListener('touchend',unlock,true);
 function speak(t,audio){if(!$('spk').checked)return;if(audio){const a=$('au');a.src='data:audio/mpeg;base64,'+audio;const p=a.play();if(p)p.catch(()=>tts(t));return;}tts(t);}
 function tts(t){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u);}
-function send(q,img){if(busy)return;q=(q||'').trim();if(!q&&!img)return;busy=true;add(q,'me',img);$('q').value='';const w=add('小乖想一下…','xg');hint.textContent='';
- google.script.run.withSuccessHandler(r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}w.textContent=r.show||r.say;chips(r.buttons);speak(r.say,r.audio);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'',$('spk').checked);}
+function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
+ google.script.run.withSuccessHandler(r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}if(aud)me.textContent='🎤 '+(r.heard||'（沒聽清楚）');w.textContent=r.show||r.say;chips(r.buttons);speak(r.say,r.audio);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'',$('spk').checked,aud?aud.b64:'',aud?aud.mime:'');}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-$('mic').onclick=()=>{unlock();if(window.speechSynthesis)speechSynthesis.cancel();$('au').pause();
- if(!SR){$('q').focus();hint.textContent='點鍵盤右下角的 🎤 講話，講完按「傳送」';return;}
- if(rec){rec.stop();return;}
- rec=new SR();rec.lang='zh-TW';rec.interimResults=true;let fin='';
- rec.onresult=e=>{let t='';for(const r of e.results)t+=r[0].transcript;$('q').value=t;fin=t;};
- rec.onend=()=>{$('mic').classList.remove('on');rec=null;hint.textContent='';if(fin)send(fin);};
- rec.onerror=e=>{hint.textContent=e.error==='not-allowed'?'請允許使用麥克風，或改按鍵盤上的 🎤':'沒聽清楚，再按一次';};
- $('mic').classList.add('on');hint.textContent='我在聽…講完停一下就會送出';rec.start();};
+// 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
+let mr=null,chunks=[],stream=null,actx=null;
+function kb(msg){$('q').focus();hint.textContent=msg||'點鍵盤右下角的 🎤 講話，講完按「傳送」';}
+async function micStart(){
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder)return kb();
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
+ catch(e){return kb('麥克風被擋住了：請到「設定 → Safari → 麥克風」選允許，或先按鍵盤上的 🎤 講話');}
+ const type=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+ try{mr=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream);}catch(e){stream.getTracks().forEach(t=>t.stop());return kb();}
+ chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+ mr.onstop=()=>{const mt=(mr&&mr.mimeType)||type||'audio/mp4';mr=null;stream.getTracks().forEach(t=>t.stop());if(actx){actx.close().catch(()=>{});actx=null;}
+  $('mic').classList.remove('on');hint.textContent='';const blob=new Blob(chunks,{type:mt});
+  if(blob.size<1500){hint.textContent='沒錄到聲音，再按一次麥克風';return;}
+  const fr=new FileReader();fr.onload=()=>send($('q').value,null,{b64:String(fr.result).split(',')[1],mime:mt.split(';')[0]});fr.readAsDataURL(blob);};
+ mr.start(250);$('mic').classList.add('on');hint.textContent='我在聽…講完停一下會自動送出，或再按一次麥克風';
+ // 講完安靜 1.5 秒就自動送出；一直沒講話 8 秒就停
+ try{actx=new (window.AudioContext||window.webkitAudioContext)();const an=actx.createAnalyser();an.fftSize=1024;actx.createMediaStreamSource(stream).connect(an);
+  const d=new Uint8Array(an.fftSize),t0=Date.now();let heard=false,last=Date.now();
+  const tick=()=>{if(!mr)return;an.getByteTimeDomainData(d);let m=0;for(let i=0;i<d.length;i++)m=Math.max(m,Math.abs(d[i]-128));
+   if(m>14){heard=true;last=Date.now();}
+   if((heard&&Date.now()-last>1500)||(!heard&&Date.now()-t0>8000)||Date.now()-t0>60000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){}
+}
+function micStop(){if(mr&&mr.state!=='inactive')mr.stop();}
+$('mic').onclick=()=>{unlock();if(window.speechSynthesis)speechSynthesis.cancel();$('au').pause();if(busy)return;if(mr)return micStop();micStart();};
 $('cam').onclick=()=>$('file').click();
 $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1500/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
  send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
