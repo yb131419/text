@@ -136,8 +136,24 @@ function doGet(e) {
     if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請檢查捷徑裡的網址。');
     return ContentService.createTextOutput(askByVoice_(String(p.ask)));
   }
+  // 「小乖對話」頁面：手機打開 Webhook 網址再加 &page=talk，加到主畫面就像 App
+  if (p.page === 'talk') {
+    if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請用 LINE Webhook 那個網址，後面加 &page=talk');
+    return HtmlService.createHtmlOutput(TALK_HTML.replace('__KEY__', JSON.stringify(p.key)))
+      .setTitle('小乖').addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1')
+      .setFaviconUrl('https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png');
+  }
   return ContentService.createTextOutput('小乖雲端服務運作中');
 }
+
+// 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
+function talk(key, q, image) {
+  if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
+  ASK_SHOW_ = '';
+  const say = askByVoice_(String(q || ''), image || '');
+  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, '') };
+}
+let ASK_SHOW_ = '';
 
 function askByVoice_(q, image) {
   q = q.trim();
@@ -147,7 +163,14 @@ function askByVoice_(q, image) {
   CURRENT_TG_CHAT_ = '';
   let ans;
   try { ans = answer_(q); } catch (err) { console.error(err); return '小乖現在有點問題，等一下再試試看。'; }
-  LAST_QUOTE_ = null;   // 語音沒辦法看報表圖片
+  ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
+  const tg = prop_('TG_OWNER_CHAT_ID');
+  if (LAST_QUOTE_ && tg) {   // 回答完試算問題就出報表：圖片傳到 Telegram
+    const short = sendReportTg_(tg);
+    tgSend_(tg, short || ans);
+    return '試算好了，報表已經傳到 Telegram。';
+  }
+  LAST_QUOTE_ = null;
   return speechText_(ans) || '好的。';
 }
 
@@ -156,10 +179,11 @@ function askPhoto_(q, b64) {
   CURRENT_TG_CHAT_ = '';
   const raw = String(b64).replace(/^data:[^,]*,/, '').replace(/\s+/g, '');
   if (raw.length < 100) return '照片沒有收到，再試一次看看。';
-  if (raw.length > 14e6) return '照片太大了，請在捷徑裡先「調整影像大小」寬度 1500 再傳。';
+  if (raw.length > 14e6) return '照片太大了，換一張小一點的再傳。';
   const img = 'data:image/jpeg;base64,' + raw;
   let ans;
   try { ans = image_(q, img); } catch (err) { console.error(err); return '照片讀取失敗，等一下再試試看。'; }
+  ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
   const tg = prop_('TG_OWNER_CHAT_ID');
   if (LAST_QUOTE_) {
     if (tg) {
@@ -2339,3 +2363,48 @@ function text_(s) { return ContentService.createTextOutput(s); }
 // Webhook 回應：ContentService 會先轉址（302），Telegram 會當成失敗而重送、拖慢後面的訊息；HtmlService 直接回 200
 function ack_() { return HtmlService.createHtmlOutput('OK'); }
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+
+/* ============ 「小乖對話」頁面（像 Siri：按一下講話、可選照片，小乖用講的回） ============ */
+const TALK_HTML = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<style>
+:root{--bg:#fff7f0;--card:#fff;--ink:#3b2a20;--soft:#8a7566;--accent:#ff8a3d;--me:#ffe3cf}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1714;--card:#2a221d;--ink:#f6ece4;--soft:#b8a597;--accent:#ff9d5c;--me:#4a3326}}
+*{box-sizing:border-box}body{margin:0;font:17px/1.6 -apple-system,"PingFang TC","Noto Sans TC",sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column}
+header{padding:14px 16px 6px;display:flex;align-items:center;gap:10px}header b{font-size:20px}header small{color:var(--soft);margin-left:auto}
+#log{flex:1;overflow:auto;padding:8px 16px 16px}
+.m{max-width:85%;margin:8px 0;padding:10px 14px;border-radius:18px;white-space:pre-wrap;word-break:break-word}
+.me{margin-left:auto;background:var(--me)}.xg{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.m img{max-width:100%;border-radius:12px;display:block}
+#bar{padding:10px 12px calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;background:var(--card)}
+#q{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:22px;padding:10px 14px;font:inherit;background:var(--bg);color:var(--ink)}
+button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;background:var(--bg);color:var(--ink)}
+#mic{width:64px;height:64px;font-size:30px;background:var(--accent);color:#fff}
+#mic.on{animation:p 1s infinite}@keyframes p{50%{transform:scale(1.08);box-shadow:0 0 0 10px rgba(255,138,61,.25)}}
+#hint{text-align:center;color:var(--soft);font-size:14px;padding:0 16px 6px}
+</style></head><body>
+<header><b>🐾 小乖</b><small><label><input type="checkbox" id="spk" checked> 🔊 念出來</label></small></header>
+<div id="log"><div class="m xg">嗨，我是小乖！按橘色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
+<div id="hint"></div>
+<div id="bar"><button id="cam" title="照片">📷</button><input id="q" placeholder="打字或按鍵盤上的麥克風" enterkeyhint="send"><button id="mic" title="講話">🎤</button></div>
+<input type="file" id="file" accept="image/*" hidden>
+<script>
+const KEY=__KEY__;const $=id=>document.getElementById(id);const log=$('log'),hint=$('hint');
+let busy=false,rec=null,photo=null;
+function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;d.appendChild(i);}if(t){d.appendChild(document.createTextNode(t));}log.appendChild(d);log.scrollTop=1e9;return d;}
+function speak(t){if(!$('spk').checked||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u);}
+function send(q,img){if(busy)return;q=(q||'').trim();if(!q&&!img)return;busy=true;add(q,'me',img);$('q').value='';const w=add('小乖想一下…','xg');hint.textContent='';
+ google.script.run.withSuccessHandler(r=>{busy=false;w.textContent=r.show||r.say;speak(r.say);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'');}
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+$('mic').onclick=()=>{if(window.speechSynthesis)speechSynthesis.cancel();
+ if(!SR){$('q').focus();hint.textContent='點鍵盤右下角的 🎤 講話，講完按「傳送」';return;}
+ if(rec){rec.stop();return;}
+ rec=new SR();rec.lang='zh-TW';rec.interimResults=true;let fin='';
+ rec.onresult=e=>{let t='';for(const r of e.results)t+=r[0].transcript;$('q').value=t;fin=t;};
+ rec.onend=()=>{$('mic').classList.remove('on');rec=null;hint.textContent='';if(fin)send(fin);};
+ rec.onerror=e=>{hint.textContent=e.error==='not-allowed'?'請允許使用麥克風，或改按鍵盤上的 🎤':'沒聽清楚，再按一次';};
+ $('mic').classList.add('on');hint.textContent='我在聽…講完停一下就會送出';rec.start();};
+$('cam').onclick=()=>$('file').click();
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1500/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+ send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
+</script></body></html>`;
