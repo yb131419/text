@@ -2343,7 +2343,7 @@ const DEFAULT_PRICES = [
 // 圖片直接傳到 Telegram，另外存一份到自己雲端硬碟的「小乖試算報表」資料夾（不公開）。
 let LAST_QUOTE_ = null;
 const REPORT_FOLDER = '小乖試算報表';
-const REPORT_BY = '彥彬｜助理小乖';   // 報表上的「試算者」
+const REPORT_BY = '彥彬｜特助小乖';   // 報表上的「試算者」
 const C = {
   bg: '#1c1c1c', card: '#262626', gold: '#d4af37', gold2: '#f0c75e', teal: '#2ee6c5', purple: '#c084fc',
   white: '#ffffff', grey: '#9a9a9a', head: '#2f6fb5', row1: '#ffffff', row2: '#eef1f5', ink: '#222222', qty: '#b07a00', green: '#4ade80',
@@ -2505,7 +2505,7 @@ function reportLayout_(r) {
         ? (b.type === '經理' ? '🏅 ' : '👤 ') + b.type + ' ' + b.pct + '%：約 NT$ ' + n(b.amount) + '　扣稅後 NT$ ' + n(b.afterTax)
         : b.type + '：PV 未達最低門檻', X, bonusTop + 26 + i * 22, TW, 22, 11, b.type === '經理' ? C.gold2 : C.teal, true));
     }
-    text('彥彬｜助理小乖 自動試算｜數量依圖片辨識，請再核對　' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), X, footTop, TW, 20, 8, C.grey);
+    text(REPORT_BY + ' 自動試算｜數量依圖片辨識，請再核對　' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), X, footTop, TW, 20, 8, C.grey);
     return req;
   };
   return { W: W, H: y, build: build };
