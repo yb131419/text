@@ -1477,7 +1477,7 @@ function kitCardLayout_(kit, i) {
 }
 
 // 封面：黑金精品（使用者 2026-10-16 選 A）——黑曜石底＋雙層香檳金框，象牙白大標題靠左，不放領取 PDF
-const KIT_COVER = { ink: '#F4EEE2', gold: '#D9BC7E', top: '#C9A56A', sub: '#B9AE9B', series: '#E9D3A2', by: '#8C8170' };
+const KIT_COVER = { ink: '#F4EEE2', gold: '#D9BC7E', top: '#C9A56A', sub: '#B9AE9B', series: '#E9D3A2', by: '#F1DFB4' };
 function kitCoverLayout_(kit, s, num, W, H) {
   const C = KIT_COVER, cat = kit.cat || String(kit.theme || '').replace(/主題$/, '');
   const longest = Math.max.apply(null, String(s.head || '').replace(/\*\*|~~/g, '').split('\n').map(l => l.length));
@@ -1496,8 +1496,8 @@ function kitCoverLayout_(kit, s, num, W, H) {
       { t: kit.series, size: 18, bold: true, color: C.series, font: 'Noto Sans TC', align: 'START' }]);
     kitText_(req, slide, slide + '_sw', [325, 566, 140, 34], [
       { t: 'SWIPE  →', size: 19, color: C.top, font: 'Cormorant Garamond', align: 'END' }]);
-    kitText_(req, slide, slide + '_by', [40, 612, 460, 26], [
-      { t: cardBy_(), size: 12, bold: true, color: C.by, font: 'Noto Sans TC' }]);
+    kitText_(req, slide, slide + '_by', [40, 602, 460, 34], [   // 使用者 2026-10-16：底下署名要亮、要大
+      { t: cardBy_(), size: 16, bold: true, color: C.by, font: 'Noto Sans TC' }]);
     return req;
   } };
 }
