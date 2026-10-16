@@ -3635,117 +3635,120 @@ function rgb_(hex) {
 }
 
 // 組出畫報表的 Slides 請求（拆出來方便測試）；回傳 { W, H, build(slideId) }
+// 報表配色：象牙白香檳金（使用者 2026-10-16 選 A，版面照他給的截圖）
+const RC = { bg: '#F6F1E7', paper: '#FBF8F2', row2: '#F3EDE1', line: '#E4DACA', ink: '#2A2118', soft: '#6E604E', gold: '#A07C34',
+  gold2: '#C9A56A', headTx: '#F1DFB4', green: '#1F5C4E', track: '#E9E1D2', white: '#FFFDF8' };
 function reportLayout_(r) {
   const d = reportData_(r);
   const n = x => Number(x).toLocaleString('en-US');
-  const rows = r.lines.map(l => l.price || l.pv
-    ? { name: packName_(l.name), qty: l.qty, sub: '單價 ' + n(Math.round(l.price / l.qty)) + '｜PV ' + n(Math.round(l.pv / l.qty)), amount: 'NT$ ' + n(l.price), pv: n(l.pv) }
-    : { name: l.name, qty: l.qty, sub: '入會贈送', amount: '贈送', pv: '—' });
-  if (d.gifts) rows.push({ name: GIFT_NAME, qty: d.gifts, sub: '現金每滿 2 萬送 1 瓶', amount: '贈品', pv: '—', gift: true });
-  const boxes = r.lines.reduce((a, l) => a + l.qty, 0);
+  const rows = r.lines.map(l => ({ name: packName_(l.name), qty: l.qty, price: l.qty ? Math.round(l.price / l.qty) : 0,
+    pv: l.qty ? Math.round(l.pv / l.qty) : 0, amount: l.price, spv: l.pv }));
+  if (d.gifts) rows.push({ name: GIFT_NAME, qty: d.gifts, price: 0, pv: 0, amount: 0, spv: 0 });
 
-  const W = 540, X = 20, TW = 500, HEAD = 26, ROW = 38, TOTAL = 32;
-  const tableTop = 128;
-  const tableH = HEAD + rows.length * ROW + TOTAL;
-  let y = tableTop + tableH + 16;
-  const sumTop = y; y += 84;
-  const tgtTop = y; y += 70;
-  const bonusTop = y; const bonusH = d.bonusBlocked ? 50 : 30 + d.bonus.length * 22; y += bonusH + 10;
+  const W = 540, X = 20, TW = 500, HEAD = 34, ROW = 29;
+  const whoTop = 104, tableTop = 152;
+  let y = tableTop + HEAD + rows.length * ROW + 12;
+  const sumTop = y; y += 92 + 10;
+  const tgtTop = y; y += 60 + 10;
+  const bonusTop = y; const bonusH = d.bonusBlocked ? 44 : 28 + d.bonus.length * 19; y += bonusH + 8;
   const footTop = y; y += 26;
 
   const build = slide => {
     const req = [];
-    req.push({ updatePageProperties: { objectId: slide, pageProperties: { pageBackgroundFill: { solidFill: { color: { rgbColor: rgb_(C.bg) } } } }, fields: 'pageBackgroundFill.solidFill.color' } });
+    req.push({ updatePageProperties: { objectId: slide, pageProperties: { pageBackgroundFill: { solidFill: { color: { rgbColor: rgb_(RC.bg) } } } }, fields: 'pageBackgroundFill.solidFill.color' } });
     let k = 0;
     const place = (w, h, x, yy) => ({ pageObjectId: slide,
       size: { width: { magnitude: w, unit: 'PT' }, height: { magnitude: h, unit: 'PT' } },
       transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: yy, unit: 'PT' } });
-    const style = (size, color, bold) => ({ fontSize: { magnitude: size, unit: 'PT' }, bold: !!bold, fontFamily: 'Noto Sans TC',
-      foregroundColor: { opaqueColor: { rgbColor: rgb_(color) } } });
-    const box = (x, yy, w, h, fill, outline) => {
-      const id = 'xg_box_' + (k++);
-      req.push({ createShape: { objectId: id, shapeType: 'ROUND_RECTANGLE', elementProperties: place(w, h, x, yy) } });
-      req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill.solidFill.color,outline', shapeProperties: {
-        shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(fill) } } },
-        outline: { outlineFill: { solidFill: { color: { rgbColor: rgb_(outline) } } }, weight: { magnitude: 1, unit: 'PT' } } } } });
+    const shape = (type, x, yy, w, h, fill, outline) => {
+      const id = (type === 'RECTANGLE' ? 'xg_rect_' : 'xg_box_') + (k++);
+      req.push({ createShape: { objectId: id, shapeType: type, elementProperties: place(w, h, x, yy) } });
+      req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill,outline', shapeProperties: {
+        shapeBackgroundFill: fill ? { solidFill: { color: { rgbColor: rgb_(fill) } } } : { propertyState: 'NOT_RENDERED' },
+        outline: outline ? { outlineFill: { solidFill: { color: { rgbColor: rgb_(outline) } } }, weight: { magnitude: 1, unit: 'PT' } }
+          : { propertyState: 'NOT_RENDERED' } } } });
     };
-    const text = (str, x, yy, w, h, size, color, bold, align) => {
+    const box = (x, yy, w, h, fill, outline) => shape('ROUND_RECTANGLE', x, yy, w, h, fill, outline);
+    const rect = (x, yy, w, h, fill) => shape('RECTANGLE', x, yy, w, h, fill, null);
+    const text = (str, x, yy, w, h, size, color, bold, align, font) => {
       const id = 'xg_txt_' + (k++);
       req.push({ createShape: { objectId: id, shapeType: 'TEXT_BOX', elementProperties: place(w, h, x, yy) } });
       req.push({ insertText: { objectId: id, text: String(str) } });
-      req.push({ updateTextStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: style(size, color, bold) } });
+      req.push({ updateTextStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: {
+        fontSize: { magnitude: size, unit: 'PT' }, bold: !!bold, fontFamily: font || 'Noto Sans TC', foregroundColor: { opaqueColor: { rgbColor: rgb_(color) } } } } });
       req.push({ updateParagraphStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'alignment', style: { alignment: align || 'CENTER' } } });
       req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: 'MIDDLE' }, fields: 'contentAlignment' } });
     };
 
-    // 標題區
-    text('『彥彬🌿試算系統』', X, 6, TW, 16, 8, C.grey, false, 'END');
-    text('🌿 康園試算報表', X, 20, TW, 34, 22, C.white, true);
-    box(X, 58, TW, 32, C.card, C.gold);
-    text((r.card ? '💳 刷卡' : '💵 現金') + (d.days ? '　｜　📦 預估可使用天數 ' + d.days + ' 天' : ''), X, 58, TW, 32, 12, C.gold2, true);
-    text('購買者：' + (r.name || '—') + '　　試算者：' + REPORT_BY, X, 96, TW, 24, 11, C.white, true);
+    // 標題：YB 圓章＋康園試算報表、日期、金色短線
+    shape('ELLIPSE', 134, 26, 32, 32, null, RC.gold2);
+    text('YB', 129, 26, 42, 32, 12, RC.gold, false, 'CENTER', 'Cormorant Garamond');
+    text('康園試算報表', 170, 18, 250, 48, 30, RC.ink, true, 'START', 'Noto Serif TC');
+    const date = r.date ? String(r.date) : Utilities.formatDate(new Date(), TZ, 'yyyy · MM · dd');
+    text(date, X, 66, TW, 20, 14, RC.gold, false, 'CENTER', /^[\x00-\x7F·]*$/.test(date) ? 'Cormorant Garamond' : 'Noto Sans TC');
+    rect(230, 90, 80, 1, RC.gold2);
 
-    // 品項表：用色塊和文字框排，欄位對齊不受表格自動撐高影響
-    // 欄位：品項（下方小字：單價｜PV）｜數量｜小計金額｜小計 PV
-    // 簡報文字框左右各有約 7pt 內距，數量欄要留寬一點，「× 10」才不會被擠到換行
-    const COL = [{ x: 0, w: 186 }, { x: 186, w: 84 }, { x: 270, w: 126 }, { x: 396, w: 104 }];
-    const rect = (x, yy, w, h, fill) => {
-      const id = 'xg_rect_' + (k++);
-      req.push({ createShape: { objectId: id, shapeType: 'RECTANGLE', elementProperties: place(w, h, x, yy) } });
-      req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill.solidFill.color,outline.propertyState', shapeProperties: {
-        shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(fill) } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
-    };
-    const colText = (ci, str, yy, h, size, color, bold, align) =>
-      text(str, X + COL[ci].x + (ci === 0 ? 4 : 0), yy, COL[ci].w - (ci === 0 ? 4 : 2), h, size, color, bold, align);
+    // 購買者／試算者
+    const half = (TW - 10) / 2;
+    [['購買者', r.name || '—'], ['試算者', REPORT_BY]].forEach((p, i) => {
+      const x = X + i * (half + 10);
+      box(x, whoTop, half, 36, RC.paper, RC.gold2);
+      text(p[0], x + 8, whoTop, 70, 36, 13, RC.soft, true, 'START');
+      text(p[1], x + 70, whoTop, half - 80, 36, 13, RC.ink, true, 'END');
+    });
+
+    // 品項表：品項名稱｜數量｜單價｜PV｜小計金額｜小計 PV
+    const COL = [{ x: 0, w: 156 }, { x: 156, w: 44 }, { x: 200, w: 66 }, { x: 266, w: 64 }, { x: 330, w: 88 }, { x: 418, w: 82 }];
+    const cell = (ci, str, yy, h, size, color, bold, align) =>
+      text(str, X + COL[ci].x + (ci === 0 ? 4 : 0), yy, COL[ci].w - (ci === 0 ? 4 : 0), h, size, color, bold, align || 'CENTER');
     let ty = tableTop;
-    rect(X, ty, TW, HEAD, C.head);
-    ['品項名稱', '數量', '小計金額', '小計 PV'].forEach((h, ci) => colText(ci, h, ty, HEAD, 11, C.white, true, ci === 0 ? 'START' : ci === 1 ? 'CENTER' : 'END'));
+    rect(X, ty, TW, HEAD, RC.ink);
+    ['品項名稱', '數量', '單價', 'PV', '小計金額', '小計 PV'].forEach((h, ci) => cell(ci, h, ty, HEAD, 12, RC.headTx, true));
     ty += HEAD;
     rows.forEach((rw, i) => {
-      rect(X, ty, TW, ROW, rw.gift ? '#fff6dc' : i % 2 ? C.row2 : C.row1);
-      colText(0, rw.name, ty + 3, 19, 12, C.ink, true, 'START');
-      colText(0, rw.sub, ty + 21, 14, 8, '#6b7280', false, 'START');
-      colText(1, '× ' + rw.qty, ty, ROW, 13, C.qty, true, 'CENTER');
-      colText(2, rw.amount, ty, ROW, 12, C.ink, true, 'END');
-      colText(3, rw.pv, ty, ROW, 12, '#0f766e', true, 'END');
+      rect(X, ty, TW, ROW, i % 2 ? RC.row2 : RC.paper);
+      cell(0, rw.name, ty, ROW, rw.name.length > 12 ? 10 : 12, RC.ink, false, 'START');
+      cell(1, rw.qty, ty, ROW, 14, RC.gold, true);
+      cell(2, n(rw.price), ty, ROW, 12, RC.ink);
+      cell(3, n(rw.pv), ty, ROW, 12, RC.ink);
+      cell(4, n(rw.amount), ty, ROW, 12, RC.ink);
+      cell(5, n(rw.spv), ty, ROW, 12, RC.green, true);
       ty += ROW;
     });
-    rect(X, ty, TW, TOTAL, '#e3ebf7');
-    colText(0, '合計', ty, TOTAL, 12, C.head, true, 'START');
-    colText(1, boxes + ' 盒', ty, TOTAL, 11, C.head, true, 'CENTER');
-    colText(2, 'NT$ ' + n(d.amount), ty, TOTAL, 12, C.head, true, 'END');
-    colText(3, n(d.pv), ty, TOTAL, 12, C.head, true, 'END');
-    // 欄位分隔線
-    [1, 2, 3].forEach(ci => rect(X + COL[ci].x, tableTop + HEAD, 0.6, tableH - HEAD, '#d5dbe3'));
+    [1, 2, 3, 4, 5].forEach(ci => rect(X + COL[ci].x, tableTop + HEAD, 0.6, rows.length * ROW, RC.line));
+    rect(X, ty, TW, 1, RC.gold2);
 
     // 總金額／總 PV
-    const half = (TW - 10) / 2;
-    box(X, sumTop, half, 74, C.card, C.gold);
-    text('💰 總金額 NT$', X, sumTop + 6, half, 20, 11, C.white, true);
-    text(n(d.amount), X, sumTop + 28, half, 40, 24, C.gold2, true);
-    box(X + half + 10, sumTop, half, 74, C.card, C.gold);
-    text('🎯 總 PV', X + half + 10, sumTop + 6, half, 20, 11, C.white, true);
-    text(n(d.pv), X + half + 10, sumTop + 28, half, 40, 24, C.teal, true);
+    box(X, sumTop, half, 92, RC.ink, RC.gold2);
+    text('總金額 NT$', X, sumTop + 8, half, 22, 13, RC.headTx, true);
+    text(n(d.amount), X, sumTop + 30, half, 54, 38, RC.headTx, true, 'CENTER', 'Noto Serif TC');
+    box(X + half + 10, sumTop, half, 92, RC.white, RC.gold2);
+    text('總 PV', X + half + 10, sumTop + 8, half, 22, 13, RC.green, true);
+    text(n(d.pv), X + half + 10, sumTop + 30, half, 54, 38, RC.green, true, 'CENTER', 'Noto Serif TC');
 
-    // 距離 22 萬／30 萬
-    box(X, tgtTop, TW, 60, C.card, C.gold);
+    // 22 萬／30 萬達標進度
+    box(X, tgtTop, TW, 60, RC.paper, RC.gold2);
     TARGETS_PV.forEach((t, i) => {
-      const x = X + i * (TW / 2);
-      text('距離 ' + (t / 10000) + ' 萬 PV', x, tgtTop + 4, TW / 2, 20, 10, C.white, true);
-      text(d.pv >= t ? '0 🎉 已達標' : n(t - d.pv), x, tgtTop + 24, TW / 2, 30, 18, d.pv >= t ? C.green : C.purple, true);
+      const x = X + 14 + i * (TW / 2), bw = TW / 2 - 28, color = i ? RC.green : RC.gold2;
+      text(d.pv >= t ? '已達標 ' + n(t) + ' PV' : '距離 ' + n(t) + ' PV 尚差 ' + n(t - d.pv),
+        x, tgtTop + 8, bw, 24, 13, d.pv >= t ? RC.gold : RC.soft, true, 'START');
+      box(x, tgtTop + 38, bw, 8, RC.track, null);
+      const fw = Math.round(bw * Math.min(1, d.pv / t));
+      if (fw > 4) box(x, tgtTop + 38, fw, 8, color, null);
     });
 
     // 預計獎金
-    box(X, bonusTop, TW, bonusH, '#16302a', '#1f7a5c');
+    box(X, bonusTop, TW, bonusH, RC.paper, RC.line);
     if (d.bonusBlocked) {
-      text('🆕 新入會需累積滿 20,000 PV 才開始計算獎金，目前暫無', X, bonusTop + 10, TW, 30, 11, C.white, true);
+      text('預計獎金：新入會需累積滿 20,000 PV 才開始計算，目前暫無', X + 12, bonusTop, TW - 24, bonusH, 12, RC.ink, true, 'START');
     } else {
-      text('預計獎金（總金額 × 級距 %｜扣稅 10% 後）', X, bonusTop + 4, TW, 22, 10, C.grey, false);
+      text('預計獎金', X + 12, bonusTop + 4, TW - 24, 20, 12, RC.gold, true, 'START');
       d.bonus.forEach((b, i) => text(b.tier
-        ? (b.type === '經理' ? '🏅 ' : '👤 ') + b.type + ' ' + b.pct + '%：約 NT$ ' + n(b.amount) + '　扣稅後 NT$ ' + n(b.afterTax)
-        : b.type + '：PV 未達最低門檻', X, bonusTop + 26 + i * 22, TW, 22, 11, b.type === '經理' ? C.gold2 : C.teal, true));
+        ? (b.type === '經理' ? '經理' : '未升經理') + ' ' + b.pct + '%：約 NT$ ' + n(b.amount) + '・扣稅後 ' + n(b.afterTax)
+        : (b.type === '經理' ? '經理' : '未升經理') + '：PV 未達最低門檻', X + 12, bonusTop + 24 + i * 19, TW - 24, 19, 11, RC.ink, false, 'START'));
     }
-    text(REPORT_BY + ' 自動試算｜數量依圖片辨識，請再核對　' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), X, footTop, TW, 20, 8, C.grey);
+    text((r.card ? '刷卡付款' : '現金付款') + (d.days ? '・預估可使用 ' + d.days + ' 天' : '') + '　｜　' + REPORT_BY + ' 自動試算・數量請再核對',
+      X, footTop, TW, 20, 9, RC.soft);
     return req;
   };
   return { W: W, H: y, build: build };
