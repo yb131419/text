@@ -35,11 +35,12 @@ const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今�
 // 快速回覆只留最常用的 5 個，其他收進「💎 選單」精品卡片（LINE 輪播卡片；Telegram／對話頁用分組按鈕）
 const MENU_BTN = '💎 選單';
 const REELS_BTN = '🎬 剪 Reels';
+const REELS_LONG_BTN = '🎞️ 剪大片';
 const QUICK = [['🐾 對話頁', MENU_BTN, '📋 試算'], ['🪶 智囊軍師', '✅ 我的待辦']];
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
   { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 設定', '署名・標題']] },
-  { en: 'REELS', title: '短影音剪輯', sub: '傳影片給小乖，自動剪成 Reels', items: [[REELS_BTN, '字幕・配樂']] },
+  { en: 'VIDEO', title: '影片剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類']] },
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
   { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '點日期、時間就排好'], ['📅 近期行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
@@ -1314,20 +1315,26 @@ function kitWrite_(k) {
     '只輸出 JSON：{"cat":"分類","series":"","keyword":"","slides":[{"kind":"cover","label":"","head":"","sub":""},{"kind":"action","step":"動作一","head":"","body":""},…,{"kind":"reason","label":"","head":""},{"kind":"last","pre":"","head":""},{"kind":"cta","head":"","cta":"","sub":""}],"pdf":{"kicker":"","title":"","intro":"","before":{…},"actions":[…],"check":{…},"final":{…}},"post_title":"","post":"","tags":[]}',
   ].filter(Boolean).join('\n');
   // 名單包是很長的 JSON（貼文＋7 張＋7 頁），以前上限 2500 字元會被截斷 → JSON 壞掉；現在給 12000 並用 JSON 模式，失敗再自動重寫一次
-  let c, why = '';
-  for (let i = 0; i < 2 && !c; i++) {
+  // AI 偶爾少給幾張或欄位放錯：缺什麼就告訴它重寫，最多寫 3 次
+  let kit = null, why = '', fixMsg = '';
+  const ask = '請做一組「' + th.name + '」的名單包。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。';
+  for (let i = 0; i < 3 && !kit; i++) {
     try {
-      const out = String(callOpenAI_(sys, [{ role: 'user', content: '請做一組「' + th.name + '」的名單包。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。' }], true, null, { maxTokens: 12000, temperature: 0.7 }));
-      c = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+      const out = String(callOpenAI_(sys, [{ role: 'user', content: ask + fixMsg }], true, null, { maxTokens: 12000, temperature: 0.7 }));
+      const c = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+      kit = kitClean_(c, th, k);
+      if (!kit) {
+        why = '格式不對：' + kitMissing_(c);
+        fixMsg = '\n上一次的 JSON 不完整（' + kitMissing_(c) + '）。這次一定要有 slides 剛好 7 張（cover、action×3、reason、last、cta，每張都有 kind），pdf.actions 剛好 3 個。';
+        console.error('7張＋PDF 第 ' + (i + 1) + ' 次' + why);
+      }
     } catch (err) {
       why = err.message;
       console.error('7張＋PDF 文案失敗（第 ' + (i + 1) + ' 次）：' + why);
       if (/金鑰/.test(why)) break;
     }
   }
-  if (!c) return { text: /金鑰/.test(why) ? 'OpenAI 金鑰無效，沒辦法寫文案，請檢查 OPENAI_API_KEY。' : /OpenAI 回應 429/.test(why) ? 'OpenAI 額度或速度上限到了，等一下再按一次。' : '這次沒寫出來，再按一次試試看。', buttons: [[KIT_BTN]] };
-  const kit = kitClean_(c, th, k);
-  if (!kit) return { text: '這次寫出來的格式不對，再按一次試試看。', buttons: [[KIT_BTN]] };
+  if (!kit) return { text: /金鑰/.test(why) ? 'OpenAI 金鑰無效，沒辦法寫文案，請檢查 OPENAI_API_KEY。' : /OpenAI 回應 429/.test(why) ? 'OpenAI 額度或速度上限到了，等一下再按一次。' : '這次沒寫出來，再按一次試試看。', buttons: [[KIT_BTN]] };
   hist.unshift(kit.series);
   setProp_('KIT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_KIT_ = kit;
@@ -1335,7 +1342,25 @@ function kitWrite_(k) {
 }
 
 // 整理 AI 回來的內容：補齊欄位、拿掉禁字（私訊→留言）；缺太多就回 null
+// 說明 AI 回來的內容缺了什麼（給重寫用、也寫進紀錄）
+function kitMissing_(c) {
+  c = kitUnwrap_(c);
+  const n = Array.isArray(c.slides) ? c.slides.filter(x => x && x.kind).length : 0;
+  const a = c.pdf && Array.isArray(c.pdf.actions) ? c.pdf.actions.length : 0;
+  return 'slides ' + n + ' 張、pdf.actions ' + a + ' 個';
+}
+// 有時 AI 會多包一層（{"kit":{…}}、{"名單包":{…}}）
+function kitUnwrap_(c) {
+  c = c || {};
+  if (!c.slides && !c.pdf) {
+    const inner = Object.keys(c).map(x => c[x]).filter(v => v && typeof v === 'object' && (v.slides || v.pdf))[0];
+    if (inner) return inner;
+  }
+  if (c.slides && !Array.isArray(c.slides) && typeof c.slides === 'object') c.slides = Object.keys(c.slides).map(x => c.slides[x]);
+  return c;
+}
 function kitClean_(c, th, k) {
+  c = kitUnwrap_(c);
   const fix = v => typeof v === 'string' ? v.replace(/私訊/g, '留言').replace(/\r/g, '').trim()
     : Array.isArray(v) ? v.map(fix) : v && typeof v === 'object' ? Object.keys(v).reduce((o, x) => (o[x] = fix(v[x]), o), {}) : v;
   c = fix(c || {});
@@ -2364,10 +2389,13 @@ function handleTelegram_(update) {
   // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
   const reelsVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsStart_(chatId, reelsVideo, text);
+  // 配樂：按了剪片按鈕後傳音樂檔，或音樂說明寫「配樂」，就用這首當配樂
+  const music = msg.audio || (msg.document && /^audio\//.test(msg.document.mime_type || '') ? msg.document : null);
+  if (owner && chatId === owner && music && (reelsPending_() || /配樂/.test(text))) return reelsMusic_(chatId, music);
   // 剪好之後：回覆那支影片說要改哪裡，或打「改影片 …」「重剪 Reels」，就照要求再剪一版
   if (owner && chatId === owner && !reelsVideo && !fileId) {
     const rv = reelsRevise_(msg, text);
-    if (rv) return reelsRun_(chatId, rv.fileId, rv.note, rv.ver, rv.ack);
+    if (rv) return reelsRun_(chatId, rv.fileId, rv.note, rv.ver, rv.ack, rv.mode);
   }
   // 傳一張喜歡的影片截圖（按了「🎬 剪 Reels」後，或說明有「風格」）：學下字幕的樣子，之後都照這個剪
   if (owner && chatId === owner && fileId && (reelsPending_() || /風格/.test(text))) return reelsStyle_(chatId, fileId, doc);
@@ -4231,7 +4259,7 @@ $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileRe
 
 /* ============ 🎬 剪 Reels：影片交給 GitHub Actions 剪（reels/reels.py），剪好直接傳回 Telegram ============ */
 // 需要的指令碼屬性：GITHUB_TOKEN（可以在 Telegram 打「設定 GitHub金鑰 xxx」）；REELS_REPO 可不填，預設 yb131419/Tezhu
-const REELS_WORD = /剪\s*reels|reels|剪片|剪輯|短影音/i;
+const REELS_WORD = /剪\s*reels|reels|剪\s*大片|剪片|剪輯|短影音/i;
 function reelsPending_() { return Number(prop_('REELS_UNTIL')) > Date.now(); }
 function reelsAsk_(t) {
   const k = String(t || '').replace(/\s+/g, '');
@@ -4239,24 +4267,46 @@ function reelsAsk_(t) {
     setProp_('REELS_STYLE', '');
     return '🎨 Reels 風格換回預設了：白色粗體字幕、下方偏中間、黃色標籤。';
   }
-  if (!/^(剪reels|reels|剪短影音|短影音剪輯)$/i.test(k)) return null;
-  if (LINE_MODE_ || !CURRENT_TG_CHAT_) return '🎬 剪 Reels 目前要在 Telegram 用：在 Telegram 按「' + REELS_BTN + '」再傳影片，剪好會傳回 Telegram。';
+  if (/^(不要我的配樂|配樂預設|用小乖的配樂)$/.test(k)) {
+    setProp_('REELS_MUSIC', '');
+    return '🎵 好，之後用小乖挑的配樂（依影片氣氛自動選）。';
+  }
+  const long = /^(剪大片|大片|大片剪輯|剪輯大片)$/.test(k);
+  if (!long && !/^(剪reels|reels|剪短影音|短影音剪輯|剪輯reels)$/i.test(k)) return null;
+  if (LINE_MODE_ || !CURRENT_TG_CHAT_) return '🎬 剪片目前要在 Telegram 用：在 Telegram 按「' + (long ? REELS_LONG_BTN : REELS_BTN) + '」再傳影片，剪好會傳回 Telegram。';
   setProp_('REELS_UNTIL', String(Date.now() + 10 * 60 * 1000));
+  setProp_('REELS_MODE', long ? 'long' : 'reels');
+  const mine = prop_('REELS_MUSIC') ? '・配樂：用你傳的那首（打「配樂預設」換回小乖挑的）\n' : '・想用自己的配樂：先傳一首音樂檔給我\n';
+  if (long) return '🎞️ 好！剪大片：10 分鐘內把影片傳給我（按左下角的迴紋針 📎 選影片，20MB 以內）。\n\n'
+    + '大片會保留整支影片的內容和原本的橫直，只剪掉停頓和口誤，上中文字幕、開頭動畫字卡、配樂。\n\n'
+    + '影片說明可以寫要求，例如：\n・中英字幕\n・標題：準提佛祖開運加持\n・不要配樂，或配樂要溫暖鋼琴／禪意\n' + mine
+    + '\n剪好後長按影片按「回覆」說要改哪裡，就會再剪一版。';
   return '🎬 好！10 分鐘內把影片傳給我（按左下角的迴紋針 📎 選影片）。\n\n'
-    + '影片說明可以順便寫要求，例如：\n・30秒\n・標題：我想要做短影音\n・只要中文字幕／不要字幕\n・不要配樂，或配樂要清新／溫暖／沉穩\n\n'
-    + '沒寫就照預設：最長 60 秒、剪掉停頓、中英短句字幕、開頭動畫字卡、隨機配樂。\n'
+    + '影片說明可以順便寫要求，例如：\n・30秒\n・標題：我想要做短影音\n・只要中文字幕／不要字幕\n・不要配樂，或配樂要輕快／溫暖鋼琴／大氣／禪意\n' + mine + '\n'
+    + '沒寫就照預設：直式 9:16、最長 60 秒、剪掉停頓、中英短句字幕、開頭動畫字卡、依氣氛挑配樂。\n'
     + '先傳一張喜歡的影片截圖，小乖會學那個字幕風格。\n'
     + '剪好後長按影片按「回覆」說要改哪裡，就會再剪一版。';
+}
+function reelsMusic_(chatId, music) {
+  if (music.file_size && music.file_size > 20 * 1024 * 1024) return tgSend_(chatId, '🎵 這首音樂超過 20MB，Telegram 不讓機器人下載，換一首小一點的。');
+  setProp_('REELS_MUSIC', music.file_id);
+  setProp_('REELS_UNTIL', String(Date.now() + 10 * 60 * 1000));
+  return tgSend_(chatId, '🎵 配樂記住了' + (music.title || music.file_name ? '：' + (music.title || music.file_name) : '')
+    + '\n之後剪的影片都用這首（有人說話時會自動變小聲）。現在可以傳影片了；打「配樂預設」換回小乖挑的。'
+    + '\n請用你有權使用的音樂，發到社群才不會被檢舉。');
 }
 function reelsLast_() { try { return JSON.parse(prop_('REELS_LAST') || 'null'); } catch (e) { return null; } }
 function reelsStart_(chatId, video, note) {
   setProp_('REELS_UNTIL', '0');
+  const mode = /大片/.test(note || '') ? 'long' : /reels/i.test(note || '') ? 'reels' : (prop_('REELS_MODE') || 'reels');
   if (video.file_size && video.file_size > 20 * 1024 * 1024) {
     return tgSend_(chatId, '🎬 這支影片超過 20MB，Telegram 不讓機器人下載。請傳影片時選「壓縮」（不要用檔案傳），或先剪短一點再傳。');
   }
   const sec = video.duration ? '（影片 ' + video.duration + ' 秒）' : '';
-  return reelsRun_(chatId, video.file_id, String(note || '').replace(REELS_WORD, '').trim(), 1,
-    '🎬 收到影片' + sec + '，開始試剪第 1 版：挑精華、剪掉停頓、上字幕和動畫字卡、配樂。大約 3～6 分鐘剪好直接傳給你。');
+  return reelsRun_(chatId, video.file_id, String(note || '').replace(REELS_WORD, '').replace(/大片/g, '').trim(), 1,
+    mode === 'long'
+      ? '🎞️ 收到影片' + sec + '，開始剪大片第 1 版：保留完整內容、剪掉停頓和口誤、上字幕和動畫字卡、配樂。影片越長要越久，剪好直接傳給你。'
+      : '🎬 收到影片' + sec + '，開始試剪第 1 版：挑精華、剪掉停頓、上字幕和動畫字卡、配樂。大約 3～6 分鐘剪好直接傳給你。', mode);
 }
 // 修改：回覆小乖傳的成品影片，或「改影片 …」「改 Reels …」；「重剪 Reels」用目前的風格重剪
 function reelsRevise_(msg, text) {
@@ -4269,10 +4319,11 @@ function reelsRevise_(msg, text) {
   else if (/^(重剪|重新剪)(reels|影片|一次|一版)?$/i.test(k) || /^用這個風格重剪$/.test(k.replace(/^[^\p{L}\p{N}]+/u, ''))) ask = '照目前的風格重剪';
   if (!ask) return null;
   const ver = (Number(last.ver) || 1) + 1;
-  return { fileId: last.fileId, ver: ver, note: (last.note ? last.note + '\n' : '') + '第 ' + ver + ' 版修改：' + ask,
+  return { fileId: last.fileId, ver: ver, mode: last.mode || 'reels', note: (last.note ? last.note + '\n' : '') + '第 ' + ver + ' 版修改：' + ask,
     ack: '✂️ 收到，照你說的「' + ask.slice(0, 40) + '」剪第 ' + ver + ' 版，好了直接傳給你。' };
 }
-function reelsRun_(chatId, fileId, note, ver, ack) {
+function reelsRun_(chatId, fileId, note, ver, ack, mode) {
+  mode = mode === 'long' ? 'long' : 'reels';
   if (!prop_('GITHUB_TOKEN')) return tgSend_(chatId, '🎬 剪 Reels 還沒設定好：請先傳「設定 GitHub金鑰 你的金鑰」給我（設定步驟在 README 的「剪 Reels」）。');
   note = String(note || '').slice(-600);   // 修改要求越疊越多時只留最後的部分
   const repo = prop_('REELS_REPO') || 'yb131419/Tezhu';
@@ -4281,6 +4332,7 @@ function reelsRun_(chatId, fileId, note, ver, ack) {
     headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' },
     payload: JSON.stringify({ ref: 'main', inputs: {
       chat_id: String(chatId), file_id: fileId, note: note, style: prop_('REELS_STYLE') || '', version: String(ver),
+      mode: mode, music: prop_('REELS_MUSIC') || '',
     } }),
   });
   const code = res.getResponseCode();
@@ -4290,7 +4342,7 @@ function reelsRun_(chatId, fileId, note, ver, ack) {
       ? '🎬 GitHub 金鑰不對或權限不夠（' + code + '），請重新產生金鑰後傳「設定 GitHub金鑰 新金鑰」。'
       : '🎬 現在沒辦法開始剪（' + code + '），請等一下再傳一次。');
   }
-  setProp_('REELS_LAST', JSON.stringify({ fileId: fileId, note: note, ver: ver, at: Date.now() }));
+  setProp_('REELS_LAST', JSON.stringify({ fileId: fileId, note: note, ver: ver, mode: mode, at: Date.now() }));
   return tgSend_(chatId, ack);
 }
 // 看截圖學字幕風格：顏色、大小、位置、有沒有底色框、標籤顏色

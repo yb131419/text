@@ -1,0 +1,28 @@
+# 剪片程式有改時，在 GitHub 上實際剪一支測試影片，確認中文字幕真的有畫上去（Reels 和大片各一次）
+name: 剪片自我測試
+on:
+  push:
+    paths: [reels/**, .github/workflows/reels-test.yml, .github/workflows/reels.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: reels
+      - name: 安裝 ffmpeg 與中文字型
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-noto-cjk > /dev/null
+          fc-cache -f > /dev/null
+      - name: 剪 Reels（直式）
+        run: |
+          ffmpeg -y -loglevel error -f lavfi -i testsrc=size=1280x720:rate=30:d=12 -f lavfi -i sine=d=12 -c:v libx264 -c:a aac /tmp/in.mp4
+          python3 reels/reels.py --input /tmp/in.mp4 --transcript reels/selftest.json --out /tmp/r.mp4 --selftest
+          ls reels/music
+      - name: 剪大片（橫式）
+        run: python3 reels/reels.py --input /tmp/in.mp4 --transcript reels/selftest.json --out /tmp/l.mp4 --mode long --selftest

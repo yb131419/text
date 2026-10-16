@@ -14,7 +14,9 @@
 風格：你傳一張喜歡的影片截圖給小乖，小乖記下字幕顏色、大小、位置（STYLE），之後都照這個剪。
 
 需要的環境變數：TELEGRAM_BOT_TOKEN、OPENAI_API_KEY、CHAT_ID、FILE_ID；NOTE 是你寫在影片上的說明和修改要求（可空白）；
-STYLE 是從截圖學到的風格（JSON，可空白）；VERSION 是第幾版。
+STYLE 是從截圖學到的風格（JSON，可空白）；VERSION 是第幾版；
+MODE 是剪法：reels（預設，直式 9:16 挑精華、最長 90 秒）或 long（剪大片：保留原本橫直、不限長度，只剪掉停頓和口誤）；
+MUSIC_FILE 是你在 Telegram 傳給小乖的配樂（音樂檔編號，可空白，空白就從 reels/music/ 挑一首）。
 本機測試：python3 reels/reels.py --input 影片.mp4 --out 成品.mp4 [--transcript 假字幕.json] [--note "剪 Reels 30秒"]
 """
 import argparse
@@ -31,6 +33,7 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 W, H, FPS = 1080, 1920, 30
+MODE = 'reels'   # reels 直式短影音；long 剪大片（保留原本比例），由 make() 設定
 FONT = os.environ.get('REELS_FONT') or 'Noto Sans CJK TC'
 MODEL = os.environ.get('OPENAI_MODEL') or 'gpt-4.1-mini'
 MAX_SOURCE_SEC = 20 * 60          # 原始影片最長 20 分鐘
@@ -53,6 +56,50 @@ def run(cmd):
     return p.stdout
 
 
+def resolve_font():
+    """確認中文字型真的裝好；找不到指定的字型就換一個系統裡有的繁中字型，免得字幕變成空白或方塊。"""
+    global FONT
+    try:
+        fams = subprocess.run(['fc-list', ':lang=zh-tw', 'family'], capture_output=True, text=True).stdout
+    except OSError:
+        return
+    names = [n.strip().replace('\\', '') for line in fams.splitlines() for n in line.split(',') if n.strip()]
+    if FONT in names:
+        log('字型：', FONT)
+        return
+    pick = next((n for n in names if 'TC' in n), names[0] if names else '')
+    if pick:
+        log('字型：找不到 %s，改用 %s' % (FONT, pick))
+        FONT = pick
+    else:
+        log('⚠️ 找不到中文字型，字幕可能顯示不出來')
+
+
+def frame_gray(path, t, work, name):
+    raw = os.path.join(work, name + '.gray')
+    run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', '%.2f' % t, '-i', path, '-frames:v', '1',
+         '-vf', 'scale=180:320,format=gray', '-f', 'rawvideo', raw])
+    with open(raw, 'rb') as f:
+        return f.read()
+
+
+def subs_check(joined, out, ass, work):
+    """剪好後檢查字幕真的有畫上去：比對同一個時間點、有字幕和沒字幕的畫面。回傳差異值（越大越明顯）。"""
+    t = None
+    with open(ass, encoding='utf-8') as f:
+        for line in f:
+            if ',Sub,' in line:
+                a, b = line.split(',')[1:3]
+                sec = lambda x: sum(float(v) * m for v, m in zip(x.split(':'), (3600, 60, 1)))
+                t = (sec(a) + sec(b)) / 2
+                break
+    if t is None:
+        return None
+    x, y = frame_gray(joined, t, work, 'a'), frame_gray(out, t, work, 'b')
+    n = min(len(x), len(y))
+    return sum(abs(x[i] - y[i]) for i in range(n)) / max(n, 1)
+
+
 # ---------------- 讀說明：時間長度、配樂、字幕選項 ----------------
 DEFAULTS = {
     'target': 60, 'music': True, 'subs': 'both', 'mood': '', 'title': '',
@@ -63,6 +110,7 @@ DEFAULTS = {
     'sub_pos': 'lower',     # 字幕位置：bottom 最下面、lower 下方偏中間（預設）、middle 中間、upper 上方
     'sub_color': '#FFFFFF', 'sub_outline': '#141414', 'sub_box': False,
     'accent': '#F5C842',    # 標籤打勾、重點字卡的顏色
+    'mode': 'reels',        # reels 剪 Reels；long 剪大片
 }
 POS_Y = {'bottom': 380, 'lower': 560, 'middle': 820, 'upper': 1250}   # 字幕底邊離畫面最下面的距離
 
@@ -80,6 +128,8 @@ def clamp_opt(opt):
             opt[k] = DEFAULTS[k]
     for k in ('music', 'jumpcut', 'cards', 'sub_box'):
         opt[k] = bool(opt.get(k))
+    if opt.get('mode') != 'long':
+        opt['mode'] = 'reels'
     return opt
 
 
@@ -99,7 +149,7 @@ def apply_style(opt, style):
 
 TWEAK_PROMPT = '''把使用者對短影音剪輯的說明和修改要求，轉成設定值。只改有提到的項目，沒提到的不要放。
 後面的要求比前面的優先（例如先說 60 秒、後來說改 30 秒，就用 30）。可用的設定：
-target 秒數(10-90)、music 要不要配樂(true/false)、mood 配樂風格(溫暖輕快/清新療癒/質感沉穩)、
+target 秒數(10-90)、music 要不要配樂(true/false)、mood 配樂（只能填這些名稱之一：{moods}）、
 subs 字幕(both 中英/zh 只要中文/en 只要英文/none 不要)、title 開頭標題文字、title_sec 標題停留秒數(1.5-8，
 「久一點」在目前值 {title_sec} 加 1.5)、jumpcut 剪掉停頓(true/false)、cards 動畫字卡(true/false)、
 sub_size 字幕大小倍數(目前 {sub_size}，「大一點」×1.2、「小一點」×0.85)、
@@ -114,19 +164,23 @@ def apply_tweaks(opt, note):
     if not rest or not os.environ.get('OPENAI_API_KEY'):
         return opt
     try:
-        tw = ask_ai(TWEAK_PROMPT.format(title_sec=opt['title_sec'], sub_size=opt['sub_size']), note)
+        tw = ask_ai(TWEAK_PROMPT.format(title_sec=opt['title_sec'], sub_size=opt['sub_size'],
+                                        moods='／'.join(music_names()) or '（無）'), note)
     except Oops:
         return opt
     for k, v in tw.items():
-        if k in DEFAULTS and v not in (None, ''):
+        if k in DEFAULTS and k != 'mode' and v not in (None, ''):
             opt[k] = v
     opt['wish'] = str(tw.get('wish') or '')[:200]
     return clamp_opt(opt)
 
 
-def parse_note(note):
+def parse_note(note, mode='reels'):
     note = note or ''
     opt = dict(DEFAULTS)
+    opt['mode'] = 'long' if mode == 'long' or re.search(r'剪\s*大片|大片', note) else 'reels'
+    if opt['mode'] == 'long' and not re.search(r'中英|英文', note):
+        opt['subs'] = 'zh'   # 大片預設只上中文字幕，比較清爽
     m = re.search(r'(\d{1,3})\s*(秒|s|sec)', note, re.I)
     if m:
         opt['target'] = max(10, min(90, int(m.group(1))))
@@ -166,9 +220,11 @@ def tg(method, **data):
         return json.loads(e.read() or b'{}')
 
 
-def tg_download(file_id, dest):
+def tg_download(file_id, dest, what='影片'):
     info = tg('getFile', file_id=file_id)
     if not info.get('ok'):
+        if what != '影片':
+            raise Oops('拿不到你傳的%s（%s），這次先用小乖的配樂。' % (what, info.get('description', '')))
         if 'too big' in str(info.get('description', '')):
             raise Oops('影片超過 20MB，Telegram 不讓機器人下載。請在 Telegram 傳影片時選「壓縮」（不要用檔案傳），或先剪短一點再傳。')
         raise Oops('拿不到影片（%s），請再傳一次。' % info.get('description', ''))
@@ -225,10 +281,12 @@ def ask_ai(system, user):
         raise Oops('AI 整理字幕失敗，請稍後再試一次。')
 
 
-PLAN_PROMPT = '''你是 Instagram Reels 剪輯師，幫一位台灣的直銷事業經營者剪短影音。
+RULE_REELS = '''1. 挑出要保留的句子，總長不超過 {target} 秒（原片比較短就全部留，只刪口誤、重複、無意義的句子）。
+   要挑最吸引人、意思完整、前後接得起來的段落，第一句最好能抓住注意力。保留的句子照原本順序。'''
+RULE_LONG = '''1. 這是完整的長影片（剪大片）：保留全部句子，只刪掉口誤、講錯重講、重複和沒有意義的句子，不要刪內容，照原本順序。'''
+PLAN_PROMPT = '''你是影片剪輯師，幫一位台灣的直銷事業經營者剪影片。
 會給你影片逐句辨識結果（i 是編號，秒數是時間），和使用者的說明。請：
-1. 挑出要保留的句子，總長不超過 {target} 秒（原片比較短就全部留，只刪口誤、重複、無意義的句子）。
-   要挑最吸引人、意思完整、前後接得起來的段落，第一句最好能抓住注意力。保留的句子照原本順序。
+{rule}
 2. 每一句改成字幕：繁體中文（台灣用語），依上下文修正辨識錯字，句尾不加標點；
    拆成短句，一行 6～12 個字、照說話的停頓斷句（像抖音、Reels 那種一句一句跳出來的字幕）。
    每行附上自然口語的英文翻譯。
@@ -236,7 +294,8 @@ PLAN_PROMPT = '''你是 Instagram Reels 剪輯師，幫一位台灣的直銷事�
 4. 挑 3～4 個影片重點標籤，每個 2～4 個字（例如：字幕、剪輯、動畫、字卡）。
 5. 挑 1～3 句最重要的話做重點字卡：給那句的 i 和 10 個字以內的重點。
 6. 寫一段 IG 貼文文案（3～5 行，繁體中文，結尾 5 個 hashtag）。
-{wish}只回 JSON：{{"title": "", "tags": [""], "keep": [{{"i": 0, "lines": [{{"zh": "", "en": ""}}]}}], "pops": [{{"i": 0, "text": ""}}], "post": ""}}'''
+7. 依影片內容和氣氛，從這些配樂挑最適合的一首，只寫名稱：{moods}
+{wish}只回 JSON：{{"title": "", "tags": [""], "keep": [{{"i": 0, "lines": [{{"zh": "", "en": ""}}]}}], "pops": [{{"i": 0, "text": ""}}], "music": "", "post": ""}}'''
 
 
 def plan_clips(segs, opt, note):
@@ -244,7 +303,8 @@ def plan_clips(segs, opt, note):
         return None
     lines = '\n'.join('i=%d [%.1f-%.1f] %s' % (i, s['start'], s['end'], s['text']) for i, s in enumerate(segs))
     wish = '使用者另外的要求：%s\n' % opt['wish'] if opt.get('wish') else ''
-    plan = ask_ai(PLAN_PROMPT.format(target=opt['target'], wish=wish),
+    rule = (RULE_LONG if opt['mode'] == 'long' else RULE_REELS).format(target=opt['target'])
+    plan = ask_ai(PLAN_PROMPT.format(rule=rule, wish=wish, moods='／'.join(music_names()) or '（無）'),
                   '使用者說明：%s\n\n逐句辨識：\n%s' % (note or '（無）', lines))
     keep, total, seen = [], 0.0, set()
     for k in plan.get('keep') or []:
@@ -271,7 +331,7 @@ def plan_clips(segs, opt, note):
         except (TypeError, ValueError, AttributeError):
             continue
     return {'title': opt['title'] or (plan.get('title') or '').strip()[:16], 'keep': keep, 'tags': tags,
-            'pops': pops[:3], 'post': (plan.get('post') or '').strip()}
+            'pops': pops[:3], 'post': (plan.get('post') or '').strip(), 'music': str(plan.get('music') or '').strip()}
 
 
 # ---------------- 影片處理 ----------------
@@ -279,9 +339,17 @@ def probe(path):
     out = json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-show_streams', '-of', 'json', path]))
     dur = float(out['format'].get('duration') or 0)
     has_audio = any(s.get('codec_type') == 'audio' for s in out['streams'])
-    if not any(s.get('codec_type') == 'video' for s in out['streams']):
+    vs = [s for s in out['streams'] if s.get('codec_type') == 'video']
+    if not vs:
         raise Oops('這個檔案裡沒有影片畫面。')
-    return dur, has_audio
+    w, h = int(vs[0].get('width') or 1920), int(vs[0].get('height') or 1080)
+    rot = int(float((vs[0].get('tags') or {}).get('rotate') or 0))
+    for sd in vs[0].get('side_data_list') or []:
+        if 'rotation' in sd:
+            rot = int(float(sd['rotation']))
+    if abs(rot) % 180 == 90:   # 手機直拍的影片常常是橫的畫面加「轉 90 度」標記
+        w, h = h, w
+    return dur, has_audio, (w, h)
 
 
 def clips_from_plan(plan, segs, dur):
@@ -345,10 +413,22 @@ def clips_without_speech(dur, target):
     return [[i * step + (step - 4) / 2, i * step + (step - 4) / 2 + 4] for i in range(n)]
 
 
-VF = ('[0:v]fps=%d,split[a][b];'
-      '[a]scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,boxblur=30:3,eq=brightness=-0.08[bg];'
-      '[b]scale=%d:%d:force_original_aspect_ratio=decrease[fg];'
-      '[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p[v]') % (FPS, W, H, W, H, W, H)
+def vf():
+    if MODE == 'long':   # 剪大片：保留原本的畫面比例
+        return '[0:v]fps=%d,scale=%d:%d,setsar=1,format=yuv420p[v]' % (FPS, W, H)
+    return ('[0:v]fps=%d,split[a][b];'
+            '[a]scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,boxblur=30:3,eq=brightness=-0.08[bg];'
+            '[b]scale=%d:%d:force_original_aspect_ratio=decrease[fg];'
+            '[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p[v]') % (FPS, W, H, W, H, W, H)
+
+
+def long_size(src_wh, est_sec):
+    """大片的輸出大小：長邊最多 1920；影片很長時縮小一點，才傳得回 Telegram（50MB）。"""
+    w, h = src_wh
+    kbps = (TG_LIMIT * 8 / 1000) / max(est_sec, 1) - 200
+    side = 1920 if kbps >= 2500 else 1280 if kbps >= 1000 else 854
+    k = min(1.0, side / max(w, h))
+    return max(2, int(w * k) // 2 * 2), max(2, int(h * k) // 2 * 2)
 
 
 def cut(src, spans, has_audio, work):
@@ -358,7 +438,7 @@ def cut(src, spans, has_audio, work):
         cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-ss', '%.3f' % a, '-t', '%.3f' % (b - a), '-i', src]
         if not has_audio:
             cmd += ['-f', 'lavfi', '-t', '%.3f' % (b - a), '-i', 'anullsrc=r=48000:cl=stereo']
-        cmd += ['-filter_complex', VF, '-map', '[v]', '-map', '0:a:0' if has_audio else '1:a',
+        cmd += ['-filter_complex', vf(), '-map', '[v]', '-map', '0:a:0' if has_audio else '1:a',
                 '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-r', str(FPS),
                 '-c:a', 'aac', '-ar', '48000', '-ac', '2', '-b:a', '192k', out]
         run(cmd)
@@ -410,10 +490,17 @@ def chip_w(text, fs):
     return int(sum(fs * (.55 if ord(c) < 128 else 1.0) for c in text) + fs * .6)
 
 
+LAND_Y = {'bottom': .06, 'lower': .09, 'middle': .40, 'upper': .72}   # 橫的大片：字幕底邊離下面的比例
+
+
 def build_ass(plan, segs, spans, opt, total, path):
-    k = opt['sub_size']
+    z = min(W, H) / 1080   # 依畫面大小縮放（直式 1080×1920 時是 1）
+    land = W > H
+    k = opt['sub_size'] * z * (.82 if land else 1)
     fs, fs_en = int(74 * k), int(44 * k)
     box = opt['sub_box']
+    mv = int(LAND_Y[opt['sub_pos']] * H) if land else int(POS_Y[opt['sub_pos']] * H / 1920)
+    px = lambda v: max(1, int(v * z))
     head = '\n'.join([
         '[Script Info]', 'ScriptType: v4.00+', 'PlayResX: %d' % W, 'PlayResY: %d' % H, 'WrapStyle: 0',
         'ScaledBorderAndShadow: yes', '', '[V4+ Styles]',
@@ -424,16 +511,18 @@ def build_ass(plan, segs, spans, opt, total, path):
         'Style: Sub,%s,%d,%s,%s,%s,%s,-1,0,0,0,100,100,1,0,%d,%d,%d,2,80,80,%d,1' % (
             FONT, fs, ass_color(opt['sub_color']), ass_color(opt['sub_color']),
             ass_color(opt['sub_outline'], 0x30 if box else 0), '&H78000000',
-            3 if box else 1, 14 if box else 4, 0 if box else 3, POS_Y[opt['sub_pos']]),
+            3 if box else 1, px(14 if box else 4), px(0 if box else 3), mv),
         # 開頭標題：深色半透明圓角輸入框裡打字
-        'Style: Ask,%s,50,&H00FFFFFF,&H00FFFFFF,&H40262626,&H00000000,-1,0,0,0,100,100,1,0,3,22,0,8,80,80,270,1' % FONT,
+        'Style: Ask,%s,%d,&H00FFFFFF,&H00FFFFFF,&H40262626,&H00000000,-1,0,0,0,100,100,1,0,3,%d,0,8,80,80,%d,1' % (
+            FONT, px(50), px(22), px(270) if not land else int(H * .16)),
         # 標籤：沒打勾是深灰、打勾後變亮色
-        'Style: Chip,%s,44,&H00FFFFFF,&H00FFFFFF,&H50303030,&H00000000,-1,0,0,0,100,100,1,0,3,12,0,7,0,0,0,1' % FONT,
-        'Style: ChipOn,%s,44,&H00151515,&H00151515,%s,&H00000000,-1,0,0,0,100,100,1,0,3,12,0,7,0,0,0,1' % (
-            FONT, ass_color(opt['accent'])),
+        'Style: Chip,%s,%d,&H00FFFFFF,&H00FFFFFF,&H50303030,&H00000000,-1,0,0,0,100,100,1,0,3,%d,0,7,0,0,0,1' % (
+            FONT, px(44), px(12)),
+        'Style: ChipOn,%s,%d,&H00151515,&H00151515,%s,&H00000000,-1,0,0,0,100,100,1,0,3,%d,0,7,0,0,0,1' % (
+            FONT, px(44), ass_color(opt['accent']), px(12)),
         # 重點字卡：亮色底、深色字，跳出來
-        'Style: Pop,%s,60,&H00151515,&H00151515,%s,&H00000000,-1,0,0,0,100,100,1,0,3,20,0,5,0,0,0,1' % (
-            FONT, ass_color(opt['accent'])),
+        'Style: Pop,%s,%d,&H00151515,&H00151515,%s,&H00000000,-1,0,0,0,100,100,1,0,3,%d,0,5,0,0,0,1' % (
+            FONT, px(60), ass_color(opt['accent']), px(20)),
         '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text', ''])
     ev = []
 
@@ -453,14 +542,14 @@ def build_ass(plan, segs, spans, opt, total, path):
     elif plan.get('title'):
         add(2, .2, end_intro, 'Ask', '{\\fad(200,300)}' + ass_text(plan['title']))
     if opt['cards'] and plan.get('tags'):
-        x, y = 60, 140
+        x, y = px(60), px(140) if not land else int(H * .06)
         for n, tag in enumerate(plan['tags']):
             tag = ass_text(tag)
             on = .5 + n * .35
             add(3, .15, on, 'Chip', '{\\pos(%d,%d)\\fad(150,0)}○ %s' % (x, y, tag))
             add(3, on, end_intro, 'ChipOn', '{\\pos(%d,%d)\\fscx80\\fscy80\\t(0,120,\\fscx106\\fscy106)'
                 '\\t(120,220,\\fscx100\\fscy100)\\fad(0,250)}√ %s' % (x, y, tag))
-            x += chip_w('√ ' + tag, 44) + 22
+            x += chip_w('√ ' + tag, px(44)) + px(22)
     if opt['subs'] != 'none':
         for kp in plan.get('keep') or []:
             s = segs[kp['i']]
@@ -486,22 +575,41 @@ def build_ass(plan, segs, spans, opt, total, path):
             if st is None or st < end_intro:
                 continue
             add(4, st, st + 2.2, 'Pop', '{\\pos(%d,%d)\\fscx40\\fscy40\\t(0,160,\\fscx108\\fscy108)'
-                '\\t(160,260,\\fscx100\\fscy100)\\fad(0,250)}%s' % (W // 2, 480, ass_text(pp['text'])))
+                '\\t(160,260,\\fscx100\\fscy100)\\fad(0,250)}%s' % (W // 2, int(H * .25), ass_text(pp['text'])))
     with open(path, 'w', encoding='utf-8') as f:
         f.write(head + '\n'.join(ev) + '\n')
     return sum(1 for e in ev if ',Sub,' in e)
 
 
-def pick_music(opt):
+def music_files():
+    return sorted(glob.glob(os.path.join(HERE, 'music', '*.mp3')))
+
+
+def music_names():
+    return [os.path.basename(f)[:-4] for f in music_files()]
+
+
+def music_credit(path):
+    """配樂的授權署名（reels/music/credits.json），發到社群時要放在貼文裡。"""
+    try:
+        with open(os.path.join(HERE, 'music', 'credits.json'), encoding='utf-8') as f:
+            return json.load(f).get(os.path.basename(path or '')[:-4], '')
+    except (OSError, ValueError):
+        return ''
+
+
+def pick_music(opt, plan=None):
+    """配樂：說明有指定就用那首，不然用 AI 依影片氣氛挑的，再不然隨機。"""
     if not opt['music']:
         return None
-    files = sorted(glob.glob(os.path.join(HERE, 'music', '*.mp3')))
+    files = music_files()
     if not files:
         return None
-    if opt['mood']:
-        m = [f for f in files if opt['mood'] in os.path.basename(f)]
-        if m:
-            return m[0]
+    for want in (opt['mood'], (plan or {}).get('music')):
+        if want:
+            m = [f for f in files if want in os.path.basename(f) or os.path.basename(f)[:-4] in want]
+            if m:
+                return m[0]
     return random.choice(files)
 
 
@@ -529,11 +637,16 @@ def finish(joined, ass, music, total, out, work):
     return thumb
 
 
-def make(src, out, note, transcript=None, style=''):
-    opt = apply_tweaks(apply_style(parse_note(note), style), note)
+def make(src, out, note, transcript=None, style='', mode='reels', music_file=''):
+    global MODE, W, H
+    opt = apply_tweaks(apply_style(parse_note(note, mode), style), note)
+    MODE = opt['mode']
+    W, H = 1080, 1920
     work = tempfile.mkdtemp(prefix='reels_')
     try:
-        dur, has_audio = probe(src)
+        dur, has_audio, src_wh = probe(src)
+        if MODE == 'long':
+            opt['target'] = int(dur) + 1   # 大片不限長度
         if dur > MAX_SOURCE_SEC:
             raise Oops('影片超過 20 分鐘，請先剪短一點再傳。')
         segs = []
@@ -555,21 +668,37 @@ def make(src, out, note, transcript=None, style=''):
             if opt['jumpcut'] and has_audio:
                 spans = drop_pauses(spans, silences(src)) or spans
         else:
-            spans = clips_without_speech(dur, opt['target'])
+            spans = [[0, dur]] if MODE == 'long' else clips_without_speech(dur, opt['target'])
             if plan is None and opt['title']:
                 plan = {'title': opt['title'], 'keep': [], 'post': '', 'tags': [], 'pops': []}
         total = sum(b - a for a, b in spans)
-        log('原片 %.1f 秒 → 剪成 %d 段、共 %.1f 秒' % (dur, len(spans), total))
+        if MODE == 'long':
+            W, H = long_size(src_wh, total)
+        log('原片 %.1f 秒 → 剪成 %d 段、共 %.1f 秒（%s %dx%d）' % (dur, len(spans), total, MODE, W, H))
         joined = cut(src, spans, has_audio, work)
         total = float(json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-of', 'json', joined]))['format']['duration'])
         ass = os.path.join(work, 'subs.ass')
         n = build_ass(plan, segs, spans, opt, total, ass)
-        music = pick_music(opt)
+        music, mine = None, False
+        if music_file and opt['music']:   # 你在 Telegram 傳的配樂
+            try:
+                music = os.path.join(work, 'mine_music')
+                tg_download(music_file, music, '配樂')
+                mine = True
+            except Oops as e:
+                log('自己的配樂拿不到：', e)
+                music = None
+        music = music or pick_music(opt, plan)
         thumb = finish(joined, ass, music, total, out, work)
+        diff = subs_check(joined, out, ass, work) if n else None
+        if diff is not None:
+            log('字幕檢查：畫面差異 %.1f%s' % (diff, '' if diff >= 1.5 else '　⚠️ 字幕可能沒有畫上去'))
         if os.path.getsize(out) > TG_LIMIT:
             raise Oops('剪好的影片太大，傳不回 Telegram。請在說明寫短一點的秒數（例如「剪 Reels 30秒」）再試一次。')
         shutil.copy(thumb, out + '.jpg')
-        return {'seconds': total, 'clips': len(spans), 'subs': n, 'music': os.path.basename(music or '')[:-4],
+        return {'seconds': total, 'clips': len(spans), 'subs': n, 'subs_diff': diff, 'subs_lang': opt['subs'],
+                'music': '你的配樂' if mine else os.path.basename(music or '')[:-4],
+                'credit': '' if mine else music_credit(music),
                 'title': (plan or {}).get('title', ''), 'post': (plan or {}).get('post', '')}
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -582,7 +711,11 @@ def main():
     ap.add_argument('--note', default=os.environ.get('NOTE', ''))
     ap.add_argument('--transcript')
     ap.add_argument('--style', default=os.environ.get('STYLE', ''))
+    ap.add_argument('--mode', default=os.environ.get('MODE', '') or 'reels')
+    ap.add_argument('--music-file', default=os.environ.get('MUSIC_FILE', ''))
+    ap.add_argument('--selftest', action='store_true', help='字幕沒畫上去就失敗（GitHub 上測試用）')
     a = ap.parse_args()
+    resolve_font()
 
     chat = os.environ.get('CHAT_ID')
     try:
@@ -591,22 +724,28 @@ def main():
             src = os.path.join(tempfile.mkdtemp(), 'input.mp4')
             tg_download(os.environ['FILE_ID'], src)
         tr = json.load(open(a.transcript, encoding='utf-8')) if a.transcript else None
-        info = make(src, a.out, a.note, tr, a.style)
+        info = make(src, a.out, a.note, tr, a.style, a.mode, a.music_file)
         log('完成：%.1f 秒、%d 段、%d 則字幕' % (info['seconds'], info['clips'], info['subs']))   # repo 公開，紀錄不寫內容
+        if a.selftest and info['subs'] and (info['subs_diff'] or 0) < 1.5:
+            log('自我測試失敗：字幕沒有畫上去')
+            sys.exit(2)
         if chat:
             ver = os.environ.get('VERSION') or '1'
-            cap = '🎬 第 %s 版試剪好了（%d 秒）' % (ver, round(info['seconds']))
+            secs = round(info['seconds'])
+            cap = '🎬 第 %s 版試剪好了（%s）' % (ver, '%d 秒' % secs if secs < 90 else '%d 分 %d 秒' % divmod(secs, 60))
             if info['title']:
                 cap += '\n標題：' + info['title']
-            cap += '\n' + '、'.join(x for x in ['直式 9:16',
-                                                '中英字幕' if info['subs'] else '',
+            cap += '\n' + '、'.join(x for x in ['大片 %d×%d' % (W, H) if MODE == 'long' else 'Reels 直式 9:16',
+                                                {'both': '中英字幕', 'zh': '中文字幕', 'en': '英文字幕'}.get(info['subs_lang'], '') if info['subs'] else '',
                                                 '配樂「%s」' % info['music'] if info['music'] else ''] if x)
             cap += ('\n\n想改哪裡，長按這支影片按「回覆」直接說，例如：'
-                    '\n・字幕大一點／放上面一點\n・開頭標題久一點\n・剪成 30 秒\n・換清新的配樂／不要配樂'
+                    '\n・字幕大一點／放上面一點\n・開頭標題久一點\n・剪成 30 秒\n・換溫暖鋼琴的配樂／不要配樂'
+                    '\n也可以先傳一首音樂給小乖當配樂。'
                     '\n也可以傳一張喜歡的影片截圖，說「我要這種風格」。')
             tg_send_video(chat, a.out, cap, a.out + '.jpg')
-            if info['post']:
-                tg('sendMessage', chat_id=chat, text='📝 貼文文案參考（長按可複製）：\n\n' + info['post'])
+            post = info['post'] + ('\n\n' + info['credit'] if info.get('credit') else '')
+            if post.strip():
+                tg('sendMessage', chat_id=chat, text='📝 貼文文案參考（長按可複製；配樂署名要保留）：\n\n' + post.strip())
     except Oops as e:
         log('Oops:', e)
         if chat:
