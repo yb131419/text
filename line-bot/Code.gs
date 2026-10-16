@@ -104,7 +104,7 @@ const HELP_TEXT = [
   '🪶 軍師：選主題，寫文案＋3 張圖卡',
   '💬 見證：按「新增見證」再傳圖片影片，之後查詢、轉傳分享',
   '📋 試算：先按「試算」再傳明細表照片',
-  '🎬 Reels：在 Telegram 傳影片，自動剪輯、上中英字幕、配樂',
+  '🎬 Reels：在 Telegram 傳影片，自動剪輯、字幕、動畫字卡、配樂，回覆就能改',
   '📅 行程：新增、今天、這週、刪除',
   '📝 筆記：新增筆記、看筆記和待辦',
   '📁 搜尋：本機找、上網找',
@@ -133,7 +133,9 @@ const HELP_MORE = [
   '',
   '【🎬 剪 Reels】',
   '・在 Telegram 按「🎬 剪 Reels」再傳影片，或傳影片時說明寫「剪 Reels」',
-  '・自動挑精華剪成直式 9:16、上中英字幕、配背景音樂，大約 3～6 分鐘傳回來，還附貼文文案',
+  '・自動挑精華、剪掉停頓，剪成直式 9:16、上中英短句字幕、開頭動畫字卡、配背景音樂，大約 3～6 分鐘傳回來，還附貼文文案',
+  '・要改哪裡：長按小乖傳回的影片按「回覆」直接說（例如：字幕大一點、標題久一點、剪成 30 秒），就會再剪一版',
+  '・學風格：傳一張喜歡的影片截圖，說明寫「風格」，之後都照那個字幕樣子剪；打「Reels 風格預設」換回原本的',
   '・說明可以加：「30秒」「標題：邀約三招」「只要中文字幕」「不要字幕」「不要配樂」「清新／溫暖／沉穩」（配樂風格）',
   '・影片要在 20MB 以內（Telegram 傳影片時選壓縮就好）',
   '',
@@ -2360,6 +2362,13 @@ function handleTelegram_(update) {
   // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
   const reelsVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsStart_(chatId, reelsVideo, text);
+  // 剪好之後：回覆那支影片說要改哪裡，或打「改影片 …」「重剪 Reels」，就照要求再剪一版
+  if (owner && chatId === owner && !reelsVideo && !fileId) {
+    const rv = reelsRevise_(msg, text);
+    if (rv) return reelsRun_(chatId, rv.fileId, rv.note, rv.ver, rv.ack);
+  }
+  // 傳一張喜歡的影片截圖（按了「🎬 剪 Reels」後，或說明有「風格」）：學下字幕的樣子，之後都照這個剪
+  if (owner && chatId === owner && fileId && (reelsPending_() || /風格/.test(text))) return reelsStyle_(chatId, fileId, doc);
   // 設定 GitHub 金鑰（剪 Reels 要用）：打完就把那則訊息刪掉
   const gk = text.match(/^設定\s*GitHub\s*金鑰\s*(\S+)$/i);
   if (owner && chatId === owner && gk) {
@@ -4219,26 +4228,52 @@ const REELS_WORD = /剪\s*reels|reels|剪片|剪輯|短影音/i;
 function reelsPending_() { return Number(prop_('REELS_UNTIL')) > Date.now(); }
 function reelsAsk_(t) {
   const k = String(t || '').replace(/\s+/g, '');
+  if (/^(reels風格預設|reels預設風格|風格預設|恢復預設風格)$/i.test(k)) {
+    setProp_('REELS_STYLE', '');
+    return '🎨 Reels 風格換回預設了：白色粗體字幕、下方偏中間、黃色標籤。';
+  }
   if (!/^(剪reels|reels|剪短影音|短影音剪輯)$/i.test(k)) return null;
   if (LINE_MODE_ || !CURRENT_TG_CHAT_) return '🎬 剪 Reels 目前要在 Telegram 用：在 Telegram 按「' + REELS_BTN + '」再傳影片，剪好會傳回 Telegram。';
   setProp_('REELS_UNTIL', String(Date.now() + 10 * 60 * 1000));
   return '🎬 好！10 分鐘內把影片傳給我（按左下角的迴紋針 📎 選影片）。\n\n'
-    + '影片說明可以順便寫要求，例如：\n・30秒\n・標題：邀約三招\n・只要中文字幕／不要字幕\n・不要配樂，或配樂要清新／溫暖／沉穩\n\n'
-    + '沒寫就照預設：最長 60 秒、中英字幕、隨機配樂。';
+    + '影片說明可以順便寫要求，例如：\n・30秒\n・標題：我想要做短影音\n・只要中文字幕／不要字幕\n・不要配樂，或配樂要清新／溫暖／沉穩\n\n'
+    + '沒寫就照預設：最長 60 秒、剪掉停頓、中英短句字幕、開頭動畫字卡、隨機配樂。\n'
+    + '先傳一張喜歡的影片截圖，小乖會學那個字幕風格。\n'
+    + '剪好後長按影片按「回覆」說要改哪裡，就會再剪一版。';
 }
+function reelsLast_() { try { return JSON.parse(prop_('REELS_LAST') || 'null'); } catch (e) { return null; } }
 function reelsStart_(chatId, video, note) {
   setProp_('REELS_UNTIL', '0');
-  if (!prop_('GITHUB_TOKEN')) return tgSend_(chatId, '🎬 剪 Reels 還沒設定好：請先傳「設定 GitHub金鑰 你的金鑰」給我（設定步驟在 README 的「剪 Reels」）。');
   if (video.file_size && video.file_size > 20 * 1024 * 1024) {
     return tgSend_(chatId, '🎬 這支影片超過 20MB，Telegram 不讓機器人下載。請傳影片時選「壓縮」（不要用檔案傳），或先剪短一點再傳。');
   }
+  const sec = video.duration ? '（影片 ' + video.duration + ' 秒）' : '';
+  return reelsRun_(chatId, video.file_id, String(note || '').replace(REELS_WORD, '').trim(), 1,
+    '🎬 收到影片' + sec + '，開始試剪第 1 版：挑精華、剪掉停頓、上字幕和動畫字卡、配樂。大約 3～6 分鐘剪好直接傳給你。');
+}
+// 修改：回覆小乖傳的成品影片，或「改影片 …」「改 Reels …」；「重剪 Reels」用目前的風格重剪
+function reelsRevise_(msg, text) {
+  const last = reelsLast_();
+  if (!last || !text) return null;
+  const rt = msg.reply_to_message, k = text.replace(/\s+/g, '');
+  let ask = '';
+  if (rt && rt.from && rt.from.is_bot && /^🎬 第 \d+ 版/.test(rt.caption || '')) ask = text;
+  else if (/^(改|修改)(影片|reels|短影音)/i.test(k)) ask = text.replace(/^\s*(改|修改)\s*(影片|reels|短影音)[\s：:]*/i, '');
+  else if (/^(重剪|重新剪)(reels|影片|一次|一版)?$/i.test(k) || /^用這個風格重剪$/.test(k.replace(/^[^\p{L}\p{N}]+/u, ''))) ask = '照目前的風格重剪';
+  if (!ask) return null;
+  const ver = (Number(last.ver) || 1) + 1;
+  return { fileId: last.fileId, ver: ver, note: (last.note ? last.note + '\n' : '') + '第 ' + ver + ' 版修改：' + ask,
+    ack: '✂️ 收到，照你說的「' + ask.slice(0, 40) + '」剪第 ' + ver + ' 版，好了直接傳給你。' };
+}
+function reelsRun_(chatId, fileId, note, ver, ack) {
+  if (!prop_('GITHUB_TOKEN')) return tgSend_(chatId, '🎬 剪 Reels 還沒設定好：請先傳「設定 GitHub金鑰 你的金鑰」給我（設定步驟在 README 的「剪 Reels」）。');
+  note = String(note || '').slice(-600);   // 修改要求越疊越多時只留最後的部分
   const repo = prop_('REELS_REPO') || 'yb131419/Tezhu';
   const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/reels.yml/dispatches', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' },
     payload: JSON.stringify({ ref: 'main', inputs: {
-      chat_id: String(chatId), file_id: video.file_id,
-      note: String(note || '').replace(REELS_WORD, '').trim().slice(0, 200),
+      chat_id: String(chatId), file_id: fileId, note: note, style: prop_('REELS_STYLE') || '', version: String(ver),
     } }),
   });
   const code = res.getResponseCode();
@@ -4248,6 +4283,30 @@ function reelsStart_(chatId, video, note) {
       ? '🎬 GitHub 金鑰不對或權限不夠（' + code + '），請重新產生金鑰後傳「設定 GitHub金鑰 新金鑰」。'
       : '🎬 現在沒辦法開始剪（' + code + '），請等一下再傳一次。');
   }
-  const sec = video.duration ? '（影片 ' + video.duration + ' 秒）' : '';
-  return tgSend_(chatId, '🎬 收到影片' + sec + '，開始剪輯：挑精華、上中英字幕、配樂。大約 3～6 分鐘剪好直接傳給你。');
+  setProp_('REELS_LAST', JSON.stringify({ fileId: fileId, note: note, ver: ver, at: Date.now() }));
+  return tgSend_(chatId, ack);
+}
+// 看截圖學字幕風格：顏色、大小、位置、有沒有底色框、標籤顏色
+const REELS_STYLE_PROMPT = [
+  '你是短影音剪輯師。看這張短影音截圖，整理它的字幕和字卡風格，只回 JSON：',
+  '{"sub_color":"#RRGGBB 字幕字的顏色","sub_outline":"#RRGGBB 字幕描邊或底色框的顏色",',
+  '"sub_box":true/false 字幕有沒有底色框,"sub_size":0.6~1.6 字幕大小（一般短影音的大小算 1）,',
+  '"sub_pos":"bottom/lower/middle/upper 字幕位置（lower＝下方偏中間）","accent":"#RRGGBB 標籤或重點字卡的強調色，看不出來就用 #F5C842",',
+  '"subs":"both/zh/en 有中英兩行就 both，只有中文 zh","desc":"用一句繁體中文描述這個風格"}',
+].join('\n');
+function reelsStyle_(chatId, fileId, doc) {
+  setProp_('REELS_UNTIL', String(Date.now() + 10 * 60 * 1000));   // 學完風格還可以接著傳影片
+  tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
+  let st;
+  try {
+    const img = tgImage_(fileId, doc && doc.mime_type);
+    st = JSON.parse(callOpenAI_(REELS_STYLE_PROMPT, [{ role: 'user', content: [
+      { type: 'text', text: '這是我喜歡的短影音風格截圖。' }, { type: 'image_url', image_url: { url: img } }] }], true));
+  } catch (err) { console.error(err); return tgSend_(chatId, '🎨 截圖看不清楚，換一張字幕比較明顯的再傳一次。'); }
+  const desc = String(st.desc || '').slice(0, 80);
+  delete st.desc;
+  setProp_('REELS_STYLE', JSON.stringify(st));
+  const btns = reelsLast_() ? [['🔁 用這個風格重剪'], ['🎬 剪 Reels']] : [['🎬 剪 Reels']];
+  return tgSend_(chatId, { text: '🎨 記住這個風格了' + (desc ? '：' + desc : '') + '\n之後剪的 Reels 都照這個樣子。'
+    + '\n現在傳影片就會用這個風格剪；打「Reels 風格預設」可以換回原本的。', buttons: btns });
 }

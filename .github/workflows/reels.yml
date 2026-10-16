@@ -1,5 +1,5 @@
 # 小乖剪 Reels：在 Telegram 傳影片給小乖並寫「剪 Reels」，小乖的 Apps Script 會觸發這個流程，
-# 自動剪成直式 9:16、上中英字幕、配樂，再傳回 Telegram。程式在 reels/reels.py。
+# 自動剪成直式 9:16、剪掉停頓、上字幕和動畫字卡、配樂，再傳回 Telegram；回覆成品可以再改一版。程式在 reels/reels.py。
 # 需要在 GitHub 的 Settings → Secrets and variables → Actions 設好 TELEGRAM_BOT_TOKEN、OPENAI_API_KEY。
 name: 小乖剪 Reels
 
@@ -16,6 +16,14 @@ on:
         description: 影片說明（例如「剪 Reels 30秒」）
         required: false
         default: ''
+      style:
+        description: 從截圖學到的字幕風格（JSON）
+        required: false
+        default: ''
+      version:
+        description: 第幾版
+        required: false
+        default: '1'
 
 permissions:
   contents: read
@@ -46,4 +54,6 @@ jobs:
           CHAT_ID: ${{ inputs.chat_id }}
           FILE_ID: ${{ inputs.file_id }}
           NOTE: ${{ inputs.note }}
+          STYLE: ${{ inputs.style }}
+          VERSION: ${{ inputs.version }}
         run: python3 reels/reels.py --out "$RUNNER_TEMP/reels.mp4"
