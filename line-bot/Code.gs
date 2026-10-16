@@ -630,6 +630,7 @@ function answer_(text) {
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
   const kp = kitPick_(raw);   // 「📕 7張＋PDF」：選主題後要做 1～2 分鐘，先回「製作中」，做好再傳
   if (kp === 'menu') return kitMenu_();
+  if (kp && kp.style) return kitStyleMenu_(kp.style);
   if (kp) { KIT_PENDING_ = kp; return '⏳ 收到！正在寫貼文、畫 7 張圖卡、做 PDF，大約 1～2 分鐘，好了就傳給你。'; }
   const sp = stratPick_(raw) || stratPick_(t2);   // 先用原文對主題按鈕（「🌿 健康」要帶圖示才算按鈕）
   if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
@@ -1224,7 +1225,17 @@ const KIT_BTN = '📕 7張＋PDF';
 const KIT_FOLDER = '小乖軍師PDF';
 const KIT_BG = 'https://yb131419.github.io/Tezhu/line-bot/kit/';   // 底圖（絲絨＋厚卡＋燙金框＋YB 印記），字由簡報疊上去
 let LAST_KIT_ = null, KIT_PENDING_ = '';   // 剛寫好的 7 張＋PDF 內容；LINE／Telegram／對話頁各自畫好送出
-const KIT_INK = '#2A221A', KIT_SOFT = '#5B4F40', KIT_GOLD = '#A07C34', KIT_MUTE = '#8D7F6C';
+// 款式（2026-10-16 使用者要「能選擇款式」）：底圖放在 line-bot/kit/<d>，字的顏色跟著換
+const KIT_LIGHT = { ink: '#2A221A', soft: '#5B4F40', gold: '#A07C34', mute: '#8D7F6C', top: '#9C7A3E', lab: '#7C6B55', orn: '#B8914A', sub: '#6E604E', strike: '#A39A8C', rule: '#C9AE7A' };
+const KIT_DARK = (soft, lab, mute) => ({ ink: '#F3EBDD', soft: soft, gold: '#D9B867', mute: mute, top: '#C9A65A', lab: lab, orn: '#C9A65A', sub: lab, strike: mute, rule: '#8C7440' });
+const KIT_STYLES = [
+  { n: '綠底', d: 'emerald/', tip: '象牙白卡＋祖母綠底', c: KIT_LIGHT },
+  { n: '咖啡底', d: 'coffee/', tip: '象牙白卡＋深咖啡底', c: KIT_LIGHT },
+  { n: '深綠', d: 'green/', tip: '深綠卡＋燙金', c: KIT_DARK('#C6D1C9', '#A9B8AE', '#8C9D92') },
+  { n: '酒紅', d: 'wine/', tip: '酒紅卡＋燙金', c: KIT_DARK('#E2C9C4', '#CDAFA8', '#B08F89') },
+  { n: '寶石藍', d: 'sapphire/', tip: '寶石藍卡＋燙金', c: KIT_DARK('#C4CCDD', '#A6B1C8', '#8893AE') }];
+let KIT_S_ = KIT_STYLES[0];   // 這次畫圖用的款式（kitMake_ 依 kit.style 設定）
+const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n)[0] || KIT_STYLES[0];
 
 function kitMenu_() {
   const b = STRAT_THEMES.map(t => '📕 ' + t.btn.replace(/^[^\p{L}\p{N}]+/u, ''));
@@ -1234,10 +1245,19 @@ function kitMenu_() {
 function kitPick_(raw) {
   const t = String(raw || '').replace(/\s+/g, ' ').trim();
   if (t === KIT_BTN || /^(7張|七張)[＋+]?PDF$|^名單包$/i.test(t.replace(/^📕 ?|\s/g, ''))) return 'menu';
+  const th = name => STRAT_THEMES.filter(x => x.btn.replace(/^[^\p{L}\p{N}]+/u, '') === name)[0];
+  const st = t.match(/^🎨 ?(\S+?)・(\S+)$/);   // 「🎨 健康・綠底」：主題＋款式都選好了
+  if (st) { const hit = th(st[1]); return hit && KIT_STYLES.some(x => x.n === st[2]) ? hit.k + '|' + st[2] : null; }
   const m = t.match(/^📕 ?(\S+)$/);
   if (!m) return null;
-  const hit = STRAT_THEMES.filter(x => x.btn.replace(/^[^\p{L}\p{N}]+/u, '') === m[1])[0];
-  return hit ? hit.k : null;
+  const hit = th(m[1]);
+  return hit ? { style: hit } : null;
+}
+// 選好主題後問款式
+function kitStyleMenu_(th) {
+  const name = th.btn.replace(/^[^\p{L}\p{N}]+/u, '');
+  const b = KIT_STYLES.map(x => '🎨 ' + name + '・' + x.n);
+  return { text: '📕 ' + name + '：選一個款式\n\n' + KIT_STYLES.map(x => '・' + x.n + '：' + x.tip).join('\n'), buttons: [b.slice(0, 3), b.slice(3)] };
 }
 
 // AI 一次寫好：貼文、7 張輪播、7 頁 PDF 的內容（只回 JSON）
@@ -1350,19 +1370,19 @@ function kitText_(req, slide, id, box, paras, valign) {
     const p = x.p, rng = { type: 'FIXED_RANGE', startIndex: x.a, endIndex: Math.max(x.b, x.a + 1) };
     if (x.b > x.a) req.push({ updateTextStyle: { objectId: id, textRange: { type: 'FIXED_RANGE', startIndex: x.a, endIndex: x.b }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: {
       fontSize: { magnitude: p.size, unit: 'PT' }, bold: !!p.bold, fontFamily: p.font || 'Noto Serif TC',
-      foregroundColor: { opaqueColor: { rgbColor: rgb_(p.color || KIT_INK) } } } } });
+      foregroundColor: { opaqueColor: { rgbColor: rgb_(p.color || KIT_S_.c.ink) } } } } });
     req.push({ updateParagraphStyle: { objectId: id, textRange: rng, fields: 'alignment,lineSpacing,spaceAbove,indentStart,indentFirstLine', style: {
       alignment: p.align || 'CENTER', lineSpacing: p.ls || 140, spaceAbove: { magnitude: p.above || 0, unit: 'PT' },
       indentStart: { magnitude: p.indent || 0, unit: 'PT' }, indentFirstLine: { magnitude: p.indent || 0, unit: 'PT' } } } });
     x.marks.forEach(m => req.push({ updateTextStyle: { objectId: id, textRange: { type: 'FIXED_RANGE', startIndex: m.a, endIndex: m.b },
       fields: m.em ? 'bold,foregroundColor' : 'strikethrough,foregroundColor',
-      style: m.em ? { bold: true, foregroundColor: { opaqueColor: { rgbColor: rgb_(p.em || KIT_GOLD) } } }
-        : { strikethrough: true, foregroundColor: { opaqueColor: { rgbColor: rgb_('#A39A8C') } } } } }));
+      style: m.em ? { bold: true, foregroundColor: { opaqueColor: { rgbColor: rgb_(p.em || KIT_S_.c.gold) } } }
+        : { strikethrough: true, foregroundColor: { opaqueColor: { rgbColor: rgb_(KIT_S_.c.strike) } } } } }));
   });
   req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: valign || 'MIDDLE' }, fields: 'contentAlignment' } });
 }
 function kitBg_(req, slide, file, W, H) {
-  req.push({ createImage: { objectId: slide + '_bg', url: KIT_BG + file, elementProperties: { pageObjectId: slide,
+  req.push({ createImage: { objectId: slide + '_bg', url: KIT_BG + KIT_S_.d + file, elementProperties: { pageObjectId: slide,
     size: { width: { magnitude: W, unit: 'PT' }, height: { magnitude: H, unit: 'PT' } },
     transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: 'PT' } } } });
 }
@@ -1371,28 +1391,28 @@ const KIT_ORN = '───────　◆　───────';
 // 一張輪播圖卡（540×675，跟 3 張圖卡同尺寸）
 function kitCardLayout_(kit, i) {
   const W = 540, H = 675, s = kit.slides[i], N = kit.slides.length;
-  const head = (t, size) => ({ t: t, size: size, bold: true, color: KIT_INK, ls: 135 });
-  const orn = { t: KIT_ORN, size: 9, color: '#B8914A', above: 16 };
-  const body = t => ({ t: t, size: 18, color: KIT_SOFT, ls: 175, above: 16, em: KIT_INK });
+  const head = (t, size) => ({ t: t, size: size, bold: true, color: KIT_S_.c.ink, ls: 135 });
+  const orn = { t: KIT_ORN, size: 9, color: KIT_S_.c.orn, above: 16 };
+  const body = t => ({ t: t, size: 18, color: KIT_S_.c.soft, ls: 175, above: 16, em: KIT_S_.c.ink });
   let paras;
   if (s.kind === 'cover') paras = [head(s.head, 40), orn, body(s.sub)];
   else if (s.kind === 'action') paras = [head(s.head, 34), orn, body(s.body)];
   else if (s.kind === 'reason') paras = [head(s.head, 32)];
-  else if (s.kind === 'last') paras = [{ t: s.pre, size: 25, color: KIT_MUTE, ls: 160 }, orn, Object.assign(head(s.head, 40), { above: 14 })];
-  else paras = [head(s.head, 27), orn, { t: '留言', size: 14, color: '#6E604E', above: 18 },
-    { t: kit.keyword.split('').join(' '), size: 54, bold: true, color: KIT_GOLD, above: 2 }, { t: s.sub, size: 16, color: '#6E604E', above: 10 }];
+  else if (s.kind === 'last') paras = [{ t: s.pre, size: 25, color: KIT_S_.c.mute, ls: 160 }, orn, Object.assign(head(s.head, 40), { above: 14 })];
+  else paras = [head(s.head, 27), orn, { t: '留言', size: 14, color: KIT_S_.c.sub, above: 18 },
+    { t: kit.keyword.split('').join(' '), size: 54, bold: true, color: KIT_S_.c.gold, above: 2 }, { t: s.sub, size: 16, color: KIT_S_.c.sub, above: 10 }];
   const label = s.kind === 'action' ? s.step : s.label || (s.kind === 'cover' ? '生活筆記「' + (kit.cat || kit.theme.replace(/主題$/, '')) + '」' : '');
   const num = ('0' + (i + 1)).slice(-2) + ' — ' + ('0' + N).slice(-2);
   return { W: W, H: H, build: slide => {
     const req = [];
     kitBg_(req, slide, 'card_bg.jpg', W, H);
     kitText_(req, slide, slide + '_top', [60, 112, 420, 44], [
-      { t: 'NO. ' + ('0' + (i + 1)).slice(-2) + ' · ' + kit.series, size: 10, color: '#9C7A3E', font: 'Noto Sans TC' },
-      { t: label, size: 12, color: '#7C6B55', font: 'Noto Sans TC', above: 4 }], 'TOP');
+      { t: 'NO. ' + ('0' + (i + 1)).slice(-2) + ' · ' + kit.series, size: 10, color: KIT_S_.c.top, font: 'Noto Sans TC' },
+      { t: label, size: 12, color: KIT_S_.c.lab, font: 'Noto Sans TC', above: 4 }], 'TOP');
     kitText_(req, slide, slide + '_main', [64, 165, 412, 390], paras);
     kitText_(req, slide, slide + '_ft', [60, 566, 420, 50], [
-      { t: num, size: 15, color: '#9C7A3E', font: 'Cormorant Garamond' },
-      { t: cardBy_(), size: 11, color: KIT_MUTE, font: 'Noto Sans TC', above: 4 }], 'TOP');
+      { t: num, size: 15, color: KIT_S_.c.top, font: 'Cormorant Garamond' },
+      { t: cardBy_(), size: 11, color: KIT_S_.c.mute, font: 'Noto Sans TC', above: 4 }], 'TOP');
     return req;
   } };
 }
@@ -1400,54 +1420,55 @@ function kitCardLayout_(kit, i) {
 // PDF 一頁（A4 直式 595×842）
 function kitPdfLayouts_(kit) {
   const W = 595.28, H = 841.89, P = kit.pdf, X = 74, TW = 447;
-  const lbl = t => ({ t: t, size: 10, color: KIT_GOLD, font: 'Noto Sans TC', align: 'START', above: 14 });
-  const txt = (t, o) => Object.assign({ t: t, size: 11, color: KIT_SOFT, align: 'START', ls: 175, indent: 14, em: KIT_GOLD }, o || {});
-  const note = n => n && (n.h || n.p) ? [lbl(n.h || '注意'), txt(n.p, { color: KIT_INK, indent: 0, above: 2 })] : [];
+  const lbl = t => ({ t: t, size: 10, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START', above: 14 });
+  const txt = (t, o) => Object.assign({ t: t, size: 11, color: KIT_S_.c.soft, align: 'START', ls: 175, indent: 14, em: KIT_S_.c.gold }, o || {});
+  const note = n => n && (n.h || n.p) ? [lbl(n.h || '注意'), txt(n.p, { color: KIT_S_.c.ink, indent: 0, above: 2 })] : [];
   const page = (n, small, title, paras) => ({ W: W, H: H, build: slide => {
     const req = [];
     kitBg_(req, slide, 'pdf_page.jpg', W, H);
-    kitText_(req, slide, slide + '_hd', [X, 72, TW, 56], [{ t: small, size: 9, color: KIT_GOLD, font: 'Noto Sans TC', align: 'START' },
-      { t: title, size: 20, bold: true, color: KIT_INK, align: 'START', above: 2 }], 'BOTTOM');
+    kitText_(req, slide, slide + '_hd', [X, 72, TW, 56], [{ t: small, size: 9, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' },
+      { t: title, size: 20, bold: true, color: KIT_S_.c.ink, align: 'START', above: 2 }], 'BOTTOM');
     req.push({ createShape: { objectId: slide + '_rule', shapeType: 'RECTANGLE', elementProperties: { pageObjectId: slide,
       size: { width: { magnitude: TW, unit: 'PT' }, height: { magnitude: 0.6, unit: 'PT' } },
       transform: { scaleX: 1, scaleY: 1, translateX: X, translateY: 136, unit: 'PT' } } } });
     req.push({ updateShapeProperties: { objectId: slide + '_rule', fields: 'shapeBackgroundFill,outline', shapeProperties: {
-      shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_('#C9AE7A') } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
+      shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(KIT_S_.c.rule) } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
     kitText_(req, slide, slide + '_bd', [X, 146, TW, 610], paras, 'TOP');
-    kitText_(req, slide, slide + '_ft', [X, 770, TW, 20], [{ t: cardBy_() + '　　' + ('0' + n).slice(-2), size: 8, color: KIT_MUTE, font: 'Noto Sans TC', align: 'END' }], 'TOP');
+    kitText_(req, slide, slide + '_ft', [X, 770, TW, 20], [{ t: cardBy_() + '　　' + ('0' + n).slice(-2), size: 8, color: KIT_S_.c.mute, font: 'Noto Sans TC', align: 'END' }], 'TOP');
     return req;
   } });
   const pts = list => [].concat.apply([], (list || []).map((x, i) => [
-    { t: (i + 1) + '　' + (x.h || ''), size: 13, bold: true, color: KIT_INK, align: 'START', above: 14 }, txt(x.p, { above: 3 })]));
+    { t: (i + 1) + '　' + (x.h || ''), size: 13, bold: true, color: KIT_S_.c.ink, align: 'START', above: 14 }, txt(x.p, { above: 3 })]));
   const L = [];
   L.push({ W: W, H: H, build: slide => {   // 封面
     const req = [];
     kitBg_(req, slide, 'pdf_cover.jpg', W, H);
     kitText_(req, slide, slide + '_main', [X, 190, TW, 520], [
-      { t: P.kicker, size: 10, color: KIT_GOLD, font: 'Noto Sans TC' },
-      { t: P.title + '。', size: 40, bold: true, color: KIT_INK, ls: 130, above: 22 },
-      { t: '────────', size: 10, color: '#B8914A', above: 18 },
-      { t: P.intro, size: 13, color: KIT_SOFT, ls: 190, above: 18 }]);
-    kitText_(req, slide, slide + '_ft', [X, 760, TW, 20], [{ t: cardBy_(), size: 9, color: KIT_MUTE, font: 'Noto Sans TC' }], 'TOP');
+      { t: P.kicker, size: 10, color: KIT_S_.c.gold, font: 'Noto Sans TC' },
+      { t: P.title + '。', size: 40, bold: true, color: KIT_S_.c.ink, ls: 130, above: 22 },
+      { t: '────────', size: 10, color: KIT_S_.c.orn, above: 18 },
+      { t: P.intro, size: 13, color: KIT_S_.c.soft, ls: 190, above: 18 }]);
+    kitText_(req, slide, slide + '_ft', [X, 760, TW, 20], [{ t: cardBy_(), size: 9, color: KIT_S_.c.mute, font: 'Noto Sans TC' }], 'TOP');
     return req;
   } });
   const B = P.before;
   L.push(page(2, '開始之前', B.title || '真正的原因', [txt(B.lead, { indent: 0, size: 12 })].concat(pts(B.points), note(B.note))));
   P.actions.forEach((a, i) => L.push(page(3 + i, a.step || ('動作' + '一二三'[i]), a.title, [txt(a.lead, { indent: 0, size: 12 }),
-    lbl('示範'), txt((a.demo || []).join('\n'), { color: KIT_INK }), txt(a.demoNote, { above: 4 }),
+    lbl('示範'), txt((a.demo || []).join('\n'), { color: KIT_S_.c.ink }), txt(a.demoNote, { above: 4 }),
     lbl('為什麼有用'), txt(a.why), lbl('練習'), txt(a.practice)].concat(note(a.warn)))));
   const C = P.check;
   L.push(page(6, '自查', C.title, [txt(C.lead, { indent: 0, size: 12 })].concat((C.items || []).slice(0, 6).map((t, i) =>
-    ({ t: '☐ 0' + (i + 1) + '　' + t, size: 12.5, bold: true, color: KIT_INK, align: 'START', above: 12, ls: 150 })), note(C.note))));
+    ({ t: '☐ 0' + (i + 1) + '　' + t, size: 12.5, bold: true, color: KIT_S_.c.ink, align: 'START', above: 12, ls: 150 })), note(C.note))));
   const F = P.final;
-  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: KIT_ORN, size: 9, color: '#B8914A', above: 26 },
-    { t: F.close, size: 19, bold: true, color: KIT_INK, ls: 165, above: 16 }])));
+  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: KIT_ORN, size: 9, color: KIT_S_.c.orn, above: 26 },
+    { t: F.close, size: 19, bold: true, color: KIT_S_.c.ink, ls: 165, above: 16 }])));
   return L;
 }
 
 // 畫 7 張圖卡＋PDF，存到雲端硬碟（PDF 設成知道連結的人都能看，才能轉給留言的人）
 function kitMake_(kit) {
   REPORT_ERR_ = '';
+  KIT_S_ = kitStyle_(kit.style);
   const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm');
   const pngs = layoutPngs_(kit.slides.map((x, i) => kitCardLayout_(kit, i)),
     kit.slides.map((x, i) => '名單包_' + kit.series + '_' + stamp + '_' + (i + 1) + '.png'));
@@ -1473,10 +1494,11 @@ function kitDoneText_(kit, r) {
 
 // 按了主題後真正開始做：寫內容（AI）→ 交給各平台畫圖、送出；寫失敗就回錯誤訊息
 function kitRun_(deliver) {
-  const k = KIT_PENDING_; KIT_PENDING_ = '';
-  if (!k) return null;
-  const w = kitWrite_(k);
+  const k = KIT_PENDING_.split('|'); KIT_PENDING_ = '';
+  if (!k[0]) return null;
+  const w = kitWrite_(k[0]);
   if (!LAST_KIT_) return w;
+  LAST_KIT_.style = k[1] || '';
   logChat_('assistant', String(w.text || w).slice(0, 2000));
   deliver();
   return null;
