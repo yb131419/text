@@ -899,8 +899,16 @@ function cardLayout_(c, minH) {
   let fs = 28;
   while (fs > 18 && bodyH(fs) > 430) fs--;
   const BH = bodyH(fs);
-  const GF = 26;   // 金句字級（2026-10-16 使用者要再加大）
-  const goldH = c.gold ? lines(c.gold, GF, TW - 40) * GF * 1.6 + 36 : 0;
+  // 金句框（2026-10-16 精品版）：拆成「鋪陳」小字＋「反轉」大字，中間細金線，上緣菱形飾、角落引號
+  const GF = 26, SF = 17, GW = TW - 84;
+  const gs = String(c.gold || '');
+  const cut = gs.indexOf('真正') > 0 ? gs.indexOf('真正') : gs.search(/[，,]/) > 0 && gs.search(/[，,]/) < gs.length - 2 ? gs.search(/[，,]/) + 1 : 0;
+  const goldSet = gs.slice(0, cut).trim();
+  let goldPunch = gs.slice(cut).trim();
+  if (units(goldPunch) > Math.floor((GW - 14) / GF)) goldPunch = goldPunch.replace(/([，,])\s*/g, '$1\n');   // 一行放不下就在逗號換行，不會剩兩三個字孤零零
+  const setH = goldSet ? lines(goldSet, SF, GW) * SF * 1.7 : 0;
+  const punchH = lines(goldPunch, GF, GW) * GF * 1.55;
+  const goldH = c.gold ? 30 + (goldSet ? setH + 22 : 0) + punchH + 30 : 0;
   const tagLines = c.tags.length ? lines(c.tags.join('  '), 14, TW) : 0;
   const top = 190;
   let y = top + BH + 14;
@@ -945,8 +953,20 @@ function cardLayout_(c, minH) {
     text(c.body, X, top + sh, TW, BH, fs, '#EDE6D6', { align: 'START', valign: 'TOP', ls: 150 });
     if (c.gold) {
       // 金句框：香檳金底＋深咖啡字，跟上面的黑底內文分得開（2026-10-16 使用者要金句框顏色不一樣）
-      shape('ROUND_RECTANGLE', X, goldTop + sh, TW, goldH, '#D9BC85', '#F1DFB4');
-      text(c.gold, X + 20, goldTop + sh, TW - 40, goldH, GF, '#1E1710', { bold: true, serif: true, ls: 130 });
+      const gt = goldTop + sh;
+      shape('ROUND_RECTANGLE', X, gt, TW, goldH, '#D9BC85', '#F1DFB4');          // 香檳金底
+      shape('ROUND_RECTANGLE', X + 7, gt + 7, TW - 14, goldH - 14, null, '#9C7A45');   // 內框細線，像精品包裝
+      shape('DIAMOND', W / 2 - 7, gt - 7, 14, 14, '#12100D', '#D9BC85');           // 上緣菱形飾
+      text('“', X + 14, gt + 6, 40, 44, 40, '#B08B52', { serif: true, bold: true, align: 'START', valign: 'TOP' });
+      text('”', X + TW - 54, gt + goldH - 46, 40, 44, 40, '#B08B52', { serif: true, bold: true, align: 'END', valign: 'TOP' });
+      let gy = gt + 30;
+      if (goldSet) {
+        text(goldSet, X + 42, gy, GW, setH, SF, '#5A4526', { serif: true, ls: 140 });
+        gy += setH + 10;
+        shape('RECTANGLE', W / 2 - 22, gy, 44, 0.8, '#8C6A3A', null);
+        gy += 12;
+      }
+      text(goldPunch, X + 42, gy, GW, punchH, GF, '#1E1710', { bold: true, serif: true, ls: 130 });
     }
     if (c.note) text(c.note, X, noteTop + sh, TW, 24, 14, '#B9AE98');
     if (c.tags.length) text(c.tags.join('  '), X, tagTop + sh, TW, tagLines * 22, 14, '#9C8F78', { ls: 120 });
