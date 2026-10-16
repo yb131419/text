@@ -40,7 +40,7 @@ const MENU_CARDS = [
   { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['⚙️ 設定', '署名・標題']] },
   { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類']] },
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
-  { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、這週排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '點日期、時間就排好'], ['📅 這週行程', '整週一覽'], ['🗑️ 刪除行程', '點一下就刪']] },
+  { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '點日期、時間就排好'], ['📅 近期行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
   { en: 'NOTES', title: '我的筆記', sub: '靈感、重點、待辦，隨手記、隨時看', items: [['📝 我的筆記', '全部筆記'], ['✍️ 新增筆記', '打一句就存'], ['✅ 我的待辦', '未完成事項']] },
   { en: 'SEARCH', title: '資料搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
 ];
@@ -136,7 +136,7 @@ const HELP_MORE = [
   '',
   '【📅 行程】',
   '・按「➕ 新增行程」→ 點日期 → 點時間 → 點或打要做的事，不用打字也能排好',
-  '・今天行程、這週行程：照日期排好',
+  '・今天行程、近期行程：照日期時間排好，已經過了的不顯示',
   '・按「🗑️ 刪除行程」點一筆就刪，刪錯可以按「↩️ 復原」；也可以說「刪除 名稱」',
   '・過了日期的行程會自動刪掉',
   '',
@@ -842,7 +842,7 @@ const WEEK_ = '日一二三四五六';
 const EV_TITLES = ['開會', '見客戶', '說明會', '上課', '聚餐', '看醫生'];
 function evMd_(ds) { return Number(ds.slice(5, 7)) + '/' + Number(ds.slice(8, 10)); }
 function evWk_(ds) { return '（' + WEEK_[new Date(ds + 'T12:00:00+08:00').getUTCDay()] + '）'; }
-function evDelLabel_(e) { return '🗑️ ' + evMd_(e.date) + ' ' + (e.time || '整天') + ' ' + e.title; }
+function evDelLabel_(e) { return '🗑️ ' + evMd_(e.date) + ' ' + (hm_(e.time) || '整天') + ' ' + e.title; }
 function futureEvents_() {
   const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
   return readAll_().events.filter(e => e.date >= today).sort(evCmp_);
@@ -898,7 +898,7 @@ function evFlow_(t, raw) {
     const md = ('0' + dm[1]).slice(-2) + '-' + ('0' + dm[2]).slice(-2), tm = dm[3] === '整天' ? '' : dm[3], title = dm[4].trim();
     const gone = withLock_(() => {
       const d = readAll_(), today = evDay_(0);
-      const x = d.events.filter(e => e.date >= today && e.date.slice(5) === md && (e.time || '') === tm && e.title === title).sort(evCmp_)[0];
+      const x = d.events.filter(e => e.date >= today && e.date.slice(5) === md && hm_(e.time) === tm && e.title === title).sort(evCmp_)[0];
       if (!x) return null;
       const now = Date.now();
       d.events = d.events.filter(e => e.id !== x.id); d.deleted[x.id] = now;
@@ -916,7 +916,7 @@ function evFlow_(t, raw) {
     withLock_(() => { const d = readAll_(); x.id = uid_(); x.u = Date.now(); d.events.push(x); writeAll_(d); });
     return listDelEvents_('↩️ 已經放回去了：' + evMd_(x.date) + ' ' + (x.time || '整天') + '　' + x.title);
   }
-  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 這週行程']].concat(MENU) }; }
+  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 近期行程']].concat(MENU) }; }
   if (flat === '刪掉剛剛這筆') {
     const id = prop_('EV_LAST'); setProp_('EV_LAST', '');
     const x = id && readAll_().events.find(e => e.id === id);
@@ -960,7 +960,7 @@ function evFlow_(t, raw) {
   setProp_('EV_LAST', ev.id);
   logChat_('user', '新增行程：' + title); logChat_('assistant', '🗓️ 行程：' + ev.date + ' ' + ev.time + ' ' + title);
   return { text: '✅ 行程加好了\n\n▍' + evMd_(ev.date) + evWk_(ev.date) + '\n・' + (ev.time || '整天') + '　' + title,
-    buttons: [['➕ 再加一筆', '↩️ 刪掉剛剛這筆'], ['⏰ 今天行程', '📅 這週行程']].concat(MENU) };
+    buttons: [['➕ 再加一筆', '↩️ 刪掉剛剛這筆'], ['⏰ 今天行程', '📅 近期行程']].concat(MENU) };
 }
 function settingsMenu_(t, raw) {
   const flat = String(t || '').replace(/\s+/g, '');
@@ -2148,14 +2148,17 @@ function listDays_(a, b, label) {
   const md = ds => Number(ds.slice(5, 7)) + '/' + Number(ds.slice(8, 10));
   const wk = ds => WEEK[new Date(ds + 'T12:00:00+08:00').getDay()];
   const inR = ds => ds >= from && ds <= to;
-  const evs = d.events.filter(e => inR(e.date)).sort(evCmp_);
-  const rms = d.reminders.filter(r => !r.fired && inR(String(r.at).slice(0, 10)))
+  // 已經過了時間的不顯示（今天稍早的行程、提醒）
+  const nowAt = Utilities.formatDate(new Date(), TZ, "yyyy-MM-dd'T'HH:mm");
+  const past = (ds, t) => !!t && ds + 'T' + t < nowAt;
+  const evs = d.events.filter(e => inR(e.date) && !past(e.date, hm_(e.time))).sort(evCmp_);
+  const rms = d.reminders.filter(r => !r.fired && inR(String(r.at).slice(0, 10)) && !past(String(r.at).slice(0, 10), hm_(String(r.at).slice(11, 16))))
     .sort((x, y) => String(x.at).localeCompare(String(y.at)));
   const one = from === to;
   const head = one ? '⏰ ' + label + ' ' + md(from) + '（星期' + wk(from) + '）'
     : '🗓️ ' + label + '行程（' + md(from) + '～' + md(to) + '）';
-  if (!evs.length && !rms.length) return head + '\n\n' + label + '沒有行程，也沒有提醒。';
-  const evLine = e => '・' + (e.time || '整天') + '　' + e.title + (e.place ? '＠' + e.place : '');
+  if (!evs.length && !rms.length) return head + '\n\n' + label + (from === day(0) && a === 0 ? '接下來' : '') + '沒有行程，也沒有提醒。';
+  const evLine = e => '・' + (hm_(e.time) || '整天') + '　' + e.title + (e.place ? '＠' + e.place : '');
   const rmLine = r => '・' + String(r.at).slice(11, 16) + '　🔔 ' + r.text;
   let body = [];
   if (one) {
@@ -2163,7 +2166,7 @@ function listDays_(a, b, label) {
       .concat(evs.length && rms.length ? [''] : [], rms.length ? ['🔔 提醒'].concat(rms.map(r => '・' + String(r.at).slice(11, 16) + '　' + r.text)) : []);
   } else {
     const days = {};
-    evs.forEach(e => (days[e.date] = days[e.date] || []).push({ k: (e.time || '00:00') + '0', t: evLine(e) }));
+    evs.forEach(e => (days[e.date] = days[e.date] || []).push({ k: (hm_(e.time) || '00:00') + '0', t: evLine(e) }));
     rms.forEach(r => { const ds = String(r.at).slice(0, 10); (days[ds] = days[ds] || []).push({ k: String(r.at).slice(11, 16) + '1', t: rmLine(r) }); });
     Object.keys(days).sort().forEach((ds, i) => {
       if (i) body.push('');
@@ -2171,14 +2174,16 @@ function listDays_(a, b, label) {
       days[ds].sort((x, y) => x.k.localeCompare(y.k)).forEach(x => body.push(x.t));
     });
   }
-  const dels = evs.map(e => e.title).concat(rms.map(r => r.text));
-  return { buttons: delBtns_(dels), text: [head, ''].concat(body, ['', '要刪掉哪一筆，按下面的 🗑️ 按鈕，或跟我說「刪除 名稱」。']).join('\n') };
+  const dels = evs.map(evDelLabel_).concat(rms.map(r => '🗑️ 刪 ' + r.text)).slice(0, 8);
+  return { buttons: [dels].concat(MENU), text: [head, ''].concat(body, ['', '要刪掉哪一筆，點下面的 🗑️ 按鈕就好。']).join('\n') };
 }
 
 // 「明天行程」「這週有什麼行程？」「星期五的安排」→ [起, 迄, 標題]；不是問行程就回 null
 function dayAsk_(flat) {
   const t = flat.replace(/[，,。.！!？?]/g, '');
   if (/刪|取消|移除|記|加|新增|安排一|提醒我|排/.test(t.replace(/安排$/, ''))) return null;
+  const near = t.match(/^(?:我)?(?:的)?(近期|最近|接下來|之後)(?:的|有)?(?:什麼|哪些)?(?:行程|安排)(?:嗎|呢)?$/);
+  if (near) return [0, 13, '近期'];
   const m = t.match(/^(?:我)?(今天|今日|明天|明日|後天|大後天|這週|這禮拜|這星期|本週|下週|下禮拜|下星期|(?:這|下)?(?:週|星期|禮拜)[一二三四五六日天]|\d{1,2}[月\/]\d{1,2}[日號]?)(?:的|有)?(?:什麼|哪些)?(?:行程|安排|事情?)(?:嗎|呢)?$/);
   if (!m) return null;
   const w = m[1], now = new Date();
@@ -2217,7 +2222,7 @@ function delBtns_(labels) {
 function listDelEvents_(head) {
   const evs = futureEvents_();
   if (!evs.length) return { text: (head ? head + '\n\n' : '') + '🗑️ 目前沒有行程可以刪除。', buttons: (prop_('EV_UNDO') && head ? [['↩️ 復原']] : []).concat(MENU) };
-  const list = evs.slice(0, 15).map(e => '・' + evMd_(e.date) + ' ' + (e.time || '整天') + '　' + e.title);
+  const list = evs.slice(0, 15).map(e => '・' + evMd_(e.date) + ' ' + (hm_(e.time) || '整天') + '　' + e.title);
   const btns = evs.slice(0, 10).map(evDelLabel_);
   return { buttons: [btns, (head && prop_('EV_UNDO') ? ['↩️ 復原'] : []).concat(['✅ 刪好了'])],
     text: (head ? [head, ''] : []).concat(['🗑️ 刪除行程', ''], list, evs.length > 15 ? ['…還有 ' + (evs.length - 15) + ' 筆'] : [],
@@ -3621,7 +3626,8 @@ function canon_(d) {
   o.profile = d.profile || {};
   return JSON.stringify(o);
 }
-function evCmp_(a, b) { return (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')); }
+function hm_(t) { const m = String(t || '').match(/^(\d{1,2}):(\d{2})/); return m ? ('0' + m[1]).slice(-2) + ':' + m[2] : ''; }   // 「9:00」補成「09:00」才排得對
+function evCmp_(a, b) { return (a.date + (hm_(a.time) || '00:00')).localeCompare(b.date + (hm_(b.time) || '00:00')); }
 function parseAt_(s) {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(String(s || ''))) return 0;
   return Utilities.parseDate(s, TZ, "yyyy-MM-dd'T'HH:mm").getTime();
