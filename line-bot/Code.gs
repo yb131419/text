@@ -1318,6 +1318,8 @@ function kitWrite_(k) {
   if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，沒辦法寫文案。';
   let hist = [];
   try { hist = JSON.parse(prop_('KIT_HIST') || '[]'); } catch (e) { hist = []; }
+  let kws = [];   // 最近用過的留言關鍵字（使用者 2026-10-16：草本一直是「火山草本／草本」，留言都一樣）
+  try { kws = JSON.parse(prop_('KIT_KW_HIST') || '[]'); } catch (e) { kws = []; }
   const base = [
     '你是「智囊軍師」，彥彬的社群文案高手。這次要做一組「名單包」：一篇短貼文＋7 張 IG 輪播圖卡＋一份 PDF 實作手冊，講同一個主題。',
     '【三份內容不能一樣】（使用者 2026-10-16）貼文用一個生活故事帶出主題；圖卡只放重點和金句；PDF 是更完整的實作手冊（說明、示範句、練習、自我檢查）。三份不可以用同樣的句子，也不要互相照抄。',
@@ -1330,6 +1332,7 @@ function kitWrite_(k) {
   // 第一段：7 張輪播＋貼文
   const sysA = base.concat([
     '【結構】主題是「○○的三個動作」這種能照著做的三步驟（series，10 字內，例如「邀約的三個動作」）；關鍵字 keyword 是 2 個字（例如「邀約」），讓人在最後一張留言索取 PDF。',
+    '【關鍵字】keyword 要從這次的具體內容取（例如「熬夜」「早餐」「排便」「開口」），不可以用主題或分類名稱（火山草本、草本、健康、觀念、經營、行銷這類大詞），每次都要不一樣。' + (kws.length ? '最近用過：' + kws.join('、') + '，這次不可以再用。' : ''),
     '【7 張輪播 slides】剛好 7 張，依序 kind 為：cover、action、action、action、reason、last、cta。',
     'cover：head 是三行內的鉤子（例如「約不到人，\\n不是你\\n**不會說**。」），sub 兩行（點出問題＋三個動作今天就用得上）。',
     'action ×3：step 寫「動作一／動作二／動作三」，head 兩行標題（每行 8 字內），body 3 到 5 行示範，可以用「~~錯誤說法~~」對比「**好的說法**」，全部 45 字內。',
@@ -1382,7 +1385,7 @@ function kitWrite_(k) {
     c => { const n = c.pdf && Array.isArray(c.pdf.actions) ? c.pdf.actions.length : 0; return n < 3 ? 'pdf.actions 只有 ' + n + ' 個' : ''; },
     '這次一定要有 pdf.actions 剛好 3 個。');
   if (a && !b) console.error('7張＋PDF：PDF 手冊沒寫出來，PDF 改用 7 張圖卡');
-  const kit = a ? kitClean_(Object.assign({}, a, { slides: kitSlides_(a.slides), pdf: b ? b.pdf : null }), th, k) : null;
+  const kit = a ? kitClean_(Object.assign({}, a, { slides: kitSlides_(a.slides), pdf: b ? b.pdf : null }), th, k, kws) : null;
   if (!kit) {
     if (a) why = why || '內容不完整';
     return { text: /金鑰/.test(why) ? 'OpenAI 金鑰無效，沒辦法寫文案，請檢查 OPENAI_API_KEY。'
@@ -1391,6 +1394,7 @@ function kitWrite_(k) {
   }
   hist.unshift(kit.series);
   setProp_('KIT_HIST', JSON.stringify(hist.slice(0, 10)));
+  setProp_('KIT_KW_HIST', JSON.stringify([kit.keyword].concat(kws.filter(x => x !== kit.keyword)).slice(0, 15)));
   LAST_KIT_ = kit;
   return { text: stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) };
 }
@@ -1420,7 +1424,19 @@ function noAsk_(t) {
   return String(t || '').split('\n').map(l => l.split(/(?<=[。！？])/).filter(x => !NO_ASK.test(x)).join('')).join('\n')
     .replace(/\n{3,}/g, '\n\n').trim();
 }
-function kitClean_(c, th, k) {
+// 留言關鍵字：不能是主題大詞、不能跟最近重複；AI 給的不行就從系列名稱挑兩個字
+const KIT_KW_BAN = /草本|火山|健康|觀念|經營|行銷|網路|保健|養生|分享|康園/;
+function kitKeyword_(kw, series, recent) {
+  const used = (recent || []).map(String);
+  const good = w => w && w.length >= 2 && !KIT_KW_BAN.test(w) && used.indexOf(w) < 0;
+  if (good(kw)) return kw;
+  const t = String(series || '').replace(/的?[三3]個動作$|[《》，、。\s]/g, '').replace(new RegExp(KIT_KW_BAN.source, 'g'), '｜');
+  const ws = t.split(/[｜的]/).filter(Boolean);   // 先挑完整的詞（兩個字一組），再退而求其次
+  for (const p of ws) for (let i = 0; i + 2 <= p.length; i += 2) if (good(p.slice(i, i + 2))) return p.slice(i, i + 2);
+  for (const p of ws) for (let i = 1; i + 2 <= p.length; i += 2) if (good(p.slice(i, i + 2))) return p.slice(i, i + 2);
+  return kw || t.slice(0, 2);
+}
+function kitClean_(c, th, k, recent) {
   c = kitUnwrap_(c);
   const fix = v => typeof v === 'string' ? v.replace(/私訊/g, '留言').replace(/\r/g, '').trim()
     : Array.isArray(v) ? v.map(fix) : v && typeof v === 'object' ? Object.keys(v).reduce((o, x) => (o[x] = fix(v[x]), o), {}) : v;
@@ -1429,7 +1445,7 @@ function kitClean_(c, th, k) {
   const slides = Array.isArray(c.slides) ? c.slides.filter(x => x && x.kind).slice(0, 7) : [];
   if (slides.length < 7) return null;
   const series = S(c.series).replace(/[《》]/g, '') || th.name;
-  const keyword = S(c.keyword).replace(/[「」]/g, '').slice(0, 4) || series.slice(0, 2);
+  const keyword = kitKeyword_(S(c.keyword).replace(/[「」\s]/g, '').slice(0, 4), series, recent);
   const kit = {
     theme: th.name, k: k, series: series, keyword: keyword, cat: S(c.cat).replace(/主題$/, ''),
     slides: slides.map(x => ({ kind: S(x.kind), label: S(x.label), step: S(x.step), head: S(x.head), body: S(x.body),
