@@ -1231,7 +1231,7 @@ function cardData_() {
   return ASK_IMGS_[0];
 }
 
-/* ============ 智囊軍師「📕 7張＋PDF」：7 張輪播圖卡＋同關鍵字的 7 頁 PDF（絲絨厚卡燙金風格） ============ */
+/* ============ 智囊軍師「📕 7張＋PDF」：7 張輪播圖卡＋這 7 張做成的 PDF（絲絨厚卡燙金風格） ============ */
 // 2026-10-16 使用者選「兩種都留」：平常照樣 3 張；想收名單時按這個，留言關鍵字的人可以拿到 PDF
 const KIT_BTN = '📕 7張＋PDF';
 const KIT_FOLDER = '小乖軍師PDF';
@@ -1284,7 +1284,7 @@ function kitStyleFlex_(name) {
         action: { type: 'message', label: '用這款', text: '🎨 ' + name + '・' + x.n } }] } })) };
 }
 
-// AI 一次寫好：貼文、7 張輪播、7 頁 PDF 的內容（只回 JSON）
+// AI 一次寫好：7 張輪播和短貼文（只回 JSON）
 function kitWrite_(k) {
   const th = STRAT_THEMES.filter(t => t.k === k)[0];
   if (!th) return kitMenu_();
@@ -1292,44 +1292,34 @@ function kitWrite_(k) {
   let hist = [];
   try { hist = JSON.parse(prop_('KIT_HIST') || '[]'); } catch (e) { hist = []; }
   const base = [
-    '你是「智囊軍師」，彥彬的社群文案高手。這次要做一組「名單包」：一篇貼文＋7 張 IG 輪播圖卡＋一份 7 頁的 PDF 小手冊，三者講同一個主題。',
-    '寫法：短句、每句獨立一行、像朋友分享，不說教、不推銷；繁體台灣用語。',
+    '你是「智囊軍師」，彥彬的社群文案高手。這次要做一組「名單包」：7 張 IG 輪播圖卡＋一篇短貼文（PDF 直接用這 7 張圖卡做）。',
+    '寫法：內容簡短，字少、好讀；短句、每句獨立一行、像朋友分享，不說教、不推銷；繁體台灣用語。',
     '【本次主題】' + th.guide,
     '用 **字** 標出要強調的字，每段最多一處；換行用 \\n。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
   ];
   // 第一段：7 張輪播＋貼文
   const sysA = base.concat([
-    '這一次只寫「7 張輪播」和「貼文」（PDF 下一步再寫）。',
     '【結構】主題是「○○的三個動作」這種能照著做的三步驟（series，10 字內，例如「邀約的三個動作」）；關鍵字 keyword 是 2 個字（例如「邀約」），讓人留言索取 PDF。',
     '【7 張輪播 slides】剛好 7 張，依序 kind 為：cover、action、action、action、reason、last、cta。',
     'cover：head 是三行內的鉤子（例如「約不到人，\\n不是你\\n**不會說**。」），sub 兩行（點出問題＋三個動作今天就用得上）。',
-    'action ×3：step 寫「動作一／動作二／動作三」，head 兩行標題（每行 8 字內），body 3 到 5 行示範，可以用「~~錯誤說法~~」對比「**好的說法**」，全部 60 字內。',
+    'action ×3：step 寫「動作一／動作二／動作三」，head 兩行標題（每行 8 字內），body 3 到 5 行示範，可以用「~~錯誤說法~~」對比「**好的說法**」，全部 45 字內。',
     'reason：label 寫「○○，真正的原因」，head 四行內，點出真正的原因。',
     'last：pre 兩行鋪陳，head 兩行收尾金句。',
     'cta：head 三行（例如「三個動作加上\\n練習句型——\\n**《○○的三個動作》**。」），cta 寫「留言「**關鍵字**」」，sub 寫「我把 PDF 整理好傳給你。」',
-    '【貼文 post】post_title 15 字內；post 220 到 320 字，用生活場景開頭，結尾請大家留言「關鍵字」索取 PDF；tags 5 個主題標籤（不可以有「康園道」「分享」「大健康」）。',
+    '【貼文 post】post_title 15 字內；post 120 到 200 字，用生活場景開頭，結尾請大家留言「關鍵字」索取 PDF；tags 5 個主題標籤（不可以有「康園道」「分享」「大健康」）。',
     hist.length ? '【避免重複】最近做過：' + hist.join('、') + '，這次換一個不同的主題。' : '',
     '只輸出 JSON：{"cat":"分類","series":"","keyword":"","slides":[{"kind":"cover","label":"","head":"","sub":""},{"kind":"action","step":"動作一","head":"","body":""},{"kind":"action","step":"動作二","head":"","body":""},{"kind":"action","step":"動作三","head":"","body":""},{"kind":"reason","label":"","head":""},{"kind":"last","pre":"","head":""},{"kind":"cta","head":"","cta":"","sub":""}],"post_title":"","post":"","tags":[]}',
   ]).filter(Boolean).join('\n');
-  // 第二段：7 頁 PDF（照第一段的主題和三個動作寫）
-  const sysB = base.concat([
-    '這一次只寫「7 頁 PDF 小手冊」的內容，主題和三個動作已經定好（會給你）。',
-    '【PDF pdf】kicker 一句話（20 字內）；title 兩行（例如「邀約的\\n三個動作」）；intro 三行開場；',
-    'before：title、lead（60 字內）、points 3 點（h 一句、p 50 到 70 字）、note {h:"用法", p:"一句說明怎麼用這份手冊"}；',
-    'actions 剛好 3 個（對應三個動作）：step、title、lead（50 字內）、demo 2 句（可以用 ✗／✓ 開頭對比）、demoNote、why（60 字內）、practice（50 字內）、warn {h:"注意" 或 "原則", p:"50 字內"}；',
-    'check：title、lead、items 5 個自我檢查問句、note {h, p}；final：title「今天就開始的三步」、steps 3 個 {h, p}、close 三行收尾（用 ** 標一個重點字）。',
-    '只輸出 JSON：{"pdf":{"kicker":"","title":"","intro":"","before":{"title":"","lead":"","points":[{"h":"","p":""}],"note":{"h":"","p":""}},"actions":[{"step":"動作一","title":"","lead":"","demo":["",""],"demoNote":"","why":"","practice":"","warn":{"h":"","p":""}}],"check":{"title":"","lead":"","items":[""],"note":{"h":"","p":""}},"final":{"title":"今天就開始的三步","steps":[{"h":"","p":""}],"close":""}}}',
-  ]).join('\n');
-  // 名單包很長，一次寫完常常太慢或被截斷：拆成兩段、各自最多重寫一次；整段寫作最多 3 分鐘，留時間畫圖
+  // 只寫 7 張圖卡＋短貼文，一次就寫得完；格式不對最多重寫兩次，整段寫作最多 2 分鐘，留時間畫圖
   const model = prop_('KIT_MODEL') || 'gpt-4.1-mini';   // 寫長 JSON 又快又穩的模型（可在指令碼屬性 KIT_MODEL 改）
   const t0 = Date.now();
   let why = '';
   const ask = (sys, user, ok, fix) => {
     let msg = user;
-    for (let i = 0; i < 2 && (i === 0 || Date.now() - t0 < 120000); i++) {
+    for (let i = 0; i < 3 && (i === 0 || Date.now() - t0 < 120000); i++) {
       try {
-        const out = String(callOpenAI_(sys, [{ role: 'user', content: msg }], true, model, { maxTokens: 6000, temperature: 0.7 }));
+        const out = String(callOpenAI_(sys, [{ role: 'user', content: msg }], true, model, { maxTokens: 4000, temperature: 0.7 }));
         const c = kitUnwrap_(JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)));
         const bad = ok(c);
         if (!bad) return c;
@@ -1347,13 +1337,9 @@ function kitWrite_(k) {
   const a = ask(sysA, '請做一組「' + th.name + '」的名單包。' + today,
     c => { const n = kitSlides_(c.slides).length; return n < 7 ? 'slides 只有 ' + n + ' 張' : ''; },
     '這次一定要有 slides 剛好 7 張（cover、action×3、reason、last、cta）。');
-  const b = a && ask(sysB, '主題：' + (a.series || th.name) + '\n關鍵字：' + (a.keyword || '') + '\n三個動作：\n'
-      + kitSlides_(a.slides).filter(x => x.kind === 'action').map(x => (x.step || '') + '：' + String(x.head || '').replace(/\*\*|\\n|\n/g, '') + '｜' + String(x.body || '').replace(/\n/g, ' ')).join('\n'),
-    c => { const n = c.pdf && Array.isArray(c.pdf.actions) ? c.pdf.actions.length : 0; return n < 3 ? 'pdf.actions 只有 ' + n + ' 個' : ''; },
-    '這次一定要有 pdf.actions 剛好 3 個。');
-  const kit = a && b ? kitClean_(Object.assign({}, a, { slides: kitSlides_(a.slides), pdf: b.pdf }), th, k) : null;
+  const kit = a ? kitClean_(Object.assign({}, a, { slides: kitSlides_(a.slides) }), th, k) : null;
   if (!kit) {
-    if (a && b) why = why || '內容不完整';
+    if (a) why = why || '內容不完整';
     return { text: /金鑰/.test(why) ? 'OpenAI 金鑰無效，沒辦法寫文案，請檢查 OPENAI_API_KEY。'
       : /429/.test(why) ? 'OpenAI 額度或速度上限到了（429），等一下再按一次；一直這樣請到 OpenAI 網站確認帳戶餘額。'
       : '這次沒寫出來（原因：' + String(why || '不明').slice(0, 120) + '），再按一次試試看。', buttons: [[KIT_BTN]] };
@@ -1390,20 +1376,12 @@ function kitClean_(c, th, k) {
   c = fix(c || {});
   const S = v => String(v == null ? '' : v);
   const slides = Array.isArray(c.slides) ? c.slides.filter(x => x && x.kind).slice(0, 7) : [];
-  const P = c.pdf || {};
-  if (slides.length < 7 || !Array.isArray(P.actions) || P.actions.length < 3) return null;
+  if (slides.length < 7) return null;
   const series = S(c.series).replace(/[《》]/g, '') || th.name;
   const keyword = S(c.keyword).replace(/[「」]/g, '').slice(0, 4) || series.slice(0, 2);
   const kit = {
     theme: th.name, k: k, series: series, keyword: keyword, cat: S(c.cat).replace(/主題$/, ''),
     slides: slides.map(x => ({ kind: S(x.kind), label: S(x.label), step: S(x.step), head: S(x.head), body: S(x.body), sub: S(x.sub), pre: S(x.pre), cta: S(x.cta) || '留言「**' + keyword + '**」' })),
-    pdf: {
-      kicker: S(P.kicker), title: S(P.title) || series, intro: S(P.intro),
-      before: Object.assign({ title: '', lead: '', points: [], note: null }, P.before || {}),
-      actions: P.actions.slice(0, 3).map(a => Object.assign({ step: '', title: '', lead: '', demo: [], demoNote: '', why: '', practice: '', warn: null }, a)),
-      check: Object.assign({ title: '你最常卡在哪一個', lead: '', items: [], note: null }, P.check || {}),
-      final: Object.assign({ title: '今天就開始的三步', steps: [], close: '' }, P.final || {}),
-    },
     ptitle: S(c.post_title) || series, post: S(c.post).replace(/\n{3,}/g, '\n\n'), gold: '', body: '', note: '',
     tags: (Array.isArray(c.tags) ? c.tags : S(c.tags).split(/\s+/)).map(s => S(s).trim()).filter(Boolean)
       .filter(s => !STRAT_NO_TAG.test(s)).map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
@@ -1496,62 +1474,21 @@ function kitCardLayout_(kit, i) {
   } };
 }
 
-// PDF 一頁（A4 直式 595×842）
-function kitPdfLayouts_(kit) {
-  const W = 595.28, H = 841.89, P = kit.pdf, X = 74, TW = 447;
-  const lbl = t => ({ t: t, size: 10, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START', above: 14 });
-  const txt = (t, o) => Object.assign({ t: t, size: 11, color: KIT_S_.c.soft, align: 'START', ls: 175, indent: 14, em: KIT_S_.c.gold }, o || {});
-  const note = n => n && (n.h || n.p) ? [lbl(n.h || '注意'), txt(n.p, { color: KIT_S_.c.ink, indent: 0, above: 2 })] : [];
-  const page = (n, small, title, paras) => ({ W: W, H: H, build: slide => {
-    const req = [];
-    kitBg_(req, slide, 'pdf_page.jpg', W, H);
-    kitText_(req, slide, slide + '_hd', [X, 72, TW, 56], [{ t: small, size: 9, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' },
-      { t: title, size: 20, bold: true, color: KIT_S_.c.ink, align: 'START', above: 2 }], 'BOTTOM');
-    req.push({ createShape: { objectId: slide + '_rule', shapeType: 'RECTANGLE', elementProperties: { pageObjectId: slide,
-      size: { width: { magnitude: TW, unit: 'PT' }, height: { magnitude: 0.6, unit: 'PT' } },
-      transform: { scaleX: 1, scaleY: 1, translateX: X, translateY: 136, unit: 'PT' } } } });
-    req.push({ updateShapeProperties: { objectId: slide + '_rule', fields: 'shapeBackgroundFill,outline', shapeProperties: {
-      shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(KIT_S_.c.rule) } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
-    kitText_(req, slide, slide + '_bd', [X, 146, TW, 610], paras, 'TOP');
-    kitText_(req, slide, slide + '_ft', [X, 770, TW, 20], [{ t: cardBy_() + '　　' + ('0' + n).slice(-2), size: 8, color: KIT_S_.c.mute, font: 'Noto Sans TC', align: 'END' }], 'TOP');
-    return req;
-  } });
-  const pts = list => [].concat.apply([], (list || []).map((x, i) => [
-    { t: (i + 1) + '　' + (x.h || ''), size: 13, bold: true, color: KIT_S_.c.ink, align: 'START', above: 14 }, txt(x.p, { above: 3 })]));
-  const L = [];
-  L.push({ W: W, H: H, build: slide => {   // 封面
-    const req = [];
-    kitBg_(req, slide, 'pdf_cover.jpg', W, H);
-    kitText_(req, slide, slide + '_main', [X, 190, TW, 520], [
-      { t: P.kicker, size: 10, color: KIT_S_.c.gold, font: 'Noto Sans TC' },
-      { t: P.title + '。', size: 40, bold: true, color: KIT_S_.c.ink, ls: 130, above: 22 },
-      { t: '────────', size: 10, color: KIT_S_.c.orn, above: 18 },
-      { t: P.intro, size: 13, color: KIT_S_.c.soft, ls: 190, above: 18 }]);
-    kitText_(req, slide, slide + '_ft', [X, 760, TW, 20], [{ t: cardBy_(), size: 9, color: KIT_S_.c.mute, font: 'Noto Sans TC' }], 'TOP');
-    return req;
-  } });
-  const B = P.before;
-  L.push(page(2, '開始之前', B.title || '真正的原因', [txt(B.lead, { indent: 0, size: 12 })].concat(pts(B.points), note(B.note))));
-  P.actions.forEach((a, i) => L.push(page(3 + i, a.step || ('動作' + '一二三'[i]), a.title, [txt(a.lead, { indent: 0, size: 12 }),
-    lbl('示範'), txt((a.demo || []).join('\n'), { color: KIT_S_.c.ink }), txt(a.demoNote, { above: 4 }),
-    lbl('為什麼有用'), txt(a.why), lbl('練習'), txt(a.practice)].concat(note(a.warn)))));
-  const C = P.check;
-  L.push(page(6, '自查', C.title, [txt(C.lead, { indent: 0, size: 12 })].concat((C.items || []).slice(0, 6).map((t, i) =>
-    ({ t: '☐ 0' + (i + 1) + '　' + t, size: 12.5, bold: true, color: KIT_S_.c.ink, align: 'START', above: 12, ls: 150 })), note(C.note))));
-  const F = P.final;
-  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: KIT_ORN, size: 9, color: KIT_S_.c.orn, above: 26 },
-    { t: F.close, size: 19, bold: true, color: KIT_S_.c.ink, ls: 165, above: 16 }])));
-  return L;
-}
-
 // 畫 7 張圖卡＋PDF，存到雲端硬碟（PDF 設成知道連結的人都能看，才能轉給留言的人）
 function kitMake_(kit) {
   REPORT_ERR_ = '';
   KIT_S_ = kitStyle_(kit.style);
   const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm');
-  const pngs = layoutPngs_(kit.slides.map((x, i) => kitCardLayout_(kit, i)),
-    kit.slides.map((x, i) => '名單包_' + kit.series + '_' + stamp + '_' + (i + 1) + '.png'));
-  const pdf = layoutPdf_(kitPdfLayouts_(kit), '《' + kit.series + '》（' + kit.keyword + '）.pdf');
+  // 同一份簡報畫 7 張：每張輸出圖片，整份再匯出成 PDF（PDF 就是這 7 張圖卡）
+  const out = layoutDeck_(kit.slides.map((x, i) => kitCardLayout_(kit, i)), (pid, slides) => ({
+    pngs: slides.map((id, i) => {
+      const th = slidesApi_('get', '/' + pid + '/pages/' + id + '/thumbnail?thumbnailProperties.mimeType=PNG&thumbnailProperties.thumbnailSize=LARGE');
+      return UrlFetchApp.fetch(th.contentUrl).getBlob().setName('名單包_' + kit.series + '_' + stamp + '_' + (i + 1) + '.png');
+    }),
+    pdf: UrlFetchApp.fetch('https://docs.google.com/presentation/d/' + pid + '/export/pdf', {
+      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } }).getBlob().setName('《' + kit.series + '》（' + kit.keyword + '）.pdf'),
+  })) || { pngs: [], pdf: null };
+  const pngs = out.pngs, pdf = out.pdf;
   let pdfUrl = '', files = [];
   try {
     const it = DriveApp.getFoldersByName(KIT_FOLDER);
