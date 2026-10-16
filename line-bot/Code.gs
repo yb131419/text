@@ -1463,13 +1463,14 @@ function kitCardLayout_(kit, i) {
   return { W: W, H: H, build: slide => {
     const req = [];
     kitBg_(req, slide, 'card_bg.jpg', W, H);
-    kitText_(req, slide, slide + '_top', [60, 112, 420, 44], [
-      { t: 'NO. ' + ('0' + (i + 1)).slice(-2) + ' · ' + kit.series, size: 10, color: KIT_S_.c.top, font: 'Noto Sans TC' },
-      { t: label, size: 12, color: KIT_S_.c.lab, font: 'Noto Sans TC', above: 4 }], 'TOP');
-    kitText_(req, slide, slide + '_main', [64, 165, 412, 390], paras);
-    kitText_(req, slide, slide + '_ft', [60, 566, 420, 50], [
-      { t: num, size: 15, color: KIT_S_.c.top, font: 'Cormorant Garamond' },
-      { t: cardBy_(), size: 11, color: KIT_S_.c.mute, font: 'Noto Sans TC', above: 4 }], 'TOP');
+    // 上方系列名＋分類、下方頁碼＋署名：使用者 2026-10-16 圈出來要放大
+    kitText_(req, slide, slide + '_top', [40, 110, 460, 62], [
+      { t: 'NO. ' + ('0' + (i + 1)).slice(-2) + ' · ' + kit.series, size: 15, bold: true, color: KIT_S_.c.top, font: 'Noto Sans TC' },
+      { t: label, size: 19, bold: true, color: KIT_S_.c.lab, font: 'Noto Sans TC', above: 4 }], 'TOP');
+    kitText_(req, slide, slide + '_main', [64, 178, 412, 372], paras);
+    kitText_(req, slide, slide + '_ft', [40, 552, 460, 66], [
+      { t: num, size: 20, bold: true, color: KIT_S_.c.top, font: 'Cormorant Garamond' },
+      { t: cardBy_(), size: 16, bold: true, color: KIT_S_.c.soft, font: 'Noto Sans TC', above: 4 }], 'TOP');
     return req;
   } };
 }
