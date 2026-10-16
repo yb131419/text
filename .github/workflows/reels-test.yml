@@ -9,7 +9,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,3 +30,9 @@ jobs:
         run: |
           ffmpeg -y -loglevel error -f lavfi -i testsrc2=size=720x1280:rate=24:d=6 -c:v libx264 /tmp/v2.mp4
           python3 reels/reels.py --input /tmp/in.mp4,/tmp/v2.mp4 --transcript reels/selftest.json --out /tmp/m.mp4 --selftest
+      - name: 靜音剪（配樂卡點、轉場、運鏡、文字動畫）
+        run: |
+          ffmpeg -y -loglevel error -f lavfi -i testsrc=size=1280x720:rate=30:d=40 -c:v libx264 /tmp/sil.mp4
+          python3 reels/reels.py --input /tmp/sil.mp4 --transcript reels/selftest_silent.json --kind silent --out /tmp/s.mp4 --selftest
+      - name: 靜音剪大片
+        run: python3 reels/reels.py --input /tmp/sil.mp4 --transcript reels/selftest_silent.json --kind silent --mode long --out /tmp/sl.mp4 --selftest
