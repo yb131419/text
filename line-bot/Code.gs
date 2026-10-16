@@ -1236,6 +1236,22 @@ function cardData_() {
 const KIT_BTN = '📕 7張＋PDF';
 const KIT_FOLDER = '小乖軍師PDF';
 const KIT_BG = 'https://yb131419.github.io/Tezhu/line-bot/kit/';   // 底圖（絲絨＋厚卡＋燙金框＋YB 印記），字由簡報疊上去
+// 圖片網址加上內容指紋（?v=…）：圖一換，網址就跟著換，LINE／Telegram／簡報才不會拿到舊圖（使用者 2026-10-16：款式要同步更新）
+function kitUrl_(path) {
+  const url = KIT_BG + path;
+  try {
+    const cache = typeof CacheService !== 'undefined' ? CacheService.getScriptCache() : null, k = 'kv_' + path;
+    let v = cache && cache.get(k);
+    if (!v) {
+      const r = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+      if (r.getResponseCode() !== 200) return url;
+      v = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, r.getContent()).slice(0, 5)
+        .map(b => ('0' + (b & 255).toString(16)).slice(-2)).join('');
+      if (cache) cache.put(k, v, 600);
+    }
+    return url + '?v=' + v;
+  } catch (e) { return url; }
+}
 let LAST_KIT_ = null, KIT_PENDING_ = '';   // 剛寫好的 7 張＋PDF 內容；LINE／Telegram／對話頁各自畫好送出
 // 款式（2026-10-16 使用者要「能選擇款式」）：底圖放在 line-bot/kit/<d>，字的顏色跟著換
 const KIT_LIGHT = { ink: '#2A221A', soft: '#5B4F40', gold: '#A07C34', mute: '#8D7F6C', top: '#9C7A3E', lab: '#7C6B55', orn: '#B8914A', sub: '#6E604E', strike: '#A39A8C', rule: '#C9AE7A' };
@@ -1266,15 +1282,15 @@ function kitPick_(raw) {
 function kitStyleMenu_(th) {
   const name = th.btn.replace(/^[^\p{L}\p{N}]+/u, '');
   const b = KIT_STYLES.map(x => '🎨 ' + name + '・' + x.n);
-  const imgs = KIT_STYLES.map(x => KIT_BG + x.d + 'preview.jpg');
+  const imgs = KIT_STYLES.map(x => kitUrl_(x.d + 'preview.jpg'));
   if (TALK_MODE_) ASK_IMGS_ = imgs;   // 對話頁直接顯示預覽圖
   return { text: '📕 ' + name + '：選一個款式\n\n' + KIT_STYLES.map(x => '・' + x.n + '：' + x.tip).join('\n'), buttons: [b],
-    flex: kitStyleFlex_(name), alt: '🎨 選一個款式', imgs: imgs, caps: KIT_STYLES.map(x => x.n + '｜' + x.tip) };
+    flex: kitStyleFlex_(name, imgs), alt: '🎨 選一個款式', imgs: imgs, caps: KIT_STYLES.map(x => x.n + '｜' + x.tip) };
 }
 // LINE：每款一張預覽卡，點「用這款」就開始做
-function kitStyleFlex_(name) {
-  return { type: 'carousel', contents: KIT_STYLES.map(x => ({ type: 'bubble', size: 'kilo',
-    hero: { type: 'image', url: KIT_BG + x.d + 'preview.jpg', size: 'full', aspectRatio: '4:5', aspectMode: 'cover',
+function kitStyleFlex_(name, imgs) {
+  return { type: 'carousel', contents: KIT_STYLES.map((x, i) => ({ type: 'bubble', size: 'kilo',
+    hero: { type: 'image', url: imgs ? imgs[i] : kitUrl_(x.d + 'preview.jpg'), size: 'full', aspectRatio: '4:5', aspectMode: 'cover',
       action: { type: 'message', label: x.n, text: '🎨 ' + name + '・' + x.n } },
     body: { type: 'box', layout: 'vertical', paddingAll: '12px', backgroundColor: '#FBF8F2', spacing: 'xs', contents: [
       { type: 'text', text: x.n, size: 'md', weight: 'bold', color: '#2A2118', align: 'center' },
@@ -1439,7 +1455,7 @@ function kitText_(req, slide, id, box, paras, valign) {
   req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: valign || 'MIDDLE' }, fields: 'contentAlignment' } });
 }
 function kitBg_(req, slide, file, W, H) {
-  req.push({ createImage: { objectId: slide + '_bg', url: KIT_BG + KIT_S_.d + file, elementProperties: { pageObjectId: slide,
+  req.push({ createImage: { objectId: slide + '_bg', url: kitUrl_(KIT_S_.d + file), elementProperties: { pageObjectId: slide,
     size: { width: { magnitude: W, unit: 'PT' }, height: { magnitude: H, unit: 'PT' } },
     transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: 'PT' } } } });
 }
