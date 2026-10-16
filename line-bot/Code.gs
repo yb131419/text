@@ -604,7 +604,7 @@ function answer_(text) {
   const cs = stratSetting_(t2);   // 「設定署名 …」「設定標題 …」
   if (cs) return cs;
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
-  const sp = stratPick_(t2);
+  const sp = stratPick_(raw) || stratPick_(t2);   // 先用原文對主題按鈕（「🌿 健康」要帶圖示才算按鈕）
   if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
   // 案例分類：列分類、看某一類、改剛存那筆的分類
   if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
@@ -685,17 +685,17 @@ function answer_(text) {
 // 六大主題對齊「智囊軍師」(asset/Work.html) 的資料收集分類；按主題按鈕就寫一篇文案，並畫成圖卡（跟試算報表一樣用簡報畫成圖片）
 const STRAT_BTN = '🪶 智囊軍師';
 const STRAT_THEMES = [   // 順序（2026-10-16 使用者指定）：軍師、觀念、健康、草本、經營、行銷
-  { k: 'auto', btn: '🪶 軍師判定', name: '智囊軍師判定',
+  { k: 'auto', btn: '🪶 軍師', name: '智囊軍師判定',
     guide: '請你（智囊軍師）先在五大分類中判斷今天最適合發文的方向：觀念、健康、火山草本、經營、網路行銷，cat 填所選分類，再依該分類的規則寫：觀念只談觀念與生活道理，不寫身體、毒素、排毒；健康用大健康原理的比喻切入，案例只說個人感受、不寫療效；火山草本只寫理念、生活場景與包裝故事，不寫功效；經營寫給新手能照著做的方向，不提收入或成效保證；網路行銷只寫經營技巧，不寫業績。' },
-  { k: 'concept', btn: '💡 觀念主題', name: '觀念主題',
+  { k: 'concept', btn: '💡 觀念', name: '觀念主題',
     guide: '【觀念分享】只講觀念與道理（財富觀、經營觀、人生觀、自律、選擇等），用對比與反問帶出思考。嚴禁出現身體、毒素、排毒、保健、療效等字眼，不寫成健康文章。' },
-  { k: 'health', btn: '🌿 健康主題', name: '健康主題',
+  { k: 'health', btn: '🌿 健康', name: '健康主題',
     guide: '【健康分享】以大健康原理與生活比喻（例如鍋子、水管、警察、蒼蠅）解釋身體的道理；案例只說個人感受，遵守合規，不寫療效、不寫治療或改善疾病、不做前後對比。' },
-  { k: 'herb', btn: '🌱 火山草本', name: '火山草本',
+  { k: 'herb', btn: '🌱 草本', name: '火山草本',
     guide: '【火山草本】只寫產品的理念、日常使用的生活場景與包裝故事（例如一天中怎麼使用、為什麼選擇它、包裝上想傳達的心意）。不寫功效、成分的療效描述，不使用治療、改善疾病、藥效等字眼，不做前後對比。' },
-  { k: 'biz', btn: '🧭 經營主題', name: '經營主題',
+  { k: 'biz', btn: '🧭 經營', name: '經營主題',
     guide: '【經營方向】寫給完全新手看、能照著做的經營方向與心法（例如專屬邀約訊息、第一次面談、把你會的事拆成步驟、每天的節奏），用一個具體的生活場景切入。只給方向與做法，不提收入或成效保證。' },
-  { k: 'net', btn: '📣 網路行銷', name: '網路行銷',
+  { k: 'net', btn: '📣 行銷', name: '網路行銷',
     guide: '【網路行銷】只寫經營技巧，例如如何讓人停留（開頭的鉤子、前三秒、段落節奏）、如何回留言（回覆的語氣與引導互動的方式）等實用做法。不寫業績、收入、獲利或任何成效保證，不提具體金額。' },
 ];
 const STRAT_AGAIN = '🔁 再寫一篇', STRAT_SWITCH = '🪶 換主題';
@@ -710,6 +710,10 @@ function stratMenu_() {
 
 // 認得「健康主題」「智囊軍師 健康」「軍師判定」「再寫一篇」這些說法；不是就回 null
 function stratPick_(text) {
+  // 主題按鈕（兩個字，前面有圖示）：照按鈕文字對應；單打「健康」「經營」這類字不會誤觸
+  const raw = String(text || '').replace(/\s+/g, ' ').trim();
+  const hit = STRAT_THEMES.filter(x => x.btn === raw)[0];
+  if (hit) return hit.k;
   // 語音聽寫會帶標點，也常說「小乖寫文案」「幫我寫一篇火山草本的文案」：先去掉標點和稱呼
   const t = String(text || '').replace(/[\s，,。.！!？?、：:「」]+/g, '').replace(/^(嘿|欸|哈囉)?小乖/, '').replace(/^(幫我|請|請你|麻煩)/, '');
   if (/^(來|寫|生|產生|生成|出)?(一篇|一則|個)?(文案|貼文)(吧)?$/.test(t)) return 'menu';
@@ -729,7 +733,7 @@ function stratPick_(text) {
   let r = t.replace(/^(智囊軍師|軍師)(?=.)/, '');
   const pre = r !== t;
   r = r.replace(/文案$/, '');
-  const map = { 軍師判定: 'auto', 智囊軍師判定: 'auto', 健康主題: 'health', 火山草本: 'herb', 觀念主題: 'concept', 經營主題: 'biz', 網路行銷: 'net' };
+  const map = { 軍師判定: 'auto', 智囊軍師判定: 'auto', 健康主題: 'health', 火山草本: 'herb', 觀念主題: 'concept', 經營主題: 'biz', 網路行銷: 'net', 草本主題: 'herb', 行銷主題: 'net' };
   if (map[r]) return map[r];
   if (pre) return { 判定: 'auto', 健康: 'health', 觀念: 'concept', 經營: 'biz' }[r] || null;
   return null;
@@ -1018,7 +1022,7 @@ function cardApi_(ask) {
   const a = ask.replace(/\s+/g, '');
   let k = stratPick_(a) || stratPick_(a.replace(/主題$/, '')) || stratPick_(a + '主題');
   if (k === 'menu' || (!k && !a)) k = 'auto';   // 沒指定主題就讓軍師判定
-  if (!k) return { ok: false, text: '請說主題：' + STRAT_THEMES.map(t => t.btn.replace(/^\S+ /, '')).join('、'), img: '' };
+  if (!k) return { ok: false, text: '請說主題：' + STRAT_THEMES.map(t => t.name.replace(/主題$/, '')).join('、'), img: '' };
   const ans = strategist_(k);
   const c = LAST_CARD_; LAST_CARD_ = null;
   if (!c) return { ok: false, text: String(ans && ans.text || ans), img: '' };
