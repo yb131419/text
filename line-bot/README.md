@@ -88,6 +88,33 @@ LINE 和 Telegram 可以兩個都接，也可以只接一個。只要 Telegram �
 
 網頁開著時每分鐘自動同步一次，切回分頁、新增或修改資料時也會同步。換手機或換瀏覽器，只要填同樣的網址和密碼，資料就會跟過來。
 
+## 7. 剪 Reels（自動剪輯、中英字幕、配樂）
+
+在 Telegram 按「🎬 剪 Reels」再傳影片（或傳影片時說明寫「剪 Reels」），小乖會自動挑精華剪成直式 9:16、上中英雙語字幕、配背景音樂，大約 3～6 分鐘直接傳回 Telegram，還附一段貼文文案。剪輯在 GitHub Actions 上跑（程式在 `reels/reels.py`），公開的 repo 不用錢。
+
+只要設定一次，一步一步來：
+
+1. **GitHub 放兩把鑰匙**：手機瀏覽器打開 <https://github.com/yb131419/Tezhu/settings/secrets/actions> → 按「New repository secret」，新增兩個：
+
+   | Name | Secret |
+   | --- | --- |
+   | `TELEGRAM_BOT_TOKEN` | 跟 Apps Script 指令碼屬性裡的同一串 |
+   | `OPENAI_API_KEY` | 跟 Apps Script 指令碼屬性裡的同一串 |
+
+2. **做一把讓小乖叫 GitHub 剪片的金鑰**：打開 <https://github.com/settings/personal-access-tokens/new>
+   - Token name 填「小乖剪 Reels」，Expiration 選「No expiration」（或一年）
+   - Repository access 選「Only select repositories」→ 選 `yb131419/Tezhu`
+   - Permissions → Repository permissions → **Actions** 改成「Read and write」
+   - 按「Generate token」，複製那串 `github_pat_…`
+3. **把金鑰交給小乖**：在 Telegram 傳 `設定 GitHub金鑰 github_pat_…`。小乖存好後會自動刪掉那則訊息。
+4. **更新 Apps Script**：把新的 `Code.gs` 貼進去 → 部署 →「管理部署作業」→ 編輯「助理小乖007」→ 版本選「新版本」→ 部署（不要「新增部署作業」，網址會變）。
+
+說明可以加的要求：`30秒`、`標題：邀約三招`、`只要中文字幕`、`不要字幕`、`不要配樂`、配樂風格 `清新`／`溫暖`／`沉穩`。沒寫就是最長 60 秒、中英字幕、隨機配樂。
+
+- 影片要在 20MB 以內：Telegram 傳影片時選「壓縮」（不要用檔案傳）就好。
+- 配樂在 `reels/music/`，是程式自己合成的（沒有版權問題）。想用自己的音樂，把 mp3 放進這個資料夾，檔名就是名稱，說明裡寫檔名的前兩個字或後兩個字就會用它。
+- 剪片紀錄在 GitHub 的「Actions → 小乖剪 Reels」看得到；repo 是公開的，所以紀錄裡只寫秒數和段數，不會寫字幕內容。
+
 ## 常見問題
 
 **LINE／Telegram 上可以做什麼？** 傳「說明」看範例。傳「清除對話」會讓小乖忘掉聊天內容，待辦和筆記不受影響。也可以直接傳圖片（可以附一句說明，例如「幫我記下來」），小乖會讀出圖片內容幫你整理，要記的話會存成筆記。語音、貼圖、影片目前還不支援。LINE 和 Telegram 共用同一段聊天記憶，在 LINE 說到一半，可以到 Telegram 接著聊。

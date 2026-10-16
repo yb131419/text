@@ -34,10 +34,12 @@ const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '⚙️ 設定'], ['❓ 說明']];
 // 快速回覆只留最常用的 5 個，其他收進「💎 選單」精品卡片（LINE 輪播卡片；Telegram／對話頁用分組按鈕）
 const MENU_BTN = '💎 選單';
+const REELS_BTN = '🎬 剪 Reels';
 const QUICK = [['🐾 對話頁', MENU_BTN, '📋 試算'], ['🪶 智囊軍師', '✅ 我的待辦']];
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
   { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 設定', '署名・標題']] },
+  { en: 'REELS', title: '短影音剪輯', sub: '傳影片給小乖，自動剪成 Reels', items: [[REELS_BTN, '字幕・配樂']] },
   { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類']] },
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
   { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '點日期、時間就排好'], ['📅 近期行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
@@ -102,6 +104,7 @@ const HELP_TEXT = [
   '🪶 軍師：選主題，寫文案＋3 張圖卡',
   '💬 見證：按「新增見證」再傳圖片影片，之後查詢、轉傳分享',
   '📋 試算：先按「試算」再傳明細表照片',
+  '🎬 Reels：在 Telegram 傳影片，自動剪輯、上中英字幕、配樂',
   '📅 行程：新增、今天、這週、刪除',
   '📝 筆記：新增筆記、看筆記和待辦',
   '📁 搜尋：本機找、上網找',
@@ -127,6 +130,12 @@ const HELP_MORE = [
   '・刪除：存好時或見證卡片上按「🗑️ 刪除」，再按「確定刪除」才會刪',
   '・案例分類：看每類有幾筆；改分類 名稱：改剛存那筆的分類',
   '・新增分類／分類改名 舊 新／刪除分類',
+  '',
+  '【🎬 剪 Reels】',
+  '・在 Telegram 按「🎬 剪 Reels」再傳影片，或傳影片時說明寫「剪 Reels」',
+  '・自動挑精華剪成直式 9:16、上中英字幕、配背景音樂，大約 3～6 分鐘傳回來，還附貼文文案',
+  '・說明可以加：「30秒」「標題：邀約三招」「只要中文字幕」「不要字幕」「不要配樂」「清新／溫暖／沉穩」（配樂風格）',
+  '・影片要在 20MB 以內（Telegram 傳影片時選壓縮就好）',
   '',
   '【📋 試算】',
   '・先按「📋 試算」再傳明細表 → 回答 4 題就出報表',
@@ -613,6 +622,8 @@ function answer_(text) {
   const ad = addPending_(t2, raw);   // 「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
+  const rl = reelsAsk_(t2);   // 「🎬 剪 Reels」：接下來 10 分鐘內傳的影片拿去剪
+  if (rl) return rl;
   if (/^見證(案例)?$/.test(t2.replace(/\s+/g, ''))) return browseCat_(caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
   if (/^新增見證$/.test(t2.replace(/\s+/g, ''))) {
     setProp_('CASE_PENDING', caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
@@ -2345,6 +2356,17 @@ function handleTelegram_(update) {
   const fileId = msg.photo && msg.photo.length ? msg.photo[msg.photo.length - 1].file_id : doc && doc.file_id;
   const voice = msg.voice || msg.audio;
   CURRENT_TG_CHAT_ = chatId; LINE_MODE_ = false;
+
+  // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
+  const reelsVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
+  if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsStart_(chatId, reelsVideo, text);
+  // 設定 GitHub 金鑰（剪 Reels 要用）：打完就把那則訊息刪掉
+  const gk = text.match(/^設定\s*GitHub\s*金鑰\s*(\S+)$/i);
+  if (owner && chatId === owner && gk) {
+    setProp_('GITHUB_TOKEN', gk[1]);
+    tgApi_('deleteMessage', { chat_id: chatId, message_id: msg.message_id });
+    return tgSend_(chatId, '🔑 GitHub 金鑰存好了（剛剛那則訊息已經幫你刪掉）。現在可以按「' + REELS_BTN + '」試試看。');
+  }
 
   // 案例庫：轉傳過來的圖片／影片／文字，或說明打「存」的，存起來之後可以用「查 關鍵字」找回來
   const forwarded = !!(msg.forward_origin || msg.forward_date || msg.forward_from || msg.forward_from_chat);
@@ -4189,3 +4211,43 @@ $('cam').onclick=()=>$('file').click();
 $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1500/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
  send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
 </script></body></html>`;
+
+
+/* ============ 🎬 剪 Reels：影片交給 GitHub Actions 剪（reels/reels.py），剪好直接傳回 Telegram ============ */
+// 需要的指令碼屬性：GITHUB_TOKEN（可以在 Telegram 打「設定 GitHub金鑰 xxx」）；REELS_REPO 可不填，預設 yb131419/Tezhu
+const REELS_WORD = /剪\s*reels|reels|剪片|剪輯|短影音/i;
+function reelsPending_() { return Number(prop_('REELS_UNTIL')) > Date.now(); }
+function reelsAsk_(t) {
+  const k = String(t || '').replace(/\s+/g, '');
+  if (!/^(剪reels|reels|剪短影音|短影音剪輯)$/i.test(k)) return null;
+  if (LINE_MODE_ || !CURRENT_TG_CHAT_) return '🎬 剪 Reels 目前要在 Telegram 用：在 Telegram 按「' + REELS_BTN + '」再傳影片，剪好會傳回 Telegram。';
+  setProp_('REELS_UNTIL', String(Date.now() + 10 * 60 * 1000));
+  return '🎬 好！10 分鐘內把影片傳給我（按左下角的迴紋針 📎 選影片）。\n\n'
+    + '影片說明可以順便寫要求，例如：\n・30秒\n・標題：邀約三招\n・只要中文字幕／不要字幕\n・不要配樂，或配樂要清新／溫暖／沉穩\n\n'
+    + '沒寫就照預設：最長 60 秒、中英字幕、隨機配樂。';
+}
+function reelsStart_(chatId, video, note) {
+  setProp_('REELS_UNTIL', '0');
+  if (!prop_('GITHUB_TOKEN')) return tgSend_(chatId, '🎬 剪 Reels 還沒設定好：請先傳「設定 GitHub金鑰 你的金鑰」給我（設定步驟在 README 的「剪 Reels」）。');
+  if (video.file_size && video.file_size > 20 * 1024 * 1024) {
+    return tgSend_(chatId, '🎬 這支影片超過 20MB，Telegram 不讓機器人下載。請傳影片時選「壓縮」（不要用檔案傳），或先剪短一點再傳。');
+  }
+  const repo = prop_('REELS_REPO') || 'yb131419/Tezhu';
+  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/reels.yml/dispatches', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' },
+    payload: JSON.stringify({ ref: 'main', inputs: {
+      chat_id: String(chatId), file_id: video.file_id,
+      note: String(note || '').replace(REELS_WORD, '').trim().slice(0, 200),
+    } }),
+  });
+  const code = res.getResponseCode();
+  if (code !== 204) {
+    console.error('剪 Reels 觸發失敗：' + code + ' ' + res.getContentText());
+    return tgSend_(chatId, code === 401 || code === 403 || code === 404
+      ? '🎬 GitHub 金鑰不對或權限不夠（' + code + '），請重新產生金鑰後傳「設定 GitHub金鑰 新金鑰」。'
+      : '🎬 現在沒辦法開始剪（' + code + '），請等一下再傳一次。');
+  }
+  const sec = video.duration ? '（影片 ' + video.duration + ' 秒）' : '';
+  return tgSend_(chatId, '🎬 收到影片' + sec + '，開始剪輯：挑精華、上中英字幕、配樂。大約 3～6 分鐘剪好直接傳給你。');
+}
