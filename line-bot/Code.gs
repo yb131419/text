@@ -270,7 +270,7 @@ function tgKey_(t) { return t === TALK_BTN ? { text: t, web_app: { url: talkUrl_
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
 function talk(key, q, image, voice, audio64, audioType) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
-  ASK_SHOW_ = ''; ASK_BTNS_ = []; ASK_IMG_ = ''; ASK_IMGS_ = []; TALK_MODE_ = true;
+  ASK_SHOW_ = ''; ASK_BTNS_ = []; ASK_IMG_ = ''; ASK_IMGS_ = []; TALK_CASES_ = []; TALK_MODE_ = true;
   let heard = '';
   if (audio64) {   // 對話頁按麥克風錄的音：先轉文字
     const mt = String(audioType || 'audio/mp4');
@@ -285,7 +285,7 @@ function talk(key, q, image, voice, audio64, audioType) {
   if (voice && say && prop_('OPENAI_API_KEY')) {   // 用跟 LINE／Telegram 一樣的小乖聲音念
     try { audio = Utilities.base64Encode(tts_(say, 'mp3').getBytes()); } catch (e) { console.error(e.message); }
   }
-  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_, imgs: ASK_IMGS_ };
+  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_, imgs: ASK_IMGS_, cases: TALK_CASES_ };
 }
 let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', ASK_IMGS_ = [], TALK_MODE_ = false, VOICE_ONLY_ = false;
 const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
@@ -2062,6 +2062,18 @@ const driveImg_ = id => 'https://lh3.googleusercontent.com/d/' + id;
 const driveFile_ = id => 'https://drive.usercontent.google.com/download?id=' + id + '&export=download';
 // 瀏覽案例時，雲端硬碟裡的圖片／影片在 LINE 直接傳出來（一次最多 4 個）
 let CASE_LINE_ = [];
+// 對話頁：案例做成卡片（縮圖可點開原檔＋說明＋分享到 LINE），不要只丟一串點不了的網址（使用者 2026-10-16）
+let TALK_CASES_ = [];
+function talkCase_(c, d) {
+  const ids = d ? driveIds_(d) : [];
+  const KIND = { photo: '圖片', video: '影片', animation: '動圖', document: '檔案', text: '文字' };
+  return { k: caseKey_(c), type: c.type, kind: KIND[c.type] || '', cat: c.cat,
+    day: c.time instanceof Date ? Utilities.formatDate(c.time, TZ, 'M/d') : '',
+    cap: String(c.summary || c.text || '').replace(/\s+/g, ' ').slice(0, 120), text: String(c.text || c.summary || '').trim().slice(0, 500),
+    tags: [c.products, c.people].filter(Boolean).join('｜'),
+    thumb: !ids.length ? '' : c.type === 'photo' ? driveImg_(ids[0]) : ids[1] ? driveImg_(ids[1]) : 'https://drive.google.com/thumbnail?id=' + ids[0] + '&sz=w480',
+    link: ids.length ? 'https://drive.google.com/file/d/' + ids[0] + '/view' : '' };
+}
 function caseLine_() { const m = CASE_LINE_; CASE_LINE_ = []; return m; }
 function lineCaseMsg_(c, d) {
   const ids = driveIds_(d);
@@ -2274,6 +2286,7 @@ function shareCase_(key) {
     }
     return '這個檔案超過 20MB，LINE 傳不了，Telegram 也沒送成功。請到 Telegram 跟小乖說「見證案例」找這一則，長按就能分享。';
   }
+  if (TALK_MODE_) { TALK_CASES_ = [talkCase_(c, d)]; return '① 按「看' + (c.type === 'photo' ? '圖片' : '影片') + '」確認內容\n② 按「分享到 LINE」\n③ 選要傳給誰，按「傳送」'; }
   CASE_LINE_ = [lineCaseMsg_(c, d)];
   return '📤 長按上面的' + (c.type === 'photo' ? '圖片' : '影片') + '就能轉傳。'
     + (c.type !== 'photo' ? '\n（影片打不開就點：https://drive.google.com/file/d/' + driveIds_(d)[0] + '/view ）' : '')
@@ -2282,6 +2295,16 @@ function shareCase_(key) {
 
 // 列出案例（每筆一行：圖示＋摘要＋標籤），圖片／影片在 Telegram 另外傳原檔
 function caseLines_(title, list) {
+  if (TALK_MODE_ && !CURRENT_TG_CHAT_) {   // 對話頁：一則一張卡片
+    let dl = 0;
+    TALK_CASES_ = list.slice(0, 10).map(c => {
+      const media = ['photo', 'video', 'animation'].indexOf(c.type) >= 0;
+      const has = /^drive:/.test(c.fid) || c.drive;
+      return talkCase_(c, media && (has || dl++ < 4) ? caseDrive_(c) : '');
+    });
+    return title + (list.length > 10 ? '\n（先列最新 10 筆，還有 ' + (list.length - 10) + ' 筆，多打幾個關鍵字可以縮小範圍）' : '')
+      + '\n分享步驟：\n① 按「看影片／看圖片」確認內容\n② 按「分享到 LINE」\n③ 選要傳給誰，按「傳送」';
+  }
   const out = [title];
   list.slice(0, 10).forEach(c => {
     const tags = [c.products, c.people].filter(Boolean).join('｜');
