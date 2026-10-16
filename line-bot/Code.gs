@@ -791,11 +791,14 @@ function strategist_(k) {
     '【本次主題】' + th.guide,
     '【要寫兩個版本，內容不能一樣】',
     '①文字貼文（post）：直接貼在 FB／IG／LINE 的完整文案。有自己的標題（post_title，15 字內）；用一個具體生活場景或小故事開頭，慢慢帶出道理，4 到 6 段，全文 220 到 320 字；結尾用一句問句邀請大家留言。',
-    '②圖卡（cards）：要 3 張，放在圖片上的精簡版，不是貼文的節錄；3 張各用不同的切角（例如：點出現象、翻轉觀念、給一個做法），標題和內容都不能重複。每張：標題（title）12 字內，跟貼文標題不同；內文（body）3 到 4 行、每行 8 到 16 字，全部 50 到 90 字；最後一句反骨金句（gold）：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
+    '②圖卡（cards）：要 3 張，放在圖片上的精簡版，不是貼文的節錄；固定順序：第 1 張封面（點出現象）→ 第 2 張翻轉觀念 → 第 3 張給一個做法，標題和內容都不能重複。',
+    '每張圖卡只分三層：主標（title）只講一個重點；正文用短句；必要的條件或提醒才放補充。',
+    '第 1 張封面：title 主標 12 字內（可用 \\n 分兩行），跟貼文標題不同；hook 一句鉤子 16 字內，讓人想往下滑；封面不寫 body、gold。',
+    '第 2、3 張：title 主標 12 字內，只講一個重點；body 正文 2 到 4 行、每行一句短句 14 字內；gold 反骨金句一句 20 字內：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
     '兩個版本共用 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
     hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
-    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","cards":[{"title":"圖卡標題","body":"圖卡內文，每行一句","gold":"反骨金句"},{...第二張},{...第三張}],"tags":["#詞","#詞","#詞","#詞","#詞"]}',
+    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","cards":[{"title":"封面主標","hook":"一句鉤子"},{"title":"主標","body":"正文，每行一句短句","gold":"反骨金句"},{...第三張}],"tags":["#詞","#詞","#詞","#詞","#詞"]}',
   ].filter(Boolean).join('\n');
   let c = null;
   try {
@@ -806,11 +809,12 @@ function strategist_(k) {
     return { text: '文案這次沒寫出來，再按一次試試看。', buttons: [[STRAT_AGAIN, STRAT_SWITCH]] };
   }
   // 3 張圖卡（舊格式只有一張也接受）
-  const cards = (Array.isArray(c.cards) && c.cards.length ? c.cards : [c]).slice(0, 3).map(x => ({
+  const cards = (Array.isArray(c.cards) && c.cards.length ? c.cards : [c]).slice(0, 3).map((x, i) => ({
     title: String(x.title || th.name).trim(),
     body: String(x.body || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim(),
     gold: String(x.gold || '').replace(/^【?反骨金句】?[：:]?/, '').trim(),
-  })).filter(x => x.body || x.gold);
+    hook: i === 0 ? String(x.hook || '').replace(/\r/g, '').trim() : '',
+  })).filter(x => x.body || x.gold || x.hook);
   if (!cards.length) cards.push({ title: th.name, body: '', gold: '' });
   const card = {
     theme: th.name, cat: String(c.cat || '').replace(/主題$/, ''), cards: cards,
@@ -1062,35 +1066,27 @@ function stratText_(c) {
 }
 
 // 圖卡版面（直式 4:5，黑曜石＋香檳金，跟小乖頁面同一套風格）
+// 2026-10-16 使用者照「文字層級」重點改成三層：主標（一個重點）→ 正文（短句，金句當最後一句）→ 必要補充（小字）；
+// 第 1 張有 hook 就是封面（只放主標＋一句鉤子＋往右滑）；標籤只留在貼文，不印在圖卡上
 function cardLayout_(c, minH) {
-  const W = 540, X = 50, TW = 440;
+  const W = 540, X = 64, TW = 412;
   const units = l => Array.from(l).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1), 0);
   const lines = (s, size, w) => String(s || '').split('\n')
     .reduce((n, l) => n + Math.max(1, Math.ceil(units(l) / Math.floor((w - 14) / size))), 0);
-  const bodyH = fs => lines(c.body, fs, TW) * fs * 1.85 + 12;   // 行距 150% × 字體本身約 1.2 倍
-  // 2026-10-16 使用者要「字體全部再加大」：內文 28 起跳，太長才縮到 18
-  let fs = 28;
-  while (fs > 18 && bodyH(fs) > 430) fs--;
-  const BH = bodyH(fs);
-  // 金句框（2026-10-16 精品版）：拆成「鋪陳」小字＋「反轉」大字，中間細金線，上緣菱形飾、角落引號
-  const GF = 26, SF = 17, GW = TW - 84;
-  const gs = String(c.gold || '');
-  const cut = gs.indexOf('真正') > 0 ? gs.indexOf('真正') : gs.search(/[，,]/) > 0 && gs.search(/[，,]/) < gs.length - 2 ? gs.search(/[，,]/) + 1 : 0;
-  const goldSet = gs.slice(0, cut).trim();
-  let goldPunch = gs.slice(cut).trim();
-  if (units(goldPunch) > Math.floor((GW - 14) / GF)) goldPunch = goldPunch.replace(/([，,])\s*/g, '$1\n');   // 一行放不下就在逗號換行，不會剩兩三個字孤零零
-  const setH = goldSet ? lines(goldSet, SF, GW) * SF * 1.7 : 0;
-  const punchH = lines(goldPunch, GF, GW) * GF * 1.55;
-  const goldH = c.gold ? 30 + (goldSet ? setH + 22 : 0) + punchH + 30 : 0;
-  const tagLines = c.tags.length ? lines(c.tags.join('  '), 14, TW) : 0;
-  const top = 190;
-  let y = top + BH + 14;
-  const goldTop = y; y += goldH + (c.gold ? 14 : 0);
-  const noteTop = y; y += c.note ? 28 : 0;
-  const tagTop = y; y += tagLines * 22 + 4;
-  const footTop = Math.max(y + 16, 619, (minH || 0) - 56);   // 3 張一起畫時高度要一樣
-  const H = footTop + 56;
-  const sh = Math.max(0, Math.round((footTop - (y + 16)) / 2));   // 內容短時，標題到標籤整塊往下移到中間
+  const cover = c.idx === 1 && !!c.hook;
+  const H = Math.max(675, minH || 0), TOP = 92, BOT = c.note ? H - 112 : H - 92;
+  // 主標：封面 48、內頁 40；放不下就縮（最小 30）
+  let tf = cover ? 48 : 40;
+  while (tf > 30 && lines(c.title, tf, TW) > (cover ? 3 : 2)) tf -= 2;
+  const titleH = lines(c.title, tf, TW) * tf * 1.45;
+  const RULE = 54;   // 主標下的細金線（含上下留白）
+  // 正文 23 起，整塊放不下才縮（最小 17）
+  let bf = 23;
+  const blockH = f => cover
+    ? titleH + RULE + lines(c.hook, 25, TW) * 25 * 1.7 + 70
+    : titleH + RULE + (c.body ? lines(c.body, f, TW) * f * 1.85 : 0) + (c.gold ? 18 + lines(c.gold, f, TW) * f * 1.7 : 0);
+  while (!cover && bf > 17 && blockH(bf) > BOT - TOP) bf--;
+  const y0 = TOP + Math.max(0, Math.round((BOT - TOP - blockH(bf)) / 2));   // 整塊上下置中
 
   const build = slide => {
     const req = [];
@@ -1120,33 +1116,28 @@ function cardLayout_(c, minH) {
     };
     shape('RECTANGLE', 16, 16, W - 32, H - 32, null, '#C9A56A');
     shape('RECTANGLE', 22, 22, W - 44, H - 44, null, '#4A3F2C');
-    text('生活筆記「' + (c.topic || c.label) + '」', X, 32, TW, 38, 24, '#E9D3A2', { bold: true });
-    shape('RECTANGLE', W / 2 - 30, 78, 60, 1, '#C9A56A', null);
-    text(c.title, X, 88 + sh, TW, 86, c.title.length > 10 ? 28 : 34, '#F1DFB4', { bold: true, serif: true });
-    text(c.body, X, top + sh, TW, BH, fs, '#EDE6D6', { align: 'START', valign: 'TOP', ls: 150 });
-    if (c.gold) {
-      // 金句框：香檳金底＋深咖啡字，跟上面的黑底內文分得開（2026-10-16 使用者要金句框顏色不一樣）
-      const gt = goldTop + sh;
-      shape('ROUND_RECTANGLE', X, gt, TW, goldH, '#D9BC85', '#F1DFB4');          // 香檳金底
-      shape('ROUND_RECTANGLE', X + 7, gt + 7, TW - 14, goldH - 14, null, '#9C7A45');   // 內框細線，像精品包裝
-      shape('DIAMOND', W / 2 - 7, gt - 7, 14, 14, '#12100D', '#D9BC85');           // 上緣菱形飾
-      text('“', X + 14, gt + 6, 40, 44, 40, '#B08B52', { serif: true, bold: true, align: 'START', valign: 'TOP' });
-      text('”', X + TW - 54, gt + goldH - 46, 40, 44, 40, '#B08B52', { serif: true, bold: true, align: 'END', valign: 'TOP' });
-      let gy = gt + 30;
-      if (goldSet) {
-        text(goldSet, X + 42, gy, GW, setH, SF, '#5A4526', { serif: true, ls: 140 });
-        gy += setH + 10;
-        shape('RECTANGLE', W / 2 - 22, gy, 44, 0.8, '#8C6A3A', null);
-        gy += 12;
+    text('生活筆記「' + (c.topic || c.label) + '」', X, 40, TW, 26, 14, '#B9A47A');   // 小字標示，不跟主標搶
+    let y = y0;
+    text(c.title, X, y, TW, titleH, tf, '#F1DFB4', { bold: true, serif: true, ls: 120 });   // ① 主標
+    y += titleH + 26;
+    shape('RECTANGLE', W / 2 - 30, y, 60, 1, '#C9A56A', null);
+    y += RULE - 26;
+    if (cover) {
+      const hh = lines(c.hook, 25, TW) * 25 * 1.7;
+      text(c.hook, X, y, TW, hh, 25, '#EDE6D6', { ls: 140 });   // ② 一句鉤子
+      text('往右滑 →', X, y + hh + 36, TW, 24, 15, '#C9A56A');
+    } else {
+      if (c.body) {
+        const bh = lines(c.body, bf, TW) * bf * 1.85;
+        text(c.body, X, y, TW, bh, bf, '#EDE6D6', { ls: 150, valign: 'TOP' });   // ② 正文（短句置中）
+        y += bh;
       }
-      text(goldPunch, X + 42, gy, GW, punchH, GF, '#1E1710', { bold: true, serif: true, ls: 130 });
+      if (c.gold) text(c.gold, X, y + 18, TW, lines(c.gold, bf, TW) * bf * 1.7, bf, '#E2C27A', { bold: true, serif: true, ls: 130 });   // 金句＝正文最後一句
     }
-    if (c.note) text(c.note, X, noteTop + sh, TW, 24, 14, '#B9AE98');
-    if (c.tags.length) text(c.tags.join('  '), X, tagTop + sh, TW, tagLines * 22, 14, '#9C8F78', { ls: 120 });
-    shape('RECTANGLE', W / 2 - 70, footTop - 10, 140, 0.8, '#C9A56A', null);
-    text(cardBy_(), X, footTop - 3, TW, 30, 18, '#F1DFB4', { bold: true });
-    // 右下角頁碼（3 張一組：1/3、2/3、3/3）
-    if (c.total > 1) text(c.idx + ' / ' + c.total, W - 120, H - 52, 86, 26, 16, '#C9A56A', { bold: true, serif: true, align: 'END' });
+    if (c.note) text(c.note, X, H - 104, TW, 22, 13, '#9C8F78');   // ③ 必要補充
+    shape('RECTANGLE', W / 2 - 70, H - 72, 140, 0.8, '#C9A56A', null);
+    text(cardBy_(), X, H - 66, TW, 28, 16, '#F1DFB4', { bold: true });
+    if (c.total > 1) text(c.idx + ' / ' + c.total, W - 120, H - 60, 82, 24, 14, '#C9A56A', { serif: true, align: 'END' });
     return req;
   };
   return { W: W, H: H, build: build };
