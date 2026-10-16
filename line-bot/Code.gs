@@ -1460,6 +1460,7 @@ function kitCardLayout_(kit, i) {
     { t: kit.keyword.split('').join(' '), size: 54, bold: true, color: KIT_S_.c.gold, above: 2 }, { t: s.sub, size: 16, color: KIT_S_.c.sub, above: 10 }];
   const label = s.kind === 'action' ? s.step : s.label || (s.kind === 'cover' ? '生活筆記「' + (kit.cat || kit.theme.replace(/主題$/, '')) + '」' : '');
   const num = ('0' + (i + 1)).slice(-2) + ' — ' + ('0' + N).slice(-2);
+  if (s.kind === 'cover') return kitCoverLayout_(kit, s, num, W, H);
   return { W: W, H: H, build: slide => {
     const req = [];
     kitBg_(req, slide, 'card_bg.jpg', W, H);
@@ -1471,6 +1472,32 @@ function kitCardLayout_(kit, i) {
     kitText_(req, slide, slide + '_ft', [40, 552, 460, 66], [
       { t: num, size: 20, bold: true, color: KIT_S_.c.top, font: 'Cormorant Garamond' },
       { t: cardBy_(), size: 16, bold: true, color: KIT_S_.c.soft, font: 'Noto Sans TC', above: 4 }], 'TOP');
+    return req;
+  } };
+}
+
+// 封面：黑金精品（使用者 2026-10-16 選 A）——黑曜石底＋雙層香檳金框，象牙白大標題靠左，不放領取 PDF
+const KIT_COVER = { ink: '#F4EEE2', gold: '#D9BC7E', top: '#C9A56A', sub: '#B9AE9B', series: '#E9D3A2', by: '#8C8170' };
+function kitCoverLayout_(kit, s, num, W, H) {
+  const C = KIT_COVER, cat = kit.cat || String(kit.theme || '').replace(/主題$/, '');
+  const longest = Math.max.apply(null, String(s.head || '').replace(/\*\*|~~/g, '').split('\n').map(l => l.length));
+  const size = Math.max(44, Math.min(74, Math.floor(390 / Math.max(longest, 1))));
+  return { W: W, H: H, build: slide => {
+    const req = [];
+    kitBg_(req, slide, 'cover_bg.jpg', W, H);
+    kitText_(req, slide, slide + '_top', [75, 74, 250, 36], [
+      { t: ('生活筆記' + (cat ? '・' + cat : '')).split('').join(' '), size: 15, bold: true, color: C.top, font: 'Noto Sans TC', align: 'START' }], 'TOP');
+    kitText_(req, slide, slide + '_no', [325, 70, 140, 40], [
+      { t: num, size: 20, color: C.top, font: 'Cormorant Garamond', align: 'END' }], 'TOP');
+    kitText_(req, slide, slide + '_main', [75, 140, 400, 400], [
+      { t: s.head, size: size, bold: true, color: C.ink, em: C.gold, ls: 120, align: 'START' },
+      { t: s.sub, size: 20, color: C.sub, ls: 150, above: 24, align: 'START' }]);
+    kitText_(req, slide, slide + '_ser', [75, 566, 250, 34], [
+      { t: kit.series, size: 18, bold: true, color: C.series, font: 'Noto Sans TC', align: 'START' }]);
+    kitText_(req, slide, slide + '_sw', [325, 566, 140, 34], [
+      { t: 'SWIPE  →', size: 19, color: C.top, font: 'Cormorant Garamond', align: 'END' }]);
+    kitText_(req, slide, slide + '_by', [40, 612, 460, 26], [
+      { t: cardBy_(), size: 12, bold: true, color: C.by, font: 'Noto Sans TC' }]);
     return req;
   } };
 }
