@@ -1257,7 +1257,22 @@ function kitPick_(raw) {
 function kitStyleMenu_(th) {
   const name = th.btn.replace(/^[^\p{L}\p{N}]+/u, '');
   const b = KIT_STYLES.map(x => '🎨 ' + name + '・' + x.n);
-  return { text: '📕 ' + name + '：選一個款式\n\n' + KIT_STYLES.map(x => '・' + x.n + '：' + x.tip).join('\n'), buttons: [b.slice(0, 3), b.slice(3)] };
+  const imgs = KIT_STYLES.map(x => KIT_BG + x.d + 'preview.jpg');
+  if (TALK_MODE_) ASK_IMGS_ = imgs;   // 對話頁直接顯示預覽圖
+  return { text: '📕 ' + name + '：選一個款式\n\n' + KIT_STYLES.map(x => '・' + x.n + '：' + x.tip).join('\n'), buttons: [b.slice(0, 3), b.slice(3)],
+    flex: kitStyleFlex_(name), alt: '🎨 選一個款式', imgs: imgs, caps: KIT_STYLES.map(x => x.n + '｜' + x.tip) };
+}
+// LINE：每款一張預覽卡，點「用這款」就開始做
+function kitStyleFlex_(name) {
+  return { type: 'carousel', contents: KIT_STYLES.map(x => ({ type: 'bubble', size: 'kilo',
+    hero: { type: 'image', url: KIT_BG + x.d + 'preview.jpg', size: 'full', aspectRatio: '4:5', aspectMode: 'cover',
+      action: { type: 'message', label: x.n, text: '🎨 ' + name + '・' + x.n } },
+    body: { type: 'box', layout: 'vertical', paddingAll: '12px', backgroundColor: '#FBF8F2', spacing: 'xs', contents: [
+      { type: 'text', text: x.n, size: 'md', weight: 'bold', color: '#2A2118', align: 'center' },
+      { type: 'text', text: x.tip, size: 'xxs', color: '#8D7F6C', align: 'center', wrap: true }] },
+    footer: { type: 'box', layout: 'vertical', paddingAll: '10px', backgroundColor: '#FBF8F2', contents: [
+      { type: 'button', style: 'primary', color: '#A07C34', height: 'sm',
+        action: { type: 'message', label: '用這款', text: '🎨 ' + name + '・' + x.n } }] } })) };
 }
 
 // AI 一次寫好：貼文、7 張輪播、7 頁 PDF 的內容（只回 JSON）
@@ -2425,6 +2440,9 @@ function tgSend_(chatId, msg) {
   // Telegram 沒辦法用按鈕打開相簿，「選照片／拍照」按鈕拿掉，改帶一般選單
   if (rich && msg.buttons && msg.buttons.length === 1 && msg.buttons[0] === PHOTO_BTNS) msg = { text: msg.text + '\n（按左下角的迴紋針 📎 選照片）' };
   else if (rich && msg.buttons && msg.buttons.indexOf(PHOTO_BTNS) >= 0) msg = { text: msg.text + '\n（按左下角的迴紋針 📎 選照片）', buttons: msg.buttons.filter(r => r !== PHOTO_BTNS) };
+  if (msg && typeof msg === 'object' && msg.imgs && msg.imgs.length) {   // 款式預覽圖：先送一組相簿
+    tgApi_('sendMediaGroup', { chat_id: chatId, media: msg.imgs.slice(0, 10).map((u, i) => ({ type: 'photo', media: u, caption: (msg.caps || [])[i] || '' })) });
+  }
   rich = msg && typeof msg === 'object' && !!msg.buttons;
   if (msg && typeof msg === 'object' && !msg.buttons) msg = msg.text;
   tgApi_('sendMessage', { chat_id: chatId, text: String(rich ? msg.text : msg).slice(0, 4000),
@@ -2650,10 +2668,10 @@ function delByName_(text) {
 
 function reply_(replyToken, msg, extra, menu) {
   const rich = msg && typeof msg === 'object';
-  const m = rich && msg.flex ? { type: 'flex', altText: '💎 小乖功能選單', contents: msg.flex }
+  const m = rich && msg.flex ? { type: 'flex', altText: msg.alt || '💎 小乖功能選單', contents: msg.flex }
     : { type: 'text', text: String(rich ? msg.text : msg).slice(0, 5000) };
   // menu：私訊主人時附常用功能按鈕（精簡成 5 個，其他在「💎 選單」卡片裡）
-  const buttons = rich && msg.flex ? QUICK : quick_(rich && msg.buttons ? msg.buttons : menu ? MENU : null);
+  const buttons = rich && msg.flex && !msg.alt ? QUICK : quick_(rich && msg.buttons ? msg.buttons : menu ? MENU : null);
   if (buttons) {
     m.quickReply = { items: [].concat.apply([], buttons).slice(0, 13)
       .map(lineQuick_) };
