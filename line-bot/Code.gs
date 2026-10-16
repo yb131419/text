@@ -40,7 +40,7 @@ const MENU_CARDS = [
   { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['⚙️ 設定', '署名・標題']] },
   { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類']] },
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
-  { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、這週排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '說一句就排好'], ['📅 這週行程', '整週一覽'], ['🗑️ 刪除行程', '點一下就刪']] },
+  { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、這週排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '點日期、時間就排好'], ['📅 這週行程', '整週一覽'], ['🗑️ 刪除行程', '點一下就刪']] },
   { en: 'NOTES', title: '我的筆記', sub: '靈感、重點、待辦，隨手記、隨時看', items: [['📝 我的筆記', '全部筆記'], ['✍️ 新增筆記', '打一句就存'], ['✅ 我的待辦', '未完成事項']] },
   { en: 'SEARCH', title: '資料搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
 ];
@@ -135,9 +135,9 @@ const HELP_MORE = [
   '・打「取消」停止試算',
   '',
   '【📅 行程】',
-  '・按「➕ 新增行程」再說內容，例如「明天下午3點 跟王姐喝咖啡」',
+  '・按「➕ 新增行程」→ 點日期 → 點時間 → 點或打要做的事，不用打字也能排好',
   '・今天行程、這週行程：照日期排好',
-  '・按「🗑️ 刪除行程」選一筆就刪；也可以說「刪除 名稱」',
+  '・按「🗑️ 刪除行程」點一筆就刪，刪錯可以按「↩️ 復原」；也可以說「刪除 名稱」',
   '・過了日期的行程會自動刪掉',
   '',
   '【📝 筆記與待辦】',
@@ -586,7 +586,9 @@ function answer_(text) {
   if (cf) return cf;
   const cd = caseDel_(t2);   // 「🗑️ 刪除見證」：問過確定才刪
   if (cd) return cd;
-  const ad = addPending_(t2, raw);   // 「➕ 新增行程」「✍️ 新增筆記」按下後的下一句
+  const ef = evFlow_(t2, raw);   // 「➕ 新增行程」點日期→時間→事情；「🗑️ 10/20 15:00 開會」點一下就刪
+  if (ef) return ef;
+  const ad = addPending_(t2, raw);   // 「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
   if (/^見證(案例)?$/.test(t2.replace(/\s+/g, ''))) return browseCat_(caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
@@ -827,13 +829,138 @@ function addPending_(t, raw) {
       return { rewrite: (pend === 'event' ? '新增行程：' : '幫我記下筆記：') + (raw || t) };
     }
   }
-  const m = flat.match(/^新增(行程|筆記)$/);
+  const m = flat.match(/^新增(筆記)$/);
   if (!m) return null;
   setProp_('ADD_PENDING', m[1] === '行程' ? 'event' : 'note');
   setProp_('ADD_UNTIL', String(Date.now() + 5 * 60 * 1000));
   return { buttons: [['取消']], text: m[1] === '行程'
     ? '➕ 要新增什麼行程？直接打或用語音說，例如：\n明天下午3點 跟王姐喝咖啡\n10月20日 早上9點 開會\n\n（打「取消」就不新增）'
     : '✍️ 要記什麼？直接打或用語音說，例如：\n車位在 B2-35\n\n（打「取消」就不新增）' };
+}
+/* ============ 行程：用點的新增、刪除（不經過 AI，照你點的存，不會多加字） ============ */
+const WEEK_ = '日一二三四五六';
+const EV_TITLES = ['開會', '見客戶', '說明會', '上課', '聚餐', '看醫生'];
+function evMd_(ds) { return Number(ds.slice(5, 7)) + '/' + Number(ds.slice(8, 10)); }
+function evWk_(ds) { return '（' + WEEK_[new Date(ds + 'T12:00:00+08:00').getUTCDay()] + '）'; }
+function evDelLabel_(e) { return '🗑️ ' + evMd_(e.date) + ' ' + (e.time || '整天') + ' ' + e.title; }
+function futureEvents_() {
+  const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+  return readAll_().events.filter(e => e.date >= today).sort(evCmp_);
+}
+function evDay_(k) { return Utilities.formatDate(new Date(Date.now() + k * 86400000), TZ, 'yyyy-MM-dd'); }
+// 「10/20」→ 今天起最近的那一天（月份比現在小就是明年）
+function evDateOf_(mo, d) {
+  const today = evDay_(0), y = Number(today.slice(0, 4));
+  const ds = y + '-' + ('0' + mo).slice(-2) + '-' + ('0' + d).slice(-2);
+  return ds < today ? (y + 1) + ds.slice(4) : ds;
+}
+// 打字也可以：「14:30」「下午3點半」「早上9點」
+function evTimeOf_(t, period) {
+  let m = t.match(/^(\d{1,2})[:：](\d{2})$/);
+  if (m && Number(m[1]) < 24 && Number(m[2]) < 60) return ('0' + Number(m[1])).slice(-2) + ':' + m[2];
+  m = t.match(/^(上午|早上|中午|下午|晚上)?(\d{1,2})點(半|(\d{1,2})分?)?$/);
+  if (!m) return '';
+  let h = Number(m[2]); const p = m[1] || period || '';
+  if (/下午|晚上/.test(p) && h < 12) h += 12;
+  if (h > 23) return '';
+  return ('0' + h).slice(-2) + ':' + (m[3] === '半' ? '30' : ('0' + Number(m[4] || 0)).slice(-2));
+}
+function evState_() { try { const s = JSON.parse(prop_('EV_ADD') || 'null'); return s && s.until > Date.now() ? s : null; } catch (e) { return null; } }
+function evSave_(s) { s.until = Date.now() + 10 * 60 * 1000; setProp_('EV_ADD', JSON.stringify(s)); }
+function evAsk_(s) {
+  const head = s.date ? '📅 ' + evMd_(s.date) + evWk_(s.date) + (s.time ? ' ' + s.time : s.allDay ? ' 整天' : '') + '\n\n' : '';
+  if (s.s === 'date') {
+    const p = s.page || 0, days = [];
+    for (let k = p * 10; k < p * 10 + 10; k++) {
+      const ds = evDay_(k);
+      days.push('📅 ' + evMd_(ds) + evWk_(ds) + (k === 0 ? '今天' : k === 1 ? '明天' : k === 2 ? '後天' : ''));
+    }
+    return { text: '➕ 新增行程\n\n① 哪一天？點下面的日期。\n（也可以打日期，例如 11/5）', buttons: [days, (p ? ['⬅️ 前面日期'] : []).concat(['➡️ 更多日期', '❌ 取消'])] };
+  }
+  if (s.s === 'period') return { text: head + '② 什麼時段？', buttons: [['🌅 上午', '☀️ 下午', '🌙 晚上', '🕘 整天'], ['⬅️ 重選日期', '❌ 取消']] };
+  if (s.s === 'time') {
+    const r = { 上午: [8, 12], 下午: [12, 18], 晚上: [18, 22] }[s.period], ts = [];
+    for (let h = r[0]; h < r[1]; h++) ts.push(('0' + h).slice(-2) + ':00', ('0' + h).slice(-2) + ':30');
+    return { text: head + '③ 幾點？點下面的時間。\n（也可以打，例如 14:45）', buttons: [ts, (ts.length < 12 ? ['⬅️ 換時段'] : []).concat(['❌ 取消'])] };
+  }
+  // 要做什麼：最近用過的名稱排前面，再補常用的
+  const seen = {}, names = [];
+  readAll_().events.slice().sort((a, b) => (b.u || 0) - (a.u || 0)).map(e => e.title).concat(EV_TITLES)
+    .forEach(t => { t = String(t || '').trim(); if (t && t.length <= 14 && !seen[t] && names.length < 10) { seen[t] = 1; names.push(t); } });
+  return { text: head + '④ 要做什麼？點下面的，或直接打／用語音說。\n（你打什麼就存什麼，小乖不會改字）', buttons: [names, ['❌ 取消']] };
+}
+function evFlow_(t, raw) {
+  const flat = String(t || '').replace(/\s+/g, '');
+  const rawS = String(raw || '').trim();
+  // 刪除：按「🗑️ 10/20 15:00 開會」
+  const dm = rawS.match(/^🗑️?\s*(\d{1,2})\/(\d{1,2}) (\d{2}:\d{2}|整天) (.+)$/);
+  if (dm) {
+    const md = ('0' + dm[1]).slice(-2) + '-' + ('0' + dm[2]).slice(-2), tm = dm[3] === '整天' ? '' : dm[3], title = dm[4].trim();
+    const gone = withLock_(() => {
+      const d = readAll_(), today = evDay_(0);
+      const x = d.events.filter(e => e.date >= today && e.date.slice(5) === md && (e.time || '') === tm && e.title === title).sort(evCmp_)[0];
+      if (!x) return null;
+      const now = Date.now();
+      d.events = d.events.filter(e => e.id !== x.id); d.deleted[x.id] = now;
+      d.reminders = d.reminders.filter(r => { if (r.src === x.id) { d.deleted[r.id] = now; return false; } return true; });
+      writeAll_(d);
+      return x;
+    });
+    if (!gone) return listDelEvents_('找不到這筆，可能已經刪掉了。');
+    setProp_('EV_UNDO', JSON.stringify(gone));
+    logChat_('user', rawS); logChat_('assistant', '🗑️ 已刪除行程：' + gone.title);
+    return listDelEvents_('🗑️ 已刪除：' + evMd_(gone.date) + evWk_(gone.date) + ' ' + (gone.time || '整天') + '　' + gone.title);
+  }
+  if (/^(復原|復原行程)$/.test(flat) && prop_('EV_UNDO')) {
+    const x = JSON.parse(prop_('EV_UNDO')); setProp_('EV_UNDO', '');
+    withLock_(() => { const d = readAll_(); x.id = uid_(); x.u = Date.now(); d.events.push(x); writeAll_(d); });
+    return listDelEvents_('↩️ 已經放回去了：' + evMd_(x.date) + ' ' + (x.time || '整天') + '　' + x.title);
+  }
+  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 這週行程']].concat(MENU) }; }
+  if (flat === '刪掉剛剛這筆') {
+    const id = prop_('EV_LAST'); setProp_('EV_LAST', '');
+    const x = id && readAll_().events.find(e => e.id === id);
+    return x ? evFlow_('', evDelLabel_(x)) : { text: '剛剛那筆已經不在了。', buttons: MENU };
+  }
+  // 新增
+  if (/^(新增行程|加行程|再加一筆)$/.test(flat)) { const s = { s: 'date' }; evSave_(s); return evAsk_(s); }
+  const s = evState_();
+  if (!s) return null;
+  if (/^(取消|不用|算了|不加了)$/.test(flat)) { setProp_('EV_ADD', ''); return { text: '好，不新增。', buttons: MENU }; }
+  const menuWord = [].concat.apply([], MENU.concat(MENU_GROUPS, QUICK)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
+  if (menuWord) { setProp_('EV_ADD', ''); return null; }   // 按了別的功能就不排了
+  if (s.s === 'date') {
+    if (flat === '更多日期') { s.page = (s.page || 0) + 1; evSave_(s); return evAsk_(s); }
+    if (flat === '前面日期') { s.page = Math.max(0, (s.page || 0) - 1); evSave_(s); return evAsk_(s); }
+    const m = flat.match(/^(\d{1,2})[\/月](\d{1,2})/);
+    const rel = { 今天: 0, 明天: 1, 後天: 2 }[flat];
+    if (m && Number(m[1]) >= 1 && Number(m[1]) <= 12 && Number(m[2]) >= 1 && Number(m[2]) <= 31) s.date = evDateOf_(Number(m[1]), Number(m[2]));
+    else if (rel !== undefined) s.date = evDay_(rel);
+    else return Object.assign(evAsk_(s), { text: '請點下面的日期，或打像 11/5 這樣的日期。' });
+    s.s = 'period'; evSave_(s); return evAsk_(s);
+  }
+  if (flat === '重選日期') { s.s = 'date'; delete s.time; delete s.allDay; evSave_(s); return evAsk_(s); }
+  if (flat === '換時段') { s.s = 'period'; evSave_(s); return evAsk_(s); }
+  if (s.s === 'period' || s.s === 'time') {
+    const tm = evTimeOf_(flat, s.period);
+    if (tm) { s.time = tm; s.s = 'title'; evSave_(s); return evAsk_(s); }
+    if (s.s === 'period') {
+      if (flat === '整天') { s.time = ''; s.allDay = true; s.s = 'title'; evSave_(s); return evAsk_(s); }
+      if (/^(上午|下午|晚上)$/.test(flat)) { s.period = flat; s.s = 'time'; evSave_(s); return evAsk_(s); }
+      return Object.assign(evAsk_(s), { text: '請點下面的時段，或打像 14:30 這樣的時間。' });
+    }
+    return Object.assign(evAsk_(s), { text: '請點下面的時間，或打像 14:45 這樣的時間。' });
+  }
+  // 要做什麼：照原文存，不經過 AI
+  const title = rawS.replace(/\s+/g, ' ').trim().slice(0, 80);
+  if (!title) return evAsk_(s);
+  setProp_('EV_ADD', '');
+  const now = Date.now(), ev = { id: uid_(), title: title, date: s.date, time: s.time || '', place: '', time0: now, u: now };
+  withLock_(() => { const d = readAll_(); d.events.push(ev); writeAll_(d); });
+  setProp_('EV_LAST', ev.id);
+  logChat_('user', '新增行程：' + title); logChat_('assistant', '🗓️ 行程：' + ev.date + ' ' + ev.time + ' ' + title);
+  return { text: '✅ 行程加好了\n\n▍' + evMd_(ev.date) + evWk_(ev.date) + '\n・' + (ev.time || '整天') + '　' + title,
+    buttons: [['➕ 再加一筆', '↩️ 刪掉剛剛這筆'], ['⏰ 今天行程', '📅 這週行程']].concat(MENU) };
 }
 function settingsMenu_(t, raw) {
   const flat = String(t || '').replace(/\s+/g, '');
@@ -2086,15 +2213,15 @@ function delBtns_(labels) {
   const b = labels.filter(t => t && !seen[t] && (seen[t] = 1)).slice(0, 8).map(t => '🗑️ 刪 ' + t);
   return [b].concat(MENU);
 }
-// 「🗑️ 刪除行程」：今天起的行程依日期排好，每筆一個刪除按鈕
-function listDelEvents_() {
-  const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
-  const evs = readAll_().events.filter(e => e.date >= today).sort(evCmp_);
-  if (!evs.length) return { text: '🗑️ 目前沒有行程可以刪除。', buttons: MENU };
-  const md = ds => Number(ds.slice(5, 7)) + '/' + Number(ds.slice(8, 10));
-  const list = evs.slice(0, 15).map(e => '・' + md(e.date) + ' ' + (e.time || '整天') + '　' + e.title);
-  return { buttons: delBtns_(evs.map(e => e.title)), text: ['🗑️ 刪除行程', ''].concat(list, evs.length > 15 ? ['…還有 ' + (evs.length - 15) + ' 筆'] : [],
-    ['', '按下面要刪的那一筆（最多列 8 個按鈕），或跟我說「刪除 名稱」。']).join('\n') };
+// 「🗑️ 刪除行程」：今天起的行程依日期排好，每筆一個按鈕（帶日期、時間，同名的也分得出來），點一下就刪
+function listDelEvents_(head) {
+  const evs = futureEvents_();
+  if (!evs.length) return { text: (head ? head + '\n\n' : '') + '🗑️ 目前沒有行程可以刪除。', buttons: (prop_('EV_UNDO') && head ? [['↩️ 復原']] : []).concat(MENU) };
+  const list = evs.slice(0, 15).map(e => '・' + evMd_(e.date) + ' ' + (e.time || '整天') + '　' + e.title);
+  const btns = evs.slice(0, 10).map(evDelLabel_);
+  return { buttons: [btns, (head && prop_('EV_UNDO') ? ['↩️ 復原'] : []).concat(['✅ 刪好了'])],
+    text: (head ? [head, ''] : []).concat(['🗑️ 刪除行程', ''], list, evs.length > 15 ? ['…還有 ' + (evs.length - 15) + ' 筆'] : [],
+    ['', '點下面要刪的那一筆就刪掉' + (evs.length > 10 ? '（列最近 10 筆）' : '') + '。']).join('\n') };
 }
 function listTodos_() {
   const list = readAll_().todos.filter(x => !x.done).slice(0, 30)
