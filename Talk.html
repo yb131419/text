@@ -229,7 +229,7 @@ chips();
 // 對話紀錄存在這支手機（關掉再開還在）：最多 200 則，照片存成小縮圖
 const LOGK='xg_talk_log';
 function saveLog(){try{const a=[...log.querySelectorAll('.m')].slice(1).map(d=>{const i=d.querySelector('img');return {c:d.className.replace(/^m /,''),t:d.textContent,i:i?(i.dataset.th||''):''};}).filter(x=>(x.t||x.i)&&!/^(小乖想一下|小乖在聽你說的話)…$/.test(x.t)).slice(-200);localStorage.setItem(LOGK,JSON.stringify(a));}catch(e){}}
-function thumb(src,cb){const im=new Image();im.onload=()=>{const s=Math.min(1,240/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',0.6));};im.src=src;}
+function thumb(src,cb){const im=new Image();im.onload=()=>{const s=Math.min(1,240/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);try{cb(c.toDataURL('image/jpeg',0.6));}catch(e){}};im.src=src;}
 function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;if(/^data:/.test(img)&&img.length<20000)i.dataset.th=img;else thumb(img,th=>{i.dataset.th=th;saveLog();});d.appendChild(i);}if(t){d.appendChild(document.createTextNode(t));}log.appendChild(d);log.scrollTop=1e9;return d;}
 try{const old=JSON.parse(localStorage.getItem(LOGK)||'[]');if(old.length){old.forEach(x=>add(x.t,x.c,x.i||null));const d=document.createElement('div');d.className='sep';d.textContent='— 以上是之前的對話 —';log.appendChild(d);log.scrollTop=1e9;}}catch(e){}
 // 刪除對話（像 LINE）：長按一則訊息 → 勾選單則或多則 → 刪除；全選就是清空
