@@ -37,7 +37,7 @@ const MENU_BTN = '💎 選單';
 const QUICK = [['🐾 對話頁', MENU_BTN, '📋 試算'], ['🪶 智囊軍師', '✅ 我的待辦']];
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['⚙️ 設定', '署名・標題']] },
+  { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 設定', '署名・標題']] },
   { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類']] },
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
   { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '點日期、時間就排好'], ['📅 近期行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
@@ -301,6 +301,16 @@ function askByVoice_(q, image) {
     return '試算好了，報表已經傳到 Telegram。';
   }
   LAST_QUOTE_ = null;
+  if (KIT_PENDING_) {   // 7張＋PDF：對話頁直接等做好；捷徑就傳到 Telegram
+    if (TALK_MODE_) {
+      const fail = kitRun_(() => { try { ASK_IMG_ = kitTalk_(); } catch (e) { console.error(e); } });
+      if (fail) { ASK_SHOW_ = String(fail.text || fail); return ASK_SHOW_; }
+      return '7 張圖卡和 PDF 做好了，在畫面上。';
+    }
+    if (tg) { const fail = kitRun_(() => kitTg_(tg)); return fail ? String(fail.text || fail) : '7 張圖卡和 PDF 做好了，已經傳到 Telegram。'; }
+    KIT_PENDING_ = '';
+    return '7張＋PDF 要在 LINE、Telegram 或對話頁按按鈕做喔。';
+  }
   if (LAST_CARD_) {   // 智囊軍師：對話頁直接顯示圖卡；捷徑（嘿 小乖）就傳到 Telegram
     if (TALK_MODE_) { try { ASK_IMG_ = cardData_(); } catch (e) { console.error(e); ASK_IMG_ = ''; } return '文案和圖卡寫好了，在畫面上，長按圖卡可以存。'; }
     if (tg) { sendCardTg_(tg); tgSend_(tg, ans); return '文案和圖卡寫好了，已經傳到 Telegram。'; }
@@ -515,6 +525,12 @@ function handleLine_(ev) {
     try { said = transcribe_(lineContent_(ev.message.id), 'voice.m4a'); } catch (err) { console.error(err); }
     if (!said) return reply_(ev.replyToken, '語音聽不清楚，再說一次或改打字看看。', null, true);
     const ans = answer_(said);
+    if (KIT_PENDING_) {
+      reply_(ev.replyToken, '🎤 「' + said + '」\n\n' + ans, null, false);
+      const fail = kitRun_(() => kitLine_(uid));
+      if (fail) lineApi_('push', { to: uid, messages: [{ type: 'text', text: String(fail.text || fail) }] });
+      return;
+    }
     const rp = reportLine_();
     const card = cardLine_();   // 智囊軍師的圖卡
     const voice = !rp.short && !card.length && voiceMode_() !== 'off' ? lineVoice_(ans) : [];   // 用講的就用講的回
@@ -537,6 +553,12 @@ function handleLine_(ev) {
   if (uid !== owner) return;   // 只回主人，其他人不回應
 
   const ans = answer_(text);
+  if (KIT_PENDING_) {   // 7張＋PDF：先回「製作中」，做好用推播送
+    reply_(ev.replyToken, ans, null, false);
+    const fail = kitRun_(() => kitLine_(uid));
+    if (fail) lineApi_('push', { to: uid, messages: [{ type: 'text', text: String(fail.text || fail) }] });
+    return;
+  }
   const rp = reportLine_();
   const card = cardLine_();
   const media = caseLine_();   // 看見證／案例時的圖片、影片
@@ -606,6 +628,9 @@ function answer_(text) {
   const cs = stratSetting_(t2);   // 「設定署名 …」「設定標題 …」
   if (cs) return cs;
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
+  const kp = kitPick_(raw);   // 「📕 7張＋PDF」：選主題後要做 1～2 分鐘，先回「製作中」，做好再傳
+  if (kp === 'menu') return kitMenu_();
+  if (kp) { KIT_PENDING_ = kp; return '⏳ 收到！正在寫貼文、畫 7 張圖卡、做 PDF，大約 1～2 分鐘，好了就傳給你。'; }
   const sp = stratPick_(raw) || stratPick_(t2);   // 先用原文對主題按鈕（「🌿 健康」要帶圖示才算按鈕）
   if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
   // 案例分類：列分類、看某一類、改剛存那筆的分類
@@ -707,7 +732,7 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成圖卡：', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6)] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」）', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN]] };
 }
 
 // 認得「健康主題」「智囊軍師 健康」「軍師判定」「再寫一篇」這些說法；不是就回 null
@@ -792,7 +817,7 @@ function strategist_(k) {
   hist.unshift(card.title);
   setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_CARD_ = card;
-  return { text: stratText_(card), buttons: [[STRAT_AGAIN, STRAT_SWITCH]].concat(MENU) };
+  return { text: stratText_(card), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN]].concat(MENU) };
 }
 
 // 使用者自訂：圖卡底部署名、文案最上面的標題（存在指令碼屬性，沒設定就用預設）
@@ -1191,6 +1216,314 @@ function cardData_() {
   pngs.forEach(png => { try { saveCard_(png); } catch (e) { console.error(e); } });
   ASK_IMGS_ = pngs.map(png => 'data:image/png;base64,' + Utilities.base64Encode(png.getBytes()));
   return ASK_IMGS_[0];
+}
+
+/* ============ 智囊軍師「📕 7張＋PDF」：7 張輪播圖卡＋同關鍵字的 7 頁 PDF（絲絨厚卡燙金風格） ============ */
+// 2026-10-16 使用者選「兩種都留」：平常照樣 3 張；想收名單時按這個，留言關鍵字的人可以拿到 PDF
+const KIT_BTN = '📕 7張＋PDF';
+const KIT_FOLDER = '小乖軍師PDF';
+const KIT_BG = 'https://yb131419.github.io/Tezhu/line-bot/kit/';   // 底圖（絲絨＋厚卡＋燙金框＋YB 印記），字由簡報疊上去
+let LAST_KIT_ = null, KIT_PENDING_ = '';   // 剛寫好的 7 張＋PDF 內容；LINE／Telegram／對話頁各自畫好送出
+const KIT_INK = '#2A221A', KIT_SOFT = '#5B4F40', KIT_GOLD = '#A07C34', KIT_MUTE = '#8D7F6C';
+
+function kitMenu_() {
+  const b = STRAT_THEMES.map(t => '📕 ' + t.btn.replace(/^[^\p{L}\p{N}]+/u, ''));
+  return { text: '📕 7張＋PDF\n\n選一個主題：我寫一篇貼文、7 張輪播圖卡，再做一份同關鍵字的 PDF。\n有人留言關鍵字，你把 PDF 傳給他就好。\n（要做 1～2 分鐘）', buttons: [b.slice(0, 3), b.slice(3, 6)] };
+}
+// 「📕 7張＋PDF」→ 'menu'；「📕 健康」→ 'health'；不是就回 null
+function kitPick_(raw) {
+  const t = String(raw || '').replace(/\s+/g, ' ').trim();
+  if (t === KIT_BTN || /^(7張|七張)[＋+]?PDF$|^名單包$/i.test(t.replace(/^📕 ?|\s/g, ''))) return 'menu';
+  const m = t.match(/^📕 ?(\S+)$/);
+  if (!m) return null;
+  const hit = STRAT_THEMES.filter(x => x.btn.replace(/^[^\p{L}\p{N}]+/u, '') === m[1])[0];
+  return hit ? hit.k : null;
+}
+
+// AI 一次寫好：貼文、7 張輪播、7 頁 PDF 的內容（只回 JSON）
+function kitWrite_(k) {
+  const th = STRAT_THEMES.filter(t => t.k === k)[0];
+  if (!th) return kitMenu_();
+  if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，沒辦法寫文案。';
+  let hist = [];
+  try { hist = JSON.parse(prop_('KIT_HIST') || '[]'); } catch (e) { hist = []; }
+  const sys = [
+    '你是「智囊軍師」，彥彬的社群文案高手。這次要做一組「名單包」：一篇貼文＋7 張 IG 輪播圖卡＋一份 7 頁的 PDF 小手冊，三者講同一個主題。',
+    '寫法：短句、每句獨立一行、像朋友分享，不說教、不推銷；繁體台灣用語。',
+    '【本次主題】' + th.guide,
+    '【結構】主題是「○○的三個動作」這種能照著做的三步驟（series，10 字內，例如「邀約的三個動作」）；關鍵字 keyword 是 2 個字（例如「邀約」），讓人留言索取 PDF。',
+    '【7 張輪播 slides】依序 kind 為：cover、action、action、action、reason、last、cta。',
+    'cover：head 是三行內的鉤子（例如「約不到人，\\n不是你\\n**不會說**。」），sub 兩行（點出問題＋三個動作今天就用得上）。',
+    'action ×3：step 寫「動作一／動作二／動作三」，head 兩行標題（每行 8 字內），body 3 到 5 行示範，可以用「~~錯誤說法~~」對比「**好的說法**」，全部 60 字內。',
+    'reason：label 寫「○○，真正的原因」，head 四行內，點出真正的原因。',
+    'last：pre 兩行鋪陳，head 兩行收尾金句。',
+    'cta：head 三行（例如「三個動作加上\\n練習句型——\\n**《○○的三個動作》**。」），cta 寫「留言「**關鍵字**」」，sub 寫「我把 PDF 整理好傳給你。」',
+    '用 **字** 標出要強調的字，每段最多一處；換行用 \\n。',
+    '【PDF pdf】kicker 一句話（20 字內）；title 兩行（例如「邀約的\\n三個動作」）；intro 三行開場；',
+    'before：title、lead（60 字內）、points 3 點（h 一句、p 50 到 70 字）、note {h:"用法", p:"一句說明怎麼用這份手冊"}；',
+    'actions 3 個：step、title、lead（50 字內）、demo 2 句（可以用 ✗／✓ 開頭對比）、demoNote、why（60 字內）、practice（50 字內）、warn {h:"注意" 或 "原則", p:"50 字內"}；',
+    'check：title、lead、items 5 個自我檢查問句、note {h, p}；final：title「今天就開始的三步」、steps 3 個 {h, p}、close 三行收尾（用 ** 標一個重點字）。',
+    '【貼文 post】post_title 15 字內；post 220 到 320 字，用生活場景開頭，結尾請大家留言「關鍵字」索取 PDF；tags 5 個主題標籤（不可以有「康園道」「分享」「大健康」）。',
+    '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
+    hist.length ? '【避免重複】最近做過：' + hist.join('、') + '，這次換一個不同的主題。' : '',
+    '只輸出 JSON：{"cat":"分類","series":"","keyword":"","slides":[{"kind":"cover","label":"","head":"","sub":""},{"kind":"action","step":"動作一","head":"","body":""},…,{"kind":"reason","label":"","head":""},{"kind":"last","pre":"","head":""},{"kind":"cta","head":"","cta":"","sub":""}],"pdf":{"kicker":"","title":"","intro":"","before":{…},"actions":[…],"check":{…},"final":{…}},"post_title":"","post":"","tags":[]}',
+  ].filter(Boolean).join('\n');
+  let c;
+  try {
+    const out = callOpenAI_(sys, [{ role: 'user', content: '請做一組「' + th.name + '」的名單包。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。' }]);
+    c = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+  } catch (err) {
+    console.error('7張＋PDF 文案失敗：' + err.message);
+    return { text: '這次沒寫出來，再按一次試試看。', buttons: [[KIT_BTN]] };
+  }
+  const kit = kitClean_(c, th, k);
+  if (!kit) return { text: '這次寫出來的格式不對，再按一次試試看。', buttons: [[KIT_BTN]] };
+  hist.unshift(kit.series);
+  setProp_('KIT_HIST', JSON.stringify(hist.slice(0, 10)));
+  LAST_KIT_ = kit;
+  return { text: stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) };
+}
+
+// 整理 AI 回來的內容：補齊欄位、拿掉禁字（私訊→留言）；缺太多就回 null
+function kitClean_(c, th, k) {
+  const fix = v => typeof v === 'string' ? v.replace(/私訊/g, '留言').replace(/\r/g, '').trim()
+    : Array.isArray(v) ? v.map(fix) : v && typeof v === 'object' ? Object.keys(v).reduce((o, x) => (o[x] = fix(v[x]), o), {}) : v;
+  c = fix(c || {});
+  const S = v => String(v == null ? '' : v);
+  const slides = Array.isArray(c.slides) ? c.slides.filter(x => x && x.kind).slice(0, 7) : [];
+  const P = c.pdf || {};
+  if (slides.length < 7 || !Array.isArray(P.actions) || P.actions.length < 3) return null;
+  const series = S(c.series).replace(/[《》]/g, '') || th.name;
+  const keyword = S(c.keyword).replace(/[「」]/g, '').slice(0, 4) || series.slice(0, 2);
+  const kit = {
+    theme: th.name, k: k, series: series, keyword: keyword, cat: S(c.cat).replace(/主題$/, ''),
+    slides: slides.map(x => ({ kind: S(x.kind), label: S(x.label), step: S(x.step), head: S(x.head), body: S(x.body), sub: S(x.sub), pre: S(x.pre), cta: S(x.cta) || '留言「**' + keyword + '**」' })),
+    pdf: {
+      kicker: S(P.kicker), title: S(P.title) || series, intro: S(P.intro),
+      before: Object.assign({ title: '', lead: '', points: [], note: null }, P.before || {}),
+      actions: P.actions.slice(0, 3).map(a => Object.assign({ step: '', title: '', lead: '', demo: [], demoNote: '', why: '', practice: '', warn: null }, a)),
+      check: Object.assign({ title: '你最常卡在哪一個', lead: '', items: [], note: null }, P.check || {}),
+      final: Object.assign({ title: '今天就開始的三步', steps: [], close: '' }, P.final || {}),
+    },
+    ptitle: S(c.post_title) || series, post: S(c.post).replace(/\n{3,}/g, '\n\n'), gold: '', body: '', note: '',
+    tags: (Array.isArray(c.tags) ? c.tags : S(c.tags).split(/\s+/)).map(s => S(s).trim()).filter(Boolean)
+      .filter(s => !STRAT_NO_TAG.test(s)).map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
+  };
+  kit.label = '《' + series + '》（留言「' + keyword + '」）';
+  return kit;
+}
+
+// 一段字（**強調**、~~劃掉~~）→ 純文字＋樣式範圍；簡報 API 用 UTF-16 位置，跟 JS 字串一樣
+function kitRuns_(s) {
+  const out = { text: '', marks: [] };
+  const re = /\*\*(.+?)\*\*|~~(.+?)~~/g;
+  let last = 0, m;
+  const str = String(s || '');
+  while ((m = re.exec(str))) {
+    out.text += str.slice(last, m.index);
+    const a = out.text.length;
+    out.text += m[1] || m[2];
+    out.marks.push({ a: a, b: out.text.length, em: !!m[1] });
+    last = re.lastIndex;
+  }
+  out.text += str.slice(last);
+  return out;
+}
+// 一個文字框放好幾段，每段自己的字級、顏色、對齊、段前距；強調字用 o.em（顏色）＋粗體
+function kitText_(req, slide, id, box, paras, valign) {
+  req.push({ createShape: { objectId: id, shapeType: 'TEXT_BOX', elementProperties: { pageObjectId: slide,
+    size: { width: { magnitude: box[2], unit: 'PT' }, height: { magnitude: box[3], unit: 'PT' } },
+    transform: { scaleX: 1, scaleY: 1, translateX: box[0], translateY: box[1], unit: 'PT' } } } });
+  let text = '', at = [];
+  // 段內換行拆成好幾段（同樣式，只有第一行有段前距）
+  paras = [].concat.apply([], paras.filter(p => p && String(p.t || '') !== '')
+    .map(p => String(p.t).split('\n').map((l, j) => Object.assign({}, p, { t: l || ' ', above: j ? 0 : p.above }))));
+  paras.forEach((p, i) => {
+    const r = kitRuns_(p.t);
+    const a = text.length;
+    text += r.text + (i < paras.length - 1 ? '\n' : '');
+    at.push({ p: p, a: a, b: a + r.text.length, marks: r.marks.map(x => ({ a: a + x.a, b: a + x.b, em: x.em })) });
+  });
+  if (!text) return;
+  req.push({ insertText: { objectId: id, text: text } });
+  at.forEach(x => {
+    const p = x.p, rng = { type: 'FIXED_RANGE', startIndex: x.a, endIndex: Math.max(x.b, x.a + 1) };
+    if (x.b > x.a) req.push({ updateTextStyle: { objectId: id, textRange: { type: 'FIXED_RANGE', startIndex: x.a, endIndex: x.b }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: {
+      fontSize: { magnitude: p.size, unit: 'PT' }, bold: !!p.bold, fontFamily: p.font || 'Noto Serif TC',
+      foregroundColor: { opaqueColor: { rgbColor: rgb_(p.color || KIT_INK) } } } } });
+    req.push({ updateParagraphStyle: { objectId: id, textRange: rng, fields: 'alignment,lineSpacing,spaceAbove,indentStart,indentFirstLine', style: {
+      alignment: p.align || 'CENTER', lineSpacing: p.ls || 140, spaceAbove: { magnitude: p.above || 0, unit: 'PT' },
+      indentStart: { magnitude: p.indent || 0, unit: 'PT' }, indentFirstLine: { magnitude: p.indent || 0, unit: 'PT' } } } });
+    x.marks.forEach(m => req.push({ updateTextStyle: { objectId: id, textRange: { type: 'FIXED_RANGE', startIndex: m.a, endIndex: m.b },
+      fields: m.em ? 'bold,foregroundColor' : 'strikethrough,foregroundColor',
+      style: m.em ? { bold: true, foregroundColor: { opaqueColor: { rgbColor: rgb_(p.em || KIT_GOLD) } } }
+        : { strikethrough: true, foregroundColor: { opaqueColor: { rgbColor: rgb_('#A39A8C') } } } } }));
+  });
+  req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: valign || 'MIDDLE' }, fields: 'contentAlignment' } });
+}
+function kitBg_(req, slide, file, W, H) {
+  req.push({ createImage: { objectId: slide + '_bg', url: KIT_BG + file, elementProperties: { pageObjectId: slide,
+    size: { width: { magnitude: W, unit: 'PT' }, height: { magnitude: H, unit: 'PT' } },
+    transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: 'PT' } } } });
+}
+const KIT_ORN = '───────　◆　───────';
+
+// 一張輪播圖卡（540×675，跟 3 張圖卡同尺寸）
+function kitCardLayout_(kit, i) {
+  const W = 540, H = 675, s = kit.slides[i], N = kit.slides.length;
+  const head = (t, size) => ({ t: t, size: size, bold: true, color: KIT_INK, ls: 135 });
+  const orn = { t: KIT_ORN, size: 9, color: '#B8914A', above: 16 };
+  const body = t => ({ t: t, size: 18, color: KIT_SOFT, ls: 175, above: 16, em: KIT_INK });
+  let paras;
+  if (s.kind === 'cover') paras = [head(s.head, 40), orn, body(s.sub)];
+  else if (s.kind === 'action') paras = [head(s.head, 34), orn, body(s.body)];
+  else if (s.kind === 'reason') paras = [head(s.head, 32)];
+  else if (s.kind === 'last') paras = [{ t: s.pre, size: 25, color: KIT_MUTE, ls: 160 }, orn, Object.assign(head(s.head, 40), { above: 14 })];
+  else paras = [head(s.head, 27), orn, { t: '留言', size: 14, color: '#6E604E', above: 18 },
+    { t: kit.keyword.split('').join(' '), size: 54, bold: true, color: KIT_GOLD, above: 2 }, { t: s.sub, size: 16, color: '#6E604E', above: 10 }];
+  const label = s.kind === 'action' ? s.step : s.label || (s.kind === 'cover' ? '生活筆記「' + (kit.cat || kit.theme.replace(/主題$/, '')) + '」' : '');
+  const num = ('0' + (i + 1)).slice(-2) + ' — ' + ('0' + N).slice(-2);
+  return { W: W, H: H, build: slide => {
+    const req = [];
+    kitBg_(req, slide, 'card_bg.jpg', W, H);
+    kitText_(req, slide, slide + '_top', [60, 112, 420, 44], [
+      { t: 'NO. ' + ('0' + (i + 1)).slice(-2) + ' · ' + kit.series, size: 10, color: '#9C7A3E', font: 'Noto Sans TC' },
+      { t: label, size: 12, color: '#7C6B55', font: 'Noto Sans TC', above: 4 }], 'TOP');
+    kitText_(req, slide, slide + '_main', [64, 165, 412, 390], paras);
+    kitText_(req, slide, slide + '_ft', [60, 566, 420, 50], [
+      { t: num, size: 15, color: '#9C7A3E', font: 'Cormorant Garamond' },
+      { t: cardBy_(), size: 11, color: KIT_MUTE, font: 'Noto Sans TC', above: 4 }], 'TOP');
+    return req;
+  } };
+}
+
+// PDF 一頁（A4 直式 595×842）
+function kitPdfLayouts_(kit) {
+  const W = 595.28, H = 841.89, P = kit.pdf, X = 74, TW = 447;
+  const lbl = t => ({ t: t, size: 10, color: KIT_GOLD, font: 'Noto Sans TC', align: 'START', above: 14 });
+  const txt = (t, o) => Object.assign({ t: t, size: 11, color: KIT_SOFT, align: 'START', ls: 175, indent: 14, em: KIT_GOLD }, o || {});
+  const note = n => n && (n.h || n.p) ? [lbl(n.h || '注意'), txt(n.p, { color: KIT_INK, indent: 0, above: 2 })] : [];
+  const page = (n, small, title, paras) => ({ W: W, H: H, build: slide => {
+    const req = [];
+    kitBg_(req, slide, 'pdf_page.jpg', W, H);
+    kitText_(req, slide, slide + '_hd', [X, 72, TW, 56], [{ t: small, size: 9, color: KIT_GOLD, font: 'Noto Sans TC', align: 'START' },
+      { t: title, size: 20, bold: true, color: KIT_INK, align: 'START', above: 2 }], 'BOTTOM');
+    req.push({ createShape: { objectId: slide + '_rule', shapeType: 'RECTANGLE', elementProperties: { pageObjectId: slide,
+      size: { width: { magnitude: TW, unit: 'PT' }, height: { magnitude: 0.6, unit: 'PT' } },
+      transform: { scaleX: 1, scaleY: 1, translateX: X, translateY: 136, unit: 'PT' } } } });
+    req.push({ updateShapeProperties: { objectId: slide + '_rule', fields: 'shapeBackgroundFill,outline', shapeProperties: {
+      shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_('#C9AE7A') } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
+    kitText_(req, slide, slide + '_bd', [X, 146, TW, 610], paras, 'TOP');
+    kitText_(req, slide, slide + '_ft', [X, 770, TW, 20], [{ t: cardBy_() + '　　' + ('0' + n).slice(-2), size: 8, color: KIT_MUTE, font: 'Noto Sans TC', align: 'END' }], 'TOP');
+    return req;
+  } });
+  const pts = list => [].concat.apply([], (list || []).map((x, i) => [
+    { t: (i + 1) + '　' + (x.h || ''), size: 13, bold: true, color: KIT_INK, align: 'START', above: 14 }, txt(x.p, { above: 3 })]));
+  const L = [];
+  L.push({ W: W, H: H, build: slide => {   // 封面
+    const req = [];
+    kitBg_(req, slide, 'pdf_cover.jpg', W, H);
+    kitText_(req, slide, slide + '_main', [X, 190, TW, 520], [
+      { t: P.kicker, size: 10, color: KIT_GOLD, font: 'Noto Sans TC' },
+      { t: P.title + '。', size: 40, bold: true, color: KIT_INK, ls: 130, above: 22 },
+      { t: '────────', size: 10, color: '#B8914A', above: 18 },
+      { t: P.intro, size: 13, color: KIT_SOFT, ls: 190, above: 18 }]);
+    kitText_(req, slide, slide + '_ft', [X, 760, TW, 20], [{ t: cardBy_(), size: 9, color: KIT_MUTE, font: 'Noto Sans TC' }], 'TOP');
+    return req;
+  } });
+  const B = P.before;
+  L.push(page(2, '開始之前', B.title || '真正的原因', [txt(B.lead, { indent: 0, size: 12 })].concat(pts(B.points), note(B.note))));
+  P.actions.forEach((a, i) => L.push(page(3 + i, a.step || ('動作' + '一二三'[i]), a.title, [txt(a.lead, { indent: 0, size: 12 }),
+    lbl('示範'), txt((a.demo || []).join('\n'), { color: KIT_INK }), txt(a.demoNote, { above: 4 }),
+    lbl('為什麼有用'), txt(a.why), lbl('練習'), txt(a.practice)].concat(note(a.warn)))));
+  const C = P.check;
+  L.push(page(6, '自查', C.title, [txt(C.lead, { indent: 0, size: 12 })].concat((C.items || []).slice(0, 6).map((t, i) =>
+    ({ t: '☐ 0' + (i + 1) + '　' + t, size: 12.5, bold: true, color: KIT_INK, align: 'START', above: 12, ls: 150 })), note(C.note))));
+  const F = P.final;
+  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: KIT_ORN, size: 9, color: '#B8914A', above: 26 },
+    { t: F.close, size: 19, bold: true, color: KIT_INK, ls: 165, above: 16 }])));
+  return L;
+}
+
+// 畫 7 張圖卡＋PDF，存到雲端硬碟（PDF 設成知道連結的人都能看，才能轉給留言的人）
+function kitMake_(kit) {
+  REPORT_ERR_ = '';
+  const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm');
+  const pngs = layoutPngs_(kit.slides.map((x, i) => kitCardLayout_(kit, i)),
+    kit.slides.map((x, i) => '名單包_' + kit.series + '_' + stamp + '_' + (i + 1) + '.png'));
+  const pdf = layoutPdf_(kitPdfLayouts_(kit), '《' + kit.series + '》（' + kit.keyword + '）.pdf');
+  let pdfUrl = '', files = [];
+  try {
+    const it = DriveApp.getFoldersByName(KIT_FOLDER);
+    const dir = it.hasNext() ? it.next() : DriveApp.createFolder(KIT_FOLDER);
+    files = pngs.map(png => dir.createFile(png.copyBlob().setName(png.getName())));
+    if (pdf) {
+      const f = dir.createFile(pdf);
+      f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      pdfUrl = 'https://drive.google.com/file/d/' + f.getId() + '/view';
+    }
+  } catch (e) { console.error('名單包存檔失敗：' + e.message); }
+  return { pngs: pngs, files: files, pdf: pdf, pdfUrl: pdfUrl, err: pngs.length && pdf ? '' : REPORT_ERR_ || '簡報畫圖失敗' };
+}
+function kitDoneText_(kit, r) {
+  return ['📕 《' + kit.series + '》做好了', '',
+    r.pngs.length ? '🖼️ 7 張輪播圖卡：長按存到相簿，照順序發 IG。' : '🖼️ 圖卡這次沒畫出來：' + r.err,
+    r.pdfUrl ? '📄 PDF：' + r.pdfUrl + '\n有人留言「' + kit.keyword + '」，就把這個連結傳給他。' : '📄 PDF 這次沒做出來：' + r.err].join('\n');
+}
+
+// 按了主題後真正開始做：寫內容（AI）→ 交給各平台畫圖、送出；寫失敗就回錯誤訊息
+function kitRun_(deliver) {
+  const k = KIT_PENDING_; KIT_PENDING_ = '';
+  if (!k) return null;
+  const w = kitWrite_(k);
+  if (!LAST_KIT_) return w;
+  logChat_('assistant', String(w.text || w).slice(0, 2000));
+  deliver();
+  return null;
+}
+// LINE：按下去先回「製作中」，做好再推播（圖卡、文案、PDF 連結），避免回覆逾時
+function kitLine_(to) {
+  const kit = LAST_KIT_; LAST_KIT_ = null;
+  if (!kit) return;
+  const r = kitMake_(kit);
+  const imgs = r.files.map(f => {
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const url = 'https://lh3.googleusercontent.com/d/' + f.getId();
+    return { type: 'image', originalContentUrl: url, previewImageUrl: url };
+  });
+  const send = msgs => lineApi_('push', { to: to, messages: msgs });
+  if (imgs.length) send(imgs.slice(0, 5));
+  send(imgs.slice(5).concat([{ type: 'text', text: (stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit)).slice(0, 5000) },
+    { type: 'text', text: kitDoneText_(kit, r) }]).slice(0, 5));
+}
+// Telegram：7 張一組相簿＋PDF 檔
+function kitTg_(chatId) {
+  const kit = LAST_KIT_; LAST_KIT_ = null;
+  if (!kit) return false;
+  tgApi_('sendChatAction', { chat_id: chatId, action: 'upload_photo' });
+  const r = kitMake_(kit);
+  if (r.pngs.length) {
+    const payload = { chat_id: String(chatId), media: JSON.stringify(r.pngs.map((p, i) => ({ type: 'photo', media: 'attach://p' + i, caption: i ? '' : '📕 《' + kit.series + '》' }))) };
+    r.pngs.forEach((p, i) => { payload['p' + i] = p; });
+    const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendMediaGroup', { method: 'post', muteHttpExceptions: true, payload: payload });
+    if (res.getResponseCode() !== 200) console.error('Telegram 7 張圖卡失敗：' + res.getContentText());
+  }
+  if (r.pdf) {
+    const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendDocument', { method: 'post', muteHttpExceptions: true,
+      payload: { chat_id: String(chatId), document: r.pdf, caption: '有人留言「' + kit.keyword + '」，把這份 PDF 轉給他。' } });
+    if (res.getResponseCode() !== 200) console.error('Telegram PDF 失敗：' + res.getContentText());
+  }
+  tgSend_(chatId, { text: kitDoneText_(kit, r), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) });
+  return true;
+}
+// 對話頁：7 張圖直接顯示，PDF 給連結
+function kitTalk_() {
+  const kit = LAST_KIT_; LAST_KIT_ = null;
+  if (!kit) return '';
+  const r = kitMake_(kit);
+  ASK_IMGS_ = r.pngs.map(png => 'data:image/png;base64,' + Utilities.base64Encode(png.getBytes()));
+  ASK_SHOW_ = stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit) + '\n\n' + kitDoneText_(kit, r);
+  return ASK_IMGS_[0] || '';
 }
 
 /* ============ 案例庫（Telegram 圖片／影片／文字） ============ */
@@ -1995,6 +2328,12 @@ function handleTelegram_(update) {
     } catch (err) { console.error(err); return tgSend_(chatId, '語音聽不清楚，再說一次或改打字看看。'); }
     if (!said) return tgSend_(chatId, '沒聽到內容，再說一次看看。');
     const ans = answer_(said);
+    if (KIT_PENDING_) {
+      tgSend_(chatId, '🎤 「' + said + '」\n\n' + ans);
+      const fail = kitRun_(() => kitTg_(chatId));
+      if (fail) tgSend_(chatId, fail);
+      return;
+    }
     const short = sendReportTg_(chatId);
     const carded = sendCardTg_(chatId);   // 智囊軍師：先傳圖卡
     tgSend_(chatId, short ? '🎤 「' + said + '」\n\n' + short : withVoice_(said, ans));
@@ -2032,6 +2371,12 @@ function handleTelegram_(update) {
 
   tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
   const ans = answer_(text.replace(/^\/start\b\s*/, '') || '說明');
+  if (KIT_PENDING_) {
+    tgSend_(chatId, ans);
+    const fail = kitRun_(() => kitTg_(chatId));
+    if (fail) tgSend_(chatId, fail);
+    return;
+  }
   const short = sendReportTg_(chatId);
   const carded = sendCardTg_(chatId);
   tgSend_(chatId, short || ans);
@@ -3233,6 +3578,18 @@ function layoutPng_(L, fileName) {
 }
 // 好幾頁一起畫（頁面大小用第一頁的），每頁輸出一張 PNG；失敗回傳空陣列
 function layoutPngs_(Ls, names) {
+  return layoutDeck_(Ls, (pid, slides) => slides.map((id, i) => {
+    const th = slidesApi_('get', '/' + pid + '/pages/' + id + '/thumbnail?thumbnailProperties.mimeType=PNG&thumbnailProperties.thumbnailSize=LARGE');
+    return UrlFetchApp.fetch(th.contentUrl).getBlob().setName(names[i]);
+  })) || [];
+}
+// 整份簡報匯出成一個 PDF（7 頁 PDF 用）；失敗回傳 null
+function layoutPdf_(Ls, name) {
+  return layoutDeck_(Ls, pid => UrlFetchApp.fetch('https://docs.google.com/presentation/d/' + pid + '/export/pdf', {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } }).getBlob().setName(name));
+}
+// 畫好簡報後交給 out(pid, slides) 輸出，最後把簡報丟到垃圾桶
+function layoutDeck_(Ls, out) {
   const L = Ls[0];
   let pid = null;
   try {
@@ -3254,14 +3611,11 @@ function layoutPngs_(Ls, names) {
       req = req.concat(built);
     });
     slidesApi_('post', '/' + pid + ':batchUpdate', { requests: req });
-    return slides.map((id, i) => {
-      const th = slidesApi_('get', '/' + pid + '/pages/' + id + '/thumbnail?thumbnailProperties.mimeType=PNG&thumbnailProperties.thumbnailSize=LARGE');
-      return UrlFetchApp.fetch(th.contentUrl).getBlob().setName(names[i]);
-    });
+    return out(pid, slides);
   } catch (err) {
     REPORT_ERR_ = err.message;
     console.error('圖片失敗：' + err.message);
-    return [];
+    return null;
   } finally {
     if (pid) try { DriveApp.getFileById(pid).setTrashed(true); } catch (e) { console.error(e); }
   }
