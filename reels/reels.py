@@ -352,6 +352,33 @@ def probe(path):
     return dur, has_audio, (w, h)
 
 
+def join_sources(paths, work):
+    """好幾支影片：照順序統一大小、影格和聲音後接成一支，後面就當一支影片來剪。"""
+    info = [probe(p) for p in paths]
+    w, h = info[0][2]
+    k = min(1.0, 1920 / max(w, h))
+    w, h = max(2, int(w * k) // 2 * 2), max(2, int(h * k) // 2 * 2)
+    parts = []
+    for n, (p, (dur, has_audio, _)) in enumerate(zip(paths, info)):
+        out = os.path.join(work, 'src%02d.mp4' % n)
+        cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-i', p]
+        if not has_audio:
+            cmd += ['-f', 'lavfi', '-t', '%.3f' % dur, '-i', 'anullsrc=r=48000:cl=stereo']
+        cmd += ['-vf', 'scale=%d:%d:force_original_aspect_ratio=decrease,pad=%d:%d:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=%d,format=yuv420p'
+                % (w, h, w, h, FPS), '-map', '0:v:0', '-map', '0:a:0' if has_audio else '1:a',
+                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-c:a', 'aac', '-ar', '48000', '-ac', '2',
+                '-b:a', '192k', '-shortest', out]
+        run(cmd)
+        parts.append(out)
+    lst = os.path.join(work, 'sources.txt')
+    with open(lst, 'w') as f:
+        f.writelines("file '%s'\n" % x for x in parts)
+    joined = os.path.join(work, 'source.mp4')
+    run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', lst, '-c', 'copy', joined])
+    log('接好 %d 支影片' % len(paths))
+    return joined
+
+
 def clips_from_plan(plan, segs, dur):
     """保留的句子 → 剪輯區間（前後留一點空間，靠很近的合併成一段）。"""
     spans = []
@@ -719,10 +746,16 @@ def main():
 
     chat = os.environ.get('CHAT_ID')
     try:
-        src = a.input
-        if not src:
-            src = os.path.join(tempfile.mkdtemp(), 'input.mp4')
-            tg_download(os.environ['FILE_ID'], src)
+        tmp = tempfile.mkdtemp()
+        if a.input:
+            srcs = [x for x in a.input.split(',') if x]
+        else:
+            ids = [x.strip() for x in os.environ['FILE_ID'].split(',') if x.strip()]
+            srcs = []
+            for n, fid in enumerate(ids):
+                srcs.append(os.path.join(tmp, 'input%02d.mp4' % n))
+                tg_download(fid, srcs[-1])
+        src = srcs[0] if len(srcs) == 1 else join_sources(srcs, tmp)
         tr = json.load(open(a.transcript, encoding='utf-8')) if a.transcript else None
         info = make(src, a.out, a.note, tr, a.style, a.mode, a.music_file)
         log('完成：%.1f 秒、%d 段、%d 則字幕' % (info['seconds'], info['clips'], info['subs']))   # repo 公開，紀錄不寫內容

@@ -2388,7 +2388,14 @@ function handleTelegram_(update) {
 
   // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
   const reelsVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
-  if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsStart_(chatId, reelsVideo, text);
+  if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsAdd_(chatId, reelsVideo, text);
+  // 多支影片：傳完按「✂️ 開始剪」把收到的影片合在一起剪；「🗑️ 重選影片」清掉重來
+  const rk = text.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '');
+  if (owner && chatId === owner && !reelsVideo && /^(開始剪|開始剪輯|開始剪片)$/.test(rk) && reelsQueue_().ids.length) return reelsGo_(chatId);
+  if (owner && chatId === owner && !reelsVideo && /^(重選影片|重新選影片|清除影片)$/.test(rk)) {
+    setProp_('REELS_Q', '');
+    return tgSend_(chatId, { text: '🗑️ 收到的影片清掉了，重新傳影片給我就好。', buttons: [[REELS_BTN, REELS_LONG_BTN]] });
+  }
   // 配樂：按了剪片按鈕後傳音樂檔，或音樂說明寫「配樂」，就用這首當配樂
   const music = msg.audio || (msg.document && /^audio\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && music && (reelsPending_() || /配樂/.test(text))) return reelsMusic_(chatId, music);
@@ -4273,15 +4280,16 @@ function reelsAsk_(t) {
   }
   const long = /^(剪大片|大片|大片剪輯|剪輯大片)$/.test(k);
   if (!long && !/^(剪reels|reels|剪短影音|短影音剪輯|剪輯reels)$/i.test(k)) return null;
+  if (!LINE_MODE_ && CURRENT_TG_CHAT_) setProp_('REELS_Q', '');   // 重新按按鈕就重新收影片
   if (LINE_MODE_ || !CURRENT_TG_CHAT_) return '🎬 剪片目前要在 Telegram 用：在 Telegram 按「' + (long ? REELS_LONG_BTN : REELS_BTN) + '」再傳影片，剪好會傳回 Telegram。';
   setProp_('REELS_UNTIL', String(Date.now() + 10 * 60 * 1000));
   setProp_('REELS_MODE', long ? 'long' : 'reels');
   const mine = prop_('REELS_MUSIC') ? '・配樂：用你傳的那首（打「配樂預設」換回小乖挑的）\n' : '・想用自己的配樂：先傳一首音樂檔給我\n';
-  if (long) return '🎞️ 好！剪大片：10 分鐘內把影片傳給我（按左下角的迴紋針 📎 選影片，20MB 以內）。\n\n'
+  if (long) return '🎞️ 好！剪大片：10 分鐘內把影片傳給我（按左下角的迴紋針 📎 選影片，每支 20MB 以內，可以傳好幾支），傳完按「' + REELS_GO_BTN + '」。\n\n'
     + '大片會保留整支影片的內容和原本的橫直，只剪掉停頓和口誤，上中文字幕、開頭動畫字卡、配樂。\n\n'
     + '影片說明可以寫要求，例如：\n・中英字幕\n・標題：準提佛祖開運加持\n・不要配樂，或配樂要溫暖鋼琴／禪意\n' + mine
     + '\n剪好後長按影片按「回覆」說要改哪裡，就會再剪一版。';
-  return '🎬 好！10 分鐘內把影片傳給我（按左下角的迴紋針 📎 選影片）。\n\n'
+  return '🎬 好！10 分鐘內把影片傳給我（按左下角的迴紋針 📎 選影片，可以一次選好幾支），傳完按「' + REELS_GO_BTN + '」。\n\n'
     + '影片說明可以順便寫要求，例如：\n・30秒\n・標題：我想要做短影音\n・只要中文字幕／不要字幕\n・不要配樂，或配樂要輕快／溫暖鋼琴／大氣／禪意\n' + mine + '\n'
     + '沒寫就照預設：直式 9:16、最長 60 秒、剪掉停頓、中英短句字幕、開頭動畫字卡、依氣氛挑配樂。\n'
     + '先傳一張喜歡的影片截圖，小乖會學那個字幕風格。\n'
@@ -4296,17 +4304,44 @@ function reelsMusic_(chatId, music) {
     + '\n請用你有權使用的音樂，發到社群才不會被檢舉。');
 }
 function reelsLast_() { try { return JSON.parse(prop_('REELS_LAST') || 'null'); } catch (e) { return null; } }
-function reelsStart_(chatId, video, note) {
-  setProp_('REELS_UNTIL', '0');
-  const mode = /大片/.test(note || '') ? 'long' : /reels/i.test(note || '') ? 'reels' : (prop_('REELS_MODE') || 'reels');
+// 收到的影片先排隊（可以一次傳好幾支，最多 10 支），傳完按「✂️ 開始剪」照傳的順序接起來剪成一支
+const REELS_MAX = 10;
+const REELS_GO_BTN = '✂️ 開始剪';
+function reelsQueue_() {
+  try { const q = JSON.parse(prop_('REELS_Q') || 'null'); if (q && q.ids && Date.now() - (q.at || 0) < 60 * 60 * 1000) return q; } catch (e) { /* 壞掉就重來 */ }
+  return { ids: [], note: '', sec: 0, mode: '', at: 0 };
+}
+function reelsAdd_(chatId, video, note) {
   if (video.file_size && video.file_size > 20 * 1024 * 1024) {
-    return tgSend_(chatId, '🎬 這支影片超過 20MB，Telegram 不讓機器人下載。請傳影片時選「壓縮」（不要用檔案傳），或先剪短一點再傳。');
+    return tgSend_(chatId, '🎬 這支影片超過 20MB，Telegram 不讓機器人下載。請傳影片時選「壓縮」（不要用檔案傳），或先剪短一點再傳。其他影片照樣收著。');
   }
-  const sec = video.duration ? '（影片 ' + video.duration + ' 秒）' : '';
-  return reelsRun_(chatId, video.file_id, String(note || '').replace(REELS_WORD, '').replace(/大片/g, '').trim(), 1,
-    mode === 'long'
-      ? '🎞️ 收到影片' + sec + '，開始剪大片第 1 版：保留完整內容、剪掉停頓和口誤、上字幕和動畫字卡、配樂。影片越長要越久，剪好直接傳給你。'
-      : '🎬 收到影片' + sec + '，開始試剪第 1 版：挑精華、剪掉停頓、上字幕和動畫字卡、配樂。大約 3～6 分鐘剪好直接傳給你。', mode);
+  const q = reelsQueue_();
+  if (q.ids.length >= REELS_MAX) return tgSend_(chatId, { text: '🎬 已經收到 ' + REELS_MAX + ' 支了（最多 ' + REELS_MAX + ' 支），按「' + REELS_GO_BTN + '」開始剪。', buttons: [[REELS_GO_BTN]] });
+  note = String(note || '').trim();
+  if (!q.mode) q.mode = /大片/.test(note) ? 'long' : /reels/i.test(note) ? 'reels' : (prop_('REELS_MODE') || 'reels');
+  else if (/大片/.test(note)) q.mode = 'long';
+  q.ids.push(video.file_id);
+  q.sec += Number(video.duration) || 0;
+  const extra = note.replace(REELS_WORD, '').replace(/大片/g, '').trim();
+  if (extra) q.note = (q.note ? q.note + '\n' : '') + extra;
+  q.at = Date.now();
+  setProp_('REELS_Q', JSON.stringify(q));
+  setProp_('REELS_UNTIL', String(Date.now() + 10 * 60 * 1000));   // 繼續傳下一支
+  const kind = q.mode === 'long' ? '🎞️ 剪大片' : '🎬 剪 Reels';
+  return tgSend_(chatId, { text: kind + '：收到第 ' + q.ids.length + ' 支影片' + (video.duration ? '（' + video.duration + ' 秒）' : '') + '。\n'
+    + '還有要一起剪的就繼續傳（照傳的順序接起來），傳完按「' + REELS_GO_BTN + '」。',
+    buttons: [[REELS_GO_BTN], ['🗑️ 重選影片']] });
+}
+function reelsGo_(chatId) {
+  const q = reelsQueue_();
+  setProp_('REELS_Q', '');
+  setProp_('REELS_UNTIL', '0');
+  const n = q.ids.length, sec = q.sec ? '（共 ' + q.sec + ' 秒）' : '';
+  const what = n > 1 ? n + ' 支影片' + sec + '接起來' : '影片' + sec;
+  return reelsRun_(chatId, q.ids.join(','), q.note, 1,
+    q.mode === 'long'
+      ? '🎞️ 開始剪大片第 1 版：' + what + '，保留完整內容、剪掉停頓和口誤、上字幕和動畫字卡、配樂。影片越長要越久，剪好直接傳給你。'
+      : '🎬 開始試剪第 1 版：' + what + '，挑精華、剪掉停頓、上字幕和動畫字卡、配樂。大約 3～6 分鐘剪好直接傳給你。', q.mode);
 }
 // 修改：回覆小乖傳的成品影片，或「改影片 …」「改 Reels …」；「重剪 Reels」用目前的風格重剪
 function reelsRevise_(msg, text) {
