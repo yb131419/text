@@ -1,3 +1,3 @@
-[{"start": 0.5, "end": 3.8, "text": "今天跟大家分享三個重點", "lines": [{"zh": "今天跟大家分享", "en": "Today I'll share"}, {"zh": "**三個重點**", "en": "three key points"}], "pop": "三個重點", "fx": "push", "look": "film", "sub_anim": "bounce"},
- {"start": 4.3, "end": 7.8, "text": "第一個是每天固定練習", "lines": [{"zh": "第一個是", "en": "The first is"}, {"zh": "每天固定練習", "en": "practice every day"}], "fx": "shake"},
- {"start": 8.3, "end": 11.5, "text": "準提佛祖開運加持", "lines": [{"zh": "準提佛祖開運加持", "en": "Blessings for good fortune"}], "fx": "flash"}]
+[{"start": 0.5, "end": 3.8, "text": "今天跟大家分享三個重點", "lines": [{"zh": "今天跟大家分享", "en": "Today I'll share"}, {"zh": "**三個重點**", "en": "three key points"}], "pop": "三個重點", "fx": "push", "look": "film", "sub_anim": "bounce", "sec": "分享重點", "tags": ["重點", "練習", "加持"]},
+ {"start": 4.3, "end": 7.8, "text": "第一個是每天固定練習", "lines": [{"zh": "第一個是", "en": "The first is"}, {"zh": "每天固定練習", "en": "practice every day"}], "fx": "shake", "sec": "每天練習"},
+ {"start": 8.3, "end": 11.5, "text": "準提佛祖開運加持", "lines": [{"zh": "準提佛祖開運加持", "en": "Blessings for good fortune"}], "fx": "flash", "sec": "開運加持"}]

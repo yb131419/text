@@ -13,6 +13,8 @@
   5. 傳回 Telegram，當作「第 N 版試剪」；你回覆「改 …」就照你說的再剪一版
 
 風格：你傳一張喜歡的影片截圖給小乖，小乖記下字幕顏色、大小、位置（STYLE），之後都照這個剪。
+教學框（2026-10-16 照使用者給的兩支教學影片）：說明寫「教學框」或有「教學」→ 綠底、畫面縮在中間圓角框、上方黑底標題框、
+右上名牌、左上 ①②③ 段落小標、開頭大標題、結尾多 3 秒「重點整理」（build_frame_ass、frame_setup）。
 
 需要的環境變數：TELEGRAM_BOT_TOKEN、OPENAI_API_KEY、CHAT_ID、FILE_ID；NOTE 是你寫在影片上的說明和修改要求（可空白）；
 STYLE 是從截圖學到的風格（JSON，可空白）；VERSION 是第幾版；
@@ -35,6 +37,8 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 W, H, FPS = 1080, 1920, 30
 MODE = 'reels'   # reels 直式短影音；long 剪大片（保留原本比例），由 make() 設定
+FRAME = None     # 教學框：(框寬, 框高, 左, 上, 底圖 png)，由 make() 設定；None 是滿版
+OUTRO = 3.0      # 教學框結尾「重點整理」停留秒數
 FONT = os.environ.get('REELS_FONT') or 'Noto Sans CJK TC'
 MODEL = os.environ.get('OPENAI_MODEL') or 'gpt-4.1-mini'
 MAX_SOURCE_SEC = 20 * 60          # 原始影片最長 20 分鐘
@@ -89,7 +93,7 @@ def subs_check(joined, out, ass, work):
     t = None
     with open(ass, encoding='utf-8') as f:
         for line in f:
-            if ',Sub,' in line or ',Cap,' in line:
+            if ',Sub,' in line or ',Cap,' in line or ',Head,' in line:
                 a, b = line.split(',')[1:3]
                 sec = lambda x: sum(float(v) * m for v, m in zip(x.split(':'), (3600, 60, 1)))
                 t = (sec(a) + sec(b)) / 2
@@ -116,6 +120,8 @@ DEFAULTS = {
     'bar': True,            # 上方進度條
     'fx': True,             # 特效：口播的推近鏡頭、靜音的運鏡和轉場、調色、字幕彈跳發光
     'sfx': True,            # 音效：打字聲、字卡「啵」、重點「叮」、轉場「咻」
+    'layout': 'full',       # full 滿版；frame 教學框（綠底、畫面縮在中間圓角框、上方黑底標題框、右上名牌、結尾重點整理）
+    'tag': '彥彬｜生活筆記',  # 教學框右上角的名牌
 }
 POS_Y = {'bottom': 380, 'lower': 560, 'middle': 820, 'upper': 1250}   # 字幕底邊離畫面最下面的距離
 
@@ -137,6 +143,9 @@ def clamp_opt(opt):
         opt['kind'] = 'auto'
     if opt.get('mode') != 'long':
         opt['mode'] = 'reels'
+    if opt.get('layout') != 'frame' or opt['mode'] == 'long':
+        opt['layout'] = 'full'
+    opt['tag'] = str(opt.get('tag') or '')[:16]
     return opt
 
 
@@ -161,7 +170,8 @@ subs 字幕(both 中英/zh 只要中文/en 只要英文/none 不要)、title 開
 「久一點」在目前值 {title_sec} 加 1.5)、jumpcut 剪掉停頓(true/false)、cards 動畫字卡(true/false)、
 sub_size 字幕大小倍數(目前 {sub_size}，「大一點」×1.2、「小一點」×0.85)、
 sub_pos 字幕位置(bottom/lower/middle/upper)、sub_color 字幕顏色(#RRGGBB)、sub_box 字幕底色框(true/false)、
-accent 標籤與字卡顏色(#RRGGBB)。另外把無法用設定表達、要給剪輯師參考的要求寫進 wish（一句話，沒有就空字串）。
+accent 標籤與字卡顏色(#RRGGBB)、layout 版面(full 滿版／frame 教學框：綠底、畫面縮在中間的圓角框、上方黑底標題)、
+tag 教學框右上角名牌文字。另外把無法用設定表達、要給剪輯師參考的要求寫進 wish（一句話，沒有就空字串）。
 只回 JSON，例如 {{"sub_size": 1.2, "title_sec": 5, "wish": ""}}'''
 
 
@@ -191,6 +201,8 @@ def parse_note(note, mode='reels', kind='auto'):
     if re.search(r'(不要|無|沒有|免|關掉?)\s*(特效|轉場|運鏡)', note):
         opt['fx'] = False
     opt['mode'] = 'long' if mode == 'long' or re.search(r'剪\s*大片|大片', note) else 'reels'
+    if re.search(r'教學|錄螢幕|螢幕錄影|手機畫面', note) and not re.search(r'(不要|取消|關掉?)\s*(教學)?框', note):
+        opt['layout'] = 'frame'   # 參考使用者 2026-10-16 給的兩支教學影片剪法
     m = re.search(r'(\d{1,3})\s*(秒|s|sec)', note, re.I)
     if m:
         opt['target'] = max(10, min(90, int(m.group(1))))
@@ -314,7 +326,8 @@ PLAN_PROMPT = '''你是影片剪輯師，幫一位台灣的直銷事業經營者
 {fx_menu}
    keep 每句另外給 fx，只有重點、情緒高、轉折的句子才加（大約三分之一的句子），其他給空字串：
    zoom 推近鏡頭（強調）／push 慢慢推近（娓娓道來、感動）／shake 震動（驚訝、超重要）／flash 閃白（換話題、轉折）。
-{wish}只回 JSON：{{"title": "", "tags": [""], "keep": [{{"i": 0, "fx": "", "lines": [{{"zh": "", "en": ""}}]}}], "pops": [{{"i": 0, "text": ""}}], "music": "", "look": "", "sub_anim": "", "post": ""}}'''
+9. 把保留的句子依內容分成 2～5 個段落（像教學影片的「第一步、第二步」），每段給開始那句的 i 和 4～8 個字的小標 name（不用寫編號）。
+{wish}只回 JSON：{{"title": "", "tags": [""], "keep": [{{"i": 0, "fx": "", "lines": [{{"zh": "", "en": ""}}]}}], "pops": [{{"i": 0, "text": ""}}], "music": "", "look": "", "sub_anim": "", "sections": [{{"i": 0, "name": ""}}], "post": ""}}'''
 
 FX_MENU = '''   look 調色，挑一個：clean 自然清爽／warm 溫暖（生活、感恩、家人）／cool 冷調（專業、科技）／vivid 鮮豔（活力、促銷）／film 電影感（故事、見證）／soft 柔和（療癒、女性、保養）
    sub_anim 字幕跳出方式，挑一個：pop 彈出來／slide 往上滑進來／wipe 由左往右刷出來／bounce 壓扁再彈起來'''
@@ -368,7 +381,17 @@ def plan_clips(segs, opt, note):
                 pops.append({'i': int(pp['i']), 'text': str(pp['text']).strip()[:12]})
         except (TypeError, ValueError, AttributeError):
             continue
-    return {'title': opt['title'] or (plan.get('title') or '').strip()[:16], 'keep': keep, 'tags': tags,
+    secs = []   # 段落小標（教學框左上角的「① 小標」）
+    for x in plan.get('sections') or []:
+        try:
+            i, name = int(x.get('i')), str(x.get('name') or '').strip()[:10]
+        except (TypeError, ValueError, AttributeError):
+            continue
+        j = min((k['i'] for k in keep if k['i'] >= i), default=None)
+        if name and j is not None and j not in [y['i'] for y in secs]:
+            secs.append({'i': j, 'name': name})
+    secs.sort(key=lambda x: x['i'])
+    return {'title': opt['title'] or (plan.get('title') or '').strip()[:16], 'keep': keep, 'tags': tags, 'sections': secs[:5],
             'pops': pops[:3], 'post': (plan.get('post') or '').strip(), 'music': str(plan.get('music') or '').strip(),
             'look': pick(plan.get('look'), LOOKS, 'clean'), 'sub_anim': pick(plan.get('sub_anim'), SUB_ANIMS, 'pop')}
 
@@ -479,7 +502,29 @@ def clips_without_speech(dur, target):
     return [[i * step + (step - 4) / 2, i * step + (step - 4) / 2 + 4] for i in range(n)]
 
 
-def vf(zoom=1.0, move='', L=0, p=(0, 1)):
+def frame_setup(src_wh, work):
+    """教學框（參考使用者 2026-10-16 給的影片）：綠色漸層底、畫面縮在中間的圓角框（帶陰影），上面留標題框的位置。
+    先用 ffmpeg 畫一張底圖：漸層＋陰影，框的位置挖空（透明），剪接時影片墊在下面、底圖蓋上去。"""
+    w, h = src_wh
+    k = min(880 / w, 1400 / h)
+    cw, ch = int(w * k) // 2 * 2, int(h * k) // 2 * 2
+    x = (W - cw) // 2
+    y = max(330, (H - ch) // 2 + 60) if ch < 1300 else 330
+    r = 42
+    hole = ("geq=lum='255*lte(hypot(max(max(%d-(X-%d),(X-%d)-%d),0),max(max(%d-(Y-%d),(Y-%d)-%d),0)),%d)'"
+            % (r, x, x, cw - 1 - r, r, y, y, ch - 1 - r, r))
+    sh = hole.replace('(Y-%d)' % y, '(Y-%d)' % (y + 18))   # 陰影往下一點
+    png = os.path.join(work, 'frame.png')
+    fc = ('gradients=s=%dx%d:c0=0x4C9C74:c1=0x23573F:x0=0:y0=0:x1=%d:y1=%d:n=2,format=rgba,trim=end_frame=1[g];'
+          'color=black:s=%dx%d,format=gray,%s,boxblur=26:2,lut=y=val*0.5[sa];'
+          'color=black:s=%dx%d,format=rgba[blk];[blk][sa]alphamerge[shadow];[g][shadow]overlay=format=auto[gs];'
+          'color=black:s=%dx%d,format=gray,%s,negate[ha];[gs][ha]alphamerge[out]'
+          % (W, H, W, H, W, H, sh, W, H, W, H, hole))
+    run(['ffmpeg', '-y', '-loglevel', 'error', '-filter_complex', fc, '-map', '[out]', '-frames:v', '1', png])
+    return cw, ch, x, y, png
+
+
+def vf(zoom=1.0, move='', L=0, p=(0, 1), zp=''):
     """把畫面轉成輸出大小；zoom > 1 是推近鏡頭（口播剪接時一段近、一段遠，像爆款影片的跳剪）。
     move：push 這句慢慢推近（p 是這段在整句的位置，剪掉停頓後鏡頭也連續）、shake 開頭震一下（AI 依每句內容挑）。"""
     z = '' if zoom <= 1 else ',scale=%d:%d,crop=%d:%d' % (int(W * zoom) // 2 * 2, int(H * zoom) // 2 * 2, W, H)
@@ -489,6 +534,14 @@ def vf(zoom=1.0, move='', L=0, p=(0, 1)):
     elif move == 'shake':
         z += (",scale=%d:%d,crop=%d:%d:x='(iw-ow)/2+if(lt(t,0.7),%d*sin(t*47),0)':y='(ih-oh)/2+if(lt(t,0.7),%d*cos(t*53),0)'"
               % (int(W * 1.08) // 2 * 2, int(H * 1.08) // 2 * 2, W, H, max(4, W // 60), max(4, H // 90)))
+    if FRAME:   # 教學框：影片放進中間的圓角框（推近只在框裡面推；zp 是靜音剪的運鏡）
+        cw, ch, x, y, png = FRAME
+        inner = ',scale=%d:%d,crop=%d:%d' % (int(cw * zoom) // 2 * 2, int(ch * zoom) // 2 * 2, cw, ch) if zoom > 1 else ''
+        if zp:
+            inner += ',zoompan=%s:d=1:s=%dx%d:fps=%d' % (zp, cw, ch, FPS)
+        return ("[0:v]fps=%d,scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,setsar=1%s,pad=%d:%d:%d:%d:color=0x1C4A35[fg];"
+                "movie='%s',loop=loop=-1:size=1[fr];[fg][fr]overlay=0:0:shortest=1,setsar=1,format=yuv420p[v]"
+                % (FPS, cw, ch, cw, ch, inner, W, H, x, y, png))
     if MODE == 'long':   # 剪大片：保留原本的畫面比例
         return '[0:v]fps=%d,scale=%d:%d,setsar=1%s,format=yuv420p[v]' % (FPS, W, H, z)
     return ('[0:v]fps=%d,split[a][b];'
@@ -612,7 +665,10 @@ def montage(src, spans, work, fx=True, moves=None, trans=None):
               'down': "z='1.12':x='iw/2-iw/zoom/2':y='(ih-ih/zoom)*on/%d'" % N,
               'shake': "z='1.08':x='iw/2-iw/zoom/2+%d*sin(on*1.6)':y='ih/2-ih/zoom/2+%d*cos(on*1.9)'" % (max(4, W // 70), max(4, H // 110))}.get(e)
         zp = zp or "z='1+0.12*on/%d':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2'" % N
-        chain = vf() + (';[v]zoompan=%s:d=1:s=%dx%d:fps=%d,setsar=1[w]' % (zp, W, H, FPS) if fx else ';[v]null[w]')
+        if FRAME:   # 教學框：運鏡只動框裡的畫面
+            chain = vf(zp=zp if fx else '') + ';[v]null[w]'
+        else:
+            chain = vf() + (';[v]zoompan=%s:d=1:s=%dx%d:fps=%d,setsar=1[w]' % (zp, W, H, FPS) if fx else ';[v]null[w]')
         out = os.path.join(work, 'm%03d.mp4' % n)
         run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', '%.3f' % a, '-t', '%.3f' % L, '-i', src,
              '-filter_complex', chain, '-map', '[w]', '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
@@ -762,8 +818,173 @@ LAND_Y = {'bottom': .06, 'lower': .09, 'middle': .40, 'upper': .72}   # 橫的�
 SFX = []   # 音效時間點：(秒, 種類)，build_ass 填、finish 混進聲音
 
 
+def rbox(w, h, r):
+    """圓角矩形的 ASS 繪圖路徑（左上角是 0,0）。"""
+    r = min(r, w // 2, h // 2)
+    return ('m %d 0 l %d 0 b %d 0 %d 0 %d %d l %d %d b %d %d %d %d %d %d l %d %d b 0 %d 0 %d 0 %d l 0 %d b 0 0 0 0 %d 0'
+            % (r, w - r, w, w, w, r, w, h - r, w, h, w, h, w - r, h, r, h, h, h, h - r, r, r))
+
+
+def wrap2(t, n=13):
+    """標題框的字：超過 n 個字就拆成兩行（盡量在標點後面斷），** 重點標記不算字數。"""
+    vis = t.replace('**', '')
+    if len(vis) <= n:
+        return [t]
+    cut = len(vis) // 2
+    for d in range(0, len(vis) // 2):
+        for c in (cut + d, cut - d):
+            if 0 < c < len(vis) and vis[c - 1] in '，、。！？：；,!? ':
+                cut = c
+                break
+        else:
+            continue
+        break
+    i = k = 0   # 換算回含 ** 的位置；斷在重點詞中間就把 ** 補齊
+    while k < cut:
+        if t.startswith('**', i):
+            i += 2
+            continue
+        i += 1
+        k += 1
+    a, b = t[:i], t[i:]
+    if a.count('**') % 2:
+        a, b = a + '**', '**' + b
+    return [a.strip(), b.strip()]
+
+
+def build_frame_ass(plan, segs, spans, opt, total, path):
+    """教學框的字：右上名牌、上方黑底圓角標題框（重點詞亮色）、開頭大標題、重點字卡、結尾重點整理。"""
+    cw, ch, fx0, fy, _ = FRAME
+    acc = ass_color(opt['accent'])
+    c_ = lambda hexc: ass_color(hexc).replace('&H00', '&H') + '&'   # #RRGGBB → 繪圖用的 &HBBGGRR&
+    white = '&H00FFFFFF'
+    k = opt['sub_size']
+    head = '\n'.join([
+        '[Script Info]', 'ScriptType: v4.00+', 'PlayResX: %d' % W, 'PlayResY: %d' % H, 'WrapStyle: 2',
+        'ScaledBorderAndShadow: yes', '', '[V4+ Styles]',
+        'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, '
+        'Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, '
+        'MarginR, MarginV, Encoding',
+        'Style: Head,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,2,0,1,0,0,2,0,0,0,1' % (FONT, int(66 * k)),
+        'Style: Cap,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,2,0,1,0,0,2,0,0,0,1' % (FONT, int(66 * k)),
+        'Style: Draw,%s,20,&H00141414,&H00141414,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1' % FONT,
+        'Style: Big,%s,96,&H00FFFFFF,&H00FFFFFF,&H00141414,&H64000000,-1,0,0,0,100,100,3,0,1,7,4,5,0,0,0,1' % FONT,
+        'Style: Tag,%s,34,&H001E1E1E,&H001E1E1E,&H00000000,&H00000000,-1,0,0,0,100,100,1,0,1,0,0,9,0,0,0,1' % FONT,
+        'Style: Pop,%s,60,&H00151515,&H00151515,%s,&H00000000,-1,0,0,0,100,100,1,0,3,20,0,5,0,0,0,1' % (FONT, acc),
+        'Style: Bar,%s,10,%s,%s,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1' % (FONT, acc, acc),
+        '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text', ''])
+    ev = []
+
+    def add(layer, a, b, style, text):
+        if b - a > .05:
+            ev.append('Dialogue: %d,%s,%s,%s,,0,0,0,,%s' % (layer, ass_time(a), ass_time(min(b, total)), style, text))
+
+    hl = lambda t: re.sub(r'\*\*(.+?)\*\*', lambda m: '{\\c%s}%s{\\c%s}' % (acc, m.group(1), white),
+                          ass_text(t.replace('{', '').replace('}', '')))
+    plain = lambda t: ass_text(t.replace('**', ''))
+
+    def boxed(a, b, t, style='Head', fs=None, cy=None, layer=1, fade=(80, 60), dark='&H141414&', en=''):
+        """黑底圓角框＋白字（重點詞亮色），en 是下面一行小字英文；cy 是框底邊，預設在畫面框上面。"""
+        fs = fs or int(66 * k)
+        fe = int(fs * .56)
+        lines = wrap2(t, 12 if fs <= 70 else 9)
+        en = plain(en)[:60]
+        w = max([chip_w(plain(l), fs) for l in lines] + [chip_w(en, fe) if en else 0]) + int(fs * .9)
+        h = int(len(lines) * fs * 1.28 + (fe * 1.35 if en else 0) + fs * .7)
+        cy = cy or fy - 26
+        x0 = (W - w) // 2
+        f = '\\fad(%d,%d)' % fade
+        add(layer, a, b, 'Draw', '{\\an7\\pos(%d,%d)\\1c%s\\1a&H08&%s\\p1}%s{\\p0}' % (x0, cy - h, dark, f, rbox(w, h, int(fs * .45))))
+        add(layer + 1, a, b, style, '{\\an2\\pos(%d,%d)\\fs%d%s}%s' % (W // 2, cy - int(fs * .32), fs, f, '\\N'.join(hl(l) for l in lines)
+                                    + ('\\N{\\fs%d\\b0\\alpha&H30&}%s' % (fe, en) if en else '')))
+
+    plan = plan or {}
+    remap = remapper(spans)
+    end_intro = min(opt['title_sec'], total)
+    body_end = total - (OUTRO if plan.get('tags') else 0)
+    # 右上名牌：白色圓角、亮色小圓點
+    if opt.get('tag'):
+        tg_ = ass_text(opt['tag'])
+        w = chip_w('● ' + tg_, 40) + 8
+        add(7, 0, total, 'Draw', '{\\an7\\pos(%d,%d)\\1c&HFFFFFF&\\1a&H08&\\p1}%s{\\p0}' % (W - 40 - w, 44, rbox(w, 70, 35)))
+        add(8, 0, total, 'Tag', '{\\an6\\pos(%d,%d)\\fs40}{\\c%s}●{\\c&H1E1E1E&} %s' % (W - 58, 79, c_('#E8742A'), tg_))
+    # 左上段落小標：亮色圓角「① 小標」，換段落時彈出來（參考第二支影片）
+    secs = [(remap(segs[x['i']]['start'], 'start'), x['name']) for x in plan.get('sections') or [] if x['i'] < len(segs)]
+    secs = [(a, nm) for a, nm in secs if a is not None]
+    for n, (a, nm) in enumerate(secs):
+        b = secs[n + 1][0] if n + 1 < len(secs) else body_end
+        a = max(a, end_intro if n == 0 else a)
+        lab = '%s %s' % ('①②③④⑤'[n], ass_text(nm))
+        w = chip_w(lab, 40) + 36
+        SFX.append((a, 'pop'))
+        add(7, a, b, 'Draw', '{\\an7\\pos(40,44)\\1c%s\\fscx60\\fscy60\\t(0,140,\\fscx100\\fscy100)\\p1}%s{\\p0}' % (c_(opt['accent']), rbox(w, 70, 35)))
+        add(8, a, b, 'Tag', '{\\an4\\pos(%d,79)\\fs40\\fad(120,0)}%s' % (58, lab))
+    # 開頭：亮色小標籤＋大標題，蓋在畫面框中間
+    if plan.get('title'):
+        t = plan['title']
+        lines = wrap2(t if '**' in t else t, 7)
+        cy = fy + min(ch, 1400) // 2
+        SFX.append((.2, 'hit'))
+        add(5, 0, end_intro, 'Draw', '{\\an7\\pos(%d,%d)\\1c%s\\1a&H30&\\fad(0,300)\\p1}%s{\\p0}' % (fx0, fy, c_('#1C4A35'), rbox(cw, ch, 42)))
+        add(6, .15, end_intro, 'Big', '{\\an5\\pos(%d,%d)\\fscx70\\fscy70\\t(0,180,\\fscx104\\fscy104)\\t(180,260,\\fscx100\\fscy100)\\fad(0,300)}%s'
+            % (W // 2, cy, '\\N'.join(hl(l) for l in lines)))
+    # 口播字幕（只放中文；要英文就在中文下面）
+    if opt['subs'] != 'none':
+        for kp in plan.get('keep') or []:
+            s_ = segs[kp['i']]
+            st, en = remap(s_['start'], 'start'), remap(s_['end'], 'end')
+            if st is None or en is None or en - st < .2:
+                continue
+            ws = [max(1, len(l['zh'])) for l in kp['lines']]
+            t = st
+            for l, w in zip(kp['lines'], ws):
+                d = (en - st) * w / sum(ws)
+                txt = plain(l.get('en', '')) if opt['subs'] == 'en' else l.get('zh', '')
+                if txt:
+                    boxed(t, t + d, txt, en=l.get('en', '') if opt['subs'] == 'both' else '')
+                t += d
+    # 靜音剪的畫面字幕
+    for i, (a, b, cap) in enumerate(plan.get('caps_t') or []):
+        cap = cap_line(cap)
+        SFX.append((a, 'pop'))
+        boxed(a, min(b, body_end), cap['zh'], style='Cap', en=cap['en'] if opt['subs'] in ('both', 'en') else '')
+    for pp in plan.get('pops') or []:
+        st = remap(segs[pp['i']]['start'], 'start')
+        if st is None or st < end_intro:
+            continue
+        SFX.append((st, 'ding'))
+        add(9, st, st + 2.2, 'Pop', '{\\pos(%d,%d)\\fscx40\\fscy40\\t(0,160,\\fscx108\\fscy108)\\t(160,260,\\fscx100\\fscy100)\\fad(0,250)}%s'
+            % (W // 2, fy + ch * 2 // 3, ass_text(pp['text'])))
+    if plan.get('cta_t'):
+        a, b, txt = plan['cta_t']
+        SFX.append((a, 'ding'))
+        boxed(a, min(b, body_end), txt, layer=10, cy=min(H - 90, fy + ch + 160))   # 行動呼籲放在畫面框下面
+    # 結尾重點整理：綠底、白色圓角條、亮色編號
+    tags = [plain(x) for x in plan.get('tags') or [] if plain(x)][:4]
+    if tags:
+        a = body_end
+        add(11, a, total, 'Draw', '{\\an7\\pos(0,0)\\1c%s\\fad(250,0)\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}' % (c_('#2F6B4C'), W, W, H, H))
+        top = (H - 180 - len(tags) * 170) // 2
+        add(12, a + .1, total, 'Big', '{\\an5\\pos(%d,%d)\\bord0\\shad0\\fs96\\fad(200,0)}{\\c%s}重點整理' % (W // 2, top + 50, acc))
+        for n, t in enumerate(tags):
+            y, on = top + 180 + n * 170, a + .35 + n * .3
+            SFX.append((on, 'pop'))
+            add(12, on, total, 'Draw', '{\\an7\\pos(%d,%d)\\1c&HFFFFFF&\\fad(120,0)\\p1}%s{\\p0}' % (110, y, rbox(860, 130, 30)))
+            add(13, on, total, 'Draw', '{\\an7\\pos(%d,%d)\\1c%s\\fad(120,0)\\p1}%s{\\p0}' % (140, y + 25, c_(opt['accent']), rbox(80, 80, 40)))
+            add(14, on, total, 'Tag', '{\\an5\\pos(%d,%d)\\fs48\\fad(120,0)}%d' % (180, y + 65, n + 1))
+            add(14, on, total, 'Tag', '{\\an4\\pos(%d,%d)\\fs56\\fad(120,0)}%s' % (255, y + 65, ass_text(t)))
+    if opt.get('bar') and total > 3:
+        add(15, 0, total, 'Bar', '{\\an7\\pos(0,0)\\clip(0,0,1,10)\\t(0,%d,\\clip(0,0,%d,10))\\p1}m 0 0 l %d 0 %d 10 0 10{\\p0}'
+            % (int(total * 1000), W, W, W))
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(head + '\n'.join(ev) + '\n')
+    return sum(1 for e in ev if ',Head,' in e or ',Cap,' in e)
+
+
 def build_ass(plan, segs, spans, opt, total, path):
     del SFX[:]
+    if FRAME:
+        return build_frame_ass(plan, segs, spans, opt, total, path)
     fx = opt.get('fx', True)
     z = min(W, H) / 1080   # 依畫面大小縮放（直式 1080×1920 時是 1）
     land = W > H
@@ -973,10 +1194,11 @@ def sfx_inputs(events, total, first):
     return args, ';'.join(fc)
 
 
-def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean'):
+def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean', pad=0):
     # 控制檔案大小，Telegram 機器人傳影片上限 50MB
     kbps = int(min(6000, (TG_LIMIT * 8 / 1000) / max(total, 1) - 200))
-    vf = "[0:v]%sass='%s'[v]" % (LOOKS.get(look, LOOKS['clean']) + ',' if grade else '',
+    vf = "[0:v]%s%sass='%s'[v]" % ('tpad=stop_mode=clone:stop_duration=%.2f,' % pad if pad else '',   # 教學框結尾停在最後一格放重點整理
+                                  LOOKS.get(look, LOOKS['clean']) + ',' if grade else '',
                                 ass.replace("'", "\\'").replace(':', '\\:'))   # 調色：AI 依氣氛挑（溫暖、冷調、電影感…）
     cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-i', joined]
     fade = 'afade=t=in:d=0.3,afade=t=out:st=%.2f:d=1.5' % max(0, total - 1.5)
@@ -987,13 +1209,13 @@ def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx
     mix = ['[s1]']
     if music:
         # 配樂：先把每首的音量校成一樣，開頭淡入；有人講話時自動壓低（講完慢慢回來）
-        fc = (vf + ';[0:a]asplit[s1][s2];'
+        fc = (vf + ';[0:a]%sasplit[s1][s2];' % ('apad,' if pad else '') +
               '[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-18:TP=-2:LRA=9,aresample=48000,'
               'afade=t=in:d=1.2,volume=%.2f[m0];'
               '[m0][s2]sidechaincompress=threshold=0.03:ratio=8:attack=15:release=450[m]' % music_vol)
         mix.append('[m]')
     else:
-        fc = vf + ';[0:a]anull[s1]'
+        fc = vf + ';[0:a]%s[s1]' % ('apad' if pad else 'anull')
     if fx_fc:
         fc += ';' + fx_fc
         mix.append('[fx]')
@@ -1100,13 +1322,17 @@ def fx_summary(plan, opt, silent):
 
 
 def make(src, out, note, transcript=None, style='', mode='reels', music_file='', kind='auto'):
-    global MODE, W, H
+    global MODE, W, H, FRAME
     opt = apply_tweaks(apply_style(parse_note(note, mode, kind), style), note)
     MODE = opt['mode']
     W, H = 1080, 1920
+    FRAME = None
     work = tempfile.mkdtemp(prefix='reels_')
     try:
         dur, has_audio, src_wh = probe(src)
+        if opt['layout'] == 'frame':
+            FRAME = frame_setup(src_wh, work)
+            log('教學框：畫面 %dx%d' % FRAME[:2])
         if MODE == 'long':
             opt['target'] = int(dur) + 1   # 大片不限長度
             W, H = long_size(src_wh, dur)
@@ -1132,9 +1358,10 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         else:
             plan = plan_clips(segs, opt, note) if speech and os.environ.get('OPENAI_API_KEY') else None
             if speech and plan is None and transcript is not None:   # 本機測試：沒有 AI 就全部保留、英文留空
-                plan = {'title': opt['title'] or '測試標題', 'post': '', 'tags': ['字幕', '剪輯', '動畫', '字卡'],
+                plan = {'title': opt['title'] or '測試標題', 'post': '', 'tags': segs[0].get('tags') or ['字幕', '剪輯', '動畫', '字卡'],
                         'look': pick(segs[0].get('look'), LOOKS, 'clean'), 'sub_anim': pick(segs[0].get('sub_anim'), SUB_ANIMS, 'pop'),
                         'pops': [{'i': i, 'text': s['pop']} for i, s in enumerate(segs) if s.get('pop')],
+                        'sections': [{'i': i, 'name': s['sec']} for i, s in enumerate(segs) if s.get('sec')],
                         'keep': [{'i': i, 'fx': pick(s.get('fx'), SHOT_FX), 'lines': s.get('lines') or [{'zh': s['text'], 'en': s.get('en', '')}]}
                                  for i, s in enumerate(segs)]}
             if plan and plan['keep']:
@@ -1154,12 +1381,14 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
             total = float(json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-of', 'json', joined]))['format']['duration'])
             music, mine = get_music(music_file, opt, plan, work)
         ass = os.path.join(work, 'subs.ass')
+        pad = OUTRO if FRAME and (plan or {}).get('tags') else 0   # 教學框：結尾多 3 秒放重點整理
+        total += pad
         n = build_ass(plan, segs, spans, opt, total, ass)
         silent = opt['kind'] == 'silent'
         sfx = (list(SFX) + [(t - .25, 'whoosh') for t in (plan or {}).get('xfades') or []]) if opt['sfx'] else []
         log('音效 %d 個' % len(sfx))
         look = (plan or {}).get('look') or 'clean'
-        thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent else .35, grade=opt['fx'], sfx=sfx, look=look)
+        thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent else .35, grade=opt['fx'], sfx=sfx, look=look, pad=pad)
         fx_desc = fx_summary(plan, opt, silent)
         log('特效：' + (fx_desc or '無'))
         diff = subs_check(joined, out, ass, work) if n else None
@@ -1219,12 +1448,13 @@ def main():
                 cap += '\n特效（小乖依這支影片挑的）：' + info['fx_desc']
             silent = info['kind'] == 'silent'
             cap += '\n' + '、'.join(x for x in ['大片 %d×%d' % (W, H) if MODE == 'long' else 'Reels 直式 9:16',
+                                                '教學框' if FRAME else '',
                                                 '靜音剪' if silent else '口播剪',
                                                 ('文字動畫' if silent else {'both': '中英字幕', 'zh': '中文字幕', 'en': '英文字幕'}.get(info['subs_lang'], '')) if info['subs'] else '',
                                                 ('運鏡＋轉場' if silent else '推近鏡頭') if info['fx'] and not info.get('fx_desc') else '',
                                                 '配樂「%s」' % info['music'] if info['music'] else ''] if x)
             cap += ('\n\n想改哪裡，長按這支影片按「回覆」直接說，例如：'
-                    '\n・字幕大一點／放上面一點\n・開頭標題久一點\n・剪成 30 秒\n・換溫暖鋼琴的配樂／不要配樂\n・不要特效／不要進度條'
+                    '\n・字幕大一點／放上面一點\n・開頭標題久一點\n・剪成 30 秒\n・用教學框（綠底、畫面放中間）／不要教學框\n・換溫暖鋼琴的配樂／不要配樂\n・不要特效／不要進度條'
                     '\n也可以先傳一首音樂給小乖當配樂。'
                     '\n也可以傳一張喜歡的影片截圖，說「我要這種風格」。')
             tg_send_video(chat, a.out, cap, a.out + '.jpg')
