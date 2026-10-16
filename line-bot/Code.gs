@@ -3704,7 +3704,7 @@ function reportLayout_(r) {
       const x = X + i * (half + 10);
       box(x, whoTop, half, 36, RC.paper, RC.gold2);
       text(p[0], x + 8, whoTop, 60, 36, 14, RC.soft, true, 'START');
-      text(p[1], x + 64, whoTop, half - 78, 36, 14, RC.ink, true, 'END');
+      text(p[1], x + 64, whoTop, half - 72, 36, 14, RC.ink, true, 'CENTER');
     });
 
     // 品項表：品項名稱｜數量｜單價｜PV｜小計金額｜小計 PV
