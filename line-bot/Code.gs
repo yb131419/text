@@ -37,11 +37,12 @@ const MENU_BTN = '💎 選單';
 const REELS_BTN = '🎬 剪 Reels';
 const REELS_LONG_BTN = '🎞️ 剪大片';
 const QUICK = [['🐾 對話頁', MENU_BTN, '📋 試算'], ['🪶 智囊軍師', '✅ 我的待辦']];
+const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
   { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 設定', '署名・標題']] },
   { en: 'VIDEO', title: '影片剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
-  { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類']] },
+  { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
   { en: 'SCHEDULE', title: '每日行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '點日期、時間就排好'], ['📅 近期行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
   { en: 'NOTES', title: '我的筆記', sub: '靈感、重點、待辦，隨手記、隨時看', items: [['📝 我的筆記', '全部筆記'], ['✍️ 新增筆記', '打一句就存'], ['✅ 我的待辦', '未完成事項']] },
@@ -64,6 +65,7 @@ function menuFlex_() {
   const GOLD = '#B08D57', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
   const act = t => t === TALK_BTN
     ? { type: 'uri', label: '對話頁', uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' }
+    : t === WALL_BTN ? { type: 'uri', label: '見證庫', uri: wallUrl_() }
     : { type: 'message', label: t.slice(0, 20), text: t };
   const name = t => t.replace(/^[^\p{L}\p{N}]+/u, '').trim();
   const row = (it, first) => ({
@@ -261,11 +263,16 @@ function lineQuick_(t) {
   if (t === PHOTO_BTNS[0]) return { type: 'action', action: { type: 'cameraRoll', label: t } };
   if (t === PHOTO_BTNS[1]) return { type: 'action', action: { type: 'camera', label: t } };
   if (t === TALK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
+  if (t === WALL_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: wallUrl_() } };
   return { type: 'action', action: { type: 'message', label: t.slice(0, 20), text: t } };
 }
 // 試算要照片時給的按鈕：LINE 直接打開相簿／相機，對話頁打開選照片；Telegram 沒有這種按鈕，改成文字提示
 const PHOTO_BTNS = ['📷 選照片', '📸 拍照'];
-function tgKey_(t) { return t === TALK_BTN ? { text: t, web_app: { url: talkUrl_() } } : { text: t }; }
+function tgKey_(t) { return t === TALK_BTN ? { text: t, web_app: { url: talkUrl_() } } : t === WALL_BTN ? { text: t, web_app: { url: wallUrl_().replace(/[?&]openExternalBrowser=1$/, '') } } : { text: t }; }
+// 「🔎 見證庫」網頁（Cases.html）：跟對話頁一樣把小乖網址放 ?u=，密碼不放網址
+const WALL_PAGE = 'https://yb131419.github.io/Tezhu/Cases.html';
+function wallUrl_() { const t = talkUrl_(), i = t.indexOf('?'); return WALL_PAGE + (i >= 0 ? t.slice(i) + '&' : '?') + 'openExternalBrowser=1'; }
+function wallLink_() { return '🔎 見證庫網頁：\n' + wallUrl_() + '\n\n① 打關鍵字或點分類找見證\n② 點縮圖看影片／圖片\n③ 按「分享到 LINE」選要傳給誰\n\n常用的按 ⭐ 會排在最前面。第一次打開要輸入同步密碼。'; }
 
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
 function talk(key, q, image, voice, audio64, audioType) {
@@ -399,6 +406,12 @@ function doPost(e) {
   if (body.action === 'card') {
     if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return json_({ ok: false, text: '同步密碼不對，請檢查捷徑裡的 key。', img: '' });
     return json_(cardApi_(String(body.ask || '')));
+  }
+
+  // 見證庫網頁（Cases.html）：列案例、⭐ 常用、取分享連結
+  if (body.action === 'cases' || body.action === 'caseStar' || body.action === 'caseLink') {
+    if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return json_({ ok: false, error: '同步密碼不對' });
+    try { return json_(wallApi_(body)); } catch (err) { console.error(err); return json_({ ok: false, error: String(err && err.message || err) }); }
   }
 
   // 網頁同步
@@ -601,6 +614,7 @@ function answer_(text) {
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
   if (/^(選單|功能選單|功能|主選單|menu)$/i.test(text.replace(/\s+/g, ''))) return menuCard_();
   if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
+  if (/^(🔎)?(見證庫|見證庫網頁|見證網頁)$/.test(String(text).replace(/\s+/g, ''))) return wallLink_();
   const vm = String(text).replace(/\s+/g, '').match(/^(?:語音回覆|語音對話|用語音回)(開|關|開啟|關閉|自動)?$/);
   if (vm) return voiceSwitch_(vm[1] || '');
   // 換真人語音：「換聲音」列出可選的聲音按鈕；按「🎤 柔和 shimmer」或打「換聲音 coral」「換回原本的聲音」就換
@@ -2073,6 +2087,37 @@ function talkCase_(c, d) {
     tags: [c.products, c.people].filter(Boolean).join('｜'),
     thumb: !ids.length ? '' : c.type === 'photo' ? driveImg_(ids[0]) : ids[1] ? driveImg_(ids[1]) : 'https://drive.google.com/thumbnail?id=' + ids[0] + '&sz=w480',
     link: ids.length ? 'https://drive.google.com/file/d/' + ids[0] + '/view' : '' };
+}
+function caseStars_() { try { return JSON.parse(prop_('CASE_STARS') || '[]'); } catch (e) { return []; } }
+function wallApi_(b) {
+  if (b.action === 'caseStar') {
+    const st = caseStars_().filter(k => k !== String(b.k));
+    if (b.on) st.unshift(String(b.k));
+    setProp_('CASE_STARS', JSON.stringify(st.slice(0, 200)));
+    return { ok: true };
+  }
+  const list = allCases_(), stars = caseStars_();
+  if (b.action === 'caseLink') {   // 還沒放進雲端硬碟的 Telegram 檔案：現在複製；超過 20MB 就改傳到主人的 Telegram
+    const c = list.find(x => String(caseKey_(x)) === String(b.k));
+    if (!c) return { ok: false, error: '找不到這一則了，可能已經刪掉。' };
+    const d = caseDrive_(c);
+    if (d) return { ok: true, item: talkCase_(c, d) };
+    const tg = prop_('TG_OWNER_CHAT_ID');
+    if (tg && prop_('TELEGRAM_BOT_TOKEN')) {
+      try { if (JSON.parse(sendTgCase_(tg, c) || '{}').ok) return { ok: true, tg: true }; } catch (e) { console.error(e.message); }
+    }
+    return { ok: false, error: '這個檔案超過 20MB，沒辦法做成連結，Telegram 也沒送成功。' };
+  }
+  const items = list.map(c => {
+    const media = ['photo', 'video', 'animation'].indexOf(c.type) >= 0, d = /^drive:/.test(c.fid) ? c.fid : c.drive;
+    const it = talkCase_(c, media && d ? d : '');
+    it.star = stars.indexOf(String(it.k)) >= 0;
+    it.t = c.time instanceof Date ? c.time.getTime() : 0;
+    it.products = c.products; it.people = c.people; it.kw = c.keywords;
+    it.need = media && !d;   // 要先按一下才產生連結
+    return it;
+  });
+  return { ok: true, items: items, cats: caseCats_() };
 }
 function caseLine_() { const m = CASE_LINE_; CASE_LINE_ = []; return m; }
 function lineCaseMsg_(c, d) {
