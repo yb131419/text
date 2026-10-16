@@ -735,6 +735,7 @@ def build_ass(plan, segs, spans, opt, total, path):
                 SFX.append((t0 + (i - 1) * step, 'type%d' % (i % 3 + 1)))
             add(2, t0 + (i - 1) * step, t0 + i * step if i < len(title) else end_intro, 'Ask',
                 ('{\\fad(150,0)}' if i == 1 else '') + title[:i] + ('{\\alpha&HFF&}' if i == len(title) else '') + '｜')
+        SFX.append((t0 + len(title) * step + .05, 'hit'))   # 打完「咚」一聲
     elif plan.get('title'):
         add(2, .2, end_intro, 'Ask', '{\\fad(200,300)}' + ass_text(plan['title']))
     if opt['cards'] and plan.get('tags'):
