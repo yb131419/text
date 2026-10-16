@@ -940,8 +940,9 @@ function cardLayout_(c, minH) {
     text(c.title, X, 88 + sh, TW, 86, c.title.length > 10 ? 28 : 34, '#F1DFB4', { bold: true, serif: true });
     text(c.body, X, top + sh, TW, BH, fs, '#EDE6D6', { align: 'START', valign: 'TOP', ls: 150 });
     if (c.gold) {
-      shape('ROUND_RECTANGLE', X, goldTop + sh, TW, goldH, '#1E1A14', '#C9A56A');
-      text(c.gold, X + 20, goldTop + sh, TW - 40, goldH, GF, '#E9D3A2', { bold: true, serif: true, ls: 130 });
+      // 金句框：香檳金底＋深咖啡字，跟上面的黑底內文分得開（2026-10-16 使用者要金句框顏色不一樣）
+      shape('ROUND_RECTANGLE', X, goldTop + sh, TW, goldH, '#D9BC85', '#F1DFB4');
+      text(c.gold, X + 20, goldTop + sh, TW - 40, goldH, GF, '#1E1710', { bold: true, serif: true, ls: 130 });
     }
     if (c.note) text(c.note, X, noteTop + sh, TW, 24, 14, '#B9AE98');
     if (c.tags.length) text(c.tags.join('  '), X, tagTop + sh, TW, tagLines * 22, 14, '#9C8F78', { ls: 120 });
