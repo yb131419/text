@@ -1344,7 +1344,7 @@ function kitWrite_(k) {
   const sysB = base.concat([
     '這一次只寫「PDF 實作手冊」，主題和三個動作已經定好（會給你，還有圖卡和貼文已經用過的句子，PDF 不可以再用）。',
     '【PDF pdf】kicker 一句話（20 字內）；title 兩行（例如「邀約的\\n三個動作」）；intro 三行開場；',
-    'before：title、lead（50 字內）、points 3 點（h 一句、p 40 到 60 字）、note {h:"用法", p:"一句說明怎麼用這份手冊"}；',
+    'before：title、lead（50 字內）、points 3 點（h 一句、p 30 到 45 字）、note {h:"用法", p:"一句說明怎麼用這份手冊"}；',
     'actions 剛好 3 個（對應三個動作）：step、title、lead（40 字內）、demo 2 句（可以用 ✗／✓ 開頭對比）、demoNote、why（50 字內）、practice（40 字內）、warn {h:"注意" 或 "原則", p:"40 字內"}；',
     'check：title、lead、items 5 個自我檢查問句、note {h, p}；final：title「今天就開始的三步」、steps 3 個 {h, p}、close 三行收尾（用 ** 標一個重點字）。PDF 裡不要叫人留言、私訊或索取。',
     '只輸出 JSON：{"pdf":{"kicker":"","title":"","intro":"","before":{"title":"","lead":"","points":[{"h":"","p":""}],"note":{"h":"","p":""}},"actions":[{"step":"動作一","title":"","lead":"","demo":["",""],"demoNote":"","why":"","practice":"","warn":{"h":"","p":""}}],"check":{"title":"","lead":"","items":[""],"note":{"h":"","p":""}},"final":{"title":"今天就開始的三步","steps":[{"h":"","p":""}],"close":""}}}',
@@ -1569,50 +1569,51 @@ function kitCoverLayout_(kit, s, num, W, H) {
 }
 
 // PDF 實作手冊（A4 直式 595×842，內容跟圖卡、貼文不一樣；使用者 2026-10-16）
-function kitPdfLayouts_(kit) {
-  const W = 595.28, H = 841.89, P = kit.pdf, X = 74, TW = 447;
-  const lbl = t => ({ t: t, size: 10, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START', above: 14 });
-  const txt = (t, o) => Object.assign({ t: t, size: 11, color: KIT_S_.c.soft, align: 'START', ls: 175, indent: 14, em: KIT_S_.c.gold }, o || {});
-  const note = n => n && (n.h || n.p) ? [lbl(n.h || '注意'), txt(n.p, { color: KIT_S_.c.ink, indent: 0, above: 2 })] : [];
+function kitPdfLayouts_(kit) {   // 2026-10-16 使用者：PDF 字太小 → 字放大、版面拉寬、段落改成「標題＋內文」
+  const W = 595.28, H = 841.89, P = kit.pdf, X = 60, TW = 475;
+  const lbl = t => ({ t: '— ' + t, size: 15, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START', above: 24 });
+  const txt = (t, o) => Object.assign({ t: t, size: 18, color: KIT_S_.c.soft, align: 'START', ls: 160, above: 6, em: KIT_S_.c.gold }, o || {});
+  const lead = t => txt(t, { size: 20, color: KIT_S_.c.ink, ls: 155, above: 0 });
+  const note = n => n && (n.h || n.p) ? [lbl(n.h || '注意'), txt(n.p, { color: KIT_S_.c.ink })] : [];
   const page = (n, small, title, paras) => ({ W: W, H: H, build: slide => {
     const req = [];
     kitBg_(req, slide, 'pdf_page.jpg', W, H);
-    kitText_(req, slide, slide + '_hd', [X, 72, TW, 56], [{ t: small, size: 9, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' },
-      { t: title, size: 20, bold: true, color: KIT_S_.c.ink, align: 'START', above: 2 }], 'BOTTOM');
+    kitText_(req, slide, slide + '_hd', [X, 62, TW, 100], [{ t: small, size: 14, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' },
+      { t: title, size: 34, bold: true, color: KIT_S_.c.ink, align: 'START', above: 4, ls: 120 }], 'BOTTOM');
     req.push({ createShape: { objectId: slide + '_rule', shapeType: 'RECTANGLE', elementProperties: { pageObjectId: slide,
-      size: { width: { magnitude: TW, unit: 'PT' }, height: { magnitude: 0.6, unit: 'PT' } },
-      transform: { scaleX: 1, scaleY: 1, translateX: X, translateY: 136, unit: 'PT' } } } });
+      size: { width: { magnitude: TW - 14, unit: 'PT' }, height: { magnitude: 0.8, unit: 'PT' } },
+      transform: { scaleX: 1, scaleY: 1, translateX: X + 7, translateY: 170, unit: 'PT' } } } });
     req.push({ updateShapeProperties: { objectId: slide + '_rule', fields: 'shapeBackgroundFill,outline', shapeProperties: {
       shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(KIT_S_.c.rule) } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
-    kitText_(req, slide, slide + '_bd', [X, 146, TW, 610], paras, 'TOP');
-    kitText_(req, slide, slide + '_ft', [X, 770, TW, 20], [{ t: cardBy_() + '　　' + ('0' + n).slice(-2), size: 8, color: KIT_S_.c.mute, font: 'Noto Sans TC', align: 'END' }], 'TOP');
+    kitText_(req, slide, slide + '_bd', [X, 184, TW, 598], paras, 'TOP');
+    kitText_(req, slide, slide + '_ft', [X, 786, TW, 24], [{ t: cardBy_() + '　　' + ('0' + n).slice(-2), size: 11, color: KIT_S_.c.mute, font: 'Noto Sans TC', align: 'END' }], 'TOP');
     return req;
   } });
   const pts = list => [].concat.apply([], (list || []).map((x, i) => [
-    { t: (i + 1) + '　' + (x.h || ''), size: 13, bold: true, color: KIT_S_.c.ink, align: 'START', above: 14 }, txt(x.p, { above: 3 })]));
+    { t: '0' + (i + 1) + '　' + (x.h || ''), size: 20, bold: true, color: KIT_S_.c.ink, align: 'START', above: 18 }, txt(x.p, { ls: 150, above: 4 })]));
   const L = [];
   L.push({ W: W, H: H, build: slide => {   // 封面
     const req = [];
     kitBg_(req, slide, 'pdf_cover.jpg', W, H);
-    kitText_(req, slide, slide + '_main', [X, 190, TW, 520], [
-      { t: P.kicker, size: 10, color: KIT_S_.c.gold, font: 'Noto Sans TC' },
-      { t: P.title + '。', size: 40, bold: true, color: KIT_S_.c.ink, ls: 130, above: 22 },
-      { t: '────────', size: 10, color: KIT_S_.c.orn, above: 18 },
-      { t: P.intro, size: 13, color: KIT_S_.c.soft, ls: 190, above: 18 }]);
-    kitText_(req, slide, slide + '_ft', [X, 760, TW, 20], [{ t: cardBy_(), size: 9, color: KIT_S_.c.mute, font: 'Noto Sans TC' }], 'TOP');
+    kitText_(req, slide, slide + '_main', [X, 180, TW, 560], [
+      { t: P.kicker, size: 17, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC' },
+      { t: P.title + '。', size: 58, bold: true, color: KIT_S_.c.ink, ls: 125, above: 24 },
+      { t: '────────', size: 12, color: KIT_S_.c.orn, above: 22 },
+      { t: P.intro, size: 20, color: KIT_S_.c.soft, ls: 170, above: 24 }]);
+    kitText_(req, slide, slide + '_ft', [X, 752, TW, 26], [{ t: cardBy_(), size: 12, color: KIT_S_.c.mute, font: 'Noto Sans TC' }], 'TOP');
     return req;
   } });
   const B = P.before;
-  L.push(page(2, '開始之前', B.title || '真正的原因', [txt(B.lead, { indent: 0, size: 12 })].concat(pts(B.points), note(B.note))));
-  P.actions.forEach((a, i) => L.push(page(3 + i, a.step || ('動作' + '一二三'[i]), a.title, [txt(a.lead, { indent: 0, size: 12 }),
-    lbl('示範'), txt((a.demo || []).join('\n'), { color: KIT_S_.c.ink }), txt(a.demoNote, { above: 4 }),
+  L.push(page(2, '開始之前', B.title || '真正的原因', [lead(B.lead)].concat(pts(B.points), note(B.note))));
+  P.actions.forEach((a, i) => L.push(page(3 + i, a.step || ('動作' + '一二三'[i]), a.title, [lead(a.lead),
+    lbl('示範'), txt((a.demo || []).join('\n'), { color: KIT_S_.c.ink, size: 18 }), txt(a.demoNote),
     lbl('為什麼有用'), txt(a.why), lbl('練習'), txt(a.practice)].concat(note(a.warn)))));
   const C = P.check;
-  L.push(page(6, '自查', C.title, [txt(C.lead, { indent: 0, size: 12 })].concat((C.items || []).slice(0, 6).map((t, i) =>
-    ({ t: '☐ 0' + (i + 1) + '　' + t, size: 12.5, bold: true, color: KIT_S_.c.ink, align: 'START', above: 12, ls: 150 })), note(C.note))));
+  L.push(page(6, '自查', C.title, [lead(C.lead)].concat((C.items || []).slice(0, 6).map((t, i) =>
+    ({ t: '☐　' + t, size: 19, bold: true, color: KIT_S_.c.ink, align: 'START', above: 22, ls: 150 })), note(C.note))));
   const F = P.final;
-  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: KIT_ORN, size: 9, color: KIT_S_.c.orn, above: 26 },
-    { t: F.close, size: 19, bold: true, color: KIT_S_.c.ink, ls: 165, above: 16 }])));
+  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: KIT_ORN, size: 12, color: KIT_S_.c.orn, above: 34 },
+    { t: F.close, size: 30, bold: true, color: KIT_S_.c.ink, ls: 150, above: 18 }])));
   return L;
 }
 
