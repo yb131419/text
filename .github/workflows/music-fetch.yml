@@ -11,12 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 列出 FreePD 曲目
+      - name: 列出可用曲目
         run: |
-          for p in "" upbeat.php epic.php romantic.php world.php electronic.php scoring.php comedy.php misc.php; do
-            echo "=== $p"
-            curl -sL -m 30 "https://freepd.com/$p" | grep -oiE 'music/[^"'"'"' <>]+\.mp3' | sort -u | head -80
-          done
+          echo "=== freepd home"; curl -sL -m 30 https://freepd.com/ | head -c 3000; echo
+          echo "=== freepd upbeat"; curl -sL -m 30 https://freepd.com/upbeat.php | grep -oiE '[^"'"'"' <>]+\.mp3' | sort -u | head -60
+          echo "=== incompetech"; curl -sL -m 30 "https://incompetech.com/music/royalty-free/pieces.json" | head -c 1500; echo
+          echo "=== archive cc0"; curl -sL -m 30 "https://archive.org/advancedsearch.php?q=licenseurl%3A%2Ahttp%3A%2F%2Fcreativecommons.org%2Fpublicdomain%2Fzero%2A+AND+mediatype%3Aaudio+AND+subject%3A%28background+music%29&fl%5B%5D=identifier&fl%5B%5D=title&rows=40&output=json" | head -c 4000; echo
       - name: 下載 sources.txt 裡的曲子
         run: |
           sudo apt-get install -y -qq ffmpeg > /dev/null
