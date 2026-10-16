@@ -3641,13 +3641,16 @@ const RC = { bg: '#F6F1E7', paper: '#FBF8F2', row2: '#F3EDE1', line: '#E4DACA', 
 function reportLayout_(r) {
   const d = reportData_(r);
   const n = x => Number(x).toLocaleString('en-US');
-  const rows = r.lines.map(l => ({ name: packName_(l.name), qty: l.qty, price: l.qty ? Math.round(l.price / l.qty) : 0,
-    pv: l.qty ? Math.round(l.pv / l.qty) : 0, amount: l.price, spv: l.pv }));
-  if (d.gifts) rows.push({ name: GIFT_NAME, qty: d.gifts, price: 0, pv: 0, amount: 0, spv: 0 });
+  // 原本報表的項目都保留（使用者 2026-10-16）：入會贈送／現金贈品標示、合計列、付款與天數、系統名、辨識提醒與時間
+  const rows = r.lines.map(l => l.price || l.pv
+    ? { name: packName_(l.name), qty: l.qty, price: n(Math.round(l.price / l.qty)), pv: n(Math.round(l.pv / l.qty)), amount: n(l.price), spv: n(l.pv) }
+    : { name: l.name, qty: l.qty, price: '入會贈送', pv: '—', amount: '贈送', spv: '—', free: true });
+  if (d.gifts) rows.push({ name: GIFT_NAME, qty: d.gifts, price: '滿 2 萬送 1', pv: '—', amount: '贈品', spv: '—', free: true });
+  const boxes = r.lines.reduce((a, l) => a + l.qty, 0);
 
   const W = 540, X = 20, TW = 500, HEAD = 34, ROW = 29;
-  const whoTop = 104, tableTop = 152;
-  let y = tableTop + HEAD + rows.length * ROW + 12;
+  const payTop = 98, whoTop = 132, tableTop = 178, TOTAL = 30;
+  let y = tableTop + HEAD + rows.length * ROW + TOTAL + 12;
   const sumTop = y; y += 92 + 10;
   const tgtTop = y; y += 60 + 10;
   const bonusTop = y; const bonusH = d.bonusBlocked ? 44 : 28 + d.bonus.length * 19; y += bonusH + 8;
@@ -3687,6 +3690,8 @@ function reportLayout_(r) {
     const date = r.date ? String(r.date) : Utilities.formatDate(new Date(), TZ, 'yyyy · MM · dd');
     text(date, X, 66, TW, 20, 14, RC.gold, false, 'CENTER', /^[\x00-\x7F·]*$/.test(date) ? 'Cormorant Garamond' : 'Noto Sans TC');
     rect(230, 90, 80, 1, RC.gold2);
+    text('『彥彬🌿試算系統』', X, 4, TW, 14, 8, RC.soft, false, 'END');
+    text((r.card ? '💳 刷卡' : '💵 現金') + (d.days ? '　｜　📦 預估可使用天數 ' + d.days + ' 天' : ''), X, payTop, TW, 26, 12, RC.gold, true);
 
     // 購買者／試算者
     const half = (TW - 10) / 2;
@@ -3709,14 +3714,19 @@ function reportLayout_(r) {
       rect(X, ty, TW, ROW, i % 2 ? RC.row2 : RC.paper);
       cell(0, rw.name, ty, ROW, rw.name.length > 12 ? 10 : 12, RC.ink, false, 'START');
       cell(1, rw.qty, ty, ROW, 14, RC.gold, true);
-      cell(2, n(rw.price), ty, ROW, 12, RC.ink);
-      cell(3, n(rw.pv), ty, ROW, 12, RC.ink);
-      cell(4, n(rw.amount), ty, ROW, 12, RC.ink);
-      cell(5, n(rw.spv), ty, ROW, 12, RC.green, true);
+      cell(2, rw.price, ty, ROW, rw.free ? 10 : 12, rw.free ? RC.soft : RC.ink);
+      cell(3, rw.pv, ty, ROW, 12, RC.ink);
+      cell(4, rw.amount, ty, ROW, 12, rw.free ? RC.gold : RC.ink, rw.free);
+      cell(5, rw.spv, ty, ROW, 12, RC.green, true);
       ty += ROW;
     });
     [1, 2, 3, 4, 5].forEach(ci => rect(X + COL[ci].x, tableTop + HEAD, 0.6, rows.length * ROW, RC.line));
+    rect(X, ty, TW, TOTAL, RC.track);
     rect(X, ty, TW, 1, RC.gold2);
+    cell(0, '合計', ty, TOTAL, 12, RC.ink, true, 'START');
+    cell(1, boxes + ' 盒', ty, TOTAL, 11, RC.gold, true);
+    cell(4, n(d.amount), ty, TOTAL, 12, RC.ink, true);
+    cell(5, n(d.pv), ty, TOTAL, 12, RC.green, true);
 
     // 總金額／總 PV
     box(X, sumTop, half, 92, RC.ink, RC.gold2);
@@ -3730,7 +3740,7 @@ function reportLayout_(r) {
     box(X, tgtTop, TW, 60, RC.paper, RC.gold2);
     TARGETS_PV.forEach((t, i) => {
       const x = X + 14 + i * (TW / 2), bw = TW / 2 - 28, color = i ? RC.green : RC.gold2;
-      text(d.pv >= t ? '已達標 ' + n(t) + ' PV' : '距離 ' + n(t) + ' PV 尚差 ' + n(t - d.pv),
+      text(d.pv >= t ? '距離 ' + (t / 10000) + ' 萬 PV：0 🎉 已達標' : '距離 ' + (t / 10000) + ' 萬 PV：尚差 ' + n(t - d.pv),
         x, tgtTop + 8, bw, 24, 13, d.pv >= t ? RC.gold : RC.soft, true, 'START');
       box(x, tgtTop + 38, bw, 8, RC.track, null);
       const fw = Math.round(bw * Math.min(1, d.pv / t));
@@ -3742,12 +3752,12 @@ function reportLayout_(r) {
     if (d.bonusBlocked) {
       text('預計獎金：新入會需累積滿 20,000 PV 才開始計算，目前暫無', X + 12, bonusTop, TW - 24, bonusH, 12, RC.ink, true, 'START');
     } else {
-      text('預計獎金', X + 12, bonusTop + 4, TW - 24, 20, 12, RC.gold, true, 'START');
+      text('預計獎金（總金額 × 級距 %｜扣稅 10% 後）', X + 12, bonusTop + 4, TW - 24, 20, 12, RC.gold, true, 'START');
       d.bonus.forEach((b, i) => text(b.tier
-        ? (b.type === '經理' ? '經理' : '未升經理') + ' ' + b.pct + '%：約 NT$ ' + n(b.amount) + '・扣稅後 ' + n(b.afterTax)
-        : (b.type === '經理' ? '經理' : '未升經理') + '：PV 未達最低門檻', X + 12, bonusTop + 24 + i * 19, TW - 24, 19, 11, RC.ink, false, 'START'));
+        ? (b.type === '經理' ? '🏅 ' : '👤 ') + b.type + ' ' + b.pct + '%：約 NT$ ' + n(b.amount) + '　扣稅後 NT$ ' + n(b.afterTax)
+        : b.type + '：PV 未達最低門檻', X + 12, bonusTop + 24 + i * 19, TW - 24, 19, 11, RC.ink, false, 'START'));
     }
-    text((r.card ? '刷卡付款' : '現金付款') + (d.days ? '・預估可使用 ' + d.days + ' 天' : '') + '　｜　' + REPORT_BY + ' 自動試算・數量請再核對',
+    text(REPORT_BY + ' 自動試算｜數量依圖片辨識，請再核對　' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'),
       X, footTop, TW, 20, 9, RC.soft);
     return req;
   };
