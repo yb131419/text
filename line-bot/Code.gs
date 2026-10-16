@@ -3967,6 +3967,53 @@ function writeAll_(d) {
   });
   replaceRows_(ss.getSheetByName(SHEETS.deleted), Object.keys(d.deleted || {}).map(id => [id, d.deleted[id]]).sort((x, y) => y[1] - x[1]), 2);
   replaceRows_(ss.getSheetByName(SHEETS.profile), [[JSON.stringify(d.profile || {})]], 1);
+  gcalSync_(d);
+}
+
+// 第一次用日曆同步：在編輯器選這個函式按「執行」，允許存取日曆；之後就會把今天以後的行程寫進日曆
+function authorizeCalendar() {
+  Logger.log('授權完成，行程會同步到「' + CalendarApp.getDefaultCalendar().getName() + '」。');
+  writeAll_(readAll_());
+}
+/* ============ Google 日曆同步（2026-10-16 使用者選「同步日曆」：手機通知中心跳提醒） ============ */
+// 每次存資料後比對：今天以後的行程寫進預設日曆（有時間的設 30 分鐘前跳通知），改了就重建，刪了就一起刪。
+// 對照表存在指令碼屬性 GCAL_MAP：{ 行程id: [日曆id, 日期, 內容簽名] }；設定 GCAL=off 可關掉
+function gcalSync_(d) {
+  if (prop_('GCAL') === 'off' || typeof CalendarApp === 'undefined') return;
+  try {
+    let map = {};
+    try { map = JSON.parse(prop_('GCAL_MAP') || '{}'); } catch (e) { map = {}; }
+    const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+    const sig = e => [e.date, hm_(e.time), e.title, e.place || ''].join('|');
+    const live = {}; (d.events || []).forEach(e => { live[e.id] = e; });
+    let cal = null, ops = 0, changed = false;
+    const calendar = () => cal || (cal = CalendarApp.getDefaultCalendar());
+    const drop = id => {
+      try { const ce = CalendarApp.getEventById(map[id][0]); if (ce) ce.deleteEvent(); } catch (e) { console.error('日曆刪除失敗：' + e.message); }
+      delete map[id]; changed = true; ops++;
+    };
+    Object.keys(map).forEach(id => {
+      const e = live[id];
+      if (!e) { if (map[id][1] < today) { delete map[id]; changed = true; } else if (ops < 30) drop(id); }   // 過了日期的留在日曆當紀錄
+      else if (map[id][2] !== sig(e) && ops < 30) drop(id);   // 改過就刪掉重建
+    });
+    (d.events || []).forEach(e => {
+      if (map[e.id] || !e.date || e.date < today || !e.title || ops >= 30) return;
+      try {
+        let ce;
+        if (hm_(e.time)) {
+          const st = new Date(parseAt_(e.date + 'T' + hm_(e.time)));
+          ce = calendar().createEvent(e.title, st, new Date(st.getTime() + 36e5), e.place ? { location: e.place } : {});
+          ce.removeAllReminders(); ce.addPopupReminder(30);
+        } else {
+          ce = calendar().createAllDayEvent(e.title, new Date(parseAt_(e.date + 'T00:00')));
+          ce.removeAllReminders();
+        }
+        map[e.id] = [ce.getId(), e.date, sig(e)]; changed = true; ops++;
+      } catch (err) { console.error('日曆新增失敗：' + err.message); }
+    });
+    if (changed) setProp_('GCAL_MAP', JSON.stringify(map));
+  } catch (err) { console.error('日曆同步失敗：' + err.message); }
 }
 
 function replaceRows_(sh, rows, width) {
