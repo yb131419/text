@@ -99,7 +99,7 @@ function menuFlex_() {
 const HELP_TEXT = [
   '小乖可以幫你 👇（按「💎 選單」看全部卡片）',
   '',
-  '🪶 軍師：選主題，寫文案＋圖卡',
+  '🪶 軍師：選主題，寫文案＋3 張圖卡',
   '💬 見證：按「新增見證」再傳圖片影片，之後查詢、轉傳分享',
   '📋 試算：先按「試算」再傳明細表照片',
   '📅 行程：新增、今天、這週、刪除',
@@ -114,7 +114,7 @@ const HELP_MORE = [
   '',
   '【🪶 軍師與設定】',
   '・按「🪶 智囊軍師」選主題：軍師判定、健康、火山草本、觀念、經營、網路行銷',
-  '・文案會畫成圖卡一起給你，長按圖片可以存；「🔁 再寫一篇」同主題換一篇',
+  '・文案會畫成 3 張圖卡（不同切角）一起給你，長按圖片可以存；「🔁 再寫一篇」同主題換一篇',
   '・按「⚙️ 設定」看、改圖卡署名、文案標題和「新增見證」的說明（打「預設」改回原本的）',
   '',
   '【💬 見證分享】',
@@ -258,7 +258,7 @@ function tgKey_(t) { return t === TALK_BTN ? { text: t, web_app: { url: talkUrl_
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
 function talk(key, q, image, voice, audio64, audioType) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
-  ASK_SHOW_ = ''; ASK_BTNS_ = []; ASK_IMG_ = ''; TALK_MODE_ = true;
+  ASK_SHOW_ = ''; ASK_BTNS_ = []; ASK_IMG_ = ''; ASK_IMGS_ = []; TALK_MODE_ = true;
   let heard = '';
   if (audio64) {   // 對話頁按麥克風錄的音：先轉文字
     const mt = String(audioType || 'audio/mp4');
@@ -273,9 +273,9 @@ function talk(key, q, image, voice, audio64, audioType) {
   if (voice && say && prop_('OPENAI_API_KEY')) {   // 用跟 LINE／Telegram 一樣的小乖聲音念
     try { audio = Utilities.base64Encode(tts_(say, 'mp3').getBytes()); } catch (e) { console.error(e.message); }
   }
-  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_ };
+  return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_, imgs: ASK_IMGS_ };
 }
-let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', TALK_MODE_ = false, VOICE_ONLY_ = false;
+let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', ASK_IMGS_ = [], TALK_MODE_ = false, VOICE_ONLY_ = false;
 const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
@@ -748,11 +748,11 @@ function strategist_(k) {
     '【本次主題】' + th.guide,
     '【要寫兩個版本，內容不能一樣】',
     '①文字貼文（post）：直接貼在 FB／IG／LINE 的完整文案。有自己的標題（post_title，15 字內）；用一個具體生活場景或小故事開頭，慢慢帶出道理，4 到 6 段，全文 220 到 320 字；結尾用一句問句邀請大家留言。',
-    '②圖卡（card）：放在圖片上的精簡版，不是貼文的節錄。標題（title）12 字內，跟貼文標題不同；內文（body）3 到 4 行、每行 8 到 16 字，全部 50 到 90 字，是這個主題最核心的觀點；最後一句反骨金句（gold）：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
+    '②圖卡（cards）：要 3 張，放在圖片上的精簡版，不是貼文的節錄；3 張各用不同的切角（例如：點出現象、翻轉觀念、給一個做法），標題和內容都不能重複。每張：標題（title）12 字內，跟貼文標題不同；內文（body）3 到 4 行、每行 8 到 16 字，全部 50 到 90 字；最後一句反骨金句（gold）：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
     '兩個版本共用 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
     hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
-    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","title":"圖卡標題","body":"圖卡內文，每行一句","gold":"反骨金句","tags":["#詞","#詞","#詞","#詞","#詞"]}',
+    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","cards":[{"title":"圖卡標題","body":"圖卡內文，每行一句","gold":"反骨金句"},{...第二張},{...第三張}],"tags":["#詞","#詞","#詞","#詞","#詞"]}',
   ].filter(Boolean).join('\n');
   let c = null;
   try {
@@ -762,10 +762,16 @@ function strategist_(k) {
     console.error('智囊軍師失敗：' + err.message);
     return { text: '文案這次沒寫出來，再按一次試試看。', buttons: [[STRAT_AGAIN, STRAT_SWITCH]] };
   }
+  // 3 張圖卡（舊格式只有一張也接受）
+  const cards = (Array.isArray(c.cards) && c.cards.length ? c.cards : [c]).slice(0, 3).map(x => ({
+    title: String(x.title || th.name).trim(),
+    body: String(x.body || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim(),
+    gold: String(x.gold || '').replace(/^【?反骨金句】?[：:]?/, '').trim(),
+  })).filter(x => x.body || x.gold);
+  if (!cards.length) cards.push({ title: th.name, body: '', gold: '' });
   const card = {
-    theme: th.name, cat: String(c.cat || '').replace(/主題$/, ''), title: String(c.title || th.name).trim(),
-    body: String(c.body || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim(),
-    gold: String(c.gold || '').replace(/^【?反骨金句】?[：:]?/, '').trim(),
+    theme: th.name, cat: String(c.cat || '').replace(/主題$/, ''), cards: cards,
+    title: cards[0].title, body: cards[0].body, gold: cards[0].gold,
     ptitle: String(c.post_title || c.title || th.name).trim(),
     post: String(c.post || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim(),
     tags: (Array.isArray(c.tags) ? c.tags : String(c.tags || '').split(/\s+/)).map(s => String(s).trim()).filter(Boolean)
@@ -879,7 +885,7 @@ function stratText_(c) {
 }
 
 // 圖卡版面（直式 4:5，黑曜石＋香檳金，跟小乖頁面同一套風格）
-function cardLayout_(c) {
+function cardLayout_(c, minH) {
   const W = 540, X = 50, TW = 440;
   const units = l => Array.from(l).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1), 0);
   const lines = (s, size, w) => String(s || '').split('\n')
@@ -894,7 +900,7 @@ function cardLayout_(c) {
   const goldTop = y; y += goldH + (c.gold ? 12 : 0);
   const noteTop = y; y += c.note ? 22 : 0;
   const tagTop = y; y += 22;
-  const footTop = Math.max(y + 16, 625);
+  const footTop = Math.max(y + 16, 625, (minH || 0) - 50);   // 3 張一起畫時高度要一樣
   const H = footTop + 50;
   const sh = Math.max(0, Math.round((footTop - (y + 16)) / 2));   // 內容短時，標題到標籤整塊往下移到中間
 
@@ -906,7 +912,7 @@ function cardLayout_(c) {
       size: { width: { magnitude: w, unit: 'PT' }, height: { magnitude: h, unit: 'PT' } },
       transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: yy, unit: 'PT' } });
     const shape = (type, x, yy, w, h, fill, outline) => {
-      const id = 'xg_cs_' + (k++);
+      const id = 'xg_cs_' + slide + '_' + (k++);
       req.push({ createShape: { objectId: id, shapeType: type, elementProperties: place(w, h, x, yy) } });
       req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill,outline', shapeProperties: {
         shapeBackgroundFill: fill ? { solidFill: { color: { rgbColor: rgb_(fill) } } } : { propertyState: 'NOT_RENDERED' },
@@ -914,7 +920,7 @@ function cardLayout_(c) {
     };
     const text = (str, x, yy, w, h, size, color, o) => {
       o = o || {};
-      const id = 'xg_ct_' + (k++);
+      const id = 'xg_ct_' + slide + '_' + (k++);
       req.push({ createShape: { objectId: id, shapeType: 'TEXT_BOX', elementProperties: place(w, h, x, yy) } });
       req.push({ insertText: { objectId: id, text: String(str) } });
       req.push({ updateTextStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: {
@@ -943,8 +949,13 @@ function cardLayout_(c) {
   return { W: W, H: H, build: build };
 }
 
-function cardPng_(c) {
-  return layoutPng_(cardLayout_(c), '智囊軍師_' + c.theme + '_' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm') + '.png');
+// 3 張圖卡：同一份簡報畫 3 頁，一次輸出（比一張一張開簡報快很多）
+function cardPngs_(c) {
+  const list = (c.cards && c.cards.length ? c.cards : [c]).map(x => Object.assign({}, c, x));
+  const H = Math.max.apply(null, list.map(x => cardLayout_(x).H));
+  const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm');
+  return layoutPngs_(list.map(x => cardLayout_(x, H)),
+    list.map((x, i) => '智囊軍師_' + c.theme + '_' + stamp + (list.length > 1 ? '_' + (i + 1) : '') + '.png'));
 }
 
 function saveCard_(png) {
@@ -961,14 +972,16 @@ function sendCardTg_(chatId) {
   const c = LAST_CARD_; LAST_CARD_ = null;
   if (!c) return false;
   REPORT_ERR_ = '';
-  const png = cardPng_(c);
-  if (!png) { tgSend_(chatId, cardErrText_()); return false; }
-  try { saveCard_(png); } catch (e) { console.error(e); }
-  const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
-    method: 'post', muteHttpExceptions: true,
-    payload: { chat_id: String(chatId), photo: png, caption: stratHead_() + '｜' + c.title },
+  const pngs = cardPngs_(c);
+  if (!pngs.length) { tgSend_(chatId, cardErrText_()); return false; }
+  pngs.forEach((png, i) => {
+    try { saveCard_(png); } catch (e) { console.error(e); }
+    const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
+      method: 'post', muteHttpExceptions: true,
+      payload: { chat_id: String(chatId), photo: png, caption: stratHead_() + '｜' + ((c.cards || [])[i] || c).title + (pngs.length > 1 ? '（' + (i + 1) + '/' + pngs.length + '）' : '') },
+    });
+    if (res.getResponseCode() !== 200) console.error('Telegram 圖卡傳送失敗：' + res.getContentText());
   });
-  if (res.getResponseCode() !== 200) console.error('Telegram 圖卡傳送失敗：' + res.getContentText());
   return true;
 }
 
@@ -977,13 +990,15 @@ function cardLine_() {
   const c = LAST_CARD_; LAST_CARD_ = null;
   if (!c) return [];
   REPORT_ERR_ = '';
-  const png = cardPng_(c);
+  const pngs = cardPngs_(c);
   try {
-    if (!png) throw new Error(REPORT_ERR_);
-    const file = saveCard_(png);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    const url = 'https://lh3.googleusercontent.com/d/' + file.getId();
-    return [{ type: 'image', originalContentUrl: url, previewImageUrl: url }];
+    if (!pngs.length) throw new Error(REPORT_ERR_);
+    return pngs.map(png => {
+      const file = saveCard_(png);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      const url = 'https://lh3.googleusercontent.com/d/' + file.getId();
+      return { type: 'image', originalContentUrl: url, previewImageUrl: url };
+    });
   } catch (err) {
     REPORT_ERR_ = REPORT_ERR_ || err.message;
     console.error('LINE 圖卡失敗：' + REPORT_ERR_);
@@ -1001,10 +1016,11 @@ function cardApi_(ask) {
   const c = LAST_CARD_; LAST_CARD_ = null;
   if (!c) return { ok: false, text: String(ans && ans.text || ans), img: '' };
   REPORT_ERR_ = '';
-  const png = cardPng_(c);
-  if (png) try { saveCard_(png); } catch (e) { console.error(e); }
+  const pngs = cardPngs_(c);
+  pngs.forEach(png => { try { saveCard_(png); } catch (e) { console.error(e); } });
+  const b64 = pngs.map(png => Utilities.base64Encode(png.getBytes()));
   return { ok: true, title: c.title, text: postText_(c),
-    img: png ? Utilities.base64Encode(png.getBytes()) : '', err: png ? '' : cardErrText_() };
+    img: b64[0] || '', imgs: b64, err: b64.length ? '' : cardErrText_() };
 }
 
 // 對話頁：圖卡直接用 data URL 放進回覆，畫面上就看得到
@@ -1012,10 +1028,11 @@ function cardData_() {
   const c = LAST_CARD_; LAST_CARD_ = null;
   if (!c) return '';
   REPORT_ERR_ = '';
-  const png = cardPng_(c);
-  if (!png) { ASK_SHOW_ = cardErrText_() + '\n\n' + ASK_SHOW_; return ''; }
-  try { saveCard_(png); } catch (e) { console.error(e); }
-  return 'data:image/png;base64,' + Utilities.base64Encode(png.getBytes());
+  const pngs = cardPngs_(c);
+  if (!pngs.length) { ASK_SHOW_ = cardErrText_() + '\n\n' + ASK_SHOW_; return ''; }
+  pngs.forEach(png => { try { saveCard_(png); } catch (e) { console.error(e); } });
+  ASK_IMGS_ = pngs.map(png => 'data:image/png;base64,' + Utilities.base64Encode(png.getBytes()));
+  return ASK_IMGS_[0];
 }
 
 /* ============ 案例庫（Telegram 圖片／影片／文字） ============ */
@@ -3049,27 +3066,39 @@ function reportPng_(r) {
 
 // 把一組版面（{ W, H, build }）用 Google 簡報畫成 PNG；試算報表和智囊軍師圖卡共用
 function layoutPng_(L, fileName) {
+  return layoutPngs_([L], [fileName])[0] || null;
+}
+// 好幾頁一起畫（頁面大小用第一頁的），每頁輸出一張 PNG；失敗回傳空陣列
+function layoutPngs_(Ls, names) {
+  const L = Ls[0];
   let pid = null;
   try {
     const deck = newDeck_(L.W, L.H);
     pid = deck.pid;
     const page = deck.pres.slides[0];
-    // 頁面沒改成直式時：整張報表等比縮小，置中放進預設的橫式頁面
-    let built = L.build(page.objectId);
     const ps = deck.pres.pageSize, pt = v => v.unit === 'EMU' ? v.magnitude / 12700 : v.magnitude;
     const pw = pt(ps.width), ph = pt(ps.height);
-    if (Math.abs(pw - L.W) > 1 || Math.abs(ph - L.H) > 1) {
-      const sc = Math.min(pw / L.W, ph / L.H);
-      built = scaleReq_(built, sc, (pw - L.W * sc) / 2, (ph - L.H * sc) / 2);
-    }
-    const req = (page.pageElements || []).map(e => ({ deleteObject: { objectId: e.objectId } })).concat(built);
+    const slides = Ls.map((x, i) => i ? 'xg_pg_' + i : page.objectId);
+    let req = (page.pageElements || []).map(e => ({ deleteObject: { objectId: e.objectId } }));
+    Ls.forEach((x, i) => {
+      if (i) req.push({ createSlide: { objectId: slides[i], insertionIndex: i, slideLayoutReference: { predefinedLayout: 'BLANK' } } });
+      let built = x.build(slides[i]);
+      // 頁面沒改成直式時：整張等比縮小，置中放進預設的橫式頁面
+      if (Math.abs(pw - x.W) > 1 || Math.abs(ph - x.H) > 1) {
+        const sc = Math.min(pw / x.W, ph / x.H);
+        built = scaleReq_(built, sc, (pw - x.W * sc) / 2, (ph - x.H * sc) / 2);
+      }
+      req = req.concat(built);
+    });
     slidesApi_('post', '/' + pid + ':batchUpdate', { requests: req });
-    const th = slidesApi_('get', '/' + pid + '/pages/' + page.objectId + '/thumbnail?thumbnailProperties.mimeType=PNG&thumbnailProperties.thumbnailSize=LARGE');
-    return UrlFetchApp.fetch(th.contentUrl).getBlob().setName(fileName);
+    return slides.map((id, i) => {
+      const th = slidesApi_('get', '/' + pid + '/pages/' + id + '/thumbnail?thumbnailProperties.mimeType=PNG&thumbnailProperties.thumbnailSize=LARGE');
+      return UrlFetchApp.fetch(th.contentUrl).getBlob().setName(names[i]);
+    });
   } catch (err) {
     REPORT_ERR_ = err.message;
     console.error('圖片失敗：' + err.message);
-    return null;
+    return [];
   } finally {
     if (pid) try { DriveApp.getFileById(pid).setTrashed(true); } catch (e) { console.error(e); }
   }
