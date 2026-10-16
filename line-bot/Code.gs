@@ -1256,9 +1256,11 @@ let LAST_KIT_ = null, KIT_PENDING_ = '';   // 剛寫好的 7 張＋PDF 內容；
 // 款式（2026-10-16 使用者要「能選擇款式」）：底圖放在 line-bot/kit/<d>，字的顏色跟著換
 const KIT_LIGHT = { ink: '#2A221A', soft: '#5B4F40', gold: '#A07C34', mute: '#8D7F6C', top: '#9C7A3E', lab: '#7C6B55', orn: '#B8914A', sub: '#6E604E', strike: '#A39A8C', rule: '#C9AE7A' };
 const KIT_DARK = (soft, lab, mute) => ({ ink: '#F3EBDD', soft: soft, gold: '#D9B867', mute: mute, top: '#C9A65A', lab: lab, orn: '#C9A65A', sub: lab, strike: mute, rule: '#8C7440' });
+// 淺綠款封面：霧面淺綠（使用者 2026-10-16 選 B）——淺綠紙底＋金框，深綠大字、金色重點
+const KIT_COVER_MINT = { ink: '#16302A', gold: '#9C7A3E', top: '#5E7D74', sub: '#4B635D', series: '#16302A', by: '#16302A' };
 const KIT_STYLES = [   // 使用者 2026-10-16 只留 V1（綠底）、L3（淺綠）
   { n: '綠底', d: 'emerald/', tip: '封面黑金＋內頁象牙白卡、祖母綠底', c: KIT_LIGHT },
-  { n: '淺綠', d: 'mint/', tip: '封面黑金＋內頁淺綠卡、灰綠底', c: Object.assign({}, KIT_LIGHT, { ink: '#1B2C29', soft: '#465D58', mute: '#6A807B', lab: '#6A807B', sub: '#6A807B' }) }];
+  { n: '淺綠', d: 'mint/', tip: '封面霧面淺綠＋內頁淺綠卡、灰綠底', cv: KIT_COVER_MINT, c: Object.assign({}, KIT_LIGHT, { ink: '#1B2C29', soft: '#465D58', mute: '#6A807B', lab: '#6A807B', sub: '#6A807B' }) }];
 let KIT_S_ = KIT_STYLES[0];   // 這次畫圖用的款式（kitMake_ 依 kit.style 設定）
 const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n)[0] || KIT_STYLES[0];
 
@@ -1495,7 +1497,7 @@ function kitCardLayout_(kit, i) {
 // 封面：黑金精品（使用者 2026-10-16 選 A）——黑曜石底＋雙層香檳金框，象牙白大標題靠左，不放領取 PDF
 const KIT_COVER = { ink: '#F4EEE2', gold: '#D9BC7E', top: '#C9A56A', sub: '#B9AE9B', series: '#E9D3A2', by: '#F1DFB4' };
 function kitCoverLayout_(kit, s, num, W, H) {
-  const C = KIT_COVER, cat = kit.cat || String(kit.theme || '').replace(/主題$/, '');
+  const C = KIT_S_.cv || KIT_COVER, cat = kit.cat || String(kit.theme || '').replace(/主題$/, '');
   const longest = Math.max.apply(null, String(s.head || '').replace(/\*\*|~~/g, '').split('\n').map(l => l.length));
   const size = Math.max(44, Math.min(74, Math.floor(390 / Math.max(longest, 1))));
   return { W: W, H: H, build: slide => {
