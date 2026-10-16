@@ -738,6 +738,14 @@ const STRAT_THEMES = [   // 順序（2026-10-16 使用者指定）：軍師、�
   { k: 'net', btn: '📣 行銷', name: '網路行銷',
     guide: '【網路行銷】只寫經營技巧，例如如何讓人停留（開頭的鉤子、前三秒、段落節奏）、如何回留言（回覆的語氣與引導互動的方式）等實用做法。不寫業績、收入、獲利或任何成效保證，不提具體金額。' },
 ];
+// 文案開頭只寫分類兩個字（使用者 2026-10-16）：選哪個主題就寫哪個；選「軍師」照 AI 判斷的五大主題填
+const STRAT_CAT2 = { concept: '觀念', health: '健康', herb: '草本', biz: '經營', net: '行銷' };
+function stratCat2_(k, cat) {
+  if (STRAT_CAT2[k]) return STRAT_CAT2[k];
+  const c = String(cat || '');
+  for (const x in STRAT_CAT2) if (c.indexOf(STRAT_CAT2[x]) >= 0) return STRAT_CAT2[x];
+  return c.replace(/主題$/, '').slice(0, 2) || '軍師';
+}
 const STRAT_AGAIN = '🔁 再寫一篇', STRAT_SWITCH = '🪶 換主題';
 const STRAT_FOLDER = '小乖軍師圖卡';
 const STRAT_NO_TAG = /康園道|分享|大健康/;   // 使用者指定：標籤不要出現這些字
@@ -831,6 +839,7 @@ function strategist_(k) {
   // 圖卡上方寫「生活筆記「主題」」（軍師判定就寫它選的分類）
   card.topic = k === 'auto' ? (card.cat || '生活') : th.name.replace(/主題$/, '');
   card.label = k === 'auto' ? '智囊軍師判定' + (card.cat ? '・' + card.cat : '') : th.name;
+  card.cat2 = stratCat2_(k, card.cat);
   hist.unshift(card.title);
   setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_CARD_ = card;
@@ -1062,7 +1071,7 @@ function postText_(c) {
     .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
 }
 function stratText_(c) {
-  return [stratHead_() + '｜' + c.label, '', postText_(c)]
+  return [stratHead_() + '｜' + (c.cat2 || c.label), '', postText_(c)]
     .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
 }
 
@@ -1366,7 +1375,7 @@ function kitWrite_(k) {
   hist.unshift(kit.series);
   setProp_('KIT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_KIT_ = kit;
-  return { text: stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) };
+  return { text: stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) };
 }
 
 // 7 張輪播：AI 偶爾漏寫 kind 或順序錯，照位置補上（cover、action×3、reason、last、cta）
@@ -1413,6 +1422,7 @@ function kitClean_(c, th, k) {
       .filter(s => !STRAT_NO_TAG.test(s)).map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
   };
   kit.label = '《' + series + '》（留言「' + keyword + '」）';
+  kit.cat2 = stratCat2_(k, kit.cat);
   return kit;
 }
 
@@ -1632,7 +1642,7 @@ function kitLine_(to) {
   });
   const send = msgs => lineApi_('push', { to: to, messages: msgs });
   let code = imgs.length ? send(imgs.slice(0, 5)) : 200;
-  if (code === 200) code = send(withQuick_(imgs.slice(5).concat([{ type: 'text', text: (stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit)).slice(0, 5000) },
+  if (code === 200) code = send(withQuick_(imgs.slice(5).concat([{ type: 'text', text: (stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit)).slice(0, 5000) },
     { type: 'text', text: kitDoneText_(kit, r) }]).slice(0, 5), [[KIT_BTN, STRAT_SWITCH]].concat(MENU)));
   if (code !== 200) kitLineFallback_(kit, r, code);
 }
@@ -1665,7 +1675,7 @@ function kitTgSend_(chatId, kit, r) {
       payload: { chat_id: String(chatId), document: r.pdf, caption: '有人留言「' + kit.keyword + '」，把這份 PDF 轉給他。' } });
     if (res.getResponseCode() !== 200) console.error('Telegram PDF 失敗：' + res.getContentText());
   }
-  tgSend_(chatId, { text: (stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit)).slice(0, 4000) });
+  tgSend_(chatId, { text: (stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit)).slice(0, 4000) });
   tgSend_(chatId, { text: kitDoneText_(kit, r), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) });
 }
 // 對話頁：7 張圖直接顯示，PDF 給連結
@@ -1674,7 +1684,7 @@ function kitTalk_() {
   if (!kit) return '';
   const r = kitMake_(kit);
   ASK_IMGS_ = r.pngs.map(png => 'data:image/png;base64,' + Utilities.base64Encode(png.getBytes()));
-  ASK_SHOW_ = stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit) + '\n\n' + kitDoneText_(kit, r);
+  ASK_SHOW_ = stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit) + '\n\n' + kitDoneText_(kit, r);
   return ASK_IMGS_[0] || '';
 }
 
