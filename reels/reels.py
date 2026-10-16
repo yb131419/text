@@ -589,6 +589,15 @@ def music_names():
     return [os.path.basename(f)[:-4] for f in music_files()]
 
 
+def music_credit(path):
+    """配樂的授權署名（reels/music/credits.json），發到社群時要放在貼文裡。"""
+    try:
+        with open(os.path.join(HERE, 'music', 'credits.json'), encoding='utf-8') as f:
+            return json.load(f).get(os.path.basename(path or '')[:-4], '')
+    except (OSError, ValueError):
+        return ''
+
+
 def pick_music(opt, plan=None):
     """配樂：說明有指定就用那首，不然用 AI 依影片氣氛挑的，再不然隨機。"""
     if not opt['music']:
@@ -689,6 +698,7 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='')
         shutil.copy(thumb, out + '.jpg')
         return {'seconds': total, 'clips': len(spans), 'subs': n, 'subs_diff': diff, 'subs_lang': opt['subs'],
                 'music': '你的配樂' if mine else os.path.basename(music or '')[:-4],
+                'credit': '' if mine else music_credit(music),
                 'title': (plan or {}).get('title', ''), 'post': (plan or {}).get('post', '')}
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -733,8 +743,9 @@ def main():
                     '\n也可以先傳一首音樂給小乖當配樂。'
                     '\n也可以傳一張喜歡的影片截圖，說「我要這種風格」。')
             tg_send_video(chat, a.out, cap, a.out + '.jpg')
-            if info['post']:
-                tg('sendMessage', chat_id=chat, text='📝 貼文文案參考（長按可複製）：\n\n' + info['post'])
+            post = info['post'] + ('\n\n' + info['credit'] if info.get('credit') else '')
+            if post.strip():
+                tg('sendMessage', chat_id=chat, text='📝 貼文文案參考（長按可複製；配樂署名要保留）：\n\n' + post.strip())
     except Oops as e:
         log('Oops:', e)
         if chat:
