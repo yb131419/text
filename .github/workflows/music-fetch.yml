@@ -13,10 +13,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: 列出可用曲目
         run: |
-          echo "=== freepd home"; curl -sL -m 30 https://freepd.com/ | head -c 3000; echo
-          echo "=== freepd upbeat"; curl -sL -m 30 https://freepd.com/upbeat.php | grep -oiE '[^"'"'"' <>]+\.mp3' | sort -u | head -60
-          echo "=== incompetech"; curl -sL -m 30 "https://incompetech.com/music/royalty-free/pieces.json" | head -c 1500; echo
-          echo "=== archive cc0"; curl -sL -m 30 "https://archive.org/advancedsearch.php?q=licenseurl%3A%2Ahttp%3A%2F%2Fcreativecommons.org%2Fpublicdomain%2Fzero%2A+AND+mediatype%3Aaudio+AND+subject%3A%28background+music%29&fl%5B%5D=identifier&fl%5B%5D=title&rows=40&output=json" | head -c 4000; echo
+          curl -sL -m 60 "https://incompetech.com/music/royalty-free/pieces.json" -o /tmp/p.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/p.json'))
+          print('total', len(d))
+          keys = ('Uplifting', 'Bright', 'Happy', 'Calm', 'Relax', 'Peace', 'Epic', 'Inspir', 'Romantic', 'Mystic', 'Hopeful', 'Somber', 'Grooving', 'Mysterious')
+          bad = ('Horror', 'Dark', 'Scary', 'Aggressive', 'Medieval', 'Comedy', 'Silly')
+          for x in d:
+              f = x.get('feel') or ''
+              if any(k in f for k in keys) and not any(b in f for b in bad) and '00:01:3' <= (x.get('length') or '') <= '00:05:00':
+                  print('%s | %s | %s | %s | %s' % (x['filename'], x.get('length'), f, (x.get('instruments') or '')[:50], x.get('bpm')))
+          PY
       - name: 下載 sources.txt 裡的曲子
         run: |
           sudo apt-get install -y -qq ffmpeg > /dev/null
