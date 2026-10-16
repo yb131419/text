@@ -13,6 +13,18 @@ header{padding:14px 16px 6px;display:flex;align-items:center;gap:10px}header b{f
 .me{margin-left:auto;background:var(--me)}.xg{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .m img{max-width:100%;border-radius:12px;display:block}
 .m img.card{margin:2px 0 12px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+.m a{color:#8A6A2E;text-decoration:underline;word-break:break-all}
+.cs{display:grid;gap:10px;margin-top:10px;white-space:normal}
+.m.hc{max-width:94%}
+.cc{display:grid;grid-template-columns:1fr;background:#FFFDF8;border:1px solid #E8DCC4;border-radius:14px;overflow:hidden;color:#2A2118}
+.cc .ct{position:relative;display:block;background:linear-gradient(135deg,#C9B28A,#8C7553);aspect-ratio:16/9;max-width:100%}
+.cc .ct img{width:100%;height:100%;object-fit:cover;border-radius:0;position:absolute;inset:0}
+.cc .ct b{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:26px;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.cc .cb{padding:10px 12px;display:grid;gap:4px;min-width:0}
+.cc .cm{font-size:12px;color:#B08A4A;font-weight:700}.cc .cx{font-size:14px;line-height:1.5}.cc .cg{font-size:12px;color:#8A7A62}
+.cc .ca{display:flex;gap:6px;margin-top:4px}
+.cc .ca a,.cc .ca button{flex:1;width:auto;height:auto;border-radius:10px;padding:7px 8px;font-size:14px;font-weight:700;line-height:1.2;white-space:nowrap;text-align:center;text-decoration:none;border:0;cursor:pointer}
+.cc .co{background:#F1E4C8;color:#7A5A22}.cc .cl{background:#06C755;color:#fff}
 #bar{padding:10px 12px calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;background:var(--card)}
 #q{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:22px;padding:10px 14px;font:inherit;background:var(--bg);color:var(--ink)}
 button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;background:var(--bg);color:var(--ink)}
@@ -228,10 +240,25 @@ function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.leng
 chips();
 // 對話紀錄存在這支手機（關掉再開還在）：最多 200 則，照片存成小縮圖
 const LOGK='xg_talk_log';
-function saveLog(){try{const a=[...log.querySelectorAll('.m')].slice(1).map(d=>{const i=d.querySelector('img');return {c:d.className.replace(/^m /,''),t:d.textContent,i:i?(i.dataset.th||''):''};}).filter(x=>(x.t||x.i)&&!/^(小乖想一下|小乖在聽你說的話)…$/.test(x.t)).slice(-200);localStorage.setItem(LOGK,JSON.stringify(a));}catch(e){}}
+function saveLog(){try{const a=[...log.querySelectorAll('.m')].slice(1).map(d=>{const i=d.querySelector('img:not(.cti)');return {c:d.className.replace(/^m /,''),t:d.dataset.cs?d.dataset.t:d.textContent,i:i?(i.dataset.th||''):'',cs:d.dataset.cs||''};}).filter(x=>(x.t||x.i)&&!/^(小乖想一下|小乖在聽你說的話)…$/.test(x.t)).slice(-200);localStorage.setItem(LOGK,JSON.stringify(a));}catch(e){}}
 function thumb(src,cb){const im=new Image();im.onload=()=>{const s=Math.min(1,240/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);try{cb(c.toDataURL('image/jpeg',0.6));}catch(e){}};im.src=src;}
-function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;if(/^data:/.test(img)&&img.length<20000)i.dataset.th=img;else thumb(img,th=>{i.dataset.th=th;saveLog();});d.appendChild(i);}if(t){d.appendChild(document.createTextNode(t));}log.appendChild(d);log.scrollTop=1e9;return d;}
-try{const old=JSON.parse(localStorage.getItem(LOGK)||'[]');if(old.length){old.forEach(x=>add(x.t,x.c,x.i||null));const d=document.createElement('div');d.className='sep';d.textContent='— 以上是之前的對話 —';log.appendChild(d);log.scrollTop=1e9;}}catch(e){}
+// 網址變成可以點的連結（使用者 2026-10-16：連結點不了）
+function lk(el,t){String(t).split(/(https?:\/\/[^\s）)」]+)/).forEach((x,j)=>{if(j%2){const a=document.createElement('a');a.href=x;a.target='_blank';a.rel='noopener';a.textContent=x;el.appendChild(a);}else if(x)el.appendChild(document.createTextNode(x));});}
+// 案例卡片：縮圖點開原檔、說明、分享到 LINE
+function caseCards(w,list){if(!list||!list.length)return;w.classList.add('hc');w.dataset.t=w.textContent;w.dataset.cs=JSON.stringify(list);const box=document.createElement('div');box.className='cs';
+ list.forEach(c=>{const d=document.createElement('div');d.className='cc';const th=document.createElement(c.link?'a':'div');th.className='ct';if(c.link){th.href=c.link;th.target='_blank';th.rel='noopener';}
+  if(c.thumb){const i=new Image();i.className='cti';i.alt='';i.loading='lazy';i.onerror=()=>i.remove();i.src=c.thumb;th.appendChild(i);}
+  const ic=document.createElement('b');ic.textContent=c.type==='photo'?'':(c.type==='text'?'📝':c.type==='document'?'📄':'▶');th.appendChild(ic);
+  const b=document.createElement('div');b.className='cb';const m=document.createElement('div');m.className='cm';m.textContent=[c.cat,c.kind,c.day].filter(Boolean).join('・');
+  const x=document.createElement('div');x.className='cx';x.textContent=c.cap||'（沒有說明）';b.append(m,x);
+  if(c.tags){const g=document.createElement('div');g.className='cg';g.textContent='🏷️ '+c.tags;b.appendChild(g);}
+  const a=document.createElement('div');a.className='ca';
+  if(c.link){const o=document.createElement('a');o.className='co';o.href=c.link;o.target='_blank';o.rel='noopener';o.textContent=c.type==='photo'?'① 看圖片':'① 看影片';a.appendChild(o);
+   const l=document.createElement('a');l.className='cl';l.href='https://line.me/R/share?text='+encodeURIComponent((c.text?c.text+'\n':'')+c.link);l.target='_blank';l.rel='noopener';l.textContent='② 分享到 LINE';a.appendChild(l);}
+  else if(c.type!=='text'){const s2=document.createElement('button');s2.className='co';s2.textContent='📤 分享';s2.onclick=e=>{e.stopPropagation();send('📤 分享案例 '+c.k);};a.appendChild(s2);}
+  if(a.children.length)b.appendChild(a);d.append(th,b);box.appendChild(d);});w.appendChild(box);}
+function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;if(/^data:/.test(img)&&img.length<20000)i.dataset.th=img;else thumb(img,th=>{i.dataset.th=th;saveLog();});d.appendChild(i);}if(t){lk(d,t);}log.appendChild(d);log.scrollTop=1e9;return d;}
+try{const old=JSON.parse(localStorage.getItem(LOGK)||'[]');if(old.length){old.forEach(x=>{const d=add(x.t,x.c,x.i||null);if(x.cs)try{caseCards(d,JSON.parse(x.cs));}catch(e){}});const d=document.createElement('div');d.className='sep';d.textContent='— 以上是之前的對話 —';log.appendChild(d);log.scrollTop=1e9;}}catch(e){}
 // 刪除對話（像 LINE）：長按一則訊息 → 勾選單則或多則 → 刪除；全選就是清空
 const pickable=()=>[...log.querySelectorAll('.m:not(.hello)')];
 function selCount(){const n=log.querySelectorAll('.m.pick').length;$('seln').textContent=n?'已選 '+n+' 則':'點訊息來選取';$('seldel').disabled=!n;$('seldel').textContent=n?'刪除（'+n+'）':'刪除';const all=pickable();$('selall').textContent=all.length&&n===all.length?'全不選':'全選';}
@@ -258,7 +285,7 @@ function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel(
 function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
  if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
  fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:aud?aud.b64:'',audioType:aud?aud.mime:''})})
- .then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}}).then(r=>{busy=false;if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}if(aud)me.textContent='🎤 '+(r.heard||'（沒聽清楚）');w.textContent=r.show||r.say;(r.imgs&&r.imgs.length?r.imgs:(r.img?[r.img]:[])).slice().reverse().forEach(src=>{const i=new Image();i.className='card';i.alt='智囊軍師圖卡';i.onload=()=>{log.scrollTop=1e9;};i.src=src;thumb(src,th=>{i.dataset.th=th;saveLog();});w.insertBefore(i,w.firstChild);});saveLog();chips(r.buttons);if((r.buttons||[]).indexOf('📷 選照片')>=0){convOff('按「⚡ 最新一張」用相簿最新的照片試算，或按「📷 選照片」自己選');}else if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);})
+ .then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}}).then(r=>{busy=false;if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}if(aud)me.textContent='🎤 '+(r.heard||'（沒聽清楚）');w.textContent='';lk(w,r.show||r.say);caseCards(w,r.cases);(r.imgs&&r.imgs.length?r.imgs:(r.img?[r.img]:[])).slice().reverse().forEach(src=>{const i=new Image();i.className='card';i.alt='智囊軍師圖卡';i.onload=()=>{log.scrollTop=1e9;};i.src=src;thumb(src,th=>{i.dataset.th=th;saveLog();});w.insertBefore(i,w.firstChild);});saveLog();chips(r.buttons);if((r.buttons||[]).indexOf('📷 選照片')>=0){convOff('按「⚡ 最新一張」用相簿最新的照片試算，或按「📷 選照片」自己選');}else if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);})
  .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+e.message+'）';});}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 // 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
