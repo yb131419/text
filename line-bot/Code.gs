@@ -3649,7 +3649,7 @@ function reportLayout_(r) {
   const boxes = r.lines.reduce((a, l) => a + l.qty, 0);
 
   const W = 540, X = 20, TW = 500, HEAD = 34, ROW = 29;
-  const payTop = 98, whoTop = 132, tableTop = 178, TOTAL = 30;
+  const payTop = 96, whoTop = 136, tableTop = 184, TOTAL = 30;
   let y = tableTop + HEAD + rows.length * ROW + TOTAL + 12;
   const sumTop = y; y += 92 + 10;
   const tgtTop = y; y += 60 + 10;
@@ -3670,6 +3670,7 @@ function reportLayout_(r) {
         shapeBackgroundFill: fill ? { solidFill: { color: { rgbColor: rgb_(fill) } } } : { propertyState: 'NOT_RENDERED' },
         outline: outline ? { outlineFill: { solidFill: { color: { rgbColor: rgb_(outline) } } }, weight: { magnitude: 1, unit: 'PT' } }
           : { propertyState: 'NOT_RENDERED' } } } });
+      return id;
     };
     const box = (x, yy, w, h, fill, outline) => shape('ROUND_RECTANGLE', x, yy, w, h, fill, outline);
     const rect = (x, yy, w, h, fill) => shape('RECTANGLE', x, yy, w, h, fill, null);
@@ -3683,23 +3684,27 @@ function reportLayout_(r) {
       req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: 'MIDDLE' }, fields: 'contentAlignment' } });
     };
 
-    // 標題：YB 圓章＋康園試算報表、日期、金色短線
-    shape('ELLIPSE', 134, 26, 32, 32, null, RC.gold2);
-    text('YB', 129, 26, 42, 32, 12, RC.gold, false, 'CENTER', 'Cormorant Garamond');
-    text('康園試算報表', 170, 18, 250, 48, 30, RC.ink, true, 'START', 'Noto Serif TC');
+    // 標題：YB 圓章＋康園試算報表，整組置中（標題約 180pt 寬，圓章放左邊，整組往右挪半個圓章）
+    const seal = shape('ELLIPSE', 160, 26, 32, 32, null, RC.gold2);
+    req.push({ insertText: { objectId: seal, text: 'YB' } });
+    req.push({ updateTextStyle: { objectId: seal, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: {
+      fontSize: { magnitude: 12, unit: 'PT' }, bold: true, fontFamily: 'Cormorant Garamond', foregroundColor: { opaqueColor: { rgbColor: rgb_(RC.gold) } } } } });
+    req.push({ updateParagraphStyle: { objectId: seal, textRange: { type: 'ALL' }, fields: 'alignment', style: { alignment: 'CENTER' } } });
+    req.push({ updateShapeProperties: { objectId: seal, shapeProperties: { contentAlignment: 'MIDDLE' }, fields: 'contentAlignment' } });
+    text('康園試算報表', X + 20, 18, TW, 48, 30, RC.ink, true, 'CENTER', 'Noto Serif TC');
     const date = r.date ? String(r.date) : Utilities.formatDate(new Date(), TZ, 'yyyy · MM · dd');
     text(date, X, 66, TW, 20, 14, RC.gold, false, 'CENTER', /^[\x00-\x7F·]*$/.test(date) ? 'Cormorant Garamond' : 'Noto Sans TC');
     rect(230, 90, 80, 1, RC.gold2);
     text('『彥彬🌿試算系統』', X, 4, TW, 14, 8, RC.soft, false, 'END');
-    text((r.card ? '💳 刷卡' : '💵 現金') + (d.days ? '　｜　📦 預估可使用天數 ' + d.days + ' 天' : ''), X, payTop, TW, 26, 12, RC.gold, true);
+    text((r.card ? '💳 刷卡' : '💵 現金') + (d.days ? '　｜　📦 預估可使用天數 ' + d.days + ' 天' : ''), X, payTop, TW, 32, 17, RC.gold, true);
 
     // 購買者／試算者
     const half = (TW - 10) / 2;
     [['購買者', r.name || '—'], ['試算者', REPORT_BY]].forEach((p, i) => {
       const x = X + i * (half + 10);
       box(x, whoTop, half, 36, RC.paper, RC.gold2);
-      text(p[0], x + 8, whoTop, 70, 36, 13, RC.soft, true, 'START');
-      text(p[1], x + 70, whoTop, half - 80, 36, 13, RC.ink, true, 'END');
+      text(p[0], x + 8, whoTop, 60, 36, 14, RC.soft, true, 'START');
+      text(p[1], x + 64, whoTop, half - 78, 36, 14, RC.ink, true, 'END');
     });
 
     // 品項表：品項名稱｜數量｜單價｜PV｜小計金額｜小計 PV
