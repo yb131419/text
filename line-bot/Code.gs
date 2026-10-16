@@ -539,8 +539,7 @@ function handleLine_(ev) {
     const ans = answer_(said);
     if (KIT_PENDING_) {
       reply_(ev.replyToken, '🎤 「' + said + '」\n\n' + ans, null, true);
-      const fail = kitRun_(() => kitLine_(uid));
-      if (fail) lineApi_('push', { to: uid, messages: withQuick_([{ type: 'text', text: String(fail.text || fail) }], fail.buttons) });
+      kitQueue_('line', uid);
       return;
     }
     const rp = reportLine_();
@@ -567,8 +566,7 @@ function handleLine_(ev) {
   const ans = answer_(text);
   if (KIT_PENDING_) {   // 7張＋PDF：先回「製作中」，做好用推播送
     reply_(ev.replyToken, ans, null, true);
-    const fail = kitRun_(() => kitLine_(uid));
-    if (fail) lineApi_('push', { to: uid, messages: withQuick_([{ type: 'text', text: String(fail.text || fail) }], fail.buttons) });
+    kitQueue_('line', uid);
     return;
   }
   const rp = reportLine_();
@@ -1317,8 +1315,9 @@ function kitWrite_(k) {
   // 名單包是很長的 JSON（貼文＋7 張＋7 頁），以前上限 2500 字元會被截斷 → JSON 壞掉；現在給 12000 並用 JSON 模式，失敗再自動重寫一次
   // AI 偶爾少給幾張或欄位放錯：缺什麼就告訴它重寫，最多寫 3 次
   let kit = null, why = '', fixMsg = '';
+  const t0 = Date.now();   // 整個流程只有 6 分鐘：寫超過 2 分半就不再重寫，留時間畫圖
   const ask = '請做一組「' + th.name + '」的名單包。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。';
-  for (let i = 0; i < 3 && !kit; i++) {
+  for (let i = 0; i < 3 && !kit && (i === 0 || Date.now() - t0 < 150000); i++) {
     try {
       const out = String(callOpenAI_(sys, [{ role: 'user', content: ask + fixMsg }], true, null, { maxTokens: 12000, temperature: 0.7 }));
       const c = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
@@ -1558,6 +1557,48 @@ function kitRun_(deliver) {
   deliver();
   return null;
 }
+// LINE／Telegram：按了主題先回「製作中」，真正的製作交給另一次執行（觸發條件），
+// 不跟收訊息擠同一次執行的 6 分鐘上限；被中斷時，每 5 分鐘的提醒檢查會補發通知
+function kitQueue_(platform, to) {
+  const job = { k: KIT_PENDING_, p: platform, to: String(to), at: Date.now() };
+  KIT_PENDING_ = '';
+  if (!job.k) return;
+  setProp_('KIT_JOB', JSON.stringify(job));
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'kitJob').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('kitJob').timeBased().after(1000).create();
+}
+function kitJob() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'kitJob').forEach(t => ScriptApp.deleteTrigger(t));
+  let job = null;
+  try { job = JSON.parse(prop_('KIT_JOB') || 'null'); } catch (e) { job = null; }
+  setProp_('KIT_JOB', '');
+  if (!job || !job.k) return;
+  setProp_('KIT_RUN', JSON.stringify({ p: job.p, to: job.to, at: Date.now() }));
+  const tell = (text, buttons) => job.p === 'line'
+    ? lineApi_('push', { to: job.to, messages: withQuick_([{ type: 'text', text: text }], buttons || [[KIT_BTN]]) })
+    : tgSend_(job.to, { text: text, buttons: buttons || [[KIT_BTN]] });
+  try {
+    if (job.p === 'line') { LINE_MODE_ = true; CURRENT_TG_CHAT_ = ''; } else { LINE_MODE_ = false; CURRENT_TG_CHAT_ = job.to; }
+    KIT_PENDING_ = job.k;
+    const fail = kitRun_(() => job.p === 'line' ? kitLine_(job.to) : kitTg_(job.to));
+    if (fail) tell(String(fail.text || fail), fail.buttons);
+  } catch (err) {
+    console.error('7張＋PDF 失敗：' + err.message);
+    tell('📕 這次沒做出來（' + String(err.message).slice(0, 120) + '），再按一次試試看。');
+  } finally {
+    setProp_('KIT_RUN', '');
+  }
+}
+// 做到一半被系統中斷（超過 6 分鐘）就不會有任何回覆：提醒檢查時發現就補一則通知
+function kitWatch_() {
+  let run = null;
+  try { run = JSON.parse(prop_('KIT_RUN') || 'null'); } catch (e) { run = null; }
+  if (!run || Date.now() - run.at < 7 * 60 * 1000) return;
+  setProp_('KIT_RUN', '');
+  const text = '📕 剛剛的 7張＋PDF 做太久被系統中斷了，沒有做出來。請再按一次主題試試看。';
+  if (run.p === 'line') lineApi_('push', { to: run.to, messages: [{ type: 'text', text: text }] });
+  else tgSend_(run.to, text);
+}
 // LINE：按下去先回「製作中」，做好再推播（圖卡、文案、PDF 連結），避免回覆逾時
 function kitLine_(to) {
   const kit = LAST_KIT_; LAST_KIT_ = null;
@@ -1569,16 +1610,29 @@ function kitLine_(to) {
     return { type: 'image', originalContentUrl: url, previewImageUrl: url };
   });
   const send = msgs => lineApi_('push', { to: to, messages: msgs });
-  if (imgs.length) send(imgs.slice(0, 5));
-  send(withQuick_(imgs.slice(5).concat([{ type: 'text', text: (stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit)).slice(0, 5000) },
+  let code = imgs.length ? send(imgs.slice(0, 5)) : 200;
+  if (code === 200) code = send(withQuick_(imgs.slice(5).concat([{ type: 'text', text: (stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit)).slice(0, 5000) },
     { type: 'text', text: kitDoneText_(kit, r) }]).slice(0, 5), [[KIT_BTN, STRAT_SWITCH]].concat(MENU)));
+  if (code !== 200) kitLineFallback_(kit, r, code);
+}
+// LINE 推播送不出去（最常見是免費方案每月推播則數用完，LINE 回 429）：改傳到 Telegram，並說明原因
+function kitLineFallback_(kit, r, code) {
+  const why = code === 429 ? 'LINE 這個月的推播則數用完了' : 'LINE 推播失敗（' + code + '）';
+  const tg = prop_('TG_OWNER_CHAT_ID');
+  if (!tg) return;
+  LINE_MODE_ = false; CURRENT_TG_CHAT_ = tg;
+  tgSend_(tg, '📕 ' + why + '，名單包改傳到這裡。');
+  kitTgSend_(tg, kit, r);
 }
 // Telegram：7 張一組相簿＋PDF 檔
 function kitTg_(chatId) {
   const kit = LAST_KIT_; LAST_KIT_ = null;
   if (!kit) return false;
   tgApi_('sendChatAction', { chat_id: chatId, action: 'upload_photo' });
-  const r = kitMake_(kit);
+  kitTgSend_(chatId, kit, kitMake_(kit));
+  return true;
+}
+function kitTgSend_(chatId, kit, r) {
   if (r.pngs.length) {
     const payload = { chat_id: String(chatId), media: JSON.stringify(r.pngs.map((p, i) => ({ type: 'photo', media: 'attach://p' + i, caption: i ? '' : '📕 《' + kit.series + '》' }))) };
     r.pngs.forEach((p, i) => { payload['p' + i] = p; });
@@ -1590,8 +1644,8 @@ function kitTg_(chatId) {
       payload: { chat_id: String(chatId), document: r.pdf, caption: '有人留言「' + kit.keyword + '」，把這份 PDF 轉給他。' } });
     if (res.getResponseCode() !== 200) console.error('Telegram PDF 失敗：' + res.getContentText());
   }
+  tgSend_(chatId, { text: (stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit)).slice(0, 4000) });
   tgSend_(chatId, { text: kitDoneText_(kit, r), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) });
-  return true;
 }
 // 對話頁：7 張圖直接顯示，PDF 給連結
 function kitTalk_() {
@@ -2438,8 +2492,7 @@ function handleTelegram_(update) {
     const ans = answer_(said);
     if (KIT_PENDING_) {
       tgSend_(chatId, '🎤 「' + said + '」\n\n' + ans);
-      const fail = kitRun_(() => kitTg_(chatId));
-      if (fail) tgSend_(chatId, fail);
+      kitQueue_('tg', chatId);
       return;
     }
     const short = sendReportTg_(chatId);
@@ -2481,8 +2534,7 @@ function handleTelegram_(update) {
   const ans = answer_(text.replace(/^\/start\b\s*/, '') || '說明');
   if (KIT_PENDING_) {
     tgSend_(chatId, ans);
-    const fail = kitRun_(() => kitTg_(chatId));
-    if (fail) tgSend_(chatId, fail);
+    kitQueue_('tg', chatId);
     return;
   }
   const short = sendReportTg_(chatId);
@@ -2766,11 +2818,14 @@ function lineApi_(kind, payload) {
     headers: { Authorization: 'Bearer ' + prop_('LINE_CHANNEL_ACCESS_TOKEN') },
     payload: JSON.stringify(payload),
   });
-  if (res.getResponseCode() !== 200) console.error('LINE ' + kind + ' 失敗：' + res.getContentText());
+  const code = res.getResponseCode();
+  if (code !== 200) console.error('LINE ' + kind + ' 失敗：' + res.getContentText());
+  return code;
 }
 
 /* ============ 提醒（時間驅動觸發條件，每 5 分鐘） ============ */
 function checkReminders() {
+  try { kitWatch_(); } catch (e) { console.error(e); }
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   if ((!owner && !tgOwner) || !prop_('SHEET_ID')) return;
   const due = withLock_(() => {
