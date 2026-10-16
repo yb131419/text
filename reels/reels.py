@@ -9,6 +9,7 @@
   3. 讓 AI 挑精華句子、改成短句字幕（繁中＋英文）、想開頭標題、重點標籤、重點字卡和貼文文案
   4. ffmpeg 剪接並剪掉講話中間的停頓、轉成 1080×1920（橫的影片上下補模糊背景）、
      燒上字幕與動畫字卡（開頭打字標題、標籤一個個打勾、重點跳出來）、混入配樂（有人說話時音樂自動變小）
+     特效由 AI 看每支影片的內容和氣氛自己挑：調色、字幕動畫，口播每句的推近／慢推／震動／閃白，靜音的運鏡和轉場
   5. 傳回 Telegram，當作「第 N 版試剪」；你回覆「改 …」就照你說的再剪一版
 
 風格：你傳一張喜歡的影片截圖給小乖，小乖記下字幕顏色、大小、位置（STYLE），之後都照這個剪。
@@ -309,7 +310,30 @@ PLAN_PROMPT = '''你是影片剪輯師，幫一位台灣的直銷事業經營者
 5. 挑 1～3 句最重要的話做重點字卡：給那句的 i 和 10 個字以內的重點。
 6. 寫一段 IG 貼文文案（3～5 行，繁體中文，結尾 5 個 hashtag）。
 7. 依影片內容和氣氛，從這些配樂挑最適合的一首，只寫名稱：{moods}
-{wish}只回 JSON：{{"title": "", "tags": [""], "keep": [{{"i": 0, "lines": [{{"zh": "", "en": ""}}]}}], "pops": [{{"i": 0, "text": ""}}], "music": "", "post": ""}}'''
+8. 看這支影片的內容和氣氛，自己決定動畫和特效（每支影片要不一樣，配合內容，不要亂加）：
+{fx_menu}
+   keep 每句另外給 fx，只有重點、情緒高、轉折的句子才加（大約三分之一的句子），其他給空字串：
+   zoom 推近鏡頭（強調）／push 慢慢推近（娓娓道來、感動）／shake 震動（驚訝、超重要）／flash 閃白（換話題、轉折）。
+{wish}只回 JSON：{{"title": "", "tags": [""], "keep": [{{"i": 0, "fx": "", "lines": [{{"zh": "", "en": ""}}]}}], "pops": [{{"i": 0, "text": ""}}], "music": "", "look": "", "sub_anim": "", "post": ""}}'''
+
+FX_MENU = '''   look 調色，挑一個：clean 自然清爽／warm 溫暖（生活、感恩、家人）／cool 冷調（專業、科技）／vivid 鮮豔（活力、促銷）／film 電影感（故事、見證）／soft 柔和（療癒、女性、保養）
+   sub_anim 字幕跳出方式，挑一個：pop 彈出來／slide 往上滑進來／wipe 由左往右刷出來／bounce 壓扁再彈起來'''
+LOOKS = {   # 調色
+    'clean': 'eq=contrast=1.06:saturation=1.12',
+    'warm': 'eq=contrast=1.05:saturation=1.15,colorbalance=rs=.06:gs=.02:bs=-.06',
+    'cool': 'eq=contrast=1.06:saturation=1.05,colorbalance=rs=-.05:bs=.07',
+    'vivid': 'eq=contrast=1.12:saturation=1.35',
+    'film': 'eq=contrast=1.08:saturation=.88,colorbalance=rs=.03:bs=-.03,vignette=PI/5',
+    'soft': 'eq=brightness=.03:contrast=.95:saturation=1.05',
+}
+LOOK_NAME = {'clean': '自然', 'warm': '溫暖', 'cool': '冷調', 'vivid': '鮮豔', 'film': '電影感', 'soft': '柔和'}
+SUB_ANIMS = {'pop': '彈出', 'slide': '上滑', 'wipe': '刷出', 'bounce': '彈跳'}
+SHOT_FX = {'zoom': '推近', 'push': '慢推', 'shake': '震動', 'flash': '閃白'}
+
+
+def pick(v, allowed, default=''):
+    v = str(v or '').strip().lower()
+    return v if v in allowed else default
 
 
 def plan_clips(segs, opt, note):
@@ -318,7 +342,7 @@ def plan_clips(segs, opt, note):
     lines = '\n'.join('i=%d [%.1f-%.1f] %s' % (i, s['start'], s['end'], s['text']) for i, s in enumerate(segs))
     wish = '使用者另外的要求：%s\n' % opt['wish'] if opt.get('wish') else ''
     rule = (RULE_LONG if opt['mode'] == 'long' else RULE_REELS).format(target=opt['target'])
-    plan = ask_ai(PLAN_PROMPT.format(rule=rule, wish=wish, moods='／'.join(music_names()) or '（無）'),
+    plan = ask_ai(PLAN_PROMPT.format(rule=rule, wish=wish, moods='／'.join(music_names()) or '（無）', fx_menu=FX_MENU),
                   '使用者說明：%s\n\n逐句辨識：\n%s' % (note or '（無）', lines))
     keep, total, seen = [], 0.0, set()
     for k in plan.get('keep') or []:
@@ -334,7 +358,7 @@ def plan_clips(segs, opt, note):
         seen.add(i)
         total += dur
         ls = [l for l in (k.get('lines') or []) if (l.get('zh') or '').strip()]
-        keep.append({'i': i, 'lines': ls or [{'zh': segs[i]['text'], 'en': ''}]})
+        keep.append({'i': i, 'fx': pick(k.get('fx'), SHOT_FX), 'lines': ls or [{'zh': segs[i]['text'], 'en': ''}]})
     keep.sort(key=lambda k: k['i'])
     tags = [str(t).strip()[:5] for t in (plan.get('tags') or []) if str(t).strip()][:4]
     pops = []
@@ -345,7 +369,8 @@ def plan_clips(segs, opt, note):
         except (TypeError, ValueError, AttributeError):
             continue
     return {'title': opt['title'] or (plan.get('title') or '').strip()[:16], 'keep': keep, 'tags': tags,
-            'pops': pops[:3], 'post': (plan.get('post') or '').strip(), 'music': str(plan.get('music') or '').strip()}
+            'pops': pops[:3], 'post': (plan.get('post') or '').strip(), 'music': str(plan.get('music') or '').strip(),
+            'look': pick(plan.get('look'), LOOKS, 'clean'), 'sub_anim': pick(plan.get('sub_anim'), SUB_ANIMS, 'pop')}
 
 
 # ---------------- 影片處理 ----------------
@@ -454,9 +479,16 @@ def clips_without_speech(dur, target):
     return [[i * step + (step - 4) / 2, i * step + (step - 4) / 2 + 4] for i in range(n)]
 
 
-def vf(zoom=1.0):
-    """把畫面轉成輸出大小；zoom > 1 是推近鏡頭（口播剪接時一段近、一段遠，像爆款影片的跳剪）。"""
+def vf(zoom=1.0, move='', L=0, p=(0, 1)):
+    """把畫面轉成輸出大小；zoom > 1 是推近鏡頭（口播剪接時一段近、一段遠，像爆款影片的跳剪）。
+    move：push 這句慢慢推近（p 是這段在整句的位置，剪掉停頓後鏡頭也連續）、shake 開頭震一下（AI 依每句內容挑）。"""
     z = '' if zoom <= 1 else ',scale=%d:%d,crop=%d:%d' % (int(W * zoom) // 2 * 2, int(H * zoom) // 2 * 2, W, H)
+    if move == 'push' and L > 0:
+        z += ",zoompan=z='1+0.10*(%.3f+%.3f*on/%d)':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=%dx%d:fps=%d" % (
+            p[0], p[1] - p[0], max(1, int(L * FPS)), W, H, FPS)
+    elif move == 'shake':
+        z += (",scale=%d:%d,crop=%d:%d:x='(iw-ow)/2+if(lt(t,0.7),%d*sin(t*47),0)':y='(ih-oh)/2+if(lt(t,0.7),%d*cos(t*53),0)'"
+              % (int(W * 1.08) // 2 * 2, int(H * 1.08) // 2 * 2, W, H, max(4, W // 60), max(4, H // 90)))
     if MODE == 'long':   # 剪大片：保留原本的畫面比例
         return '[0:v]fps=%d,scale=%d:%d,setsar=1%s,format=yuv420p[v]' % (FPS, W, H, z)
     return ('[0:v]fps=%d,split[a][b];'
@@ -475,13 +507,21 @@ SILENT_PROMPT = '''你是爆款短影音剪輯師，幫一位台灣的直銷事�
 4. 3～4 個重點標籤，每個 2～4 個字。
 5. 依畫面氣氛，從這些配樂挑最適合的一首，只寫名稱：{moods}
 6. 一段 IG 貼文文案（3～5 行，繁體中文，結尾 5 個 hashtag）。
+7. 看畫面內容和氣氛，自己決定動畫和特效（每支影片要不一樣，配合畫面）：
+{fx_menu}
+   moves 每段運鏡，照順序給 4～8 個：in 推近／out 拉遠／right 往右移／left 往左移／up 往上移／down 往下移／shake 震動
+   trans 段落之間的轉場，照順序給 3～8 個：{trans}
 不可以寫療效、治療、收入或業績保證；「私訊」一律改說「留言」。繁體中文（台灣用語）。
-{wish}只回 JSON：{{"title": "", "caps": [{{"zh": "", "en": ""}}], "cta": "", "tags": [""], "music": "", "post": ""}}'''
+{wish}只回 JSON：{{"title": "", "caps": [{{"zh": "", "en": ""}}], "cta": "", "tags": [""], "music": "", "look": "", "sub_anim": "", "moves": [""], "trans": [""], "post": ""}}'''
 
 MUSIC_BPM = {'陽光吉他': 106, '輕快生活': 88, '浪漫鋼琴': 93, '療癒琴聲': 80, '活力節奏': 131,
              '大氣史詩': 68, '禪意東方': 57, '感動希望': 70, '清新午後': 68}
-FX_ZOOM = ['in', 'out', 'right', 'up']   # 每段輪流：推近、拉遠、往右移、往上移
-FX_XFADE = ['fadewhite', 'slideleft', 'zoomin', 'smoothup', 'circleopen', 'wipeleft', 'hblur', 'radial']   # 轉場輪流用
+FX_ZOOM = ['in', 'out', 'right', 'up']   # AI 沒挑時每段輪流：推近、拉遠、往右移、往上移
+FX_MOVES = FX_ZOOM + ['left', 'down', 'shake']
+FX_XFADE = ['fadewhite', 'slideleft', 'zoomin', 'smoothup', 'circleopen', 'wipeleft', 'hblur', 'radial']   # AI 沒挑時輪流用
+TRANS = {'fadewhite': '閃白', 'fadeblack': '黑場', 'slideleft': '左滑', 'slideup': '上滑', 'smoothup': '柔滑',
+         'zoomin': '放大', 'circleopen': '圓形展開', 'circlecrop': '圓形收合', 'wipeleft': '擦去', 'hblur': '模糊',
+         'radial': '旋轉', 'pixelize': '馬賽克', 'dissolve': '溶解', 'squeezeh': '擠壓', 'diagtl': '斜切'}
 XF = .3   # 轉場秒數
 
 
@@ -505,18 +545,28 @@ def cap_line(x, fix=lambda v: str(v or '').strip()):
 
 
 def silent_plan(src, dur, opt, note, work, n_caps):
-    base = {'title': opt['title'], 'caps': [], 'cta': '', 'tags': [], 'music': '', 'post': '', 'keep': [], 'pops': []}
+    base = {'title': opt['title'], 'caps': [], 'cta': '', 'tags': [], 'music': '', 'post': '', 'keep': [], 'pops': [],
+            'look': 'clean', 'sub_anim': '', 'moves': [], 'trans': []}
     if not os.environ.get('OPENAI_API_KEY'):
         return base
     wish = '使用者另外的要求：%s\n' % opt['wish'] if opt.get('wish') else ''
-    p = ask_ai(SILENT_PROMPT.format(n=n_caps, moods='／'.join(music_names()) or '（無）', wish=wish),
+    p = ask_ai(SILENT_PROMPT.format(n=n_caps, moods='／'.join(music_names()) or '（無）', wish=wish, fx_menu=FX_MENU,
+                                    trans='／'.join('%s %s' % kv for kv in TRANS.items())),
                '使用者說明：%s' % (note or '（無）'), frames_b64(src, dur, work))
     fix = lambda v: str(v or '').replace('私訊', '留言').strip()
     base.update({'title': opt['title'] or fix(p.get('title'))[:16], 'cta': fix(p.get('cta'))[:20],
                  'caps': [c for c in (cap_line(x, fix) for x in (p.get('caps') or [])) if c['zh']][:n_caps],
                  'tags': [fix(t)[:5] for t in (p.get('tags') or []) if fix(t)][:4],
                  'music': fix(p.get('music')), 'post': fix(p.get('post'))})
+    base.update(silent_fx(p))
     return base
+
+
+def silent_fx(p):
+    """靜音剪的特效選擇（AI 給的，不在清單裡的丟掉）。"""
+    return {'look': pick(p.get('look'), LOOKS, 'clean'), 'sub_anim': pick(p.get('sub_anim'), SUB_ANIMS, ''),
+            'moves': [m for m in (pick(x, FX_MOVES) for x in (p.get('moves') or [])) if m][:8],
+            'trans': [t for t in (pick(x, TRANS) for x in (p.get('trans') or [])) if t][:8]}
 
 
 def scenes(src):
@@ -547,17 +597,21 @@ def silent_spans(src, dur, target, beat):
     return spans or [[0, min(dur, L)]]
 
 
-def montage(src, spans, work, fx=True):
+def montage(src, spans, work, fx=True, moves=None, trans=None):
     """靜音剪：每段加運鏡（推近、拉遠、平移），段跟段之間用轉場，轉場時加「咻」的音效。回傳（成品, 每段在成品的開始秒數）。"""
     parts, lens = [], []
     for n, (a, b) in enumerate(spans):
         L = b - a
         N = max(1, int(L * FPS))
-        e = FX_ZOOM[n % len(FX_ZOOM)]
+        e = (moves or FX_ZOOM)[n % len(moves or FX_ZOOM)]
         zp = {'in': "z='1+0.12*on/%d':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2'" % N,
               'out': "z='1.12-0.12*on/%d':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2'" % N,
               'right': "z='1.12':x='(iw-iw/zoom)*on/%d':y='ih/2-ih/zoom/2'" % N,
-              'up': "z='1.12':x='iw/2-iw/zoom/2':y='(ih-ih/zoom)*(1-on/%d)'" % N}[e]
+              'up': "z='1.12':x='iw/2-iw/zoom/2':y='(ih-ih/zoom)*(1-on/%d)'" % N,
+              'left': "z='1.12':x='(iw-iw/zoom)*(1-on/%d)':y='ih/2-ih/zoom/2'" % N,
+              'down': "z='1.12':x='iw/2-iw/zoom/2':y='(ih-ih/zoom)*on/%d'" % N,
+              'shake': "z='1.08':x='iw/2-iw/zoom/2+%d*sin(on*1.6)':y='ih/2-ih/zoom/2+%d*cos(on*1.9)'" % (max(4, W // 70), max(4, H // 110))}.get(e)
+        zp = zp or "z='1+0.12*on/%d':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2'" % N
         chain = vf() + (';[v]zoompan=%s:d=1:s=%dx%d:fps=%d,setsar=1[w]' % (zp, W, H, FPS) if fx else ';[v]null[w]')
         out = os.path.join(work, 'm%03d.mp4' % n)
         run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', '%.3f' % a, '-t', '%.3f' % L, '-i', src,
@@ -579,7 +633,7 @@ def montage(src, spans, work, fx=True):
         fc, prev = [], '0:v'
         for i in range(1, len(parts)):
             fc.append('[%s][%d:v]xfade=transition=%s:duration=%.2f:offset=%.3f[x%d]' % (
-                prev, i, FX_XFADE[(i - 1) % len(FX_XFADE)], xf, starts[i], i))
+                prev, i, (trans or FX_XFADE)[(i - 1) % len(trans or FX_XFADE)], xf, starts[i], i))
             prev = 'x%d' % i
         vmap = '[%s]' % prev
     else:
@@ -604,17 +658,41 @@ def long_size(src_wh, est_sec):
     return max(2, int(w * k) // 2 * 2), max(2, int(h * k) // 2 * 2)
 
 
-def cut(src, spans, has_audio, work, punch=False):
+def span_shots(spans, plan, segs):
+    """每段剪輯區間的鏡頭特效：看這段屬於哪一句，用 AI 給那句的 fx。回傳 [(特效, 這段在整句的開始比例, 結束比例)]。"""
+    out = []
+    for a, b in spans:
+        mid, shot = (a + b) / 2, ('', 0, 1)
+        for kp in (plan or {}).get('keep') or []:
+            s = segs[kp['i']]
+            s0, s1 = s['start'] - .15, s['end'] + .25
+            if s0 - .2 <= mid <= s1 + .2:
+                fx, k = kp.get('fx') or '', max(.1, s1 - s0)
+                p0, p1 = min(1, max(0, (a - s0) / k)), min(1, max(0, (b - s0) / k))
+                if fx == 'shake' and p0 > .1:   # 震動只在這句一開始
+                    fx = ''
+                shot = (fx if fx in ('zoom', 'push', 'shake') else '', p0, max(p0, p1))
+                break
+        out.append(shot)
+    return out
+
+
+def cut(src, spans, has_audio, work, punch=False, shots=None):
     parts, near = [], False
     for n, (a, b) in enumerate(spans):
-        if punch and n and b - a >= 1.5:   # 夠長的段落才換鏡頭，太碎會晃
+        shot = shots[n] if shots and n < len(shots) else ('', 0, 1)
+        move = shot[0] if punch else ''
+        if shots and punch:   # AI 有挑特效：照每句挑的；沒挑的句子不推近
+            near = move == 'zoom'
+            move = '' if move == 'zoom' else move
+        elif punch and n and b - a >= 1.5:   # 夠長的段落才換鏡頭，太碎會晃
             near = not near
-        zoom = 1.1 if punch and near else 1.0
+        zoom = 1.12 if punch and near else 1.0
         out = os.path.join(work, 'part%03d.mp4' % n)
         cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-ss', '%.3f' % a, '-t', '%.3f' % (b - a), '-i', src]
         if not has_audio:
             cmd += ['-f', 'lavfi', '-t', '%.3f' % (b - a), '-i', 'anullsrc=r=48000:cl=stereo']
-        cmd += ['-filter_complex', vf(zoom), '-map', '[v]', '-map', '0:a:0' if has_audio else '1:a',
+        cmd += ['-filter_complex', vf(zoom, move, b - a, shot[1:]), '-map', '[v]', '-map', '0:a:0' if has_audio else '1:a',
                 '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-r', str(FPS),
                 '-c:a', 'aac', '-ar', '48000', '-ac', '2', '-b:a', '192k', out]
         run(cmd)
@@ -664,6 +742,18 @@ def remapper(spans):
 
 def chip_w(text, fs):
     return int(sum(fs * (.55 if ord(c) < 128 else 1.0) for c in text) + fs * .6)
+
+
+def sub_anim(kind, x, y, extra='', an=2):
+    """字幕跳出來的動畫（x, y 是字幕位置）：pop 彈出／slide 往上滑／wipe 由左刷出／bounce 壓扁再彈起來。"""
+    if kind == 'slide':
+        return '{\\an%d\\move(%d,%d,%d,%d,0,200)\\fad(100,0)%s}' % (an, x, y + max(30, H // 30), x, y, extra)
+    if kind == 'wipe':
+        return '{\\an%d\\pos(%d,%d)\\clip(0,0,0,%d)\\t(0,260,\\clip(0,0,%d,%d))%s}' % (an, x, y, H, W, H, extra)
+    if kind == 'bounce':
+        return ('{\\an%d\\pos(%d,%d)\\fscx125\\fscy65\\t(0,90,\\fscx92\\fscy115)\\t(90,170,\\fscx104\\fscy96)'
+                '\\t(170,240,\\fscx100\\fscy100)\\fad(40,0)%s}' % (an, x, y, extra))
+    return '{\\an%d\\pos(%d,%d)\\fad(60,0)\\fscx86\\fscy86\\t(0,110,\\fscx105\\fscy105)\\t(110,190,\\fscx100\\fscy100)%s}' % (an, x, y, extra)
 
 
 LAND_Y = {'bottom': .06, 'lower': .09, 'middle': .40, 'upper': .72}   # 橫的大片：字幕底邊離下面的比例
@@ -766,12 +856,24 @@ def build_ass(plan, segs, spans, opt, total, path):
                 else:
                     txt = hl(zh, ass_color(opt['sub_color'])) + '\\N{\\fs%d\\b0\\alpha&H18&}' % fs_en + eng
                     flat = plain(zh) + '\\N{\\fs%d\\b0}' % fs_en + eng
-                if fx:   # 每句彈一下跳出來，後面一層柔光
-                    add(0, t, t + d, 'Glow', '{\\fad(60,0)\\blur%d}' % px(10) + flat)
-                    add(1, t, t + d, 'Sub', '{\\fad(60,0)\\fscx86\\fscy86\\t(0,110,\\fscx105\\fscy105)\\t(110,190,\\fscx100\\fscy100)}' + txt)
+                if fx:   # 每句照 AI 挑的方式跳出來，後面一層柔光；震動的句子字也抖一下
+                    first = l is kp['lines'][0]
+                    shake = '\\frz-4\\t(0,70,\\frz4)\\t(70,140,\\frz-3)\\t(140,210,\\frz2)\\t(210,280,\\frz0)' if kp.get('fx') == 'shake' and first else ''
+                    add(0, t, t + d, 'Glow', sub_anim(plan.get('sub_anim'), W // 2, H - mv, '\\blur%d' % px(10)) + flat)
+                    add(1, t, t + d, 'Sub', sub_anim(plan.get('sub_anim'), W // 2, H - mv, shake) + txt)
                 else:
                     add(1, t, t + d, 'Sub', '{\\fad(60,0)}' + txt)
                 t += d
+    if fx:   # 閃白：換話題、轉折的句子開頭整個畫面白一下
+        for kp in plan.get('keep') or []:
+            st = remap(segs[kp['i']]['start'], 'start') if kp.get('fx') in ('flash', 'shake') else None
+            if st is None or st < .3:
+                continue
+            if kp['fx'] == 'flash':
+                SFX.append((max(0, st - .2), 'whoosh'))
+                add(6, st, st + .35, 'Bar', '{\\an7\\pos(0,0)\\1c&HFFFFFF&\\1a&H30&\\t(0,350,\\1a&HFF&)\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}' % (W, W, H, H))
+            else:
+                SFX.append((st, 'hit'))
     if opt['cards']:
         for pp in plan.get('pops') or []:
             st = remap(segs[pp['i']]['start'], 'start')
@@ -790,7 +892,9 @@ def build_ass(plan, segs, spans, opt, total, path):
         if fx:   # 柔光
             add(0, a, b, 'Cap', '{\\an5\\pos(%d,%d)\\1a&HFF&\\3c&H000000&\\3a&H70&\\bord%d\\blur%d\\fad(200,150)}%s'
                 % (W // 2, cy, px(16), px(12), plain(cap['zh']) + ('\\N{\\fs%d}%s' % (px(44 if not land else 34), plain(en)) if en else '')))
-        if i % 2 == 0:
+        if fx and plan.get('sub_anim'):   # AI 挑了字幕動畫就統一用那種
+            anim = sub_anim(plan['sub_anim'], W // 2, cy, '', an=5)
+        elif i % 2 == 0:
             anim = '{\\an5\\pos(%d,%d)\\fscx55\\fscy55\\t(0,150,\\fscx112\\fscy112)\\t(150,260,\\fscx100\\fscy100)\\fad(60,150)}' % (W // 2, cy)
         else:
             anim = '{\\an5\\move(%d,%d,%d,%d,0,220)\\fad(120,150)}' % (W // 2, cy + px(90), W // 2, cy)
@@ -869,11 +973,11 @@ def sfx_inputs(events, total, first):
     return args, ';'.join(fc)
 
 
-def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None):
+def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean'):
     # 控制檔案大小，Telegram 機器人傳影片上限 50MB
     kbps = int(min(6000, (TG_LIMIT * 8 / 1000) / max(total, 1) - 200))
-    vf = "[0:v]%sass='%s'[v]" % ('eq=contrast=1.06:saturation=1.12,' if grade else '',
-                                ass.replace("'", "\\'").replace(':', '\\:'))   # 調色：對比、飽和度稍微拉高
+    vf = "[0:v]%sass='%s'[v]" % (LOOKS.get(look, LOOKS['clean']) + ',' if grade else '',
+                                ass.replace("'", "\\'").replace(':', '\\:'))   # 調色：AI 依氣氛挑（溫暖、冷調、電影感…）
     cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-i', joined]
     fade = 'afade=t=in:d=0.3,afade=t=out:st=%.2f:d=1.5' % max(0, total - 1.5)
     if music:
@@ -942,6 +1046,7 @@ def silent_cut(src, opt, note, dur, has_audio, work, music_file, given):
         plan = {'title': opt['title'], 'caps': [], 'cta': '', 'tags': [], 'music': '', 'post': '', 'keep': [], 'pops': []}
     if isinstance(given, dict):   # 本機測試：直接給字幕
         plan.update({k: v for k, v in given.items() if v})
+        plan.update(silent_fx(plan))
     music, mine = get_music(music_file, opt, plan, work)
     if MODE == 'long':
         spans = [[0, dur]]
@@ -950,7 +1055,7 @@ def silent_cut(src, opt, note, dur, has_audio, work, music_file, given):
     else:
         beat = 60.0 / MUSIC_BPM.get(os.path.basename(music or '')[:-4], 100)
         spans = silent_spans(src, dur, opt['target'], beat)
-        joined, starts = montage(src, spans, work, opt['fx'])
+        joined, starts = montage(src, spans, work, opt['fx'], plan.get('moves'), plan.get('trans'))
         plan['xfades'] = starts[1:] if opt['fx'] else []   # 轉場的時間點（加「咻」）
     total = float(json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-of', 'json', joined]))['format']['duration'])
     intro = min(opt['title_sec'], total) if plan.get('title') else 0
@@ -968,6 +1073,30 @@ def silent_cut(src, opt, note, dur, has_audio, work, music_file, given):
         plan['cta_t'] = (tail, total, plan['cta'])
     plan['tags'] = []   # 靜音剪畫面字很多，開頭不放標籤
     return joined, spans, plan, total, music, mine
+
+
+def fx_summary(plan, opt, silent):
+    """這支影片用了哪些特效（給 Telegram 說明用）。"""
+    if not opt['fx'] or not plan:
+        return ''
+    out = ['%s調色' % LOOK_NAME.get(plan.get('look') or 'clean', '自然')]
+    if plan.get('sub_anim'):
+        out.append('%s字幕' % SUB_ANIMS[plan['sub_anim']])
+    if silent and MODE == 'long':   # 靜音大片整段保留，沒有運鏡和轉場
+        pass
+    elif silent:
+        mv = {'in': '推近', 'out': '拉遠', 'right': '右移', 'left': '左移', 'up': '上移', 'down': '下移', 'shake': '震動'}
+        if plan.get('moves'):
+            out.append('運鏡' + '／'.join(dict.fromkeys(mv[m] for m in plan['moves'])))
+        if plan.get('trans'):
+            out.append('轉場' + '／'.join(dict.fromkeys(TRANS[t] for t in plan['trans'])))
+    else:
+        n = {}
+        for k in plan.get('keep') or []:
+            if k.get('fx'):
+                n[k['fx']] = n.get(k['fx'], 0) + 1
+        out += ['%s×%d' % (SHOT_FX[k], v) for k, v in n.items()]
+    return '、'.join(out)
 
 
 def make(src, out, note, transcript=None, style='', mode='reels', music_file='', kind='auto'):
@@ -1004,8 +1133,9 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
             plan = plan_clips(segs, opt, note) if speech and os.environ.get('OPENAI_API_KEY') else None
             if speech and plan is None and transcript is not None:   # 本機測試：沒有 AI 就全部保留、英文留空
                 plan = {'title': opt['title'] or '測試標題', 'post': '', 'tags': ['字幕', '剪輯', '動畫', '字卡'],
+                        'look': pick(segs[0].get('look'), LOOKS, 'clean'), 'sub_anim': pick(segs[0].get('sub_anim'), SUB_ANIMS, 'pop'),
                         'pops': [{'i': i, 'text': s['pop']} for i, s in enumerate(segs) if s.get('pop')],
-                        'keep': [{'i': i, 'lines': s.get('lines') or [{'zh': s['text'], 'en': s.get('en', '')}]}
+                        'keep': [{'i': i, 'fx': pick(s.get('fx'), SHOT_FX), 'lines': s.get('lines') or [{'zh': s['text'], 'en': s.get('en', '')}]}
                                  for i, s in enumerate(segs)]}
             if plan and plan['keep']:
                 spans = clips_from_plan(plan, segs, dur)
@@ -1019,7 +1149,8 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
                 W, H = long_size(src_wh, sum(b - a for a, b in spans))
             log('口播剪：原片 %.1f 秒 → 剪成 %d 段、共 %.1f 秒（%s %dx%d）'
                 % (dur, len(spans), sum(b - a for a, b in spans), MODE, W, H))
-            joined = cut(src, spans, has_audio, work, punch=opt['fx'])
+            shots = span_shots(spans, plan, segs) if plan and any(k.get('fx') for k in plan.get('keep') or []) else None
+            joined = cut(src, spans, has_audio, work, punch=opt['fx'], shots=shots)
             total = float(json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-of', 'json', joined]))['format']['duration'])
             music, mine = get_music(music_file, opt, plan, work)
         ass = os.path.join(work, 'subs.ass')
@@ -1027,7 +1158,10 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         silent = opt['kind'] == 'silent'
         sfx = (list(SFX) + [(t - .25, 'whoosh') for t in (plan or {}).get('xfades') or []]) if opt['sfx'] else []
         log('音效 %d 個' % len(sfx))
-        thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent else .35, grade=opt['fx'], sfx=sfx)
+        look = (plan or {}).get('look') or 'clean'
+        thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent else .35, grade=opt['fx'], sfx=sfx, look=look)
+        fx_desc = fx_summary(plan, opt, silent)
+        log('特效：' + (fx_desc or '無'))
         diff = subs_check(joined, out, ass, work) if n else None
         if diff is not None:
             log('字幕檢查：畫面差異 %.1f%s' % (diff, '' if diff >= 1.5 else '　⚠️ 字幕可能沒有畫上去'))
@@ -1035,7 +1169,7 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
             raise Oops('剪好的影片太大，傳不回 Telegram。請在說明寫短一點的秒數（例如「剪 Reels 30秒」）再試一次。')
         shutil.copy(thumb, out + '.jpg')
         return {'seconds': total, 'clips': len(spans), 'subs': n, 'subs_diff': diff, 'subs_lang': opt['subs'],
-                'kind': opt['kind'], 'fx': opt['fx'],
+                'kind': opt['kind'], 'fx': opt['fx'], 'fx_desc': fx_desc,
                 'music': '你的配樂' if mine else os.path.basename(music or '')[:-4],
                 'credit': '' if mine else music_credit(music),
                 'title': (plan or {}).get('title', ''), 'post': (plan or {}).get('post', '')}
@@ -1081,11 +1215,13 @@ def main():
             cap = '🎬 第 %s 版試剪好了（%s）' % (ver, '%d 秒' % secs if secs < 90 else '%d 分 %d 秒' % divmod(secs, 60))
             if info['title']:
                 cap += '\n標題：' + info['title']
+            if info.get('fx_desc'):
+                cap += '\n特效（小乖依這支影片挑的）：' + info['fx_desc']
             silent = info['kind'] == 'silent'
             cap += '\n' + '、'.join(x for x in ['大片 %d×%d' % (W, H) if MODE == 'long' else 'Reels 直式 9:16',
                                                 '靜音剪' if silent else '口播剪',
                                                 ('文字動畫' if silent else {'both': '中英字幕', 'zh': '中文字幕', 'en': '英文字幕'}.get(info['subs_lang'], '')) if info['subs'] else '',
-                                                ('運鏡＋轉場' if silent else '推近鏡頭') if info['fx'] else '',
+                                                ('運鏡＋轉場' if silent else '推近鏡頭') if info['fx'] and not info.get('fx_desc') else '',
                                                 '配樂「%s」' % info['music'] if info['music'] else ''] if x)
             cap += ('\n\n想改哪裡，長按這支影片按「回覆」直接說，例如：'
                     '\n・字幕大一點／放上面一點\n・開頭標題久一點\n・剪成 30 秒\n・換溫暖鋼琴的配樂／不要配樂\n・不要特效／不要進度條'
