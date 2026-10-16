@@ -895,8 +895,8 @@ function cardLayout_(c, minH) {
   let fs = 28;
   while (fs > 18 && bodyH(fs) > 430) fs--;
   const BH = bodyH(fs);
-  const GF = 19;   // 金句字級
-  const goldH = c.gold ? lines(c.gold, GF, TW - 40) * GF * 1.6 + 30 : 0;
+  const GF = 26;   // 金句字級（2026-10-16 使用者要再加大）
+  const goldH = c.gold ? lines(c.gold, GF, TW - 40) * GF * 1.6 + 36 : 0;
   const tagLines = c.tags.length ? lines(c.tags.join('  '), 14, TW) : 0;
   const top = 190;
   let y = top + BH + 14;
