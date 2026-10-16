@@ -32,6 +32,10 @@ on:
         description: 你在 Telegram 傳的配樂（音樂檔編號，可空白）
         required: false
         default: ''
+      kind:
+        description: 種類（talk 口播／silent 靜音／auto 自動判斷）
+        required: false
+        default: 'auto'
 
 permissions:
   contents: read
@@ -68,4 +72,5 @@ jobs:
           VERSION: ${{ inputs.version }}
           MODE: ${{ inputs.mode }}
           MUSIC_FILE: ${{ inputs.music }}
+          KIND: ${{ inputs.kind }}
         run: python3 reels/reels.py --out "$RUNNER_TEMP/reels.mp4"
