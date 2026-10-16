@@ -891,17 +891,20 @@ function cardLayout_(c, minH) {
   const lines = (s, size, w) => String(s || '').split('\n')
     .reduce((n, l) => n + Math.max(1, Math.ceil(units(l) / Math.floor((w - 14) / size))), 0);
   const bodyH = fs => lines(c.body, fs, TW) * fs * 1.85 + 12;   // 行距 150% × 字體本身約 1.2 倍
-  let fs = 20;   // 圖卡內文短，字放大一點；太長才縮到 12
-  while (fs > 12 && bodyH(fs) > 380) fs--;
+  // 2026-10-16 使用者要「字體全部再加大」：內文 28 起跳，太長才縮到 18
+  let fs = 28;
+  while (fs > 18 && bodyH(fs) > 430) fs--;
   const BH = bodyH(fs);
-  const goldH = c.gold ? lines(c.gold, 13, TW - 40) * 13 * 1.6 + 28 : 0;
-  const top = 168;
+  const GF = 19;   // 金句字級
+  const goldH = c.gold ? lines(c.gold, GF, TW - 40) * GF * 1.6 + 30 : 0;
+  const tagLines = c.tags.length ? lines(c.tags.join('  '), 14, TW) : 0;
+  const top = 190;
   let y = top + BH + 14;
-  const goldTop = y; y += goldH + (c.gold ? 12 : 0);
-  const noteTop = y; y += c.note ? 22 : 0;
-  const tagTop = y; y += 22;
-  const footTop = Math.max(y + 16, 625, (minH || 0) - 50);   // 3 張一起畫時高度要一樣
-  const H = footTop + 50;
+  const goldTop = y; y += goldH + (c.gold ? 14 : 0);
+  const noteTop = y; y += c.note ? 28 : 0;
+  const tagTop = y; y += tagLines * 22 + 4;
+  const footTop = Math.max(y + 16, 619, (minH || 0) - 56);   // 3 張一起畫時高度要一樣
+  const H = footTop + 56;
   const sh = Math.max(0, Math.round((footTop - (y + 16)) / 2));   // 內容短時，標題到標籤整塊往下移到中間
 
   const build = slide => {
@@ -932,18 +935,20 @@ function cardLayout_(c, minH) {
     };
     shape('RECTANGLE', 16, 16, W - 32, H - 32, null, '#C9A56A');
     shape('RECTANGLE', 22, 22, W - 44, H - 44, null, '#4A3F2C');
-    text('生活筆記「' + (c.topic || c.label) + '」', X, 34, TW, 32, 19, '#E9D3A2', { bold: true });
-    shape('RECTANGLE', W / 2 - 30, 72, 60, 1, '#C9A56A', null);
-    text(c.title, X, 82 + sh, TW, 70, c.title.length > 10 ? 22 : 26, '#F1DFB4', { bold: true, serif: true });
+    text('生活筆記「' + (c.topic || c.label) + '」', X, 32, TW, 38, 24, '#E9D3A2', { bold: true });
+    shape('RECTANGLE', W / 2 - 30, 78, 60, 1, '#C9A56A', null);
+    text(c.title, X, 88 + sh, TW, 86, c.title.length > 10 ? 28 : 34, '#F1DFB4', { bold: true, serif: true });
     text(c.body, X, top + sh, TW, BH, fs, '#EDE6D6', { align: 'START', valign: 'TOP', ls: 150 });
     if (c.gold) {
       shape('ROUND_RECTANGLE', X, goldTop + sh, TW, goldH, '#1E1A14', '#C9A56A');
-      text(c.gold, X + 20, goldTop + sh, TW - 40, goldH, 13, '#E9D3A2', { bold: true, serif: true, ls: 130 });
+      text(c.gold, X + 20, goldTop + sh, TW - 40, goldH, GF, '#E9D3A2', { bold: true, serif: true, ls: 130 });
     }
-    if (c.note) text(c.note, X, noteTop + sh, TW, 20, 10, '#B9AE98');
-    if (c.tags.length) text(c.tags.join('  '), X, tagTop + sh, TW, 20, 9, '#9C8F78');
+    if (c.note) text(c.note, X, noteTop + sh, TW, 24, 14, '#B9AE98');
+    if (c.tags.length) text(c.tags.join('  '), X, tagTop + sh, TW, tagLines * 22, 14, '#9C8F78', { ls: 120 });
     shape('RECTANGLE', W / 2 - 70, footTop - 10, 140, 0.8, '#C9A56A', null);
-    text(cardBy_(), X, footTop - 3, TW, 24, 14, '#F1DFB4', { bold: true });
+    text(cardBy_(), X, footTop - 3, TW, 30, 18, '#F1DFB4', { bold: true });
+    // 右下角頁碼（3 張一組：1/3、2/3、3/3）
+    if (c.total > 1) text(c.idx + ' / ' + c.total, W - 120, H - 52, 86, 26, 16, '#C9A56A', { bold: true, serif: true, align: 'END' });
     return req;
   };
   return { W: W, H: H, build: build };
@@ -951,7 +956,8 @@ function cardLayout_(c, minH) {
 
 // 3 張圖卡：同一份簡報畫 3 頁，一次輸出（比一張一張開簡報快很多）
 function cardPngs_(c) {
-  const list = (c.cards && c.cards.length ? c.cards : [c]).map(x => Object.assign({}, c, x));
+  const all = c.cards && c.cards.length ? c.cards : [c];
+  const list = all.map((x, i) => Object.assign({}, c, x, { idx: i + 1, total: all.length }));
   const H = Math.max.apply(null, list.map(x => cardLayout_(x).H));
   const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm');
   return layoutPngs_(list.map(x => cardLayout_(x, H)),
