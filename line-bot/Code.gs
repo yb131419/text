@@ -526,9 +526,9 @@ function handleLine_(ev) {
     if (!said) return reply_(ev.replyToken, '語音聽不清楚，再說一次或改打字看看。', null, true);
     const ans = answer_(said);
     if (KIT_PENDING_) {
-      reply_(ev.replyToken, '🎤 「' + said + '」\n\n' + ans, null, false);
+      reply_(ev.replyToken, '🎤 「' + said + '」\n\n' + ans, null, true);
       const fail = kitRun_(() => kitLine_(uid));
-      if (fail) lineApi_('push', { to: uid, messages: [{ type: 'text', text: String(fail.text || fail) }] });
+      if (fail) lineApi_('push', { to: uid, messages: withQuick_([{ type: 'text', text: String(fail.text || fail) }], fail.buttons) });
       return;
     }
     const rp = reportLine_();
@@ -537,7 +537,7 @@ function handleLine_(ev) {
     return reply_(ev.replyToken, rp.short ? '🎤 「' + said + '」\n\n' + rp.short : withVoice_(said, ans), rp.msgs.concat(card, caseLine_(), voice).slice(0, 4), true);
   }
   if (ev.message.type !== 'text') {
-    if (uid === owner) reply_(ev.replyToken, '小乖目前看得懂文字、圖片和語音，其他類型還不行喔。');
+    if (uid === owner) reply_(ev.replyToken, '小乖目前看得懂文字、圖片和語音，其他類型還不行喔。', null, true);
     return;
   }
 
@@ -547,16 +547,16 @@ function handleLine_(ev) {
     if (owner && owner !== uid) return;   // 已經有主人：別人一律不回
     if (bind[1] !== prop_('SYNC_KEY')) return reply_(ev.replyToken, '同步密碼不對喔，再確認一次。');
     setProp_('OWNER_USER_ID', uid);
-    return reply_(ev.replyToken, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。');
+    return reply_(ev.replyToken, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。', null, true);
   }
   if (!owner) return reply_(ev.replyToken, '請先傳「綁定 你的同步密碼」完成綁定。');
   if (uid !== owner) return;   // 只回主人，其他人不回應
 
   const ans = answer_(text);
   if (KIT_PENDING_) {   // 7張＋PDF：先回「製作中」，做好用推播送
-    reply_(ev.replyToken, ans, null, false);
+    reply_(ev.replyToken, ans, null, true);
     const fail = kitRun_(() => kitLine_(uid));
-    if (fail) lineApi_('push', { to: uid, messages: [{ type: 'text', text: String(fail.text || fail) }] });
+    if (fail) lineApi_('push', { to: uid, messages: withQuick_([{ type: 'text', text: String(fail.text || fail) }], fail.buttons) });
     return;
   }
   const rp = reportLine_();
@@ -1515,8 +1515,8 @@ function kitLine_(to) {
   });
   const send = msgs => lineApi_('push', { to: to, messages: msgs });
   if (imgs.length) send(imgs.slice(0, 5));
-  send(imgs.slice(5).concat([{ type: 'text', text: (stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit)).slice(0, 5000) },
-    { type: 'text', text: kitDoneText_(kit, r) }]).slice(0, 5));
+  send(withQuick_(imgs.slice(5).concat([{ type: 'text', text: (stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit)).slice(0, 5000) },
+    { type: 'text', text: kitDoneText_(kit, r) }]).slice(0, 5), [[KIT_BTN, STRAT_SWITCH]].concat(MENU)));
 }
 // Telegram：7 張一組相簿＋PDF 檔
 function kitTg_(chatId) {
@@ -2661,8 +2661,14 @@ function reply_(replyToken, msg, extra, menu) {
   lineApi_('reply', { replyToken: replyToken, messages: (extra || []).concat([m]).slice(0, 5) });
 }
 
+// 推播的最後一則也帶快速回覆按鈕（2026-10-16 使用者：「回覆訊息後維持快速回覆」）
+function withQuick_(msgs, buttons) {
+  const last = msgs[msgs.length - 1];
+  if (last && !last.quickReply) last.quickReply = { items: [].concat.apply([], quick_(buttons || MENU)).slice(0, 13).map(lineQuick_) };
+  return msgs;
+}
 function push_(to, text) {
-  lineApi_('push', { to: to, messages: [{ type: 'text', text: String(text).slice(0, 5000) }] });
+  lineApi_('push', { to: to, messages: withQuick_([{ type: 'text', text: String(text).slice(0, 5000) }]) });
 }
 
 function lineApi_(kind, payload) {
