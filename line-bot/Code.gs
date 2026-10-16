@@ -1265,13 +1265,13 @@ let LAST_KIT_ = null, KIT_PENDING_ = '';   // 剛寫好的 7 張＋PDF 內容；
 // 款式（2026-10-16 使用者要「能選擇款式」）：底圖放在 line-bot/kit/<d>，字的顏色跟著換
 const KIT_LIGHT = { ink: '#2A221A', soft: '#5B4F40', gold: '#A07C34', mute: '#8D7F6C', top: '#9C7A3E', lab: '#7C6B55', orn: '#B8914A', sub: '#6E604E', strike: '#A39A8C', rule: '#C9AE7A' };
 const KIT_DARK = (soft, lab, mute) => ({ ink: '#F3EBDD', soft: soft, gold: '#D9B867', mute: mute, top: '#C9A65A', lab: lab, orn: '#C9A65A', sub: lab, strike: mute, rule: '#8C7440' });
-// 淺綠款封面：灰白色系「暖灰香檳」（使用者 2026-10-16 要灰白）——暖灰紙底＋香檳金框，墨黑大字、金色重點
+// 暖灰款（原淺綠）封面：灰白色系「暖灰香檳」（使用者 2026-10-16 要灰白）——暖灰紙底＋香檳金框，墨黑大字、金色重點
 const KIT_COVER_MINT = { ink: '#2A2620', gold: '#9C7A3E', top: '#9C7A3E', sub: '#5F574C', series: '#2A2620', by: '#2A2620' };   // 2026-10-16 改灰白色系（暖灰香檳）
-const KIT_STYLES = [   // 使用者 2026-10-16 只留 V1（綠底）、L3（淺綠）
+const KIT_STYLES = [   // 使用者 2026-10-16 只留 V1（綠底）、L3（淺綠→2026-10-16 改暖灰香檳、改名暖灰）
   { n: '綠底', d: 'emerald/', tip: '封面黑金＋內頁象牙白卡、祖母綠底', c: KIT_LIGHT },
-  { n: '淺綠', d: 'mint/', tip: '封面暖灰香檳＋內頁淺綠卡、灰綠底', cv: KIT_COVER_MINT, c: Object.assign({}, KIT_LIGHT, { ink: '#1B2C29', soft: '#465D58', mute: '#6A807B', lab: '#6A807B', sub: '#6A807B' }) }];
+  { n: '暖灰', old: '淺綠', d: 'mint/', tip: '封面＋內頁暖灰香檳（暖灰紙、香檳金框）', cv: KIT_COVER_MINT, c: Object.assign({}, KIT_LIGHT, { ink: '#2A2620', soft: '#5F574C', mute: '#8A8276', lab: '#8A7A62', sub: '#6E655A' }) }];
 let KIT_S_ = KIT_STYLES[0];   // 這次畫圖用的款式（kitMake_ 依 kit.style 設定）
-const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n)[0] || KIT_STYLES[0];
+const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n || x.old === n)[0] || KIT_STYLES[0];   // 舊按鈕「淺綠」也認得
 
 function kitMenu_() {
   const b = STRAT_THEMES.map(t => '📕 ' + t.btn.replace(/^[^\p{L}\p{N}]+/u, ''));
@@ -1283,7 +1283,7 @@ function kitPick_(raw) {
   if (t === KIT_BTN || /^(7張|七張)[＋+]?PDF$|^名單包$/i.test(t.replace(/^📕 ?|\s/g, ''))) return 'menu';
   const th = name => STRAT_THEMES.filter(x => x.btn.replace(/^[^\p{L}\p{N}]+/u, '') === name)[0];
   const st = t.match(/^🎨 ?(\S+?)・(\S+)$/);   // 「🎨 健康・綠底」：主題＋款式都選好了
-  if (st) { const hit = th(st[1]); return hit && KIT_STYLES.some(x => x.n === st[2]) ? hit.k + '|' + st[2] : null; }
+  if (st) { const hit = th(st[1]); const sy = KIT_STYLES.filter(x => x.n === st[2] || x.old === st[2])[0]; return hit && sy ? hit.k + '|' + sy.n : null; }
   const m = t.match(/^📕 ?(\S+)$/);
   if (!m) return null;
   const hit = th(m[1]);
