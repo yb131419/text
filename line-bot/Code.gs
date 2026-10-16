@@ -1314,14 +1314,19 @@ function kitWrite_(k) {
     hist.length ? '【避免重複】最近做過：' + hist.join('、') + '，這次換一個不同的主題。' : '',
     '只輸出 JSON：{"cat":"分類","series":"","keyword":"","slides":[{"kind":"cover","label":"","head":"","sub":""},{"kind":"action","step":"動作一","head":"","body":""},…,{"kind":"reason","label":"","head":""},{"kind":"last","pre":"","head":""},{"kind":"cta","head":"","cta":"","sub":""}],"pdf":{"kicker":"","title":"","intro":"","before":{…},"actions":[…],"check":{…},"final":{…}},"post_title":"","post":"","tags":[]}',
   ].filter(Boolean).join('\n');
-  let c;
-  try {
-    const out = callOpenAI_(sys, [{ role: 'user', content: '請做一組「' + th.name + '」的名單包。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。' }]);
-    c = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
-  } catch (err) {
-    console.error('7張＋PDF 文案失敗：' + err.message);
-    return { text: '這次沒寫出來，再按一次試試看。', buttons: [[KIT_BTN]] };
+  // 名單包是很長的 JSON（貼文＋7 張＋7 頁），以前上限 2500 字元會被截斷 → JSON 壞掉；現在給 12000 並用 JSON 模式，失敗再自動重寫一次
+  let c, why = '';
+  for (let i = 0; i < 2 && !c; i++) {
+    try {
+      const out = String(callOpenAI_(sys, [{ role: 'user', content: '請做一組「' + th.name + '」的名單包。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。' }], true, null, { maxTokens: 12000, temperature: 0.7 }));
+      c = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+    } catch (err) {
+      why = err.message;
+      console.error('7張＋PDF 文案失敗（第 ' + (i + 1) + ' 次）：' + why);
+      if (/金鑰/.test(why)) break;
+    }
   }
+  if (!c) return { text: /金鑰/.test(why) ? 'OpenAI 金鑰無效，沒辦法寫文案，請檢查 OPENAI_API_KEY。' : /OpenAI 回應 429/.test(why) ? 'OpenAI 額度或速度上限到了，等一下再按一次。' : '這次沒寫出來，再按一次試試看。', buttons: [[KIT_BTN]] };
   const kit = kitClean_(c, th, k);
   if (!kit) return { text: '這次寫出來的格式不對，再按一次試試看。', buttons: [[KIT_BTN]] };
   hist.unshift(kit.series);
@@ -3809,12 +3814,17 @@ function reportErrText_() {
 }
 
 /* ============ OpenAI ============ */
-function callOpenAI_(system, messages, asJson, modelOverride) {
+// opt：{ maxTokens, temperature }，長篇 JSON（名單包）用，避免被截斷
+function callOpenAI_(system, messages, asJson, modelOverride, opt) {
+  opt = opt || {};
   const model = modelOverride || prop_('MODEL') || 'gpt-4o-mini';
   const body = { model: model, messages: [{ role: 'system', content: system }].concat(messages) };
   if (asJson) body.response_format = { type: 'json_object' };
-  if (/^gpt-5/.test(model)) body.max_completion_tokens = 4000;
-  else { body.max_tokens = asJson ? 6000 : 2500; body.temperature = asJson ? 0 : 0.6; }   // 辨識明細表要穩定、不能被截斷
+  if (/^gpt-5/.test(model)) body.max_completion_tokens = Math.max(4000, (opt.maxTokens || 0) + 4000);
+  else {   // 辨識明細表要穩定、不能被截斷
+    body.max_tokens = opt.maxTokens || (asJson ? 6000 : 2500);
+    body.temperature = opt.temperature != null ? opt.temperature : (asJson ? 0 : 0.6);
+  }
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
