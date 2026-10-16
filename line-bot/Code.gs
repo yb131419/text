@@ -915,6 +915,15 @@ function evAsk_(s) {
     .forEach(t => { t = String(t || '').trim(); if (t && t.length <= 14 && !seen[t] && names.length < 10) { seen[t] = 1; names.push(t); } });
   return { text: head + '④ 要做什麼？點下面的，或直接打／用語音說。\n（你打什麼就存什麼，小乖不會改字）', buttons: [names, ['❌ 取消']] };
 }
+// 有時間的行程自動加「開始前 30 分鐘」提醒（跟小乖主頁一樣；2026-10-16 使用者選「要提醒」）
+function evRemind_(d, ev) {
+  if (!ev.time) return false;
+  const t = parseAt_(ev.date + 'T' + hm_(ev.time));
+  if (!t || t - 30 * 6e4 <= Date.now()) return false;
+  d.reminders.push({ id: uid_(), text: '30 分鐘後：' + ev.title + (ev.place ? '（' + ev.place + '）' : ''), at: fmtAt_(t - 30 * 6e4),
+    repeat: 'none', fired: false, src: ev.id, u: Date.now() });
+  return true;
+}
 function evFlow_(t, raw) {
   const flat = String(t || '').replace(/\s+/g, '');
   const rawS = String(raw || '').trim();
@@ -939,7 +948,7 @@ function evFlow_(t, raw) {
   }
   if (/^(復原|復原行程)$/.test(flat) && prop_('EV_UNDO')) {
     const x = JSON.parse(prop_('EV_UNDO')); setProp_('EV_UNDO', '');
-    withLock_(() => { const d = readAll_(); x.id = uid_(); x.u = Date.now(); d.events.push(x); writeAll_(d); });
+    withLock_(() => { const d = readAll_(); x.id = uid_(); x.u = Date.now(); d.events.push(x); evRemind_(d, x); writeAll_(d); });
     return listDelEvents_('↩️ 已經放回去了：' + evMd_(x.date) + ' ' + (x.time || '整天') + '　' + x.title);
   }
   if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 近期行程']].concat(MENU) }; }
@@ -982,10 +991,10 @@ function evFlow_(t, raw) {
   if (!title) return evAsk_(s);
   setProp_('EV_ADD', '');
   const now = Date.now(), ev = { id: uid_(), title: title, date: s.date, time: s.time || '', place: '', time0: now, u: now };
-  withLock_(() => { const d = readAll_(); d.events.push(ev); writeAll_(d); });
+  const rem = withLock_(() => { const d = readAll_(); d.events.push(ev); const r = evRemind_(d, ev); writeAll_(d); return r; });
   setProp_('EV_LAST', ev.id);
   logChat_('user', '新增行程：' + title); logChat_('assistant', '🗓️ 行程：' + ev.date + ' ' + ev.time + ' ' + title);
-  return { text: '✅ 行程加好了\n\n▍' + evMd_(ev.date) + evWk_(ev.date) + '\n・' + (ev.time || '整天') + '　' + title,
+  return { text: '✅ 行程加好了\n\n▍' + evMd_(ev.date) + evWk_(ev.date) + '\n・' + (ev.time || '整天') + '　' + title + (rem ? '\n\n🔔 開始前 30 分鐘會提醒你' : ''),
     buttons: [['➕ 再加一筆', '↩️ 刪掉剛剛這筆'], ['⏰ 今天行程', '📅 近期行程']].concat(MENU) };
 }
 function settingsMenu_(t, raw) {
