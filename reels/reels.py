@@ -113,7 +113,8 @@ DEFAULTS = {
     'mode': 'reels',        # reels 剪 Reels；long 剪大片
     'kind': 'auto',         # talk 口播（有人講話）；silent 靜音（沒講話：配樂卡點＋轉場＋文字動畫）；auto 自動判斷
     'bar': True,            # 上方進度條
-    'fx': True,             # 特效：口播的推近鏡頭、靜音的運鏡和轉場、調色
+    'fx': True,             # 特效：口播的推近鏡頭、靜音的運鏡和轉場、調色、字幕彈跳發光
+    'sfx': True,            # 音效：打字聲、字卡「啵」、重點「叮」、轉場「咻」
 }
 POS_Y = {'bottom': 380, 'lower': 560, 'middle': 820, 'upper': 1250}   # 字幕底邊離畫面最下面的距離
 
@@ -129,7 +130,7 @@ def clamp_opt(opt):
     for k in ('sub_color', 'sub_outline', 'accent'):
         if not re.match(r'^#[0-9A-Fa-f]{6}$', str(opt.get(k) or '')):
             opt[k] = DEFAULTS[k]
-    for k in ('music', 'jumpcut', 'cards', 'sub_box', 'bar', 'fx'):
+    for k in ('music', 'jumpcut', 'cards', 'sub_box', 'bar', 'fx', 'sfx'):
         opt[k] = bool(opt.get(k))
     if opt.get('kind') not in ('talk', 'silent'):
         opt['kind'] = 'auto'
@@ -189,8 +190,6 @@ def parse_note(note, mode='reels', kind='auto'):
     if re.search(r'(不要|無|沒有|免|關掉?)\s*(特效|轉場|運鏡)', note):
         opt['fx'] = False
     opt['mode'] = 'long' if mode == 'long' or re.search(r'剪\s*大片|大片', note) else 'reels'
-    if opt['mode'] == 'long' and not re.search(r'中英|英文', note):
-        opt['subs'] = 'zh'   # 大片預設只上中文字幕，比較清爽
     m = re.search(r'(\d{1,3})\s*(秒|s|sec)', note, re.I)
     if m:
         opt['target'] = max(10, min(90, int(m.group(1))))
@@ -202,6 +201,8 @@ def parse_note(note, mode='reels', kind='auto'):
         opt['jumpcut'] = False
     if re.search(r'(不要|無|沒有|免|關掉?)\s*(動畫|字卡)', note):
         opt['cards'] = False
+    if re.search(r'(不要|無|沒有|免|關掉?)\s*音效', note):
+        opt['sfx'] = False
     if re.search(r'(不要|無|沒有|免|關掉?)\s*字幕', note):
         opt['subs'] = 'none'
     elif re.search(r'只要?\s*中文', note):
@@ -302,7 +303,7 @@ PLAN_PROMPT = '''你是影片剪輯師，幫一位台灣的直銷事業經營者
 {rule}
 2. 每一句改成字幕：繁體中文（台灣用語），依上下文修正辨識錯字，句尾不加標點；
    拆成短句，一行 6～12 個字、照說話的停頓斷句（像抖音、Reels 那種一句一句跳出來的字幕）。
-   每行附上自然口語的英文翻譯。
+   每行附上自然口語的英文翻譯；中文每行可以用 ** 標出最多一個重點詞（例如「每天**三分鐘**」），不是每行都要標。
 3. 想一個 12 個字以內、像在跟 AI 下指令或抓住注意力的開頭標題（使用者說明裡有指定標題就用那個）。
 4. 挑 3～4 個影片重點標籤，每個 2～4 個字（例如：字幕、剪輯、動畫、字卡）。
 5. 挑 1～3 句最重要的話做重點字卡：給那句的 i 和 10 個字以內的重點。
@@ -469,13 +470,13 @@ SILENT_PROMPT = '''你是爆款短影音剪輯師，幫一位台灣的直銷事�
 會給你影片裡的幾張畫面和使用者說明。請：
 1. 想一個 12 個字以內、抓住注意力的開頭標題（說明裡有指定標題就用那個）。
 2. 依畫面內容和說明，寫 {n} 句畫面字幕，每句 6～14 個字，照影片順序、像在說一個小故事、有節奏感；
-   每句用 ** 標出一個重點詞（例如「每天 **3 分鐘**」）。
+   每句用 ** 標出一個重點詞（例如「每天 **3 分鐘**」），並附上自然口語的英文翻譯（en，不用標 **）。
 3. 結尾一句行動呼籲，12 個字以內（例如「想知道更多 **留言** 告訴我」）。
 4. 3～4 個重點標籤，每個 2～4 個字。
 5. 依畫面氣氛，從這些配樂挑最適合的一首，只寫名稱：{moods}
 6. 一段 IG 貼文文案（3～5 行，繁體中文，結尾 5 個 hashtag）。
 不可以寫療效、治療、收入或業績保證；「私訊」一律改說「留言」。繁體中文（台灣用語）。
-{wish}只回 JSON：{{"title": "", "caps": [""], "cta": "", "tags": [""], "music": "", "post": ""}}'''
+{wish}只回 JSON：{{"title": "", "caps": [{{"zh": "", "en": ""}}], "cta": "", "tags": [""], "music": "", "post": ""}}'''
 
 MUSIC_BPM = {'陽光吉他': 106, '輕快生活': 88, '浪漫鋼琴': 93, '療癒琴聲': 80, '活力節奏': 131,
              '大氣史詩': 68, '禪意東方': 57, '感動希望': 70, '清新午後': 68}
@@ -496,6 +497,13 @@ def frames_b64(src, dur, work, n=4):
     return out
 
 
+def cap_line(x, fix=lambda v: str(v or '').strip()):
+    """畫面字幕一句：{'zh': 中文, 'en': 英文}（AI 可能只給字串）。"""
+    if isinstance(x, dict):
+        return {'zh': fix(x.get('zh'))[:22], 'en': fix(x.get('en')).replace('**', '')[:60]}
+    return {'zh': fix(x)[:22], 'en': ''}
+
+
 def silent_plan(src, dur, opt, note, work, n_caps):
     base = {'title': opt['title'], 'caps': [], 'cta': '', 'tags': [], 'music': '', 'post': '', 'keep': [], 'pops': []}
     if not os.environ.get('OPENAI_API_KEY'):
@@ -505,7 +513,7 @@ def silent_plan(src, dur, opt, note, work, n_caps):
                '使用者說明：%s' % (note or '（無）'), frames_b64(src, dur, work))
     fix = lambda v: str(v or '').replace('私訊', '留言').strip()
     base.update({'title': opt['title'] or fix(p.get('title'))[:16], 'cta': fix(p.get('cta'))[:20],
-                 'caps': [fix(c)[:20] for c in (p.get('caps') or []) if fix(c)][:n_caps],
+                 'caps': [c for c in (cap_line(x, fix) for x in (p.get('caps') or [])) if c['zh']][:n_caps],
                  'tags': [fix(t)[:5] for t in (p.get('tags') or []) if fix(t)][:4],
                  'music': fix(p.get('music')), 'post': fix(p.get('post'))})
     return base
@@ -537,14 +545,6 @@ def silent_spans(src, dur, target, beat):
         spans.append([st, st + L])
         last = st + L
     return spans or [[0, min(dur, L)]]
-
-
-def whoosh(work):
-    p = os.path.join(work, 'whoosh.wav')
-    run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'anoisesrc=d=0.45:c=pink:a=0.6',
-         '-af', 'highpass=f=400,lowpass=f=4000,afade=t=in:d=0.2,afade=t=out:st=0.2:d=0.25,volume=0.55',
-         '-ar', '48000', '-ac', '2', p])
-    return p
 
 
 def montage(src, spans, work, fx=True):
@@ -585,18 +585,10 @@ def montage(src, spans, work, fx=True):
     else:
         fc = ['%sconcat=n=%d:v=1:a=0[x0]' % (''.join('[%d:v]' % i for i in range(len(parts))), len(parts))]
         vmap = '[x0]'
-    # 聲音：靜音底＋每個轉場一聲「咻」
+    # 聲音：靜音底（轉場的「咻」由 finish 的音效軌加）
     na = len(parts)
     cmd += ['-f', 'lavfi', '-t', '%.3f' % total, '-i', 'anullsrc=r=48000:cl=stereo']
-    hits = [st for st in starts[1:]] if xf else []
-    if hits:
-        cmd += ['-i', whoosh(work)]
-        fc.append('[%d:a]asplit=%d%s' % (na + 1, len(hits), ''.join('[w%d]' % i for i in range(len(hits)))))
-        for i, h in enumerate(hits):
-            fc.append('[w%d]adelay=%d|%d[d%d]' % (i, max(0, int((h - .15) * 1000)), max(0, int((h - .15) * 1000)), i))
-        fc.append('[%d:a]%samix=inputs=%d:normalize=0:duration=first[a]' % (na, ''.join('[d%d]' % i for i in range(len(hits))), len(hits) + 1))
-    else:
-        fc.append('[%d:a]anull[a]' % na)
+    fc.append('[%d:a]anull[a]' % na)
     cmd += ['-filter_complex', ';'.join(fc), '-map', vmap, '-map', '[a]', '-t', '%.3f' % total,
             '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-r', str(FPS), '-c:a', 'aac', '-ar', '48000', joined]
     run(cmd)
@@ -677,7 +669,12 @@ def chip_w(text, fs):
 LAND_Y = {'bottom': .06, 'lower': .09, 'middle': .40, 'upper': .72}   # 橫的大片：字幕底邊離下面的比例
 
 
+SFX = []   # 音效時間點：(秒, 種類)，build_ass 填、finish 混進聲音
+
+
 def build_ass(plan, segs, spans, opt, total, path):
+    del SFX[:]
+    fx = opt.get('fx', True)
     z = min(W, H) / 1080   # 依畫面大小縮放（直式 1080×1920 時是 1）
     land = W > H
     k = opt['sub_size'] * z * (.82 if land else 1)
@@ -696,6 +693,9 @@ def build_ass(plan, segs, spans, opt, total, path):
             FONT, fs, ass_color(opt['sub_color']), ass_color(opt['sub_color']),
             ass_color(opt['sub_outline'], 0x30 if box else 0), '&H78000000',
             3 if box else 1, px(14 if box else 4), px(0 if box else 3), mv),
+        # 字幕後面的柔光（深色暈開，讓字更立體、更好讀）
+        'Style: Glow,%s,%d,&HFF000000,&HFF000000,&H60000000,&HFF000000,-1,0,0,0,100,100,1,0,1,%d,0,2,80,80,%d,1' % (
+            FONT, fs, px(14), mv),
         # 開頭標題：深色半透明圓角輸入框裡打字
         'Style: Ask,%s,%d,&H00FFFFFF,&H00FFFFFF,&H40262626,&H00000000,-1,0,0,0,100,100,1,0,3,%d,0,8,80,80,%d,1' % (
             FONT, px(50), px(22), px(270) if not land else int(H * .16)),
@@ -722,11 +722,17 @@ def build_ass(plan, segs, spans, opt, total, path):
 
     remap = remapper(spans)
     plan = plan or {}
+    acc = ass_color(opt['accent'])
+    hl = lambda t, back='&H00FFFFFF': re.sub(r'\*\*(.+?)\*\*', lambda m: '{\\c%s}%s{\\c%s}' % (acc, m.group(1), back),
+                                         ass_text(t.replace('{', '').replace('}', '')))   # 重點詞換亮色
+    plain = lambda t: ass_text(t.replace('**', ''))
     end_intro = min(opt['title_sec'], total)
     if opt['cards'] and plan.get('title'):
         title = ass_text(plan['title'])
         t0, step = .25, .07   # 一個字一個字打出來
         for i in range(1, len(title) + 1):
+            if i <= 20:
+                SFX.append((t0 + (i - 1) * step, 'type%d' % (i % 3 + 1)))
             add(2, t0 + (i - 1) * step, t0 + i * step if i < len(title) else end_intro, 'Ask',
                 ('{\\fad(150,0)}' if i == 1 else '') + title[:i] + ('{\\alpha&HFF&}' if i == len(title) else '') + '｜')
     elif plan.get('title'):
@@ -736,6 +742,7 @@ def build_ass(plan, segs, spans, opt, total, path):
         for n, tag in enumerate(plan['tags']):
             tag = ass_text(tag)
             on = .5 + n * .35
+            SFX.append((on, 'pop'))
             add(3, .15, on, 'Chip', '{\\pos(%d,%d)\\fad(150,0)}○ %s' % (x, y, tag))
             add(3, on, end_intro, 'ChipOn', '{\\pos(%d,%d)\\fscx80\\fscy80\\t(0,120,\\fscx106\\fscy106)'
                 '\\t(120,220,\\fscx100\\fscy100)\\fad(0,250)}√ %s' % (x, y, tag))
@@ -750,35 +757,46 @@ def build_ass(plan, segs, spans, opt, total, path):
             t = st
             for l, w in zip(kp['lines'], weights):
                 d = (en - st) * w / sum(weights)
-                zh, eng = ass_text(l.get('zh', '')), ass_text(l.get('en', ''))
+                zh, eng = l.get('zh', ''), plain(l.get('en', ''))
                 if opt['subs'] == 'zh' or not eng:
-                    txt = zh
+                    txt, flat = hl(zh, ass_color(opt['sub_color'])), plain(zh)
                 elif opt['subs'] == 'en':
-                    txt = eng
+                    txt = flat = eng
                 else:
-                    txt = zh + '\\N{\\fs%d\\b0\\alpha&H18&}' % fs_en + eng
-                add(0, t, t + d, 'Sub', '{\\fad(60,0)}' + txt)
+                    txt = hl(zh, ass_color(opt['sub_color'])) + '\\N{\\fs%d\\b0\\alpha&H18&}' % fs_en + eng
+                    flat = plain(zh) + '\\N{\\fs%d\\b0}' % fs_en + eng
+                if fx:   # 每句彈一下跳出來，後面一層柔光
+                    add(0, t, t + d, 'Glow', '{\\fad(60,0)\\blur%d}' % px(10) + flat)
+                    add(1, t, t + d, 'Sub', '{\\fad(60,0)\\fscx86\\fscy86\\t(0,110,\\fscx105\\fscy105)\\t(110,190,\\fscx100\\fscy100)}' + txt)
+                else:
+                    add(1, t, t + d, 'Sub', '{\\fad(60,0)}' + txt)
                 t += d
     if opt['cards']:
         for pp in plan.get('pops') or []:
             st = remap(segs[pp['i']]['start'], 'start')
             if st is None or st < end_intro:
                 continue
+            SFX.append((st, 'ding'))
             add(4, st, st + 2.2, 'Pop', '{\\pos(%d,%d)\\fscx40\\fscy40\\t(0,160,\\fscx108\\fscy108)'
                 '\\t(160,260,\\fscx100\\fscy100)\\fad(0,250)}%s' % (W // 2, int(H * .25), ass_text(pp['text'])))
     # 靜音剪：每句字幕跟著段落換，輪流「彈出來」和「往上滑進來」，重點詞亮色
-    acc = ass_color(opt['accent'])
-    hl = lambda t: re.sub(r'\*\*(.+?)\*\*', lambda m: '{\\c%s}%s{\\c&H00FFFFFF}' % (acc, m.group(1)),
-                          ass_text(t.replace('{', '').replace('}', '')))
     cy = int(H * (.62 if not land else .72))
-    for i, (a, b, txt) in enumerate(plan.get('caps_t') or []):
+    for i, (a, b, cap) in enumerate(plan.get('caps_t') or []):
+        cap = cap_line(cap)
+        en = cap['en'] if opt['subs'] in ('both', 'en') else ''
+        txt = hl(cap['zh']) + ('\\N{\\fs%d\\b0\\alpha&H10&}%s' % (px(44 if not land else 34), plain(en)) if en else '')
+        SFX.append((a, 'pop' if i % 2 == 0 else 'swish'))
+        if fx:   # 柔光
+            add(0, a, b, 'Cap', '{\\an5\\pos(%d,%d)\\1a&HFF&\\3c&H000000&\\3a&H70&\\bord%d\\blur%d\\fad(200,150)}%s'
+                % (W // 2, cy, px(16), px(12), plain(cap['zh']) + ('\\N{\\fs%d}%s' % (px(44 if not land else 34), plain(en)) if en else '')))
         if i % 2 == 0:
             anim = '{\\an5\\pos(%d,%d)\\fscx55\\fscy55\\t(0,150,\\fscx112\\fscy112)\\t(150,260,\\fscx100\\fscy100)\\fad(60,150)}' % (W // 2, cy)
         else:
             anim = '{\\an5\\move(%d,%d,%d,%d,0,220)\\fad(120,150)}' % (W // 2, cy + px(90), W // 2, cy)
-        add(1, a, b, 'Cap', anim + hl(txt))
+        add(1, a, b, 'Cap', anim + txt)
     if plan.get('cta_t'):
         a, b, txt = plan['cta_t']
+        SFX.append((a, 'ding'))
         add(4, a, b, 'Pop', '{\\pos(%d,%d)\\fscx40\\fscy40\\t(0,160,\\fscx108\\fscy108)\\t(160,260,\\fscx100\\fscy100)}%s'
             % (W // 2, int(H * .5), ass_text(txt.replace('**', ''))))
     if opt.get('bar') and total > 3:   # 上方進度條：跟著時間慢慢變長
@@ -787,7 +805,7 @@ def build_ass(plan, segs, spans, opt, total, path):
             % (bh, int(total * 1000), W, bh, W, W, bh, bh))
     with open(path, 'w', encoding='utf-8') as f:
         f.write(head + '\n'.join(ev) + '\n')
-    return sum(1 for e in ev if ',Sub,' in e or ',Cap,' in e)
+    return sum(1 for e in ev if (',Sub,' in e or ',Cap,' in e) and '\\1a&HFF&' not in e)
 
 
 def music_files():
@@ -822,7 +840,35 @@ def pick_music(opt, plan=None):
     return random.choice(files)
 
 
-def finish(joined, ass, music, total, out, work, music_vol=0.30, grade=True):
+SFX_VOL = {'type1': .22, 'type2': .22, 'type3': .22, 'pop': .45, 'ding': .38, 'swish': .32, 'whoosh': .5, 'hit': .4}
+
+
+def sfx_inputs(events, total, first):
+    """音效：每種音效檔讀一次，分成好幾份延遲到各自的時間點，再混成一軌 [fx]。回傳（輸入參數, 濾鏡）。"""
+    by = {}
+    for t, k in events:
+        f = os.path.join(HERE, 'sfx', k + '.mp3')
+        if 0 <= t < total - .2 and os.path.exists(f):
+            by.setdefault(k, []).append(t)
+    args, fc, outs = [], [], []
+    for n, (k, ts) in enumerate(sorted(by.items())):
+        ts = sorted(set(round(t, 2) for t in ts))
+        idx = first + n
+        args += ['-i', os.path.join(HERE, 'sfx', k + '.mp3')]
+        names = ['%s%d' % (k, j) for j in range(len(ts))]
+        fc.append('[%d:a]aresample=48000,aformat=channel_layouts=stereo,volume=%.2f%s' % (
+            idx, SFX_VOL.get(k, .4), ',asplit=%d%s' % (len(ts), ''.join('[%s]' % x for x in names)) if len(ts) > 1 else '[%s]' % names[0]))
+        for x, t in zip(names, ts):
+            ms = int(max(0, t) * 1000)
+            fc.append('[%s]adelay=%d|%d[%sd]' % (x, ms, ms, x))
+            outs.append('[%sd]' % x)
+    if not outs:
+        return [], ''
+    fc.append('%samix=inputs=%d:normalize=0:duration=longest[fx]' % (''.join(outs), len(outs)) if len(outs) > 1 else '%sanull[fx]' % outs[0])
+    return args, ';'.join(fc)
+
+
+def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None):
     # 控制檔案大小，Telegram 機器人傳影片上限 50MB
     kbps = int(min(6000, (TG_LIMIT * 8 / 1000) / max(total, 1) - 200))
     vf = "[0:v]%sass='%s'[v]" % ('eq=contrast=1.06:saturation=1.12,' if grade else '',
@@ -831,12 +877,23 @@ def finish(joined, ass, music, total, out, work, music_vol=0.30, grade=True):
     fade = 'afade=t=in:d=0.3,afade=t=out:st=%.2f:d=1.5' % max(0, total - 1.5)
     if music:
         cmd += ['-stream_loop', '-1', '-i', music]
+    fx_args, fx_fc = sfx_inputs(sfx or [], total, 2 if music else 1)
+    cmd += fx_args
+    mix = ['[s1]']
+    if music:
+        # 配樂：先把每首的音量校成一樣，開頭淡入；有人講話時自動壓低（講完慢慢回來）
         fc = (vf + ';[0:a]asplit[s1][s2];'
-              '[1:a]volume=%.2f,aresample=48000,aformat=channel_layouts=stereo[m0];'
-              '[m0][s2]sidechaincompress=threshold=0.02:ratio=6:attack=30:release=500[m];'
-              '[s1][m]amix=inputs=2:normalize=0:duration=first,loudnorm=I=-14:TP=-1.5,%s[a]' % (music_vol, fade))
+              '[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-18:TP=-2:LRA=9,aresample=48000,'
+              'afade=t=in:d=1.2,volume=%.2f[m0];'
+              '[m0][s2]sidechaincompress=threshold=0.03:ratio=8:attack=15:release=450[m]' % music_vol)
+        mix.append('[m]')
     else:
-        fc = vf + ';[0:a]loudnorm=I=-14:TP=-1.5,%s[a]' % fade
+        fc = vf + ';[0:a]anull[s1]'
+    if fx_fc:
+        fc += ';' + fx_fc
+        mix.append('[fx]')
+    fc += ';%samix=inputs=%d:normalize=0:duration=first,loudnorm=I=-14:TP=-1.5,%s[a]' % (''.join(mix), len(mix), fade) if len(mix) > 1 \
+        else ';[s1]loudnorm=I=-14:TP=-1.5,%s[a]' % fade
     cmd += ['-filter_complex', fc, '-map', '[v]', '-map', '[a]', '-t', '%.3f' % total,
             '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-maxrate', '%dk' % kbps, '-bufsize', '%dk' % (kbps * 2),
             '-r', str(FPS), '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-movflags', '+faststart', out]
@@ -893,6 +950,7 @@ def silent_cut(src, opt, note, dur, has_audio, work, music_file, given):
         beat = 60.0 / MUSIC_BPM.get(os.path.basename(music or '')[:-4], 100)
         spans = silent_spans(src, dur, opt['target'], beat)
         joined, starts = montage(src, spans, work, opt['fx'])
+        plan['xfades'] = starts[1:] if opt['fx'] else []   # 轉場的時間點（加「咻」）
     total = float(json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-of', 'json', joined]))['format']['duration'])
     intro = min(opt['title_sec'], total) if plan.get('title') else 0
     tail = total - (2.5 if plan.get('cta') and total > intro + 5 else 0)
@@ -966,7 +1024,9 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         ass = os.path.join(work, 'subs.ass')
         n = build_ass(plan, segs, spans, opt, total, ass)
         silent = opt['kind'] == 'silent'
-        thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent else .30, grade=opt['fx'])
+        sfx = (list(SFX) + [(t - .25, 'whoosh') for t in (plan or {}).get('xfades') or []]) if opt['sfx'] else []
+        log('音效 %d 個' % len(sfx))
+        thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent else .35, grade=opt['fx'], sfx=sfx)
         diff = subs_check(joined, out, ass, work) if n else None
         if diff is not None:
             log('字幕檢查：畫面差異 %.1f%s' % (diff, '' if diff >= 1.5 else '　⚠️ 字幕可能沒有畫上去'))
