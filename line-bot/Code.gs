@@ -791,13 +791,13 @@ function strategist_(k) {
     '【康園道寫作風格】短句為主，每句獨立一行有節奏；先描述一個大家都有的現象，讓人對號入座；用反問引發思考（例如「你有沒有發現⋯⋯」「可是很奇怪⋯⋯」）；段落間留白；像朋友分享，不說教、不推銷；繁體台灣用語。',
     '【本次主題】' + th.guide,
     '【要寫兩個版本，內容不能一樣】',
-    '①文字貼文（post）：直接貼在 FB／IG／LINE 的完整文案。有自己的標題（post_title，15 字內）；用一個具體生活場景或小故事開頭，慢慢帶出道理，4 到 6 段，全文 220 到 320 字；結尾用一句問句邀請大家留言。',
+    '①文字貼文（post）：直接貼在 FB／IG／LINE 的完整文案。有自己的標題（post_title，15 字內）；用一個具體生活場景或小故事開頭，慢慢帶出道理，4 到 6 段，全文 220 到 320 字；結尾用一句問句收尾，讓人想一想；不要叫人留言或私訊（使用者 2026-10-16：圖卡文案不用引導留言）。',
     '②圖卡（cards）：要 3 張，放在圖片上的精簡版，不是貼文的節錄；固定順序：第 1 張封面（點出現象）→ 第 2 張翻轉觀念 → 第 3 張給一個做法，標題和內容都不能重複。',
     '每張圖卡只分三層：主標（title）只講一個重點；正文用短句；必要的條件或提醒才放補充。',
     '第 1 張封面：title 主標 12 字內（可用 \\n 分兩行），跟貼文標題不同；hook 一句鉤子 16 字內，讓人想往下滑；封面不寫 body、gold。',
     '第 2、3 張：title 主標 12 字內，只講一個重點；body 正文 2 到 4 行、每行一句短句 14 字內；gold 反骨金句一句 20 字內：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
     '兩個版本共用 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
-    '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
+    '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；不要叫人留言、私訊或索取東西。',
     hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
     '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","cards":[{"title":"封面主標","hook":"一句鉤子"},{"title":"主標","body":"正文，每行一句短句","gold":"反骨金句"},{...第三張}],"tags":["#詞","#詞","#詞","#詞","#詞"]}',
   ].filter(Boolean).join('\n');
@@ -821,7 +821,7 @@ function strategist_(k) {
     theme: th.name, cat: String(c.cat || '').replace(/主題$/, ''), cards: cards,
     title: cards[0].title, body: cards[0].body, gold: cards[0].gold,
     ptitle: String(c.post_title || c.title || th.name).trim(),
-    post: String(c.post || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim(),
+    post: noAsk_(String(c.post || '').replace(/\r/g, '')).replace(/\n{3,}/g, '\n\n').trim(),
     tags: (Array.isArray(c.tags) ? c.tags : String(c.tags || '').split(/\s+/)).map(s => String(s).trim()).filter(Boolean)
       .filter(s => !STRAT_NO_TAG.test(s))
       .map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
@@ -1266,7 +1266,7 @@ const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n)[0] || KIT_STYLES[0];
 
 function kitMenu_() {
   const b = STRAT_THEMES.map(t => '📕 ' + t.btn.replace(/^[^\p{L}\p{N}]+/u, ''));
-  return { text: '📕 7張＋PDF\n\n選一個主題：我寫一篇貼文、7 張輪播圖卡，再做一份同關鍵字的 PDF。\n有人留言關鍵字，你把 PDF 傳給他就好。\n（要做 1～2 分鐘）', buttons: [b.slice(0, 3), b.slice(3, 6)] };
+  return { text: '📕 7張＋PDF\n\n選一個主題：我寫一篇貼文、7 張輪播圖卡，再做一份 PDF。\n（要做 1～2 分鐘）', buttons: [b.slice(0, 3), b.slice(3, 6)] };
 }
 // 「📕 7張＋PDF」→ 'menu'；「📕 健康」→ 'health'；不是就回 null
 function kitPick_(raw) {
@@ -1314,18 +1314,18 @@ function kitWrite_(k) {
     '寫法：內容簡短，字少、好讀；短句、每句獨立一行、像朋友分享，不說教、不推銷；繁體台灣用語。',
     '【本次主題】' + th.guide,
     '用 **字** 標出要強調的字，每段最多一處；換行用 \\n。',
-    '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
+    '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；不要叫人留言、私訊或索取東西。',
   ];
   // 第一段：7 張輪播＋貼文
   const sysA = base.concat([
-    '【結構】主題是「○○的三個動作」這種能照著做的三步驟（series，10 字內，例如「邀約的三個動作」）；關鍵字 keyword 是 2 個字（例如「邀約」），讓人留言索取 PDF。',
+    '【結構】主題是「○○的三個動作」這種能照著做的三步驟（series，10 字內，例如「邀約的三個動作」）；關鍵字 keyword 是 2 個字（例如「邀約」），當 PDF 的名稱。',
     '【7 張輪播 slides】剛好 7 張，依序 kind 為：cover、action、action、action、reason、last、cta。',
     'cover：head 是三行內的鉤子（例如「約不到人，\\n不是你\\n**不會說**。」），sub 兩行（點出問題＋三個動作今天就用得上）。',
     'action ×3：step 寫「動作一／動作二／動作三」，head 兩行標題（每行 8 字內），body 3 到 5 行示範，可以用「~~錯誤說法~~」對比「**好的說法**」，全部 45 字內。',
     'reason：label 寫「○○，真正的原因」，head 四行內，點出真正的原因。',
     'last：pre 兩行鋪陳，head 兩行收尾金句。',
-    'cta：head 三行（例如「三個動作加上\\n練習句型——\\n**《○○的三個動作》**。」），cta 寫「留言「**關鍵字**」」，sub 寫「我把 PDF 整理好傳給你。」',
-    '【貼文 post】post_title 15 字內；post 120 到 200 字，用生活場景開頭，結尾請大家留言「關鍵字」索取 PDF；tags 5 個主題標籤（不可以有「康園道」「分享」「大健康」）。',
+    'cta：最後一張收尾，head 三行整理三個動作（例如「先問近況，\\n說你的故事，\\n**給他選擇**。」），sub 一句鼓勵今天先試一個；不要叫人留言、私訊或索取。',
+    '【貼文 post】post_title 15 字內；post 120 到 200 字，用生活場景開頭，結尾用一句問句收尾，不要叫人留言、私訊或索取；tags 5 個主題標籤（不可以有「康園道」「分享」「大健康」）。',
     hist.length ? '【避免重複】最近做過：' + hist.join('、') + '，這次換一個不同的主題。' : '',
     '只輸出 JSON：{"cat":"分類","series":"","keyword":"","slides":[{"kind":"cover","label":"","head":"","sub":""},{"kind":"action","step":"動作一","head":"","body":""},{"kind":"action","step":"動作二","head":"","body":""},{"kind":"action","step":"動作三","head":"","body":""},{"kind":"reason","label":"","head":""},{"kind":"last","pre":"","head":""},{"kind":"cta","head":"","cta":"","sub":""}],"post_title":"","post":"","tags":[]}',
   ]).filter(Boolean).join('\n');
@@ -1387,6 +1387,12 @@ function kitUnwrap_(c) {
   if (c.slides && !Array.isArray(c.slides) && typeof c.slides === 'object') c.slides = Object.keys(c.slides).map(x => c.slides[x]);
   return c;
 }
+// 拿掉叫人留言／私訊／索取的句子（使用者 2026-10-16：圖卡文案不用引導留言）
+const NO_ASK = /(歡迎|請|記得|快|來|一起|在)?[^\n。！？]{0,6}(留言|私訊|敲我|索取|領取)[^\n。！？]{0,14}(「|關鍵字|PDF|給你|我|喔|哦|吧|！)/;
+function noAsk_(t) {
+  return String(t || '').split('\n').map(l => l.split(/(?<=[。！？])/).filter(x => !NO_ASK.test(x)).join('')).join('\n')
+    .replace(/\n{3,}/g, '\n\n').trim();
+}
 function kitClean_(c, th, k) {
   c = kitUnwrap_(c);
   const fix = v => typeof v === 'string' ? v.replace(/私訊/g, '留言').replace(/\r/g, '').trim()
@@ -1399,12 +1405,13 @@ function kitClean_(c, th, k) {
   const keyword = S(c.keyword).replace(/[「」]/g, '').slice(0, 4) || series.slice(0, 2);
   const kit = {
     theme: th.name, k: k, series: series, keyword: keyword, cat: S(c.cat).replace(/主題$/, ''),
-    slides: slides.map(x => ({ kind: S(x.kind), label: S(x.label), step: S(x.step), head: S(x.head), body: S(x.body), sub: S(x.sub), pre: S(x.pre), cta: S(x.cta) || '留言「**' + keyword + '**」' })),
-    ptitle: S(c.post_title) || series, post: S(c.post).replace(/\n{3,}/g, '\n\n'), gold: '', body: '', note: '',
+    slides: slides.map(x => ({ kind: S(x.kind), label: S(x.label), step: S(x.step), head: S(x.head), body: S(x.body),
+      sub: x.kind === 'cta' ? noAsk_(S(x.sub)) : S(x.sub), pre: S(x.pre), cta: '' })),
+    ptitle: S(c.post_title) || series, post: noAsk_(S(c.post)).replace(/\n{3,}/g, '\n\n'), gold: '', body: '', note: '',
     tags: (Array.isArray(c.tags) ? c.tags : S(c.tags).split(/\s+/)).map(s => S(s).trim()).filter(Boolean)
       .filter(s => !STRAT_NO_TAG.test(s)).map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
   };
-  kit.label = '《' + series + '》（留言「' + keyword + '」）';
+  kit.label = '《' + series + '》';
   return kit;
 }
 
@@ -1474,8 +1481,7 @@ function kitCardLayout_(kit, i) {
   else if (s.kind === 'action') paras = [head(s.head, 34), orn, body(s.body)];
   else if (s.kind === 'reason') paras = [head(s.head, 32)];
   else if (s.kind === 'last') paras = [{ t: s.pre, size: 25, color: KIT_S_.c.mute, ls: 160 }, orn, Object.assign(head(s.head, 40), { above: 14 })];
-  else paras = [head(s.head, 27), orn, { t: '留言', size: 14, color: KIT_S_.c.sub, above: 18 },
-    { t: kit.keyword.split('').join(' '), size: 54, bold: true, color: KIT_S_.c.gold, above: 2 }, { t: s.sub, size: 16, color: KIT_S_.c.sub, above: 10 }];
+  else paras = [head(s.head, 32), orn, body(s.sub)];   // 最後一張只收尾，不引導留言（使用者 2026-10-16）
   const label = s.kind === 'action' ? s.step : s.label || (s.kind === 'cover' ? '生活筆記「' + (kit.cat || kit.theme.replace(/主題$/, '')) + '」' : '');
   const num = ('0' + (i + 1)).slice(-2) + ' — ' + ('0' + N).slice(-2);
   if (s.kind === 'cover') return kitCoverLayout_(kit, s, num, W, H);
@@ -1551,7 +1557,7 @@ function kitMake_(kit) {
 function kitDoneText_(kit, r) {
   return ['📕 《' + kit.series + '》做好了', '',
     r.pngs.length ? '🖼️ 7 張輪播圖卡：長按存到相簿，照順序發 IG。' : '🖼️ 圖卡這次沒畫出來：' + r.err,
-    r.pdfUrl ? '📄 PDF：' + r.pdfUrl + '\n有人留言「' + kit.keyword + '」，就把這個連結傳給他。' : '📄 PDF 這次沒做出來：' + r.err].join('\n');
+    r.pdfUrl ? '📄 PDF：' + r.pdfUrl : '📄 PDF 這次沒做出來：' + r.err].join('\n');
 }
 
 // 按了主題後真正開始做：寫內容（AI）→ 交給各平台畫圖、送出；寫失敗就回錯誤訊息
@@ -1649,7 +1655,7 @@ function kitTgSend_(chatId, kit, r) {
   }
   if (r.pdf) {
     const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendDocument', { method: 'post', muteHttpExceptions: true,
-      payload: { chat_id: String(chatId), document: r.pdf, caption: '有人留言「' + kit.keyword + '」，把這份 PDF 轉給他。' } });
+      payload: { chat_id: String(chatId), document: r.pdf, caption: '📄 《' + kit.series + '》PDF' } });
     if (res.getResponseCode() !== 200) console.error('Telegram PDF 失敗：' + res.getContentText());
   }
   tgSend_(chatId, { text: (stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit)).slice(0, 4000) });
