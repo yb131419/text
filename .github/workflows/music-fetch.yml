@@ -32,7 +32,7 @@ jobs:
           [ -s "$f" ] || exit 0
           while IFS='|' read -r name url; do
             [ -n "$name" ] || continue
-            curl -sL -m 120 -o /tmp/in.mp3 "$url" && ffmpeg -y -loglevel error -i /tmp/in.mp3 -t 150 -af loudnorm=I=-16:TP=-1.5 -ac 2 -ar 44100 -b:a 128k "reels/music/$name.mp3" && echo "OK $name $(du -h "reels/music/$name.mp3" | cut -f1)" || echo "FAIL $name"
+            curl -sL -m 120 -o /tmp/in.mp3 "$url" && ffmpeg -nostdin -y -loglevel error -i /tmp/in.mp3 -t 150 -af loudnorm=I=-16:TP=-1.5 -ac 2 -ar 44100 -b:a 128k "reels/music/$name.mp3" && echo "OK $name $(du -h "reels/music/$name.mp3" | cut -f1)" || echo "FAIL $name"
           done < "$f"
           git config user.name github-actions; git config user.email github-actions@users.noreply.github.com
-          git add reels/music && git commit -qm "配樂：從 FreePD（CC0）下載" && git push -q || echo nothing
+          git add reels/music && git commit -qm "配樂：從 FreePD（CC0）下載" && git pull -q --rebase && git push -q || echo nothing
