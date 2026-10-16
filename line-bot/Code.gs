@@ -2263,7 +2263,17 @@ function shareCase_(key) {
   if (c.type === 'text') return words || '（這則沒有內容）';
   if (CURRENT_TG_CHAT_) { sendTgCase_(CURRENT_TG_CHAT_, c); return '📤 已傳在上面，長按就能轉傳。'; }
   const d = caseDrive_(c);
-  if (!d) return '這個檔案太大，LINE 拿不到，請到 Telegram 查「見證案例」。';
+  if (!d) {   // 超過 20MB：Telegram 不讓機器人下載，LINE 拿不到 → 直接傳到主人的 Telegram（使用者 2026-10-16：太大也沒連結）
+    const tg = prop_('TG_OWNER_CHAT_ID');
+    if (tg && prop_('TELEGRAM_BOT_TOKEN')) {
+      try {
+        const r = JSON.parse(sendTgCase_(tg, c) || '{}');
+        if (r.ok) return '📤 這支' + (c.type === 'photo' ? '圖片' : '影片') + '超過 20MB，LINE 傳不了，已經傳到你的 Telegram 小乖了。\n\n打開 Telegram → 長按這支' + (c.type === 'photo' ? '圖片' : '影片')
+          + ' →「分享」就能轉到 LINE，或「存到相簿」再從 LINE 傳。' + (words ? '\n\n' + words : '');
+      } catch (e) { console.error('大檔改傳 Telegram 失敗：' + e.message); }
+    }
+    return '這個檔案超過 20MB，LINE 傳不了，Telegram 也沒送成功。請到 Telegram 跟小乖說「見證案例」找這一則，長按就能分享。';
+  }
   CASE_LINE_ = [lineCaseMsg_(c, d)];
   return '📤 長按上面的' + (c.type === 'photo' ? '圖片' : '影片') + '就能轉傳。'
     + (c.type !== 'photo' ? '\n（影片打不開就點：https://drive.google.com/file/d/' + driveIds_(d)[0] + '/view ）' : '')
@@ -2286,7 +2296,7 @@ function caseLines_(title, list) {
       CASE_LINE_ = drv.map(x => lineCaseMsg_(x.c, x.d));
       if (CASE_LINE_.length) out.push('（最新 ' + CASE_LINE_.length + ' 個圖片／影片在上面，長按就能轉傳分享）');
       drv.filter(x => x.c.type !== 'photo').forEach(x => out.push('🎬 影片連結：https://drive.google.com/file/d/' + driveIds_(x.d)[0] + '/view'));
-      if (media.length > drv.length && !drv.length) out.push('（這些圖片／影片太大或是檔案，到 Telegram 查就會直接傳給你）');
+      if (media.length > drv.length && !drv.length) out.push('（這些圖片／影片超過 20MB，LINE 傳不了；按「📤 分享」會改傳到你的 Telegram）');
     }
   }
   return out.join('\n');
