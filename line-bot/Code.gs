@@ -1315,20 +1315,26 @@ function kitWrite_(k) {
     '只輸出 JSON：{"cat":"分類","series":"","keyword":"","slides":[{"kind":"cover","label":"","head":"","sub":""},{"kind":"action","step":"動作一","head":"","body":""},…,{"kind":"reason","label":"","head":""},{"kind":"last","pre":"","head":""},{"kind":"cta","head":"","cta":"","sub":""}],"pdf":{"kicker":"","title":"","intro":"","before":{…},"actions":[…],"check":{…},"final":{…}},"post_title":"","post":"","tags":[]}',
   ].filter(Boolean).join('\n');
   // 名單包是很長的 JSON（貼文＋7 張＋7 頁），以前上限 2500 字元會被截斷 → JSON 壞掉；現在給 12000 並用 JSON 模式，失敗再自動重寫一次
-  let c, why = '';
-  for (let i = 0; i < 2 && !c; i++) {
+  // AI 偶爾少給幾張或欄位放錯：缺什麼就告訴它重寫，最多寫 3 次
+  let kit = null, why = '', fixMsg = '';
+  const ask = '請做一組「' + th.name + '」的名單包。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。';
+  for (let i = 0; i < 3 && !kit; i++) {
     try {
-      const out = String(callOpenAI_(sys, [{ role: 'user', content: '請做一組「' + th.name + '」的名單包。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。' }], true, null, { maxTokens: 12000, temperature: 0.7 }));
-      c = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+      const out = String(callOpenAI_(sys, [{ role: 'user', content: ask + fixMsg }], true, null, { maxTokens: 12000, temperature: 0.7 }));
+      const c = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+      kit = kitClean_(c, th, k);
+      if (!kit) {
+        why = '格式不對：' + kitMissing_(c);
+        fixMsg = '\n上一次的 JSON 不完整（' + kitMissing_(c) + '）。這次一定要有 slides 剛好 7 張（cover、action×3、reason、last、cta，每張都有 kind），pdf.actions 剛好 3 個。';
+        console.error('7張＋PDF 第 ' + (i + 1) + ' 次' + why);
+      }
     } catch (err) {
       why = err.message;
       console.error('7張＋PDF 文案失敗（第 ' + (i + 1) + ' 次）：' + why);
       if (/金鑰/.test(why)) break;
     }
   }
-  if (!c) return { text: /金鑰/.test(why) ? 'OpenAI 金鑰無效，沒辦法寫文案，請檢查 OPENAI_API_KEY。' : /OpenAI 回應 429/.test(why) ? 'OpenAI 額度或速度上限到了，等一下再按一次。' : '這次沒寫出來，再按一次試試看。', buttons: [[KIT_BTN]] };
-  const kit = kitClean_(c, th, k);
-  if (!kit) return { text: '這次寫出來的格式不對，再按一次試試看。', buttons: [[KIT_BTN]] };
+  if (!kit) return { text: /金鑰/.test(why) ? 'OpenAI 金鑰無效，沒辦法寫文案，請檢查 OPENAI_API_KEY。' : /OpenAI 回應 429/.test(why) ? 'OpenAI 額度或速度上限到了，等一下再按一次。' : '這次沒寫出來，再按一次試試看。', buttons: [[KIT_BTN]] };
   hist.unshift(kit.series);
   setProp_('KIT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_KIT_ = kit;
@@ -1336,7 +1342,25 @@ function kitWrite_(k) {
 }
 
 // 整理 AI 回來的內容：補齊欄位、拿掉禁字（私訊→留言）；缺太多就回 null
+// 說明 AI 回來的內容缺了什麼（給重寫用、也寫進紀錄）
+function kitMissing_(c) {
+  c = kitUnwrap_(c);
+  const n = Array.isArray(c.slides) ? c.slides.filter(x => x && x.kind).length : 0;
+  const a = c.pdf && Array.isArray(c.pdf.actions) ? c.pdf.actions.length : 0;
+  return 'slides ' + n + ' 張、pdf.actions ' + a + ' 個';
+}
+// 有時 AI 會多包一層（{"kit":{…}}、{"名單包":{…}}）
+function kitUnwrap_(c) {
+  c = c || {};
+  if (!c.slides && !c.pdf) {
+    const inner = Object.keys(c).map(x => c[x]).filter(v => v && typeof v === 'object' && (v.slides || v.pdf))[0];
+    if (inner) return inner;
+  }
+  if (c.slides && !Array.isArray(c.slides) && typeof c.slides === 'object') c.slides = Object.keys(c.slides).map(x => c.slides[x]);
+  return c;
+}
 function kitClean_(c, th, k) {
+  c = kitUnwrap_(c);
   const fix = v => typeof v === 'string' ? v.replace(/私訊/g, '留言').replace(/\r/g, '').trim()
     : Array.isArray(v) ? v.map(fix) : v && typeof v === 'object' ? Object.keys(v).reduce((o, x) => (o[x] = fix(v[x]), o), {}) : v;
   c = fix(c || {});
