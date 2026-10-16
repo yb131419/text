@@ -1236,18 +1236,18 @@ function cardData_() {
 const KIT_BTN = '📕 7張＋PDF';
 const KIT_FOLDER = '小乖軍師PDF';
 const KIT_BG = 'https://yb131419.github.io/Tezhu/line-bot/kit/';   // 底圖（絲絨＋厚卡＋燙金框＋YB 印記），字由簡報疊上去
-// 圖片網址加上內容指紋（?v=…）：圖一換，網址就跟著換，LINE／Telegram／簡報才不會拿到舊圖（使用者 2026-10-16：款式要同步更新）
+// 圖片網址加上內容指紋（?v=…）：圖一換（最多 2 分鐘），網址就跟著換，LINE／Telegram／簡報才不會拿到舊圖（使用者 2026-10-16：款式要同步更新）
 function kitUrl_(path) {
   const url = KIT_BG + path;
   try {
     const cache = typeof CacheService !== 'undefined' ? CacheService.getScriptCache() : null, k = 'kv_' + path;
     let v = cache && cache.get(k);
     if (!v) {
-      const r = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+      const r = UrlFetchApp.fetch(url + '?t=' + Date.now(), { muteHttpExceptions: true });   // 帶時間跳過網站快取，才算得到最新的圖
       if (r.getResponseCode() !== 200) return url;
       v = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, r.getContent()).slice(0, 5)
         .map(b => ('0' + (b & 255).toString(16)).slice(-2)).join('');
-      if (cache) cache.put(k, v, 600);
+      if (cache) cache.put(k, v, 120);
     }
     return url + '?v=' + v;
   } catch (e) { return url; }
