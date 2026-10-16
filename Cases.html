@@ -1,15 +1,15 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#F3F3F1">
+<meta name="theme-color" content="#F6F1E7">
 <script>try{if(localStorage.getItem("xg_cases_theme")==="dark"){document.documentElement.dataset.theme="dark";document.querySelector('meta[name=theme-color]').content="#141414";}}catch(e){}</script>
 <title>見證庫｜彥彬特助小乖</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="icon" href="https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png"><link rel="apple-touch-icon" href="https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png">
 <style>
-:root{--bg:#F3F3F1;--bg2:#EAEAE7;--card:#FFFFFF;--ink:#1E1E1C;--soft:rgba(30,30,28,.64);--mute:rgba(30,30,28,.42);--gold:#6F6B65;--gold2:#8C8780;--line:rgba(30,30,28,.10);--line2:rgba(30,30,28,.24);
- --champ:linear-gradient(135deg,#3A3937 0%,#1C1C1B 100%);--onc:#FFFFFF;--onc2:rgba(255,255,255,.72);--ph:radial-gradient(120% 90% at 30% 20%,#ECEBE8,#C9C7C2 80%);--glow:rgba(0,0,0,.035);
- --shadow:0 18px 36px -26px rgba(0,0,0,.35);--sheet:#FAFAF8;--serif:"Noto Serif TC",serif;--latin:"Cormorant Garamond","Noto Serif TC",serif;color-scheme:light}
+:root{--bg:#F6F1E7;--bg2:#EEE7D9;--card:#FFFCF6;--ink:#2A2218;--soft:rgba(42,34,24,.66);--mute:rgba(42,34,24,.44);--gold:#8C7656;--gold2:#A89270;--line:rgba(42,34,24,.10);--line2:rgba(42,34,24,.22);
+ --champ:linear-gradient(135deg,#4A3D2E 0%,#2A2218 100%);--onc:#FBF6EC;--onc2:rgba(251,246,236,.72);--ph:radial-gradient(120% 90% at 30% 20%,#F3EADB,#D6C8B0 80%);--glow:rgba(140,118,86,.06);
+ --shadow:0 18px 36px -26px rgba(74,56,30,.35);--sheet:#FBF7EF;--serif:"Noto Serif TC",serif;--latin:"Cormorant Garamond","Noto Serif TC",serif;color-scheme:light}
 :root[data-theme="dark"]{--bg:#141414;--bg2:#1B1B1A;--card:#1F1F1E;--ink:#F1F1EE;--soft:rgba(241,241,238,.64);--mute:rgba(241,241,238,.42);--gold:#BDBAB4;--gold2:#9E9B95;--line:rgba(241,241,238,.12);--line2:rgba(241,241,238,.28);
  --champ:linear-gradient(135deg,#F4F4F2 0%,#D6D5D1 100%);--onc:#1C1C1B;--onc2:rgba(28,28,27,.62);--ph:radial-gradient(120% 90% at 30% 20%,#3A3A38,#161615 80%);--glow:rgba(255,255,255,.05);
  --shadow:0 24px 48px -28px rgba(0,0,0,.9);--sheet:#1A1A19;color-scheme:dark}
@@ -157,8 +157,8 @@ try{const m=location.search.match(/[?&]u=([^&]+)/);if(m){const u=decodeURICompon
 function saveCfg(){try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');c.key=KEY;c.url=URL;localStorage.setItem('xg_talk',JSON.stringify(c));}catch(e){}}
 function login(msg){$('lgmsg').textContent=msg||(URL?'第一次使用，請輸入同步密碼（會記在這支手機上）。':'請貼上小乖網址，再輸入同步密碼。最簡單：跟小乖打「見證庫」，點它給的連結，網址會自動填好。');$('url').style.display=URL?'none':'';$('url').value=URL;$('pw').value='';$('login').style.display='flex';}
 $('pwgo').onclick=()=>{const u=($('url').value.trim()||URL).replace(/\?.*$/,''),k=$('pw').value.trim();if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){$('url').style.display='';$('lgmsg').textContent='網址要是 https://script.google.com/macros/s/…/exec';return;}if(!k){$('lgmsg').textContent='請輸入同步密碼';return;}URL=u;KEY=k;saveCfg();$('login').style.display='none';load();};
-// 顏色：預設灰白色系（使用者 2026-10-16），右上角可換深色
-function paintThm(){const d=document.documentElement.dataset.theme==='dark';$('thm').textContent=d?'☀︎':'☾';document.querySelector('meta[name=theme-color]').content=d?'#141414':'#F3F3F1';}
+// 顏色：預設米白色系（使用者 2026-10-16），右上角可換深色
+function paintThm(){const d=document.documentElement.dataset.theme==='dark';$('thm').textContent=d?'☀︎':'☾';document.querySelector('meta[name=theme-color]').content=d?'#141414':'#F6F1E7';}
 $('thm').onclick=()=>{const d=document.documentElement.dataset.theme!=='dark';if(d)document.documentElement.dataset.theme='dark';else delete document.documentElement.dataset.theme;try{localStorage.setItem('xg_cases_theme',d?'dark':'light');}catch(e){}paintThm();};paintThm();
 
 function api(o){if(window.XG_DEMO)return XG_DEMO(o);return fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({key:KEY},o))}).then(r=>r.json());}
