@@ -1239,12 +1239,9 @@ let LAST_KIT_ = null, KIT_PENDING_ = '';   // 剛寫好的 7 張＋PDF 內容；
 // 款式（2026-10-16 使用者要「能選擇款式」）：底圖放在 line-bot/kit/<d>，字的顏色跟著換
 const KIT_LIGHT = { ink: '#2A221A', soft: '#5B4F40', gold: '#A07C34', mute: '#8D7F6C', top: '#9C7A3E', lab: '#7C6B55', orn: '#B8914A', sub: '#6E604E', strike: '#A39A8C', rule: '#C9AE7A' };
 const KIT_DARK = (soft, lab, mute) => ({ ink: '#F3EBDD', soft: soft, gold: '#D9B867', mute: mute, top: '#C9A65A', lab: lab, orn: '#C9A65A', sub: lab, strike: mute, rule: '#8C7440' });
-const KIT_STYLES = [
+const KIT_STYLES = [   // 使用者 2026-10-16 只留 V1（綠底）、L3（淺綠）
   { n: '綠底', d: 'emerald/', tip: '象牙白卡＋祖母綠底', c: KIT_LIGHT },
-  { n: '咖啡底', d: 'coffee/', tip: '象牙白卡＋深咖啡底', c: KIT_LIGHT },
-  { n: '深綠', d: 'green/', tip: '深綠卡＋燙金', c: KIT_DARK('#C6D1C9', '#A9B8AE', '#8C9D92') },
-  { n: '酒紅', d: 'wine/', tip: '酒紅卡＋燙金', c: KIT_DARK('#E2C9C4', '#CDAFA8', '#B08F89') },
-  { n: '寶石藍', d: 'sapphire/', tip: '寶石藍卡＋燙金', c: KIT_DARK('#C4CCDD', '#A6B1C8', '#8893AE') }];
+  { n: '淺綠', d: 'mint/', tip: '淺綠卡＋灰綠底', c: Object.assign({}, KIT_LIGHT, { ink: '#1B2C29', soft: '#465D58', mute: '#6A807B', lab: '#6A807B', sub: '#6A807B' }) }];
 let KIT_S_ = KIT_STYLES[0];   // 這次畫圖用的款式（kitMake_ 依 kit.style 設定）
 const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n)[0] || KIT_STYLES[0];
 
@@ -1270,7 +1267,7 @@ function kitStyleMenu_(th) {
   const b = KIT_STYLES.map(x => '🎨 ' + name + '・' + x.n);
   const imgs = KIT_STYLES.map(x => KIT_BG + x.d + 'preview.jpg');
   if (TALK_MODE_) ASK_IMGS_ = imgs;   // 對話頁直接顯示預覽圖
-  return { text: '📕 ' + name + '：選一個款式\n\n' + KIT_STYLES.map(x => '・' + x.n + '：' + x.tip).join('\n'), buttons: [b.slice(0, 3), b.slice(3)],
+  return { text: '📕 ' + name + '：選一個款式\n\n' + KIT_STYLES.map(x => '・' + x.n + '：' + x.tip).join('\n'), buttons: [b],
     flex: kitStyleFlex_(name), alt: '🎨 選一個款式', imgs: imgs, caps: KIT_STYLES.map(x => x.n + '｜' + x.tip) };
 }
 // LINE：每款一張預覽卡，點「用這款」就開始做
