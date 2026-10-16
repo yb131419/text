@@ -1291,63 +1291,88 @@ function kitWrite_(k) {
   if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，沒辦法寫文案。';
   let hist = [];
   try { hist = JSON.parse(prop_('KIT_HIST') || '[]'); } catch (e) { hist = []; }
-  const sys = [
+  const base = [
     '你是「智囊軍師」，彥彬的社群文案高手。這次要做一組「名單包」：一篇貼文＋7 張 IG 輪播圖卡＋一份 7 頁的 PDF 小手冊，三者講同一個主題。',
     '寫法：短句、每句獨立一行、像朋友分享，不說教、不推銷；繁體台灣用語。',
     '【本次主題】' + th.guide,
+    '用 **字** 標出要強調的字，每段最多一處；換行用 \\n。',
+    '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
+  ];
+  // 第一段：7 張輪播＋貼文
+  const sysA = base.concat([
+    '這一次只寫「7 張輪播」和「貼文」（PDF 下一步再寫）。',
     '【結構】主題是「○○的三個動作」這種能照著做的三步驟（series，10 字內，例如「邀約的三個動作」）；關鍵字 keyword 是 2 個字（例如「邀約」），讓人留言索取 PDF。',
-    '【7 張輪播 slides】依序 kind 為：cover、action、action、action、reason、last、cta。',
+    '【7 張輪播 slides】剛好 7 張，依序 kind 為：cover、action、action、action、reason、last、cta。',
     'cover：head 是三行內的鉤子（例如「約不到人，\\n不是你\\n**不會說**。」），sub 兩行（點出問題＋三個動作今天就用得上）。',
     'action ×3：step 寫「動作一／動作二／動作三」，head 兩行標題（每行 8 字內），body 3 到 5 行示範，可以用「~~錯誤說法~~」對比「**好的說法**」，全部 60 字內。',
     'reason：label 寫「○○，真正的原因」，head 四行內，點出真正的原因。',
     'last：pre 兩行鋪陳，head 兩行收尾金句。',
     'cta：head 三行（例如「三個動作加上\\n練習句型——\\n**《○○的三個動作》**。」），cta 寫「留言「**關鍵字**」」，sub 寫「我把 PDF 整理好傳給你。」',
-    '用 **字** 標出要強調的字，每段最多一處；換行用 \\n。',
+    '【貼文 post】post_title 15 字內；post 220 到 320 字，用生活場景開頭，結尾請大家留言「關鍵字」索取 PDF；tags 5 個主題標籤（不可以有「康園道」「分享」「大健康」）。',
+    hist.length ? '【避免重複】最近做過：' + hist.join('、') + '，這次換一個不同的主題。' : '',
+    '只輸出 JSON：{"cat":"分類","series":"","keyword":"","slides":[{"kind":"cover","label":"","head":"","sub":""},{"kind":"action","step":"動作一","head":"","body":""},{"kind":"action","step":"動作二","head":"","body":""},{"kind":"action","step":"動作三","head":"","body":""},{"kind":"reason","label":"","head":""},{"kind":"last","pre":"","head":""},{"kind":"cta","head":"","cta":"","sub":""}],"post_title":"","post":"","tags":[]}',
+  ]).filter(Boolean).join('\n');
+  // 第二段：7 頁 PDF（照第一段的主題和三個動作寫）
+  const sysB = base.concat([
+    '這一次只寫「7 頁 PDF 小手冊」的內容，主題和三個動作已經定好（會給你）。',
     '【PDF pdf】kicker 一句話（20 字內）；title 兩行（例如「邀約的\\n三個動作」）；intro 三行開場；',
     'before：title、lead（60 字內）、points 3 點（h 一句、p 50 到 70 字）、note {h:"用法", p:"一句說明怎麼用這份手冊"}；',
-    'actions 3 個：step、title、lead（50 字內）、demo 2 句（可以用 ✗／✓ 開頭對比）、demoNote、why（60 字內）、practice（50 字內）、warn {h:"注意" 或 "原則", p:"50 字內"}；',
+    'actions 剛好 3 個（對應三個動作）：step、title、lead（50 字內）、demo 2 句（可以用 ✗／✓ 開頭對比）、demoNote、why（60 字內）、practice（50 字內）、warn {h:"注意" 或 "原則", p:"50 字內"}；',
     'check：title、lead、items 5 個自我檢查問句、note {h, p}；final：title「今天就開始的三步」、steps 3 個 {h, p}、close 三行收尾（用 ** 標一個重點字）。',
-    '【貼文 post】post_title 15 字內；post 220 到 320 字，用生活場景開頭，結尾請大家留言「關鍵字」索取 PDF；tags 5 個主題標籤（不可以有「康園道」「分享」「大健康」）。',
-    '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
-    hist.length ? '【避免重複】最近做過：' + hist.join('、') + '，這次換一個不同的主題。' : '',
-    '只輸出 JSON：{"cat":"分類","series":"","keyword":"","slides":[{"kind":"cover","label":"","head":"","sub":""},{"kind":"action","step":"動作一","head":"","body":""},…,{"kind":"reason","label":"","head":""},{"kind":"last","pre":"","head":""},{"kind":"cta","head":"","cta":"","sub":""}],"pdf":{"kicker":"","title":"","intro":"","before":{…},"actions":[…],"check":{…},"final":{…}},"post_title":"","post":"","tags":[]}',
-  ].filter(Boolean).join('\n');
-  // 名單包是很長的 JSON（貼文＋7 張＋7 頁），以前上限 2500 字元會被截斷 → JSON 壞掉；現在給 12000 並用 JSON 模式，失敗再自動重寫一次
-  // AI 偶爾少給幾張或欄位放錯：缺什麼就告訴它重寫，最多寫 3 次
-  let kit = null, why = '', fixMsg = '';
-  const t0 = Date.now();   // 整個流程只有 6 分鐘：寫超過 2 分半就不再重寫，留時間畫圖
-  const ask = '請做一組「' + th.name + '」的名單包。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。';
-  for (let i = 0; i < 3 && !kit && (i === 0 || Date.now() - t0 < 150000); i++) {
-    try {
-      const out = String(callOpenAI_(sys, [{ role: 'user', content: ask + fixMsg }], true, null, { maxTokens: 12000, temperature: 0.7 }));
-      const c = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
-      kit = kitClean_(c, th, k);
-      if (!kit) {
-        why = '格式不對：' + kitMissing_(c);
-        fixMsg = '\n上一次的 JSON 不完整（' + kitMissing_(c) + '）。這次一定要有 slides 剛好 7 張（cover、action×3、reason、last、cta，每張都有 kind），pdf.actions 剛好 3 個。';
-        console.error('7張＋PDF 第 ' + (i + 1) + ' 次' + why);
+    '只輸出 JSON：{"pdf":{"kicker":"","title":"","intro":"","before":{"title":"","lead":"","points":[{"h":"","p":""}],"note":{"h":"","p":""}},"actions":[{"step":"動作一","title":"","lead":"","demo":["",""],"demoNote":"","why":"","practice":"","warn":{"h":"","p":""}}],"check":{"title":"","lead":"","items":[""],"note":{"h":"","p":""}},"final":{"title":"今天就開始的三步","steps":[{"h":"","p":""}],"close":""}}}',
+  ]).join('\n');
+  // 名單包很長，一次寫完常常太慢或被截斷：拆成兩段、各自最多重寫一次；整段寫作最多 3 分鐘，留時間畫圖
+  const model = prop_('KIT_MODEL') || 'gpt-4.1-mini';   // 寫長 JSON 又快又穩的模型（可在指令碼屬性 KIT_MODEL 改）
+  const t0 = Date.now();
+  let why = '';
+  const ask = (sys, user, ok, fix) => {
+    let msg = user;
+    for (let i = 0; i < 2 && (i === 0 || Date.now() - t0 < 120000); i++) {
+      try {
+        const out = String(callOpenAI_(sys, [{ role: 'user', content: msg }], true, model, { maxTokens: 6000, temperature: 0.7 }));
+        const c = kitUnwrap_(JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)));
+        const bad = ok(c);
+        if (!bad) return c;
+        why = '格式不對（' + bad + '）';
+        msg = user + '\n上一次的 JSON 不完整：' + bad + '。' + fix;
+      } catch (err) {
+        why = /Timeout|逾時/i.test(err.message) ? 'AI 回覆太慢（逾時）' : err.message;
+        if (/金鑰|429/.test(why)) break;
       }
-    } catch (err) {
-      why = err.message;
-      console.error('7張＋PDF 文案失敗（第 ' + (i + 1) + ' 次）：' + why);
-      if (/金鑰/.test(why)) break;
+      console.error('7張＋PDF 第 ' + (i + 1) + ' 次失敗：' + why);
     }
+    return null;
+  };
+  const today = '今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。';
+  const a = ask(sysA, '請做一組「' + th.name + '」的名單包。' + today,
+    c => { const n = kitSlides_(c.slides).length; return n < 7 ? 'slides 只有 ' + n + ' 張' : ''; },
+    '這次一定要有 slides 剛好 7 張（cover、action×3、reason、last、cta）。');
+  const b = a && ask(sysB, '主題：' + (a.series || th.name) + '\n關鍵字：' + (a.keyword || '') + '\n三個動作：\n'
+      + kitSlides_(a.slides).filter(x => x.kind === 'action').map(x => (x.step || '') + '：' + String(x.head || '').replace(/\*\*|\\n|\n/g, '') + '｜' + String(x.body || '').replace(/\n/g, ' ')).join('\n'),
+    c => { const n = c.pdf && Array.isArray(c.pdf.actions) ? c.pdf.actions.length : 0; return n < 3 ? 'pdf.actions 只有 ' + n + ' 個' : ''; },
+    '這次一定要有 pdf.actions 剛好 3 個。');
+  const kit = a && b ? kitClean_(Object.assign({}, a, { slides: kitSlides_(a.slides), pdf: b.pdf }), th, k) : null;
+  if (!kit) {
+    if (a && b) why = why || '內容不完整';
+    return { text: /金鑰/.test(why) ? 'OpenAI 金鑰無效，沒辦法寫文案，請檢查 OPENAI_API_KEY。'
+      : /429/.test(why) ? 'OpenAI 額度或速度上限到了（429），等一下再按一次；一直這樣請到 OpenAI 網站確認帳戶餘額。'
+      : '這次沒寫出來（原因：' + String(why || '不明').slice(0, 120) + '），再按一次試試看。', buttons: [[KIT_BTN]] };
   }
-  if (!kit) return { text: /金鑰/.test(why) ? 'OpenAI 金鑰無效，沒辦法寫文案，請檢查 OPENAI_API_KEY。' : /OpenAI 回應 429/.test(why) ? 'OpenAI 額度或速度上限到了，等一下再按一次。' : '這次沒寫出來，再按一次試試看。', buttons: [[KIT_BTN]] };
   hist.unshift(kit.series);
   setProp_('KIT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_KIT_ = kit;
   return { text: stratHead_() + '｜📕 ' + kit.label + '\n\n' + postText_(kit), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) };
 }
 
-// 整理 AI 回來的內容：補齊欄位、拿掉禁字（私訊→留言）；缺太多就回 null
-// 說明 AI 回來的內容缺了什麼（給重寫用、也寫進紀錄）
-function kitMissing_(c) {
-  c = kitUnwrap_(c);
-  const n = Array.isArray(c.slides) ? c.slides.filter(x => x && x.kind).length : 0;
-  const a = c.pdf && Array.isArray(c.pdf.actions) ? c.pdf.actions.length : 0;
-  return 'slides ' + n + ' 張、pdf.actions ' + a + ' 個';
+// 7 張輪播：AI 偶爾漏寫 kind 或順序錯，照位置補上（cover、action×3、reason、last、cta）
+const KIT_KINDS = ['cover', 'action', 'action', 'action', 'reason', 'last', 'cta'];
+function kitSlides_(s) {
+  const arr = (Array.isArray(s) ? s : s && typeof s === 'object' ? Object.keys(s).map(x => s[x]) : []).filter(x => x && typeof x === 'object');
+  if (arr.length !== 7) return arr.filter(x => x.kind);
+  return arr.map((x, i) => Object.assign({}, x, { kind: KIT_KINDS.indexOf(x.kind) >= 0 ? x.kind : KIT_KINDS[i] }));
 }
+
+// 整理 AI 回來的內容：補齊欄位、拿掉禁字（私訊→留言）；缺太多就回 null
 // 有時 AI 會多包一層（{"kit":{…}}、{"名單包":{…}}）
 function kitUnwrap_(c) {
   c = c || {};
