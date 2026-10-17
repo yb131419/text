@@ -125,7 +125,7 @@ DEFAULTS = {
     'layout': 'full',       # full 滿版；frame 教學框（綠底、畫面縮在中間圓角框、上方黑底標題框、右上名牌、結尾重點整理）
     'tag': '彥彬｜生活筆記',  # 教學框右上角的名牌
 }
-POS_Y = {'bottom': 380, 'lower': 560, 'middle': 820, 'upper': 1250}   # 字幕底邊離畫面最下面的距離
+POS_Y = {'bottom': 320, 'lower': 430, 'middle': 820, 'upper': 1250}   # 字幕底邊離畫面最下面的距離（使用者 2026-10-17：再往下一點，留給 IG 下方按鈕的空間）
 
 
 def clamp_opt(opt):
@@ -1118,7 +1118,7 @@ def build_ass(plan, segs, spans, opt, total, path):
             add(4, st, st + 2.2, 'Pop', '{\\pos(%d,%d)\\fscx40\\fscy40\\t(0,160,\\fscx108\\fscy108)'
                 '\\t(160,260,\\fscx100\\fscy100)\\fad(0,250)}%s' % (W // 2, int(H * .45), ass_text(pp['text'])))   # 放中間，不壓到頂部標題
     # 靜音剪：每句字幕跟著段落換，輪流「彈出來」和「往上滑進來」，重點詞亮色
-    cy = int(H * (.62 if not land else .72))
+    cy = int(H * (.68 if not land else .72))
     for i, (a, b, cap) in enumerate(plan.get('caps_t') or []):
         cap = cap_line(cap)
         en = cap['en'] if opt['subs'] in ('both', 'en') else ''
