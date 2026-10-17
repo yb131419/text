@@ -190,7 +190,7 @@ TikTok 只收影片（剪好的 Reels、自己的影片），送到你 TikTok �
 3. **Cloudflare 中繼站**：dash.cloudflare.com 註冊 →「Workers 和 Pages」→「建立」→「從 Hello World 開始」→ 名稱 `xiaoguai-relay` →「部署」→「編輯程式碼」，全部換成 `meta-relay/worker.js` 的內容 →「部署」。再到「設定」→「變數和密碼」加：`APPS_URL`、`RELAY_KEY`、`VERIFY_TOKEN`（第 2 步的值），`APP_SECRET`（Meta 應用程式 →「應用程式設定」→「基本資料」→「應用程式密鑰」）。中繼站網址長得像 `https://xiaoguai-relay.你的帳號.workers.dev`。
 4. **Meta Webhooks**：Meta 開發者「小乖發文」→ 左邊「Webhooks」→ 上面選「Page」→「訂閱這個物件」，回呼網址填中繼站網址、驗證權杖填 `VERIFY_TOKEN` →「驗證並儲存」→ 訂閱 `feed`；再選「Instagram」同樣填一次 → 訂閱 `comments`。
 5. 再傳一次「**留言設定**」（讓粉專把通知送給應用程式），看到「通知綁定：FB 粉專 ✅、IG ✅」。
-6. 傳「**設定 留言關鍵字 PDF**」（可以好幾個，空格分開；沒設就用 7 張名單包的關鍵字），官方 LINE 後台也設一樣的關鍵字回 PDF。私訊裡的 LINE 連結預設是「彥彬｜生活筆記」，要換就傳「設定 留言LINE https://lin.ee/…」。
+6. 傳「**設定 留言關鍵字 PDF**」（可以好幾個，空格分開）。不設定就自動用最近 10 組「📕 7張＋PDF」的關鍵字；設定過想改回自動，傳「設定 留言關鍵字 自動」，官方 LINE 後台也設一樣的關鍵字回 PDF。私訊裡的 LINE 連結預設是「彥彬｜生活筆記」，要換就傳「設定 留言LINE https://lin.ee/…」。
 7. 傳「**留言回覆開**」。用自己另一個帳號留言測試（自己帳號的留言小乖不會回）。關掉傳「留言回覆關」，看人數傳「留言狀態」。
 8. **送審（開放給所有人）**：審核通過前，只有應用程式裡的管理員、測試人員留言才會觸發。「應用程式設定 → 基本資料」隱私政策網址填 `https://yb131419.github.io/Tezhu/privacy.html`、資料刪除網址填 `https://yb131419.github.io/Tezhu/privacy.html#delete`；「應用程式審查」申請第 1 步那些權限的「進階存取」（附操作錄影：留言 → 收到私訊），可能要先完成商家驗證；通過後把應用程式切到「上線」。
 
