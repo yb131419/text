@@ -57,6 +57,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-noto-cjk > /dev/null
+          python3 -m pip install -q --break-system-packages edge-tts==7.3.1   # 台灣腔配音（微軟台灣聲音）
           fc-cache -f > /dev/null
           fc-list :lang=zh-tw family | head -3
 
