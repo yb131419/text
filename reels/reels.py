@@ -108,7 +108,8 @@ def subs_check(joined, out, ass, work):
 
 # ---------------- 讀說明：時間長度、配樂、字幕選項 ----------------
 DEFAULTS = {
-    'target': 60, 'music': True, 'subs': 'both',   # 預設中英都放（使用者 2026-10-17）
+    'target': 60, 'music': True, 'subs': 'zh',   # 預設只放中文（使用者 2026-10-17 給的雜誌風參考影片；說明寫「中英」才加英文）
+    'sub_look': 'mag',      # mag 雜誌風（細字小字幕、開頭大小字標題、No.1 手寫段落標）；bold 粗體大字幕＋頂部常駐標題（說明寫「大字幕」）
     'mood': '', 'title': '',
     'jumpcut': True,        # 剪掉講話中間的停頓
     'cards': True,          # 動畫字卡：開頭打字標題、標籤打勾、重點跳出來
@@ -137,7 +138,9 @@ def clamp_opt(opt):
     if opt.get('sub_pos') not in POS_Y:
         opt['sub_pos'] = 'lower'
     if opt.get('subs') not in ('both', 'zh', 'en', 'none'):
-        opt['subs'] = 'both'
+        opt['subs'] = 'zh'
+    if opt.get('sub_look') != 'bold':
+        opt['sub_look'] = 'mag'
     for k in ('sub_color', 'sub_outline', 'accent'):
         if not re.match(r'^#[0-9A-Fa-f]{6}$', str(opt.get(k) or '')):
             opt[k] = DEFAULTS[k]
@@ -224,6 +227,10 @@ def parse_note(note, mode='reels', kind='auto'):
         opt['voice'] = False
     if re.search(r'男(聲|生|的聲音)', note):
         opt['voice_male'] = True
+    if re.search(r'大字幕|粗字幕|粗體字幕', note):
+        opt['sub_look'] = 'bold'
+    elif re.search(r'雜誌|細字幕|小字幕', note):
+        opt['sub_look'] = 'mag'
     if re.search(r'(不要|無|沒有|免|關掉?)\s*字幕', note):
         opt['subs'] = 'none'
     elif re.search(r'中英|雙語|加英文', note):
@@ -339,6 +346,7 @@ PLAN_PROMPT = '''你是影片剪輯師，幫一位台灣的直銷事業經營者
    拆成短句，一行 4～8 個字（字幕是大字，太長會擠成兩行）、照說話的停頓斷句（像抖音、Reels 那種一句一句跳出來的字幕）。
    每行附上自然口語的英文翻譯；中文每行可以用 ** 標出最多一個重點詞（例如「每天**三分鐘**」），不是每行都要標。
 3. 想一個 14 個字以內的反骨開頭標題（照下面的內容邏輯；使用者說明裡有指定標題就用那個）。
+   再把標題拆成 2～4 段 hook，做開頭的大小字排版（像雜誌）：重點詞那段 big 是 true（2～4 個字），其他段 big 是 false，合起來要等於標題。
 4. 挑 3～4 個影片重點標籤，每個 2～4 個字（例如：字幕、剪輯、動畫、字卡）。
 5. 挑 1～3 句最重要的話做重點字卡：給那句的 i 和 10 個字以內的重點（最好是「問題」「方法」「需要」那幾個轉折點）。
 6. 寫一段 IG 貼文文案（3～5 行，繁體中文，結尾 5 個 hashtag）。
@@ -349,7 +357,7 @@ PLAN_PROMPT = '''你是影片剪輯師，幫一位台灣的直銷事業經營者
    zoom 推近鏡頭（強調）／push 慢慢推近（娓娓道來、感動）／shake 震動（驚訝、超重要）／flash 閃白（換話題、轉折）。
 9. 把保留的句子依內容分成 2～5 個段落（像教學影片的「第一步、第二步」），每段給開始那句的 i 和 4～8 個字的小標 name（不用寫編號）。
 {hook}
-{wish}只回 JSON：{{"title": "", "tags": [""], "keep": [{{"i": 0, "fx": "", "lines": [{{"zh": "", "en": ""}}]}}], "pops": [{{"i": 0, "text": ""}}], "music": "", "look": "", "sub_anim": "", "sections": [{{"i": 0, "name": ""}}], "post": ""}}'''
+{wish}只回 JSON：{{"title": "", "hook": [{{"t": "", "big": true}}], "tags": [""], "keep": [{{"i": 0, "fx": "", "lines": [{{"zh": "", "en": ""}}]}}], "pops": [{{"i": 0, "text": ""}}], "music": "", "look": "", "sub_anim": "", "sections": [{{"i": 0, "name": ""}}], "post": ""}}'''
 
 FX_MENU = '''   look 調色，挑一個：clean 自然清爽／warm 溫暖（生活、感恩、家人）／cool 冷調（專業、科技）／vivid 鮮豔（活力、促銷）／film 電影感（故事、見證）／soft 柔和（療癒、女性、保養）
    sub_anim 字幕跳出方式，挑一個：pop 彈出來／slide 往上滑進來／wipe 由左往右刷出來／bounce 壓扁再彈起來'''
@@ -413,7 +421,18 @@ def plan_clips(segs, opt, note):
         if name and j is not None and j not in [y['i'] for y in secs]:
             secs.append({'i': j, 'name': name})
     secs.sort(key=lambda x: x['i'])
-    return {'title': opt['title'] or (plan.get('title') or '').strip()[:22], 'keep': keep, 'tags': tags, 'sections': secs[:5],
+    hook = []   # 開頭大小字標題：[(字, 大字?)]
+    for x in plan.get('hook') or []:
+        try:
+            t = str(x.get('t') or '').replace('*', '').strip()[:8]
+        except AttributeError:
+            continue
+        if t:
+            hook.append((t, bool(x.get('big'))))
+    title = opt['title'] or (plan.get('title') or '').strip()[:22]
+    if opt['title'] or ''.join(t for t, _ in hook) != title.replace('*', ''):
+        hook = []   # 使用者自己指定標題、或 AI 拆的跟標題對不上，就照標題自動拆
+    return {'title': title, 'hook': hook[:4], 'keep': keep, 'tags': tags, 'sections': secs[:5],
             'pops': pops[:3], 'post': (plan.get('post') or '').strip(), 'music': str(plan.get('music') or '').strip(),
             'look': pick(plan.get('look'), LOOKS, 'clean'), 'sub_anim': pick(plan.get('sub_anim'), SUB_ANIMS, 'pop')}
 
@@ -1028,10 +1047,141 @@ def build_frame_ass(plan, segs, spans, opt, total, path):
     return sum(1 for e in ev if ',Head,' in e or ',Cap,' in e)
 
 
+def hook_parts(plan):
+    """開頭大小字標題：用 AI 拆好的 hook；沒有就照標題的 ** 重點詞拆，再沒有就前兩個字放大。"""
+    if plan.get('hook'):
+        return [tuple(x) for x in plan['hook']]
+    t = str(plan.get('title') or '').strip()
+    if not t:
+        return []
+    if '**' in t:
+        return [(x, i % 2 == 1) for i, x in enumerate(t.split('**')) if x.strip()][:4]
+    v = re.sub(r'[，,。！!？?\s]+', '', t)
+    return [(v[:2], True), (v[2:], False)] if len(v) > 4 else [(v, True)]
+
+
+def build_mag_ass(plan, segs, spans, opt, total, path):
+    """雜誌風（使用者 2026-10-17 給的參考影片）：細字小字幕放胸口高度、不描粗邊只有柔和陰影；
+    開頭左上角大小字交錯的標題；每段開頭左上角手寫「No.1」＋段落名稱；沒有常駐標題、沒有進度條、沒有亮色字卡。"""
+    fx = opt.get('fx', True)
+    z = min(W, H) / 1080
+    land = W > H
+    k = opt['sub_size'] * z * (.82 if land else 1)
+    px = lambda v: max(1, int(v * z))
+    fs, fs_en = int(62 * k), int(40 * k)
+    mv = int(LAND_Y[opt['sub_pos']] * H) if land else int({'bottom': 430, 'lower': 640, 'middle': 820, 'upper': 1250}[opt['sub_pos']] * H / 1920)
+    soft = '&H00FFFFFF,&H00FFFFFF,&H90000000,&H80000000,0,0,0,0,100,100,%d,0,1,%d,%d'   # 白字、細、淡淡的黑色暈影
+    head = '\n'.join([
+        '[Script Info]', 'ScriptType: v4.00+', 'PlayResX: %d' % W, 'PlayResY: %d' % H, 'WrapStyle: 0',
+        'ScaledBorderAndShadow: yes', '', '[V4+ Styles]',
+        'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, '
+        'Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, '
+        'MarginR, MarginV, Encoding',
+        'Style: Sub,%s,%d,%s,2,80,80,%d,1' % (FONT, fs, soft % (1, px(2), px(2)), mv),
+        'Style: Big,%s,%d,%s,1,0,0,0,1' % (FONT, px(150 if not land else 96), soft % (2, px(3), px(3))),
+        'Style: Small,%s,%d,%s,1,0,0,0,1' % (FONT, px(76 if not land else 50), soft % (1, px(2), px(2))),
+        'Style: No,Caveat,%d,&H00FFFFFF,&H00FFFFFF,&HB0FFFFFF,&H80000000,0,0,0,0,100,100,0,0,1,%d,%d,1,0,0,0,1' % (px(300 if not land else 170), px(5), px(2)),   # 白色微光
+        'Style: Cap,%s,%d,%s,5,60,60,0,1' % (FONT, px(76 if not land else 56), soft % (1, px(2), px(2))),
+        'Style: Bar,%s,10,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1' % FONT,
+        '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text', ''])
+    ev = []
+
+    def add(layer, a, b, style, text):
+        if b - a > .05:
+            ev.append('Dialogue: %d,%s,%s,%s,,0,0,0,,%s' % (layer, ass_time(a), ass_time(min(b, total)), style, text))
+
+    remap = remapper(spans)
+    plan = plan or {}
+    plain = lambda t: ass_text(str(t or '').replace('**', '').replace('{', '').replace('}', ''))
+    wid = lambda t, size: sum(size * (.5 if ord(c) < 128 else 1.0) for c in t)
+    blur = '\\blur%d' % px(3)
+    # 開頭標題：左上角，大字開新的一行、小字接在後面，每行往右縮一點，一段一段淡入往上浮
+    x0, top, lim = px(100), px(330 if not land else 120), W - px(60)
+    bs, ss = px(150 if not land else 96), px(76 if not land else 50)
+    hook_end = min(total, opt['title_sec'] + 1.5) if opt['cards'] else 0
+    lines = []
+    for t, big in hook_parts(plan) if hook_end else []:
+        size = bs if big else ss
+        if not lines or big or lines[-1]['x'] + wid(t, size) > lim:
+            x = x0 + len(lines) * px(80)
+            lines.append({'x': x, 'h': 0, 'parts': []})
+        ln = lines[-1]
+        ln['parts'].append((ln['x'], t, big))
+        ln['x'] += wid(t, size) + px(14)
+        ln['h'] = max(ln['h'], size)
+    y, n = top, 0
+    for ln in lines:
+        y += int(ln['h'] * 1.08)
+        for x, t, big in ln['parts']:
+            d = 150 + n * 160
+            add(3, .1, hook_end, 'Big' if big else 'Small', '{\\an1\\move(%d,%d,%d,%d,%d,%d)\\alpha&HFF&\\t(%d,%d,\\alpha&H00&)\\fad(0,350)%s}%s'
+                % (x, y + px(24), x, y, d, d + 320, d, d + 320, blur, plain(t)))
+            n += 1
+    if lines:
+        SFX.append((.15, 'swish'))
+    # 段落：左上角手寫 No.1 ＋ 段落名稱（開頭標題還在的時候不出）
+    if opt['cards']:
+        ny = px(560 if not land else 260)
+        j = 0
+        for x in plan.get('sections') or []:
+            if x['i'] >= len(segs):
+                continue
+            st = remap(segs[x['i']]['start'], 'start')
+            if st is None or st < hook_end + .3:
+                continue
+            j += 1   # 只算有出現的段落，第一個出現的就是 No.1
+            no = 'No.%d' % j
+            add(3, st, st + 2.8, 'No', '{\\an1\\pos(%d,%d)\\fad(250,350)\\fscx90\\fscy90\\t(0,300,\\fscx100\\fscy100)\\blur%d}%s' % (x0, ny, px(4), no))
+            add(3, st, st + 2.8, 'Small', '{\\an1\\pos(%d,%d)\\alpha&HFF&\\t(200,450,\\alpha&H00&)\\fad(0,350)%s}%s'
+                % (x0 + int(wid(no, px(300 if not land else 170)) * .62) + px(20), ny + px(10), blur, plain(x['name'])))
+            SFX.append((st, 'swish'))
+    # 字幕：細字、一句一句淡入，不換色不彈跳
+    if opt['subs'] != 'none':
+        for kp in plan.get('keep') or []:
+            s = segs[kp['i']]
+            st, en = remap(s['start'], 'start'), remap(s['end'], 'end')
+            if st is None or en is None or en - st < .2:
+                continue
+            weights = [max(1, len(l['zh'])) for l in kp['lines']]
+            t = st
+            for l, w in zip(kp['lines'], weights):
+                d = (en - st) * w / sum(weights)
+                zh, eng = plain(l.get('zh', '')), plain(l.get('en', ''))
+                txt = eng if opt['subs'] == 'en' else zh + ('\\N{\\fs%d\\alpha&H30&}%s' % (fs_en, eng) if opt['subs'] == 'both' and eng else '')
+                add(1, t, t + d, 'Sub', '{\\fad(90,40)%s}%s' % (blur, txt))
+                t += d
+    if fx:   # 換話題的句子閃白一下
+        for kp in plan.get('keep') or []:
+            st = remap(segs[kp['i']]['start'], 'start') if kp.get('fx') in ('flash', 'shake') else None
+            if st is None or st < .3:
+                continue
+            if kp['fx'] == 'flash':
+                SFX.append((max(0, st - .2), 'whoosh'))
+                add(6, st, st + .35, 'Bar', '{\\an7\\pos(0,0)\\1c&HFFFFFF&\\1a&H30&\\t(0,350,\\1a&HFF&)\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}' % (W, W, H, H))
+            else:
+                SFX.append((st, 'hit'))
+    # 靜音剪：每句細字幕放中間偏下，淡入淡出
+    cy = int(H * (.66 if not land else .72))
+    for i, (a, b, cap) in enumerate(plan.get('caps_t') or []):
+        cap = cap_line(cap)
+        en = plain(cap['en']) if opt['subs'] in ('both', 'en') else ''
+        SFX.append((a, 'swish' if i else 'pop'))
+        add(1, a, b, 'Cap', '{\\an5\\move(%d,%d,%d,%d,0,300)\\fad(200,200)%s}%s' % (W // 2, cy + px(24), W // 2, cy, blur,
+            plain(cap['zh']) + ('\\N{\\fs%d\\alpha&H30&}%s' % (px(46), en) if en else '')))
+    if plan.get('cta_t'):
+        a, b, txt = plan['cta_t']
+        add(4, a, b, 'Small', '{\\an5\\pos(%d,%d)\\fad(250,250)%s}%s' % (W // 2, int(H * .45), blur, plain(txt)))
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(head + '\n'.join(ev) + '\n')
+    return sum(1 for e in ev if ',Sub,' in e or ',Cap,' in e)
+
+
 def build_ass(plan, segs, spans, opt, total, path):
     del SFX[:]
     if FRAME:
         return build_frame_ass(plan, segs, spans, opt, total, path)
+    if opt.get('sub_look', 'mag') == 'mag':
+        return build_mag_ass(plan, segs, spans, opt, total, path)
     fx = opt.get('fx', True)
     z = min(W, H) / 1080   # 依畫面大小縮放（直式 1080×1920 時是 1）
     land = W > H
@@ -1280,9 +1430,10 @@ def voiceover(plan, opt, total, work):
 def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean', pad=0, voice=None):
     # 控制檔案大小，Telegram 機器人傳影片上限 50MB
     kbps = int(min(6000, (TG_LIMIT * 8 / 1000) / max(total, 1) - 200))
-    vf = "[0:v]%s%sass='%s'[v]" % ('tpad=stop_mode=clone:stop_duration=%.2f,' % pad if pad else '',   # 教學框結尾停在最後一格放重點整理
+    vf = "[0:v]%s%sass='%s':fontsdir='%s'[v]" % ('tpad=stop_mode=clone:stop_duration=%.2f,' % pad if pad else '',   # 教學框結尾停在最後一格放重點整理
                                   LOOKS.get(look, LOOKS['clean']) + ',' if grade else '',
-                                ass.replace("'", "\\'").replace(':', '\\:'))   # 調色：AI 依氣氛挑（溫暖、冷調、電影感…）
+                                ass.replace("'", "\\'").replace(':', '\\:'),   # 調色：AI 依氣氛挑（溫暖、冷調、電影感…）
+                                os.path.join(HERE, 'fonts').replace("'", "\\'").replace(':', '\\:'))   # 手寫 No.1 的字型
     cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-i', joined]
     fade = 'afade=t=in:d=0.3,afade=t=out:st=%.2f:d=1.5' % max(0, total - 1.5)
     if music:
