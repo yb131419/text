@@ -36,7 +36,7 @@ const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今�
 const MENU_BTN = '💎 選單';
 const REELS_BTN = '🎬 剪 Reels';
 const REELS_LONG_BTN = '🎞️ 剪大片';
-const QUICK = [['🐾 對話頁', MENU_BTN, '📋 試算'], ['🪶 智囊軍師', '📅 近期行程']];
+const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程']];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
