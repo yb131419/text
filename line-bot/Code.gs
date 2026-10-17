@@ -372,6 +372,13 @@ function doPost(e) {
   let body = {};
   try { body = JSON.parse((e.postData && e.postData.contents) || '{}'); } catch (err) { return json_({ ok: false, error: '格式錯誤' }); }
 
+  // 官方 LINE「彥彬｜生活筆記」的 Webhook（網址帶 ?oa=通關密碼，跟小乖自己的 LINE 分開）
+  if (Array.isArray(body.events) && e.parameter.oa !== undefined) {
+    if (!prop_('OA_KEY') || e.parameter.oa !== prop_('OA_KEY')) return text_('forbidden');
+    body.events.forEach(ev => { try { oaHandle_(ev); } catch (err) { console.error(err); } });
+    return ack_();
+  }
+
   // LINE Webhook（Apps Script 讀不到 X-Line-Signature，改用網址上的 key 當通關密碼）
   if (Array.isArray(body.events)) {
     if (e.parameter.key !== prop_('SYNC_KEY')) return text_('forbidden');
@@ -647,6 +654,8 @@ function answer_(text) {
   if (ad) return ad;
   const ap = autoAsk_(t2);   // 「自動發文 開／關」：每天晚上自動發智囊軍師 7 張圖卡
   if (ap) return ap;
+  const oa = oaAsk_(t2, raw);   // 「官方LINE」：接官方 LINE、關鍵字自動給 PDF、「官回 3 內容」回朋友
+  if (oa) return oa;
   const la = leadAsk_(t2, raw);   // 「💬 留言回覆」：IG／FB 留言關鍵字 → 小乖私訊官方 LINE 連結
   if (la) return la;
   const ia = igAsk_(t2, raw);   // 「📤 發社群」：預覽 → 確定才發
@@ -1716,6 +1725,7 @@ function kitMake_(kit) {
       const f = dir.createFile(pdf);
       f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       pdfUrl = 'https://drive.google.com/file/d/' + f.getId() + '/view';
+      try { oaRemember_(kit.keyword, pdfUrl, kit.series); } catch (e) { console.error(e); }   // 官方 LINE 傳這個關鍵字就自動回 PDF
     }
   } catch (e) { console.error('名單包存檔失敗：' + e.message); }
   igRemember_(files, stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit));
@@ -5538,4 +5548,107 @@ function autoPostJob() {
     console.error('自動發文失敗：' + err.message);
     tell('🕗 今天的自動發文（' + autoName_(th) + '）沒做成：' + noTok_(err.message) + '\n明天會再試同一個主題；想現在補發，按「📕 7張＋PDF」做好後按「📤 發社群」。');
   } finally { busyEnd_('KIT_BUSY'); }
+}
+
+
+/* ============ 📮 官方 LINE「彥彬｜生活筆記」：關鍵字自動給 PDF、新朋友通知 ============ */
+// 2026-10-17 使用者選：1）做好「7張＋PDF」就把關鍵字和 PDF 對上，有人在官方 LINE 傳關鍵字自動回 PDF
+//                     2）有人加好友或傳訊息，通知主人（Telegram），主人打「官回 3 內容」就由官方 LINE 回他
+// 回覆（reply）不算官方 LINE 每月免費則數；主人「官回」是推播（push），會用掉額度
+const OA_GENERIC = /^(pdf|資料|電子書|免費資料|檔案|手冊|講義)$/i;
+function oaApi_(method, path, payload) {
+  const res = UrlFetchApp.fetch('https://api.line.me/v2/bot/' + path, {
+    method: method, contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + prop_('OA_TOKEN') },
+    payload: payload ? JSON.stringify(payload) : undefined,
+  });
+  let j = {}; try { j = JSON.parse(res.getContentText() || '{}'); } catch (e) { j = {}; }
+  if (res.getResponseCode() !== 200) throw new Error(j.message || ('HTTP ' + res.getResponseCode()));
+  return j;
+}
+function oaNorm_(t) { return String(t || '').replace(/[\s，,。.！!？?、：:「」『』"'（）()]+/g, '').toLowerCase(); }
+function oaPdfs_() { try { return JSON.parse(prop_('OA_PDF') || '[]'); } catch (e) { return []; } }
+function oaRemember_(kw, url, title) {
+  kw = String(kw || '').trim(); if (!kw || !url) return;
+  const list = [{ kw: kw, url: url, title: String(title || kw), t: Date.now() }].concat(oaPdfs_().filter(x => oaNorm_(x.kw) !== oaNorm_(kw))).slice(0, 30);
+  setProp_('OA_PDF', JSON.stringify(list));
+}
+// 傳來的字等於關鍵字，或句子裡有關鍵字（兩個字以上）；只打「PDF」「資料」給最新一份
+function oaMatch_(text) {
+  const t = oaNorm_(text), list = oaPdfs_();
+  if (!t) return null;
+  return list.filter(x => oaNorm_(x.kw) === t)[0]
+    || list.filter(x => oaNorm_(x.kw).length >= 2 && t.indexOf(oaNorm_(x.kw)) >= 0 && t.length <= 30)[0]
+    || (OA_GENERIC.test(t) ? list[0] || null : null);
+}
+// 最近 20 位朋友編上號碼，主人打「官回 3 內容」就知道回誰
+function oaPeers_() { try { return JSON.parse(prop_('OA_PEERS') || '[]'); } catch (e) { return []; } }
+function oaPeer_(id, name) {
+  const list = oaPeers_(), old = list.filter(x => x.id === id)[0];
+  const n = old ? old.n : (Math.max.apply(null, [0].concat(list.map(x => x.n))) % 99) + 1;
+  const me = { n: n, id: id, name: name || (old && old.name) || '朋友', t: Date.now() };
+  setProp_('OA_PEERS', JSON.stringify([me].concat(list.filter(x => x.id !== id && x.n !== n)).slice(0, 20)));
+  return me;
+}
+function oaName_(id) { try { return oaApi_('get', 'profile/' + id).displayName || ''; } catch (e) { return ''; } }
+function oaHandle_(ev) {
+  const id = ev.source && ev.source.userId;
+  if (!id || (ev.source.type && ev.source.type !== 'user')) return;
+  if (ev.type === 'follow') {
+    const p = oaPeer_(id, oaName_(id));
+    leadTell_('🎉 官方 LINE 有新朋友：' + p.name + '（#' + p.n + '）\n要回他就打「官回 ' + p.n + ' 你想說的話」。');
+    return;
+  }
+  if (ev.type !== 'message') return;
+  const p = oaPeer_(id, oaName_(id));
+  if (ev.message.type !== 'text') {
+    leadTell_('📮 官方 LINE #' + p.n + ' ' + p.name + ' 傳了' + ({ image: '圖片', video: '影片', audio: '語音', sticker: '貼圖', file: '檔案', location: '位置' }[ev.message.type] || '訊息') + '\n要回他就打「官回 ' + p.n + ' 你想說的話」。');
+    return;
+  }
+  const text = String(ev.message.text || ''), hit = oaMatch_(text);
+  let sent = '';
+  if (hit) {
+    try {
+      oaApi_('post', 'message/reply', { replyToken: ev.replyToken, messages: [{ type: 'text', text: '📄 《' + hit.title + '》在這裡：\n' + hit.url + '\n\n有任何問題，直接在這裡傳訊息給我 😊' }] });
+      sent = '\n✅ 已自動回 PDF《' + hit.title + '》';
+    } catch (e) { sent = '\n⚠️ 自動回 PDF 失敗：' + e.message; }
+  }
+  leadTell_('📮 官方 LINE #' + p.n + ' ' + p.name + '：' + text.slice(0, 200) + sent + '\n要回他就打「官回 ' + p.n + ' 你想說的話」。');
+}
+function oaStatus_() {
+  if (!prop_('OA_TOKEN')) return '📮 官方 LINE 還沒接上。\n到官方 LINE 的 Messaging API 拿「Channel access token」，傳「設定 官方LINE金鑰 （貼上權杖）」給我。';
+  let url = ''; try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { console.error(e); }
+  const pdfs = oaPdfs_();
+  return ['📮 官方 LINE：已接上' + (prop_('OA_NAME') ? '「' + prop_('OA_NAME') + '」' : ''),
+    '', '📄 關鍵字自動給 PDF（' + pdfs.length + ' 組，最新 5 組）：',
+    pdfs.length ? pdfs.slice(0, 5).map(x => '・「' + x.kw + '」→《' + x.title + '》').join('\n') : '・還沒有（做「📕 7張＋PDF」就會自動加；也可以打「官方LINE加 關鍵字 PDF連結」）',
+    '', '👥 最近的朋友：' + (oaPeers_().slice(0, 5).map(x => '#' + x.n + ' ' + x.name).join('、') || '還沒有'),
+    '', 'Webhook 網址（貼到官方 LINE 後台，不要給別人看）：', url ? url + '?oa=' + prop_('OA_KEY') : '（拿不到網址，請確認已部署）'].join('\n');
+}
+function oaAsk_(t, raw) {
+  const r = String(raw || t), k = String(t || '').replace(/\s+/g, '');
+  const tok = r.match(/^\s*設定\s*官方\s*LINE\s*金鑰[\s：:]*(\S+)\s*$/i);
+  if (tok) {
+    const old = prop_('OA_TOKEN');
+    setProp_('OA_TOKEN', tok[1]);
+    try {
+      const info = oaApi_('get', 'info');
+      setProp_('OA_NAME', info.displayName || '');
+      if (!prop_('OA_KEY')) setProp_('OA_KEY', leadKey_());
+      return '✅ 接上官方 LINE「' + (info.displayName || '') + '」了。\n\n' + oaStatus_() + '\n\n下一步：把上面的 Webhook 網址貼到 LINE Developers →「Messaging API」→「Webhook URL」，按「Verify」，再把「Use webhook」打開。';
+    } catch (e) { setProp_('OA_TOKEN', old); return '❌ 這組權杖不能用：' + e.message + '\n請確認是官方 LINE「彥彬｜生活筆記」的 Channel access token（long-lived），整串複製。'; }
+  }
+  const add = r.match(/^\s*官方\s*LINE\s*加\s+(\S+)\s+(https?:\/\/\S+)\s*$/i);
+  if (add) { oaRemember_(add[1], add[2], add[1]); return '📄 好，有人在官方 LINE 傳「' + add[1] + '」就自動回這份 PDF。'; }
+  const del = r.match(/^\s*官方\s*LINE\s*刪\s+(\S+)\s*$/i);
+  if (del) { const before = oaPdfs_(); setProp_('OA_PDF', JSON.stringify(before.filter(x => oaNorm_(x.kw) !== oaNorm_(del[1])))); return before.length === oaPdfs_().length ? '找不到關鍵字「' + del[1] + '」。' : '🗑️ 「' + del[1] + '」不再自動回 PDF。'; }
+  const rep = r.match(/^\s*官回\s*#?(\d+)\s+([\s\S]+)$/);
+  if (rep) {
+    const p = oaPeers_().filter(x => String(x.n) === rep[1])[0];
+    if (!p) return '找不到 #' + rep[1] + '，打「官方LINE」看最近的朋友編號。';
+    try { oaApi_('post', 'message/push', { to: p.id, messages: [{ type: 'text', text: rep[2].trim().slice(0, 5000) }] }); return '📮 已用官方 LINE 回給 ' + p.name + '（用掉 1 則每月推播額度）。'; }
+    catch (e) { return '❌ 沒送出去：' + e.message + (/limit|quota|上限/i.test(e.message) ? '\n這個月的推播額度可能用完了，請到官方 LINE App 直接回他。' : ''); }
+  }
+  if (/^(官方LINE|官方line|官方LINE設定|官方LINE狀態|官方帳號)$/.test(k)) return oaStatus_();
+  return null;
 }
