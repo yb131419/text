@@ -5368,8 +5368,8 @@ function leadHandle_(body) {
     const kw = leadMatch_(c.text);
     if (!kw && !leadAll_()) { leadLog_(src + '：沒有關鍵字（目前關鍵字：' + leadKws_().join('、') + '）'); return; }
     if (cache.get('lead_' + c.id)) return;
-    // 沒關鍵字的一般留言：同一個人一天只私訊一次，免得一直留言一直被私訊
-    if (!kw && c.from && cache.get('leadu_' + c.from)) { leadLog_(src + '：同一個人今天已私訊過，不再私訊'); return; }
+    // 沒關鍵字的一般留言：同一個人 6 小時內只私訊一次（快取最多 6 小時），免得一直留言一直被私訊
+    if (!kw && c.from && cache.get('leadu_' + c.from)) { leadLog_(src + '：同一個人 6 小時內已私訊過，不再私訊'); return; }
     if (!kw && c.from) cache.put('leadu_' + c.from, '1', 21600);
     leadLog_(src + '：' + (kw ? '有關鍵字「' + kw + '」' : '一般留言') + '，正在私訊');
     cache.put('lead_' + c.id, '1', 21600);   // Meta 會重送，同一則留言只處理一次
@@ -5415,7 +5415,7 @@ function leadAsk_(t, raw) {
     setProp_('LEAD_ON', '1');
     return '💬 留言回覆打開了。' + (leadAll_() ? '有人在 IG／FB 留言，小乖都會私訊他官方 LINE 連結（留言關鍵字的人，會請他在 LINE 傳關鍵字拿 PDF）。' : '有人在 IG／FB 留言' + leadKws_().map(x => '「' + x + '」').join('或') + '，小乖會私訊他官方 LINE 連結。');
   }
-  if (/^留言回覆(全部|全部回|每則都回)$/.test(k)) { setProp_('LEAD_ONLYKW', ''); return '💬 好，每則留言都回官方 LINE 連結（同一個人一天只私訊一次）。'; }
+  if (/^留言回覆(全部|全部回|每則都回)$/.test(k)) { setProp_('LEAD_ONLYKW', ''); return '💬 好，每則留言都回官方 LINE 連結（同一個人 6 小時內只私訊一次）。'; }
   if (/^留言回覆只回關鍵字$/.test(k)) { setProp_('LEAD_ONLYKW', '1'); return '💬 好，只有留言關鍵字的才回。'; }
   if (/^留言回覆(關|關閉|關掉|暫停)$/.test(k)) { setProp_('LEAD_ON', ''); return '💬 留言回覆關掉了，傳「留言回覆開」可以再打開。'; }
   if (/^(留言設定|留言回覆設定|留言回覆|留言狀態)$/.test(k)) {
