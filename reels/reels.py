@@ -108,7 +108,8 @@ def subs_check(joined, out, ass, work):
 
 # ---------------- 讀說明：時間長度、配樂、字幕選項 ----------------
 DEFAULTS = {
-    'target': 60, 'music': True, 'subs': 'both', 'mood': '', 'title': '',
+    'target': 60, 'music': True, 'subs': 'zh',   # 預設只放中文大字幕（使用者 2026-10-17：字幕太小、排版太亂）；說明寫「中英」才加英文
+    'mood': '', 'title': '',
     'jumpcut': True,        # 剪掉講話中間的停頓
     'cards': True,          # 動畫字卡：開頭打字標題、標籤打勾、重點跳出來
     'title_sec': 3.5,       # 開頭標題停留秒數
@@ -134,7 +135,7 @@ def clamp_opt(opt):
     if opt.get('sub_pos') not in POS_Y:
         opt['sub_pos'] = 'lower'
     if opt.get('subs') not in ('both', 'zh', 'en', 'none'):
-        opt['subs'] = 'both'
+        opt['subs'] = 'zh'
     for k in ('sub_color', 'sub_outline', 'accent'):
         if not re.match(r'^#[0-9A-Fa-f]{6}$', str(opt.get(k) or '')):
             opt[k] = DEFAULTS[k]
@@ -219,6 +220,8 @@ def parse_note(note, mode='reels', kind='auto'):
         opt['sfx'] = False
     if re.search(r'(不要|無|沒有|免|關掉?)\s*字幕', note):
         opt['subs'] = 'none'
+    elif re.search(r'中英|雙語|加英文', note):
+        opt['subs'] = 'both'
     elif re.search(r'只要?\s*中文', note):
         opt['subs'] = 'zh'
     elif re.search(r'只要?\s*英文', note):
@@ -318,7 +321,7 @@ PLAN_PROMPT = '''你是影片剪輯師，幫一位台灣的直銷事業經營者
 會給你影片逐句辨識結果（i 是編號，秒數是時間），和使用者的說明。請：
 {rule}
 2. 每一句改成字幕：繁體中文（台灣用語），依上下文修正辨識錯字，句尾不加標點；
-   拆成短句，一行 6～12 個字、照說話的停頓斷句（像抖音、Reels 那種一句一句跳出來的字幕）。
+   拆成短句，一行 4～8 個字（字幕是大字，太長會擠成兩行）、照說話的停頓斷句（像抖音、Reels 那種一句一句跳出來的字幕）。
    每行附上自然口語的英文翻譯；中文每行可以用 ** 標出最多一個重點詞（例如「每天**三分鐘**」），不是每行都要標。
 3. 想一個 12 個字以內、像在跟 AI 下指令或抓住注意力的開頭標題（使用者說明裡有指定標題就用那個）。
 4. 挑 3～4 個影片重點標籤，每個 2～4 個字（例如：字幕、剪輯、動畫、字卡）。
@@ -581,7 +584,7 @@ def vf(zoom=1.0, move='', L=0, p=(0, 1), zp=''):
 SILENT_PROMPT = '''你是爆款短影音剪輯師，幫一位台灣的直銷事業經營者把「沒有人講話」的影片剪成短影音（像萬人按讚的那種）。
 會給你影片裡的幾張畫面和使用者說明。請：
 1. 想一個 12 個字以內、抓住注意力的開頭標題（說明裡有指定標題就用那個）。
-2. 依畫面內容和說明，寫 {n} 句畫面字幕，每句 6～14 個字，照影片順序、像在說一個小故事、有節奏感；
+2. 依畫面內容和說明，寫 {n} 句畫面字幕，每句 5～8 個字，照影片順序、像在說一個小故事、有節奏感；
    每句用 ** 標出一個重點詞（例如「每天 **3 分鐘**」），並附上自然口語的英文翻譯（en，不用標 **）。
 3. 結尾一句行動呼籲，12 個字以內（例如「想知道更多 **留言** 告訴我」）。
 4. 3～4 個重點標籤，每個 2～4 個字。
@@ -892,8 +895,8 @@ def build_frame_ass(plan, segs, spans, opt, total, path):
         'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, '
         'Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, '
         'MarginR, MarginV, Encoding',
-        'Style: Head,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,2,0,1,0,0,2,0,0,0,1' % (FONT, int(66 * k)),
-        'Style: Cap,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,2,0,1,0,0,2,0,0,0,1' % (FONT, int(66 * k)),
+        'Style: Head,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,2,0,1,0,0,2,0,0,0,1' % (FONT, int(100 * k)),
+        'Style: Cap,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,2,0,1,0,0,2,0,0,0,1' % (FONT, int(100 * k)),
         'Style: Draw,%s,20,&H00141414,&H00141414,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1' % FONT,
         'Style: Big,%s,96,&H00FFFFFF,&H00FFFFFF,&H00141414,&H64000000,-1,0,0,0,100,100,3,0,1,7,4,5,0,0,0,1' % FONT,
         'Style: Tag,%s,34,&H001E1E1E,&H001E1E1E,&H00000000,&H00000000,-1,0,0,0,100,100,1,0,1,0,0,9,0,0,0,1' % FONT,
@@ -912,7 +915,7 @@ def build_frame_ass(plan, segs, spans, opt, total, path):
 
     def boxed(a, b, t, style='Head', fs=None, cy=None, layer=1, fade=(80, 60), dark='&H141414&', en=''):
         """黑底圓角框＋白字（重點詞亮色），en 是下面一行小字英文；cy 是框底邊，預設在畫面框上面。"""
-        fs = fs or int(66 * k)
+        fs = fs or int(100 * k)
         fe = int(fs * .56)
         lines = wrap2(t, 12 if fs <= 70 else 9)
         en = plain(en)[:60]
@@ -1016,7 +1019,7 @@ def build_ass(plan, segs, spans, opt, total, path):
     z = min(W, H) / 1080   # 依畫面大小縮放（直式 1080×1920 時是 1）
     land = W > H
     k = opt['sub_size'] * z * (.82 if land else 1)
-    fs, fs_en = int(74 * k), int(44 * k)
+    fs, fs_en = int(150 * k), int(64 * k)   # 大字幕：一個字約 100px 寬、一行最多 8 個字（原本 74 太小）
     box = opt['sub_box']
     mv = int(LAND_Y[opt['sub_pos']] * H) if land else int(POS_Y[opt['sub_pos']] * H / 1920)
     px = lambda v: max(1, int(v * z))
@@ -1030,13 +1033,13 @@ def build_ass(plan, segs, spans, opt, total, path):
         'Style: Sub,%s,%d,%s,%s,%s,%s,-1,0,0,0,100,100,1,0,%d,%d,%d,2,80,80,%d,1' % (
             FONT, fs, ass_color(opt['sub_color']), ass_color(opt['sub_color']),
             ass_color(opt['sub_outline'], 0x30 if box else 0), '&H78000000',
-            3 if box else 1, px(14 if box else 4), px(0 if box else 3), mv),
+            3 if box else 1, px(16 if box else 10), px(0 if box else 5), mv),
         # 字幕後面的柔光（深色暈開，讓字更立體、更好讀）
         'Style: Glow,%s,%d,&HFF000000,&HFF000000,&H60000000,&HFF000000,-1,0,0,0,100,100,1,0,1,%d,0,2,80,80,%d,1' % (
-            FONT, fs, px(14), mv),
-        # 開頭標題：深色半透明圓角輸入框裡打字
-        'Style: Ask,%s,%d,&H00FFFFFF,&H00FFFFFF,&H40262626,&H00000000,-1,0,0,0,100,100,1,0,3,%d,0,8,80,80,%d,1' % (
-            FONT, px(50), px(22), px(270) if not land else int(H * .16)),
+            FONT, fs, px(22), mv),
+        # 頂部大標題：整支影片都在（像爆款 Reels 的固定標題），白字粗黑邊、重點詞亮色
+        'Style: Ask,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00141414,&H64000000,-1,0,0,0,100,100,2,0,1,%d,%d,8,60,60,%d,1' % (
+            FONT, px(130 if not land else 84), px(10), px(5), px(250) if not land else int(H * .06)),
         # 標籤：沒打勾是深灰、打勾後變亮色
         'Style: Chip,%s,%d,&H00FFFFFF,&H00FFFFFF,&H50303030,&H00000000,-1,0,0,0,100,100,1,0,3,%d,0,7,0,0,0,1' % (
             FONT, px(44), px(12)),
@@ -1044,13 +1047,13 @@ def build_ass(plan, segs, spans, opt, total, path):
             FONT, px(44), ass_color(opt['accent']), px(12)),
         # 靜音剪的畫面字幕：大字、粗描邊，重點詞換亮色，彈出來
         'Style: Cap,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00141414,&H64000000,-1,0,0,0,100,100,2,0,1,%d,%d,5,60,60,0,1' % (
-            FONT, px(88 if not land else 64), px(6), px(3)),
+            FONT, px(150 if not land else 96), px(11), px(5)),
         # 進度條
         'Style: Bar,%s,10,%s,%s,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1' % (
             FONT, ass_color(opt['accent']), ass_color(opt['accent'])),
         # 重點字卡：亮色底、深色字，跳出來
         'Style: Pop,%s,%d,&H00151515,&H00151515,%s,&H00000000,-1,0,0,0,100,100,1,0,3,%d,0,5,0,0,0,1' % (
-            FONT, px(60), ass_color(opt['accent']), px(20)),
+            FONT, px(110), ass_color(opt['accent']), px(28)),
         '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text', ''])
     ev = []
 
@@ -1061,31 +1064,15 @@ def build_ass(plan, segs, spans, opt, total, path):
     remap = remapper(spans)
     plan = plan or {}
     acc = ass_color(opt['accent'])
-    hl = lambda t, back='&H00FFFFFF': re.sub(r'\*\*(.+?)\*\*', lambda m: '{\\c%s}%s{\\c%s}' % (acc, m.group(1), back),
-                                         ass_text(t.replace('{', '').replace('}', '')))   # 重點詞換亮色
+    hl = lambda t, back='&H00FFFFFF': re.sub(r'\*\*(.+?)\*\*', lambda m: '{\\c%s\\fscx112\\fscy112}%s{\\c%s\\fscx100\\fscy100}' % (acc, m.group(1), back),
+                                         ass_text(t.replace('{', '').replace('}', '')))   # 重點詞換亮色、大一點
     plain = lambda t: ass_text(t.replace('**', ''))
     end_intro = min(opt['title_sec'], total)
-    if opt['cards'] and plan.get('title'):
-        title = ass_text(plan['title'])
-        t0, step = .25, .07   # 一個字一個字打出來
-        for i in range(1, len(title) + 1):
-            if i <= 20:
-                SFX.append((t0 + (i - 1) * step, 'type%d' % (i % 3 + 1)))
-            add(2, t0 + (i - 1) * step, t0 + i * step if i < len(title) else end_intro, 'Ask',
-                ('{\\fad(150,0)}' if i == 1 else '') + title[:i] + ('{\\alpha&HFF&}' if i == len(title) else '') + '｜')
-        SFX.append((t0 + len(title) * step + .05, 'hit'))   # 打完「咚」一聲
-    elif plan.get('title'):
-        add(2, .2, end_intro, 'Ask', '{\\fad(200,300)}' + ass_text(plan['title']))
-    if opt['cards'] and plan.get('tags'):
-        x, y = px(60), px(140) if not land else int(H * .06)
-        for n, tag in enumerate(plan['tags']):
-            tag = ass_text(tag)
-            on = .5 + n * .35
-            SFX.append((on, 'pop'))
-            add(3, .15, on, 'Chip', '{\\pos(%d,%d)\\fad(150,0)}○ %s' % (x, y, tag))
-            add(3, on, end_intro, 'ChipOn', '{\\pos(%d,%d)\\fscx80\\fscy80\\t(0,120,\\fscx106\\fscy106)'
-                '\\t(120,220,\\fscx100\\fscy100)\\fad(0,250)}√ %s' % (x, y, tag))
-            x += chip_w('√ ' + tag, px(44)) + px(22)
+    if plan.get('title'):   # 頂部大標題：彈出來後整支影片都在，超過 8 個字拆兩行
+        lines = wrap2(plan['title'], 8 if not land else 14)
+        SFX.append((.2, 'hit'))
+        add(2, .15, total, 'Ask', '{\\an8\\pos(%d,%d)\\fscx70\\fscy70\\t(0,160,\\fscx106\\fscy106)\\t(160,240,\\fscx100\\fscy100)\\fad(120,0)}%s'
+            % (W // 2, px(250) if not land else int(H * .06), '\\N'.join(hl(l) for l in lines)))
     if opt['subs'] != 'none':
         for kp in plan.get('keep') or []:
             s = segs[kp['i']]
@@ -1129,17 +1116,17 @@ def build_ass(plan, segs, spans, opt, total, path):
                 continue
             SFX.append((st, 'ding'))
             add(4, st, st + 2.2, 'Pop', '{\\pos(%d,%d)\\fscx40\\fscy40\\t(0,160,\\fscx108\\fscy108)'
-                '\\t(160,260,\\fscx100\\fscy100)\\fad(0,250)}%s' % (W // 2, int(H * .25), ass_text(pp['text'])))
+                '\\t(160,260,\\fscx100\\fscy100)\\fad(0,250)}%s' % (W // 2, int(H * .45), ass_text(pp['text'])))   # 放中間，不壓到頂部標題
     # 靜音剪：每句字幕跟著段落換，輪流「彈出來」和「往上滑進來」，重點詞亮色
     cy = int(H * (.62 if not land else .72))
     for i, (a, b, cap) in enumerate(plan.get('caps_t') or []):
         cap = cap_line(cap)
         en = cap['en'] if opt['subs'] in ('both', 'en') else ''
-        txt = hl(cap['zh']) + ('\\N{\\fs%d\\b0\\alpha&H10&}%s' % (px(44 if not land else 34), plain(en)) if en else '')
+        txt = hl(cap['zh']) + ('\\N{\\fs%d\\b0\\alpha&H10&}%s' % (px(60 if not land else 40), plain(en)) if en else '')
         SFX.append((a, 'pop' if i % 2 == 0 else 'swish'))
         if fx:   # 柔光
             add(0, a, b, 'Cap', '{\\an5\\pos(%d,%d)\\1a&HFF&\\3c&H000000&\\3a&H70&\\bord%d\\blur%d\\fad(200,150)}%s'
-                % (W // 2, cy, px(16), px(12), plain(cap['zh']) + ('\\N{\\fs%d}%s' % (px(44 if not land else 34), plain(en)) if en else '')))
+                % (W // 2, cy, px(16), px(12), plain(cap['zh']) + ('\\N{\\fs%d}%s' % (px(60 if not land else 40), plain(en)) if en else '')))
         if fx and plan.get('sub_anim'):   # AI 挑了字幕動畫就統一用那種
             anim = sub_anim(plan['sub_anim'], W // 2, cy, '', an=5)
         elif i % 2 == 0:
