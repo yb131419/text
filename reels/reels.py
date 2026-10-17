@@ -276,12 +276,14 @@ def tg_send_video(chat_id, path, caption, thumb=None):
     cmd.append('https://api.telegram.org/bot%s/sendVideo' % os.environ['TELEGRAM_BOT_TOKEN'])
     out = subprocess.run(cmd, capture_output=True, text=True).stdout
     try:
-        ok = json.loads(out).get('ok')
+        res = json.loads(out)
     except ValueError:
-        ok = False
-    if not ok:
+        res = {}
+    if not res.get('ok'):
         log('sendVideo 失敗：', out[:500])
         raise Oops('影片剪好了，但傳回 Telegram 失敗，請再試一次。')
+    r = res.get('result') or {}
+    return (r.get('video') or r.get('document') or r.get('animation') or {}).get('file_id', '')
 
 
 # ---------------- OpenAI ----------------
@@ -1578,10 +1580,20 @@ def main():
                     '\n・字幕大一點／放上面一點\n・開頭標題久一點\n・剪成 30 秒\n・用教學框（綠底、畫面放中間）／不要教學框\n・換溫暖鋼琴的配樂／不要配樂\n・不要特效／不要進度條\n・換男聲配音／不要配音'
                     '\n也可以先傳一首音樂給小乖當配樂。'
                     '\n也可以傳一張喜歡的影片截圖，說「我要這種風格」。')
-            tg_send_video(chat, a.out, cap, a.out + '.jpg')
+            vid = tg_send_video(chat, a.out, cap, a.out + '.jpg')
             post = info['post'] + ('\n\n' + info['credit'] if info.get('credit') else '')
             if post.strip():
-                tg('sendMessage', chat_id=chat, text='📝 貼文文案參考（長按可複製；配樂署名要保留）：\n\n' + post.strip())
+                txt = '📝 貼文文案參考（長按可複製；配樂署名要保留）：\n\n' + post.strip()
+                extra = {}
+                if vid:
+                    # 發社群：回覆這則打「發社群」，小乖從這行的連結拿到影片編號，文案就用這則的內容
+                    hint = '📤 要發到 IG／Threads／FB：長按這則 →「回覆」打「發社群」'
+                    u16 = lambda x: len(x.encode('utf-16-le')) // 2   # Telegram 的位置用 UTF-16 算
+                    extra = {'entities': [{'type': 'text_link', 'offset': u16(txt + '\n\n'), 'length': u16(hint),
+                                           'url': 'https://yb131419.github.io/Tezhu/Assistant.html?igv=' + vid}],
+                             'link_preview_options': {'is_disabled': True}}
+                    txt += '\n\n' + hint
+                tg('sendMessage', chat_id=chat, text=txt, **extra)
     except Oops as e:
         log('Oops:', e)
         if chat:

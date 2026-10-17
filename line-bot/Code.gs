@@ -637,6 +637,8 @@ function answer_(text) {
   const ad = addPending_(t2, raw);   // 「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
+  const ia = igAsk_(t2, raw);   // 「📤 發社群」：預覽 → 確定才發
+  if (ia) return ia;
   const rl = reelsAsk_(t2);   // 「🎬 剪 Reels」：接下來 10 分鐘內傳的影片拿去剪
   if (rl) return rl;
   if (/^見證(案例)?$/.test(t2.replace(/\s+/g, ''))) return browseCat_(caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
@@ -860,7 +862,7 @@ function strategist_(k) {
   hist.unshift(card.title);
   setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_CARD_ = card;
-  return { text: stratText_(card), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN]].concat(MENU) };
+  return { text: stratText_(card), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 
 // 使用者自訂：圖卡底部署名、文案最上面的標題（存在指令碼屬性，沒設定就用預設）
@@ -1196,14 +1198,16 @@ function sendCardTg_(chatId) {
   REPORT_ERR_ = '';
   const pngs = cardPngs_(c);
   if (!pngs.length) { tgSend_(chatId, cardErrText_()); return false; }
+  const files = [];
   pngs.forEach((png, i) => {
-    try { saveCard_(png); } catch (e) { console.error(e); }
+    try { files.push(saveCard_(png)); } catch (e) { console.error(e); }
     const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
       method: 'post', muteHttpExceptions: true,
       payload: { chat_id: String(chatId), photo: png, caption: stratHead_() + '｜' + ((c.cards || [])[i] || c).title + (pngs.length > 1 ? '（' + (i + 1) + '/' + pngs.length + '）' : '') },
     });
     if (res.getResponseCode() !== 200) console.error('Telegram 圖卡傳送失敗：' + res.getContentText());
   });
+  igRemember_(files, stratText_(c));   // 按「📤 發社群」就發這組
   return true;
 }
 
@@ -1215,8 +1219,9 @@ function cardLine_() {
   const pngs = cardPngs_(c);
   try {
     if (!pngs.length) throw new Error(REPORT_ERR_);
-    return pngs.map(png => {
-      const file = saveCard_(png);
+    const files = pngs.map(png => saveCard_(png));
+    igRemember_(files, stratText_(c));
+    return files.map(file => {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       const url = 'https://lh3.googleusercontent.com/d/' + file.getId();
       return { type: 'image', originalContentUrl: url, previewImageUrl: url };
@@ -1239,7 +1244,9 @@ function cardApi_(ask) {
   if (!c) return { ok: false, text: String(ans && ans.text || ans), img: '' };
   REPORT_ERR_ = '';
   const pngs = cardPngs_(c);
-  pngs.forEach(png => { try { saveCard_(png); } catch (e) { console.error(e); } });
+  const files = [];
+  pngs.forEach(png => { try { files.push(saveCard_(png)); } catch (e) { console.error(e); } });
+  igRemember_(files, stratText_(c));
   const b64 = pngs.map(png => Utilities.base64Encode(png.getBytes()));
   return { ok: true, title: c.title, text: postText_(c),
     img: b64[0] || '', imgs: b64, err: b64.length ? '' : cardErrText_() };
@@ -1252,7 +1259,9 @@ function cardData_() {
   REPORT_ERR_ = '';
   const pngs = cardPngs_(c);
   if (!pngs.length) { ASK_SHOW_ = cardErrText_() + '\n\n' + ASK_SHOW_; return ''; }
-  pngs.forEach(png => { try { saveCard_(png); } catch (e) { console.error(e); } });
+  const files = [];
+  pngs.forEach(png => { try { files.push(saveCard_(png)); } catch (e) { console.error(e); } });
+  igRemember_(files, stratText_(c));
   ASK_IMGS_ = pngs.map(png => 'data:image/png;base64,' + Utilities.base64Encode(png.getBytes()));
   return ASK_IMGS_[0];
 }
@@ -1414,7 +1423,7 @@ function kitWrite_(k) {
   setProp_('KIT_HIST', JSON.stringify(hist.slice(0, 10)));
   setProp_('KIT_KW_HIST', JSON.stringify([kit.keyword].concat(kws.filter(x => x !== kit.keyword)).slice(0, 15)));
   LAST_KIT_ = kit;
-  return { text: stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) };
+  return { text: stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 
 // 7 張輪播：AI 偶爾漏寫 kind 或順序錯，照位置補上（cover、action×3、reason、last、cta）
@@ -1680,6 +1689,7 @@ function kitMake_(kit) {
       pdfUrl = 'https://drive.google.com/file/d/' + f.getId() + '/view';
     }
   } catch (e) { console.error('名單包存檔失敗：' + e.message); }
+  igRemember_(files, stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit));
   return { pngs: pngs, files: files, pdf: pdf, pdfUrl: pdfUrl, err: pngs.length && pdf ? '' : REPORT_ERR_ || '簡報畫圖失敗' };
 }
 function kitDoneText_(kit, r) {
@@ -1754,7 +1764,7 @@ function kitLine_(to) {
   const send = msgs => lineApi_('push', { to: to, messages: msgs });
   let code = imgs.length ? send(imgs.slice(0, 5)) : 200;
   if (code === 200) code = send(withQuick_(imgs.slice(5).concat([{ type: 'text', text: (stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit)).slice(0, 5000) },
-    { type: 'text', text: kitDoneText_(kit, r) }]).slice(0, 5), [[KIT_BTN, STRAT_SWITCH]].concat(MENU)));
+    { type: 'text', text: kitDoneText_(kit, r) }]).slice(0, 5), [[KIT_BTN, STRAT_SWITCH]].concat(igReady_() ? [[IG_BTN]] : [], MENU)));
   if (code !== 200) kitLineFallback_(kit, r, code);
 }
 // LINE 推播送不出去（最常見是免費方案每月推播則數用完，LINE 回 429）：改傳到 Telegram，並說明原因
@@ -1787,7 +1797,7 @@ function kitTgSend_(chatId, kit, r) {
     if (res.getResponseCode() !== 200) console.error('Telegram PDF 失敗：' + res.getContentText());
   }
   tgSend_(chatId, { text: (stratHead_() + '｜' + kit.cat2 + '\n\n' + postText_(kit)).slice(0, 4000) });
-  tgSend_(chatId, { text: kitDoneText_(kit, r), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(MENU) });
+  tgSend_(chatId, { text: kitDoneText_(kit, r), buttons: [[KIT_BTN, STRAT_SWITCH]].concat(igReady_() ? [[IG_BTN]] : [], MENU) });
 }
 // 對話頁：7 張圖直接顯示，PDF 給連結
 function kitTalk_() {
@@ -2673,6 +2683,15 @@ function handleTelegram_(update) {
   const voice = msg.voice || msg.audio;
   CURRENT_TG_CHAT_ = chatId; LINE_MODE_ = false;
 
+  // 發社群（IG／Threads／FB）：照片／影片說明寫「發社群」，或回覆小乖的影片、「📝 貼文文案參考」打「發社群」（要在剪 Reels 的「回覆改一版」之前判斷）
+  if (owner && chatId === owner) {
+    if (/^\s*設定\s*(?:IG|Instagram|Threads|脆|FB|Facebook|臉書|粉專)\s*(?:金鑰|權杖|token)\s*\S+\s*$/i.test(text)) {
+      tgApi_('deleteMessage', { chat_id: chatId, message_id: msg.message_id });   // 權杖不要留在聊天紀錄
+      return tgSend_(chatId, igAsk_(text, text));
+    }
+    const ig = igTg_(msg, text);
+    if (ig) return tgSend_(chatId, ig);
+  }
   // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
   const reelsVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsAdd_(chatId, reelsVideo, text);
@@ -3068,6 +3087,7 @@ function lineApi_(kind, payload) {
 /* ============ 提醒（時間驅動觸發條件，每 5 分鐘） ============ */
 function checkReminders() {
   try { kitWatch_(); } catch (e) { console.error(e); }
+  try { igRefresh_(); } catch (e) { console.error(e); }
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   if ((!owner && !tgOwner) || !prop_('SHEET_ID')) return;
   const due = withLock_(() => {
@@ -4746,4 +4766,422 @@ function reelsStyle_(chatId, fileId, doc) {
   const btns = reelsLast_() ? [['🔁 用這個風格重剪'], ['🎬 剪 Reels']] : [['🎬 剪 Reels']];
   return tgSend_(chatId, { text: '🎨 記住這個風格了' + (desc ? '：' + desc : '') + '\n之後剪的 Reels 都照這個樣子。'
     + '\n現在傳影片就會用這個風格剪；打「Reels 風格預設」可以換回原本的。', buttons: btns });
+}
+
+
+/* ============ 📤 發社群：用 Meta 官方 API 直接發到 IG、Threads、Facebook 粉專（圖卡、Reels、照片影片），不用第三方 ============ */
+// 指令碼屬性（傳「設定 IG金鑰／Threads金鑰／FB金鑰 權杖」會自動填，有設定的平台才會出現）：
+//   IG：IG_TOKEN、IG_USER、IG_NAME、IG_API（ig＝Instagram 登入的權杖 graph.instagram.com；fb＝粉專權杖 graph.facebook.com）
+//   Threads：TH_TOKEN、TH_USER、TH_NAME（graph.threads.net）
+//   FB 粉專：FB_TOKEN（粉專權杖）、FB_PAGE、FB_NAME
+// 流程：做好圖卡 → 按「📤 發社群」→ 看預覽，按「✅ 全部發」或「只發 IG」… → 另一次執行（觸發條件）上傳、等平台處理、發出，發好傳連結回來
+const IG_BTN = '📤 發社群';
+const IG_NO = '❌ 不發';
+const IG_VER = 'v23.0';
+const IG_FOLDER = '小乖IG發文';   // 發文時的暫存檔（IG、Threads 要從網址抓），發完就丟垃圾桶
+const IG_WORD = /^(?:發|發到|發佈|發布|發文到|po|PO|貼到|分享到)\s*(?:IG|ig|Ig|instagram|Instagram|哀居|threads|Threads|脆|FB|fb|Fb|facebook|Facebook|臉書|粉專|社群|全部)(?![a-zA-Z])/;
+const SOC = {
+  ig: { name: 'IG', ok: () => !!(prop_('IG_TOKEN') && prop_('IG_USER')), who: () => '@' + prop_('IG_NAME') },
+  th: { name: 'Threads', ok: () => !!(prop_('TH_TOKEN') && prop_('TH_USER')), who: () => '@' + prop_('TH_NAME') },
+  fb: { name: 'FB', ok: () => !!(prop_('FB_TOKEN') && prop_('FB_PAGE')), who: () => '粉專「' + prop_('FB_NAME') + '」' },
+};
+const TH_MAX = 500;   // Threads 一則最多 500 字
+
+function socOn_() { return Object.keys(SOC).filter(k => SOC[k].ok()); }
+function igReady_() { return socOn_().length > 0; }
+function socNames_(ks) { return ks.map(k => SOC[k].name).join('＋'); }
+
+// 呼叫 Meta 的 API（三個平台格式一樣）；payload 可以放檔案（上傳照片、影片）
+function metaCall_(host, method, path, params, token) {
+  const p = Object.assign({}, params || {}, { access_token: token });
+  const res = method === 'get'
+    ? UrlFetchApp.fetch(host + path + '?' + Object.keys(p).map(k => k + '=' + encodeURIComponent(p[k])).join('&'), { muteHttpExceptions: true })
+    : UrlFetchApp.fetch(host + path, { method: 'post', payload: p, muteHttpExceptions: true });
+  let j = {};
+  try { j = JSON.parse(res.getContentText()); } catch (e) { j = {}; }
+  if (res.getResponseCode() !== 200 || j.error) throw new Error(igErr_(j.error || { message: 'HTTP ' + res.getResponseCode() }));
+  return j;
+}
+function igHost_() { return prop_('IG_API') === 'fb' ? 'https://graph.facebook.com/' + IG_VER + '/' : 'https://graph.instagram.com/' + IG_VER + '/'; }
+function igCall_(method, path, params) { return metaCall_(igHost_(), method, path, params, prop_('IG_TOKEN')); }
+function thCall_(method, path, params) { return metaCall_('https://graph.threads.net/v1.0/', method, path, params, prop_('TH_TOKEN')); }
+function fbCall_(method, path, params, video) { return metaCall_('https://graph' + (video ? '-video' : '') + '.facebook.com/' + IG_VER + '/', method, path, params, prop_('FB_TOKEN')); }
+// Meta 的錯誤翻成看得懂的話
+function igErr_(e) {
+  const m = String(e.error_user_msg || e.message || ''), code = Number(e.code), sub = Number(e.error_subcode);
+  if (code === 190 || /access token|session has expired/i.test(m)) return '金鑰失效或過期了，請重新產生權杖後再設定一次。';
+  if (code === 10 || code === 200 || /permission/i.test(m)) return '權限不夠（要有發文權限），請重新產生權杖並把權限都打勾。';
+  if (sub === 2207009 || /aspect ratio/i.test(m)) return '圖片比例不符合（要在 4:5 直式到 1.91:1 橫式之間）。';
+  if (code === 9004 || sub === 2207052 || /download/i.test(m)) return '平台抓不到圖片／影片檔案。';
+  if (code === 4 || code === 9 || code === 368 || sub === 2207042 || /limit/i.test(m)) return '發文次數到上限了，晚一點再發。';
+  return m.slice(0, 160) || '原因不明';
+}
+
+/* ---- 設定權杖 ---- */
+function igSetToken_(tok) {
+  tok = String(tok || '').trim();
+  const get = (host, path) => {
+    const res = UrlFetchApp.fetch(host + path + (path.indexOf('?') < 0 ? '?' : '&') + 'access_token=' + encodeURIComponent(tok), { muteHttpExceptions: true });
+    let j = {}; try { j = JSON.parse(res.getContentText()); } catch (e) { j = {}; }
+    if (j.error) throw new Error(igErr_(j.error));
+    return j;
+  };
+  try {
+    if (!/^EAA/.test(tok)) {   // Instagram 登入的權杖（IGAA… 開頭）
+      const me = get('https://graph.instagram.com/' + IG_VER + '/', 'me?fields=user_id,username,account_type');
+      if (me.account_type && !/BUSINESS|CREATOR/.test(me.account_type)) return '📸 @' + me.username + ' 還是個人帳號，請先在 IG 切換成「專業帳號」（商業或創作者），再重新產生權杖。';
+      ['IG_TOKEN', 'IG_USER', 'IG_NAME', 'IG_API', 'IG_TOKEN_AT'].forEach((k, i) => setProp_(k, [tok, String(me.user_id || me.id), me.username || '', 'ig', String(Date.now())][i]));
+      return socSetDone_('IG @' + prop_('IG_NAME'));
+    }
+    const pages = (get('https://graph.facebook.com/' + IG_VER + '/', 'me/accounts?fields=name,access_token,instagram_business_account{id,username}&limit=50').data || [])
+      .filter(p => p.instagram_business_account);
+    if (!pages.length) return '📸 這個權杖找不到有綁 IG 的粉專。請確認 IG 已切換成專業帳號、並在粉專設定裡連結 IG，產生權杖時也要勾選那個粉專。';
+    setProp_('IG_PAGES', JSON.stringify(pages.map(p => ({ t: p.access_token, id: p.instagram_business_account.id, u: p.instagram_business_account.username }))));
+    if (pages.length === 1) return igPickPage_(pages[0].instagram_business_account.username);
+    return { text: '📸 這個權杖有好幾個 IG 帳號，要發到哪一個？', buttons: chunk_(pages.map(p => '📸 IG：@' + p.instagram_business_account.username), 1) };
+  } catch (err) { return '📸 IG 權杖設定失敗：' + err.message; }
+}
+function igPickPage_(u) {
+  let pages = [];
+  try { pages = JSON.parse(prop_('IG_PAGES') || '[]'); } catch (e) { pages = []; }
+  const p = pages.filter(x => x.u === u)[0];
+  if (!p) return null;
+  ['IG_TOKEN', 'IG_USER', 'IG_NAME', 'IG_API', 'IG_TOKEN_AT'].forEach((k, i) => setProp_(k, [p.t, p.id, p.u, 'fb', String(Date.now())][i]));
+  setProp_('IG_PAGES', '');
+  return socSetDone_('IG @' + p.u);
+}
+function thSetToken_(tok) {
+  tok = String(tok || '').trim();
+  try {
+    const res = UrlFetchApp.fetch('https://graph.threads.net/v1.0/me?fields=id,username&access_token=' + encodeURIComponent(tok), { muteHttpExceptions: true });
+    let me = {}; try { me = JSON.parse(res.getContentText()); } catch (e) { me = {}; }
+    if (me.error || !me.id) throw new Error(igErr_(me.error || { message: 'HTTP ' + res.getResponseCode() }));
+    ['TH_TOKEN', 'TH_USER', 'TH_NAME', 'TH_TOKEN_AT'].forEach((k, i) => setProp_(k, [tok, String(me.id), me.username || '', String(Date.now())][i]));
+    return socSetDone_('Threads @' + (me.username || ''));
+  } catch (err) { return '🧵 Threads 權杖設定失敗：' + err.message; }
+}
+// FB：給 Facebook 的使用者權杖（EAA… 開頭），找出你管理的粉專，存粉專權杖；有好幾個粉專就讓你選
+function fbSetToken_(tok) {
+  tok = String(tok || '').trim();
+  try {
+    const g = path => {
+      const res = UrlFetchApp.fetch('https://graph.facebook.com/' + IG_VER + '/' + path + (path.indexOf('?') < 0 ? '?' : '&') + 'access_token=' + encodeURIComponent(tok), { muteHttpExceptions: true });
+      let j = {}; try { j = JSON.parse(res.getContentText()); } catch (e) { j = {}; }
+      if (j.error) throw new Error(igErr_(j.error));
+      return j;
+    };
+    // 短期權杖（大約 1 小時）換來的粉專權杖也會很快失效：先提醒去延長
+    let warn = '';
+    try {
+      const d = g('debug_token?input_token=' + encodeURIComponent(tok)).data || {};
+      if (d.expires_at && d.expires_at * 1000 - Date.now() < 3 * 86400000) warn = '\n\n⚠️ 這是短期權杖，粉專權杖很快會失效。請到「存取權杖偵錯工具」按「延長存取權杖」，把新的那串再設定一次。';
+    } catch (e) { console.error(e); }
+    const pages = (g('me/accounts?fields=name,access_token&limit=50').data || []).filter(p => p.access_token);
+    if (!pages.length) return '📘 這個權杖找不到你管理的粉專。產生權杖時要勾 pages_show_list、pages_manage_posts，並選你的粉專。';
+    setProp_('FB_PAGES', JSON.stringify(pages.map(p => ({ n: p.name, t: p.access_token, id: p.id }))));
+    setProp_('FB_WARN', warn);
+    if (pages.length === 1) return fbPickPage_(pages[0].name);
+    return { text: '📘 你管理好幾個粉專，要發到哪一個？', buttons: chunk_(pages.map(p => '📘 粉專：' + p.name), 1) };
+  } catch (err) { return '📘 FB 權杖設定失敗：' + err.message; }
+}
+function fbPickPage_(name) {
+  let pages = [];
+  try { pages = JSON.parse(prop_('FB_PAGES') || '[]'); } catch (e) { pages = []; }
+  const p = pages.filter(x => x.n === name)[0];
+  if (!p) return null;
+  ['FB_TOKEN', 'FB_PAGE', 'FB_NAME'].forEach((k, i) => setProp_(k, [p.t, p.id, p.n][i]));
+  setProp_('FB_PAGES', '');
+  const warn = prop_('FB_WARN'); setProp_('FB_WARN', '');
+  const r = socSetDone_('FB 粉專「' + p.n + '」');
+  r.text += warn;
+  return r;
+}
+function socSetDone_(what) {
+  const on = socOn_();
+  return { text: '✅ ' + what + ' 設定好了。\n目前會發到：' + on.map(k => SOC[k].name + ' ' + SOC[k].who()).join('、') + '\n\n怎麼發：\n・智囊軍師的圖卡做好後，按「' + IG_BTN + '」\n・剪好的 Reels：長按小乖給的「📝 貼文文案參考」那則 →「回覆」打「發社群」\n・自己的照片或影片：傳給小乖時說明寫「發社群 文案…」\n每次都先給你看預覽，按「✅ 全部發」或「只發 …」才會發出去。', buttons: [[IG_BTN]].concat(QUICK) };
+}
+// IG、Threads 的權杖 60 天到期：每 7 天自動換新一次（提醒檢查時順便做）；FB 粉專權杖不會過期
+function igRefresh_() {
+  const renew = (tokK, atK, url) => {
+    if (!prop_(tokK) || Date.now() - Number(prop_(atK) || 0) < 7 * 86400000) return;
+    const res = UrlFetchApp.fetch(url + encodeURIComponent(prop_(tokK)), { muteHttpExceptions: true });
+    let j = {}; try { j = JSON.parse(res.getContentText()); } catch (e) { j = {}; }
+    if (j.access_token) { setProp_(tokK, j.access_token); setProp_(atK, String(Date.now())); }
+    else { console.error(tokK + ' 換新失敗：' + res.getContentText()); setProp_(atK, String(Date.now() - 6 * 86400000)); }   // 明天再試
+  };
+  if (prop_('IG_API') === 'ig') renew('IG_TOKEN', 'IG_TOKEN_AT', 'https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=');
+  renew('TH_TOKEN', 'TH_TOKEN_AT', 'https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=');
+}
+
+/* ---- 要發什麼：記下剛做好的圖卡、預覽、確定 ---- */
+// items：[{ t:'img'|'video', drive|tg: 檔案編號 }]
+function igRemember_(files, cap) {
+  const items = (files || []).filter(Boolean).slice(0, 10).map(f => ({ t: 'img', drive: f.getId() }));
+  if (items.length) setProp_('IG_LAST', JSON.stringify({ items: items, cap: String(cap || '').slice(0, 2200), at: Date.now() }));
+}
+function igState_(k) { try { return JSON.parse(prop_(k) || 'null'); } catch (e) { return null; } }
+function igWhat_(items) {
+  const n = items.length;
+  return items.some(x => x.t === 'video') ? '影片 1 支（IG 發成 Reels）' : n > 1 ? n + ' 張圖片（輪播）' : '1 張圖片';
+}
+function igNotReady_() {
+  return { text: '📤 IG／Threads／FB 都還沒設定好。\n\n要先在 Meta 開發者網站建應用程式、產生權杖，再傳給小乖：\n・「設定 IG金鑰 權杖」\n・「設定 Threads金鑰 權杖」\n・「設定 FB金鑰 權杖」\n\n詳細步驟在 README 的「📤 發社群」，或直接問系統大師。', buttons: QUICK };
+}
+// Threads 一則 500 字：太長就從最後一行往前砍
+function thText_(cap) {
+  cap = String(cap || '').trim();
+  if (cap.length <= TH_MAX) return cap;
+  const lines = cap.split('\n');
+  while (lines.length > 1 && lines.join('\n').length > TH_MAX - 1) lines.pop();
+  const t = lines.join('\n').trim();
+  return (t.length > TH_MAX - 1 ? t.slice(0, TH_MAX - 1) : t) + '…';
+}
+function igPreview_(post) {
+  const on = socOn_();
+  if (!on.length) return igNotReady_();
+  if (!post || !post.items || !post.items.length) return { text: '📤 目前沒有要發的內容。先做圖卡（🪶 智囊軍師），或傳照片／影片時說明寫「發社群」。', buttons: QUICK };
+  if (post.items.some(x => x.t === 'video') && post.items.length > 1) post.items = post.items.filter(x => x.t === 'video').slice(0, 1);
+  post.at = Date.now();
+  setProp_('IG_PENDING', JSON.stringify(post));
+  const cap = String(post.cap || '').trim();
+  const btns = on.length > 1 ? [['✅ 全部發（' + socNames_(on) + '）'], on.map(k => '只發 ' + SOC[k].name), [IG_NO]] : [['✅ 確定發 ' + SOC[on[0]].name, IG_NO]];
+  return { text: '📤 準備發文\n發到：' + on.map(k => SOC[k].name + ' ' + SOC[k].who()).join('、') + '\n內容：' + igWhat_(post.items)
+    + '\n\n文案：\n' + (cap ? (cap.length > 600 ? cap.slice(0, 600) + '…（共 ' + cap.length + ' 字）' : cap) : '（沒有文案）')
+    + (on.indexOf('th') >= 0 && cap.length > TH_MAX ? '\n\n（Threads 一則最多 500 字，會自動截短）' : '')
+    + '\n\n要發到哪裡？要換文案就打「發文文案 」加上新的文案。', buttons: btns };
+}
+// answer_ 用（LINE、Telegram、對話頁都會經過）
+function igAsk_(t, raw) {
+  const k = String(t || '').replace(/\s+/g, ''), r = String(raw || t);
+  const tk = r.match(/^\s*設定\s*(IG|Instagram|Threads|脆|FB|Facebook|臉書|粉專)\s*(?:金鑰|權杖|token)\s*(\S+)\s*$/i);
+  if (tk) return /^(IG|Instagram)$/i.test(tk[1]) ? igSetToken_(tk[2]) : /^(Threads|脆)$/i.test(tk[1]) ? thSetToken_(tk[2]) : fbSetToken_(tk[2]);
+  const ik = r.match(/^\s*📸 IG：@(\S+)\s*$/);
+  if (ik) { const x = igPickPage_(ik[1]); if (x) return x; }
+  const pk = r.match(/^\s*📘 粉專：(.+?)\s*$/);
+  if (pk) { const x = fbPickPage_(pk[1]); if (x) return x; }
+  if (/^(IG|ig|社群|發文|Threads|FB)(設定|狀態)$/i.test(k)) {
+    const on = socOn_();
+    return on.length ? '📤 已設定：' + on.map(x => SOC[x].name + ' ' + SOC[x].who()).join('、') + (on.length < 3 ? '\n還沒設定：' + Object.keys(SOC).filter(x => on.indexOf(x) < 0).map(x => SOC[x].name).join('、') : '') : igNotReady_();
+  }
+  const pend = igState_('IG_PENDING'), live = pend && Date.now() - pend.at < 30 * 60 * 1000;
+  const go = k.match(/^(?:確定發|全部發|只發)(.*)$/);
+  if (go && (pend || /^(確定發|全部發)/.test(k))) {
+    if (!live) return { text: '📤 要發的內容已經過期了（超過 30 分鐘），再按一次「' + IG_BTN + '」。', buttons: [[IG_BTN]].concat(QUICK) };
+    const on = socOn_();
+    if (!on.length) return igNotReady_();
+    const want = /^只發/.test(k) ? on.filter(x => new RegExp('^' + SOC[x].name + '$', 'i').test(go[1])) : on;
+    if (!want.length) return igPreview_(pend);
+    const busy = igState_('IG_JOB');
+    if (busy && Date.now() - (busy.at || 0) < 30 * 60 * 1000) return '⏳ 上一則還在發，等它好了再按一次。';
+    setProp_('IG_PENDING', '');
+    pend.targets = want;
+    igQueue_(pend);
+    return '⏳ 正在發到 ' + socNames_(want) + (pend.items.some(x => x.t === 'video') ? '，平台處理影片要一點時間（通常 1～3 分鐘）' : '') + '，好了傳連結給你。';
+  }
+  if (live && /^(不發|不要發|取消發文)$/.test(k)) { setProp_('IG_PENDING', ''); return { text: '好，不發了。', buttons: QUICK }; }
+  const cm = r.match(/^\s*(?:發文|IG|ig|社群)\s*文案[\s：:]*([\s\S]+)$/);
+  if (cm && live) { pend.cap = cm[1].trim().slice(0, 2200); return igPreview_(pend); }
+  const m = String(t || '').match(IG_WORD);
+  if (!m) return null;
+  const last = igState_('IG_LAST');
+  if (!last) return igPreview_(null);
+  const extra = String(t).slice(m[0].length).replace(/^[\s：:]+/, '').trim();
+  if (extra) last.cap = extra;
+  return igPreview_(last);
+}
+// Telegram：自己傳的照片／影片說明寫「發社群」，或回覆小乖給的影片／照片／「📝 貼文文案參考」打「發社群」
+function igTg_(msg, text) {
+  const m = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').match(IG_WORD);
+  if (!m) return null;
+  const pick = x => {
+    if (!x) return null;
+    if (x.photo && x.photo.length) return { t: 'img', tg: x.photo[x.photo.length - 1].file_id };
+    if (x.document && /^image\//.test(x.document.mime_type || '')) return { t: 'img', tg: x.document.file_id };
+    const v = x.video || (x.document && /^video\//.test(x.document.mime_type || '') ? x.document : null);
+    if (v) return { t: 'video', tg: v.file_id, size: v.file_size || 0 };
+    // 剪 Reels 的「📝 貼文文案參考」：影片編號藏在「📤 要發到…」那行的連結裡
+    const ents = (x.entities || []).concat(x.caption_entities || []);
+    const link = ents.map(e => e.url || '').filter(u => /[?&]igv=/.test(u))[0];
+    if (link) return { t: 'video', tg: decodeURIComponent(link.split(/[?&]igv=/)[1].split('&')[0]) };
+    return null;
+  };
+  const rt = msg.reply_to_message;
+  const own = pick(msg), item = own || pick(rt);
+  if (!item) return null;   // 只打字：交給 answer_ 用剛做好的圖卡
+  const extra = String(text).replace(/^[^\p{L}\p{N}]+/u, '').slice(m[0].length).replace(/^[\s：:]+/, '').trim();
+  let cap = extra;
+  if (!cap && !own && rt) {
+    const body = String(rt.text || rt.caption || '');
+    if (/^📝/.test(body)) cap = body.replace(/^📝[^\n]*\n+/, '').replace(/\n*📤 要發到[\s\S]*$/, '').trim();
+  }
+  if (item.t === 'video' && item.size > 20 * 1024 * 1024) return '🎬 這支影片超過 20MB，Telegram 不讓小乖下載，沒辦法幫你發。可以先存到手機，用 App 發。';
+  return igPreview_({ items: [item], cap: cap });
+}
+
+/* ---- 真正發文：交給另一次執行（觸發條件），影片處理比較久，沒好就 1 分鐘後再看 ---- */
+function igQueue_(post) {
+  const to = LINE_MODE_ ? { p: 'line', to: prop_('OWNER_USER_ID') } : { p: 'tg', to: CURRENT_TG_CHAT_ || prop_('TG_OWNER_CHAT_ID') };
+  if (!to.to) { to.p = prop_('TG_OWNER_CHAT_ID') ? 'tg' : 'line'; to.to = prop_('TG_OWNER_CHAT_ID') || prop_('OWNER_USER_ID'); }
+  setProp_('IG_JOB', JSON.stringify(Object.assign({ tries: 0, res: {} }, post, to, { at: Date.now() })));
+  igSchedule_(1000);
+}
+function igSchedule_(ms) {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'igJob').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('igJob').timeBased().after(ms).create();
+}
+function igTell_(job, text) {
+  if (job.p === 'line') lineApi_('push', { to: job.to, messages: withQuick_([{ type: 'text', text: text }], QUICK) });
+  else tgSend_(job.to, text);
+}
+function igJob() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'igJob').forEach(t => ScriptApp.deleteTrigger(t));
+  const job = igState_('IG_JOB');
+  if (!job) return;
+  const start = Date.now(), save = () => setProp_('IG_JOB', JSON.stringify(job));
+  job.res = job.res || {};
+  try {
+    if (!job.media) { job.media = socMedia_(job); save(); }
+  } catch (err) {
+    console.error('發文準備失敗：' + err.message);
+    setProp_('IG_JOB', '');
+    igCleanup_(job);
+    return igTell_(job, '📤 這次沒發出去：' + String(err.message).slice(0, 300) + '\n\n可以再按一次「' + IG_BTN + '」試試。');
+  }
+  for (const t of job.targets) {
+    const r = job.res[t] = job.res[t] || {};
+    if (r.link !== undefined || r.err) continue;
+    try {
+      if (t === 'fb') { r.link = fbPost_(job); save(); continue; }
+      if (!r.c) { r.c = t === 'ig' ? igCreate_(job) : thCreate_(job); save(); }
+      let st = '';
+      while (Date.now() - start < 4 * 60 * 1000) {
+        st = socStatus_(t, r.c);
+        if (st !== 'IN_PROGRESS') break;
+        Utilities.sleep(job.media[0].t === 'video' ? 10000 : 3000);
+      }
+      if (st === 'IN_PROGRESS') {
+        job.tries = (job.tries || 0) + 1;
+        if (job.tries > 6) throw new Error('平台處理太久（超過 25 分鐘）還沒好');
+        save();
+        return igSchedule_(60 * 1000);
+      }
+      if (st !== 'FINISHED') throw new Error(st);
+      r.link = t === 'ig' ? igPublish_(r.c) : thPublish_(r.c);
+      save();
+    } catch (err) {
+      console.error(t + ' 發文失敗：' + err.message);
+      r.err = String(err.message).slice(0, 200);
+      save();
+    }
+  }
+  setProp_('IG_JOB', '');
+  igCleanup_(job);
+  const ok = job.targets.filter(t => !job.res[t].err), bad = job.targets.filter(t => job.res[t].err);
+  igTell_(job, (ok.length ? '🎉 發好了！\n' + ok.map(t => '・' + SOC[t].name + (job.res[t].link ? '：' + job.res[t].link : '') ).join('\n') : '📤 這次都沒發出去。')
+    + (bad.length ? '\n\n沒發出去：\n' + bad.map(t => '・' + SOC[t].name + '：' + job.res[t].err).join('\n') + '\n要重發就再按一次「' + IG_BTN + '」選「只發 …」。' : ''));
+}
+
+// 先把要發的檔案準備好：圖片轉 JPG（IG 只收 JPG）、影片原檔，暫存到雲端硬碟（知道連結的人都能看，平台才抓得到），發完就刪
+function socMedia_(job) {
+  const it = DriveApp.getFoldersByName(IG_FOLDER);
+  const dir = it.hasNext() ? it.next() : DriveApp.createFolder(IG_FOLDER);
+  const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmmss');
+  job.temp = [];
+  return job.items.map((x, i) => {
+    const src = x.drive ? DriveApp.getFileById(x.drive).getBlob() : igTgBlob_(x.tg, x.t === 'video' ? '影片' : '圖片');
+    const blob = x.t === 'video' ? src.setName('發文_' + stamp + '.mp4') : src.getAs('image/jpeg').setName('發文_' + stamp + '_' + (i + 1) + '.jpg');
+    const f = dir.createFile(blob);
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    job.temp.push(f.getId());
+    return { t: x.t, id: f.getId() };
+  });
+}
+function socUrl_(m, alt) {
+  if (m.t === 'video') return 'https://drive.usercontent.google.com/download?id=' + m.id + '&export=download&confirm=t';
+  return alt ? 'https://drive.google.com/uc?export=download&id=' + m.id : 'https://lh3.googleusercontent.com/d/' + m.id;
+}
+// 平台抓不到 lh3 的網址就改用雲端硬碟下載網址再試一次
+function socTry_(fn) {
+  try { return fn(false); } catch (e) { if (!/抓不到/.test(e.message)) throw e; return fn(true); }
+}
+function socStatus_(t, id) {
+  if (t === 'ig') {
+    const s = igCall_('get', id, { fields: 'status_code,status' });
+    if (s.status_code === 'ERROR' || s.status_code === 'EXPIRED') return '處理失敗：' + igStatusErr_(s.status);
+    return s.status_code === 'FINISHED' || s.status_code === 'PUBLISHED' ? 'FINISHED' : 'IN_PROGRESS';
+  }
+  const s = thCall_('get', id, { fields: 'status,error_message' });
+  if (s.status === 'ERROR' || s.status === 'EXPIRED') return '處理失敗：' + (s.error_message || s.status);
+  return s.status === 'FINISHED' || s.status === 'PUBLISHED' ? 'FINISHED' : 'IN_PROGRESS';
+}
+function igStatusErr_(s) {
+  s = String(s || '');
+  if (/2207026/.test(s)) return '影片格式不符合 Reels（要 MP4、3 秒到 15 分鐘）';
+  if (/2207009/.test(s)) return '比例不符合';
+  return s.slice(0, 160) || '原因不明';
+}
+
+// IG：影片走 Reels 直接上傳檔案；圖片給網址（單張或輪播）
+function igCreate_(job) {
+  const ig = prop_('IG_USER'), cap = String(job.cap || '').slice(0, 2200), md = job.media;
+  if (md[0].t === 'video') {
+    const c = igCall_('post', ig + '/media', { media_type: 'REELS', upload_type: 'resumable', caption: cap, share_to_feed: 'true' });
+    const bytes = DriveApp.getFileById(md[0].id).getBlob().getBytes();
+    const res = UrlFetchApp.fetch('https://rupload.facebook.com/ig-api-upload/' + IG_VER + '/' + c.id, {
+      method: 'post', muteHttpExceptions: true, contentType: 'application/octet-stream', payload: bytes,
+      headers: { Authorization: 'OAuth ' + prop_('IG_TOKEN'), offset: '0', file_size: String(bytes.length) } });
+    if (res.getResponseCode() !== 200) {
+      let e = {}; try { e = JSON.parse(res.getContentText()); } catch (x) { e = {}; }
+      throw new Error('影片上傳失敗：' + (e.debug_info ? e.debug_info.message : e.error ? igErr_(e.error) : res.getContentText().slice(0, 160)));
+    }
+    return c.id;
+  }
+  const one = (m, extra) => socTry_(alt => igCall_('post', ig + '/media', Object.assign({ image_url: socUrl_(m, alt) }, extra)).id);
+  if (md.length === 1) return one(md[0], { caption: cap });
+  const kids = md.map(m => one(m, { is_carousel_item: 'true' }));
+  return igCall_('post', ig + '/media', { media_type: 'CAROUSEL', children: kids.join(','), caption: cap }).id;
+}
+function igPublish_(c) {
+  const pub = igCall_('post', prop_('IG_USER') + '/media_publish', { creation_id: c });
+  try { return igCall_('get', pub.id, { fields: 'permalink' }).permalink || ''; } catch (e) { console.error(e); return ''; }
+}
+// Threads：圖片、影片都給網址；最多 500 字
+function thCreate_(job) {
+  const th = prop_('TH_USER'), text = thText_(job.cap), md = job.media;
+  const one = (m, extra) => socTry_(alt => thCall_('post', th + '/threads', Object.assign(m.t === 'video'
+    ? { media_type: 'VIDEO', video_url: socUrl_(m, alt) } : { media_type: 'IMAGE', image_url: socUrl_(m, alt) }, extra)).id);
+  if (md.length === 1) return one(md[0], text ? { text: text } : {});
+  const kids = md.map(m => one(m, { is_carousel_item: 'true' }));
+  return thCall_('post', th + '/threads', Object.assign({ media_type: 'CAROUSEL', children: kids.join(',') }, text ? { text: text } : {})).id;
+}
+function thPublish_(c) {
+  const pub = thCall_('post', prop_('TH_USER') + '/threads_publish', { creation_id: c });
+  try { return thCall_('get', pub.id, { fields: 'permalink' }).permalink || ''; } catch (e) { console.error(e); return ''; }
+}
+// FB 粉專：檔案直接上傳（不用網址）；多張照片先上傳不發布，再合成一則貼文
+function fbPost_(job) {
+  const pg = prop_('FB_PAGE'), cap = String(job.cap || ''), md = job.media;
+  const blob = m => DriveApp.getFileById(m.id).getBlob();
+  if (md[0].t === 'video') {
+    const v = fbCall_('post', pg + '/videos', { source: blob(md[0]), description: cap }, true);
+    return 'https://www.facebook.com/' + v.id;
+  }
+  if (md.length === 1) {
+    const p = fbCall_('post', pg + '/photos', { source: blob(md[0]), message: cap });
+    return 'https://www.facebook.com/' + (p.post_id || p.id);
+  }
+  const ids = md.map(m => fbCall_('post', pg + '/photos', { source: blob(m), published: 'false' }).id);
+  const params = { message: cap };
+  ids.forEach((id, i) => { params['attached_media[' + i + ']'] = JSON.stringify({ media_fbid: id }); });
+  return 'https://www.facebook.com/' + fbCall_('post', pg + '/feed', params).id;
+}
+function igTgBlob_(fileId, what) {
+  const info = JSON.parse(tgApi_('getFile', { file_id: fileId }));
+  if (!info.ok) throw new Error(what + '超過 20MB 或已失效，Telegram 不讓小乖下載');
+  const res = UrlFetchApp.fetch('https://api.telegram.org/file/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/' + info.result.file_path, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error(what + '下載失敗');
+  return res.getBlob();
+}
+function igCleanup_(job) {
+  (job && job.temp || []).forEach(id => { try { const f = DriveApp.getFileById(id); f.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); f.setTrashed(true); } catch (e) { console.error(e); } });
 }
