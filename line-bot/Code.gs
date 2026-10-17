@@ -40,7 +40,7 @@ const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['💬 自動留言', '按一下開／關']] },
+  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文開關', '按一下開／關']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -75,7 +75,8 @@ function menuFlex_() {
     backgroundColor: first ? '#D9BC85' : '#FFFFFF',
     action: act(it[0]), contents: [
       { type: 'text', text: name(it[0]), size: 'sm', weight: 'bold', color: INK, flex: 0 },
-      { type: 'text', text: it[0] === '💬 自動留言' ? (prop_('LEAD_ON') === '1' ? '開著・按一下關' : '關著・按一下開') : it[1], size: 'xxs', color: first ? '#5A4630' : SOFT, align: 'end', flex: 1, margin: 'md' },
+      { type: 'text', text: it[0] === '💬 自動留言' ? (prop_('LEAD_ON') === '1' ? '開著・按一下關' : '關著・按一下開')
+        : it[0] === '🕗 自動發文開關' ? (prop_('AUTO_POST') === 'on' ? '開著・按一下關' : '關著・按一下開') : it[1], size: 'xxs', color: first ? '#5A4630' : SOFT, align: 'end', flex: 1, margin: 'md' },
       { type: 'text', text: '›', size: 'md', weight: 'bold', color: first ? INK : GOLD, flex: 0, margin: 'md' },
     ] });
   return { type: 'carousel', contents: MENU_CARDS.map((c, i) => ({
@@ -5511,9 +5512,10 @@ function autoAsk_(t) {
     if (prop_('AUTO_POST') === 'on') autoArm_();
     return autoStatus_();
   }
-  const m = k.match(/^(?:自動發文|自動發佈|自動發布|排程發文)(開|開啟|打開|關|關閉|停|停止|狀態)?$/);
+  const m = k.match(/^(?:自動發文|自動發佈|自動發布|排程發文)(開|開啟|打開|關|關閉|停|停止|狀態|開關)?$/);
   if (!m) return null;
-  const v = m[1] || '狀態';
+  let v = m[1] || '狀態';
+  if (v === '開關') v = prop_('AUTO_POST') === 'on' ? '關' : '開';   // 💎 選單「軍師」卡片上的「🕗 自動發文開關」：按一下切換
   if (/^(開|開啟|打開)$/.test(v)) {
     if (!socFor_({ items: [{ t: 'img' }] }).length) return { text: '🕗 要先設定好 IG 或 FB（「設定 IG金鑰」「設定 FB金鑰」），才能自動發文。', buttons: QUICK };
     autoArm_();
