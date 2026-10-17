@@ -163,6 +163,22 @@ LINE 和 Telegram 可以兩個都接，也可以只接一個。只要 Telegram �
 
 **注意：** IG 只收 JPG，小乖會把圖卡轉成 JPG、影片原檔暫存在雲端硬碟「小乖IG發文」（設成知道連結的人都能看，IG／Threads 才抓得到），發完就丟垃圾桶。圖片比例要在 4:5 直式到 1.91:1 橫式之間；Threads 一則最多 500 字（太長自動截短）；Telegram 的影片超過 20MB 小乖拿不到；IG 每 24 小時最多 25 則、Threads 250 則。
 
+### 🎵 TikTok（送到草稿匣）
+
+TikTok 只收影片（剪好的 Reels、自己的影片），送到你 TikTok 的草稿匣（收件匣通知）；你打開 TikTok 加音樂庫的歌、貼文案再按發佈。用的是 TikTok 官方 Content Posting API 的「上傳到草稿」（`video.upload`），只發你自己的帳號，用沙盒（Sandbox）就好，不用送審。圖卡、照片 TikTok 官方 API 只能從驗證過的網域抓，所以不支援。
+
+**設定（只要做一次）：**
+1. 到 https://developers.tiktok.com 用你的 TikTok 帳號登入 → 右上「Manage apps」→「Connect an app」→ 名稱「小乖發文」→ 建立。
+2. 左上切到 **Sandbox** →「Create Sandbox」。
+3. 「Products」按「Add products」加 **Login Kit** 和 **Content Posting API**。
+4. Login Kit 的 **Redirect URI**：先在 Telegram 傳「TK設定」，小乖會給你一串網址（就是小乖的 Webhook 網址），整串貼上。
+5. 「Scopes」確認有 `user.info.basic`、`video.upload`。
+6. 「Sandbox settings」→「Target Users」加你自己的 TikTok 帳號。
+7. 回到應用程式最上面複製 **Client key**、**Client secret**，在 Telegram 傳「設定 TK金鑰 Client key Client secret」（兩串中間空一格；小乖收到會把訊息刪掉）。
+8. 小乖回一個連結，打開、用 TikTok 帳號按「允許」，看到「✅ TikTok 連好了」就完成。
+
+之後影片按「發社群」，預覽就會多一個 TikTok。TikTok 登入一年內有效，過期打「TK設定」重新連結。
+
 ## 常見問題
 
 **LINE／Telegram 上可以做什麼？** 傳「說明」看範例。傳「清除對話」會讓小乖忘掉聊天內容，待辦和筆記不受影響。也可以直接傳圖片（可以附一句說明，例如「幫我記下來」），小乖會讀出圖片內容幫你整理，要記的話會存成筆記。語音、貼圖、影片目前還不支援。LINE 和 Telegram 共用同一段聊天記憶，在 LINE 說到一半，可以到 Telegram 接著聊。

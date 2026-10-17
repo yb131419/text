@@ -226,6 +226,7 @@ function setupTelegram() {
 /* ============ 入口 ============ */
 function doGet(e) {
   const p = (e && e.parameter) || {};
+  if (p.state && (p.code || p.error) && prop_('TK_STATE')) return tkCallback_(p);   // TikTok 登入回來
   // 「嘿 Siri，小乖」：iPhone 捷徑把聽到的話用 ?key=同步密碼&ask=… 傳進來，小乖回一段可以直接念出來的文字
   if (p.ask !== undefined) {
     if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請檢查捷徑裡的網址。');
@@ -2695,7 +2696,8 @@ function handleTelegram_(update) {
 
   // 發社群（IG／Threads／FB）：照片／影片說明寫「發社群」，或回覆小乖的影片、「📝 貼文文案參考」打「發社群」（要在剪 Reels 的「回覆改一版」之前判斷）
   if (owner && chatId === owner) {
-    if (/^\s*設定\s*(?:IG|Instagram|Threads|脆|FB|Facebook|臉書|粉專)\s*(?:金鑰|權杖|token)\s*\S+\s*$/i.test(text)) {
+    if (/^\s*設定\s*(?:IG|Instagram|Threads|脆|FB|Facebook|臉書|粉專)\s*(?:金鑰|權杖|token)\s*\S+\s*$/i.test(text)
+      || /^\s*設定\s*(?:TK|TikTok|抖音)\s*(?:金鑰|權杖|key)\s*\S+\s+\S+\s*$/i.test(text)) {
       tgApi_('deleteMessage', { chat_id: chatId, message_id: msg.message_id });   // 權杖不要留在聊天紀錄
       return tgSend_(chatId, igAsk_(text, text));
     }
@@ -4804,10 +4806,16 @@ const SOC = {
   ig: { name: 'IG', ok: () => !!(prop_('IG_TOKEN') && prop_('IG_USER')), who: () => '@' + prop_('IG_NAME') },
   th: { name: 'Threads', ok: () => !!(prop_('TH_TOKEN') && prop_('TH_USER')), who: () => '@' + prop_('TH_NAME') },
   fb: { name: 'FB', ok: () => !!(prop_('FB_TOKEN') && prop_('FB_PAGE')), who: () => '粉專「' + prop_('FB_NAME') + '」' },
+  tk: { name: 'TikTok', ok: () => !!prop_('TK_REFRESH'), who: () => '草稿匣', video: true },   // TikTok 只收影片，送到草稿匣，你在 App 加音樂再發
 };
 const TH_MAX = 500;   // Threads 一則最多 500 字
 
 function socOn_() { return Object.keys(SOC).filter(k => SOC[k].ok()); }
+// 這則可以發到哪些平台：TikTok 只收影片
+function socFor_(post) {
+  const vid = !!(post && post.items && post.items.some(x => x.t === 'video'));
+  return socOn_().filter(k => !SOC[k].video || vid);
+}
 function igReady_() { return socOn_().length > 0; }
 function socNames_(ks) { return ks.map(k => SOC[k].name).join('＋'); }
 
@@ -4959,10 +4967,11 @@ function thText_(cap) {
   return (t.length > TH_MAX - 1 ? t.slice(0, TH_MAX - 1) : t) + '…';
 }
 function igPreview_(post) {
-  const on = socOn_();
-  if (!on.length) return igNotReady_();
+  if (!socOn_().length) return igNotReady_();
   if (!post || !post.items || !post.items.length) return { text: '📤 目前沒有要發的內容。先做圖卡（🪶 智囊軍師），或傳照片／影片時說明寫「發社群」。', buttons: QUICK };
   if (post.items.some(x => x.t === 'video') && post.items.length > 1) post.items = post.items.filter(x => x.t === 'video').slice(0, 1);
+  const on = socFor_(post);
+  if (!on.length) return { text: '📤 TikTok 只能送影片（圖卡、照片不行）。剪好的 Reels 或自己的影片才能發到 TikTok。', buttons: QUICK };
   post.at = Date.now();
   setProp_('IG_PENDING', JSON.stringify(post));
   const cap = String(post.cap || '').trim();
@@ -4970,6 +4979,7 @@ function igPreview_(post) {
   return { text: '📤 準備發文\n發到：' + on.map(k => SOC[k].name + ' ' + SOC[k].who()).join('、') + '\n內容：' + igWhat_(post.items)
     + '\n\n文案：\n' + (cap ? (cap.length > 600 ? cap.slice(0, 600) + '…（共 ' + cap.length + ' 字）' : cap) : '（沒有文案）')
     + (on.indexOf('th') >= 0 && cap.length > TH_MAX ? '\n\n（Threads 一則最多 500 字，會自動截短）' : '')
+    + (on.indexOf('tk') >= 0 ? '\n\n（TikTok 會送到草稿匣：打開 TikTok 的通知，加音樂、貼文案再發佈）' : '')
     + '\n\n要發到哪裡？要換文案就打「發文文案 」加上新的文案。', buttons: btns };
 }
 // answer_ 用（LINE、Telegram、對話頁都會經過）
@@ -4977,13 +4987,16 @@ function igAsk_(t, raw) {
   const k = String(t || '').replace(/\s+/g, ''), r = String(raw || t);
   const tk = r.match(/^\s*設定\s*(IG|Instagram|Threads|脆|FB|Facebook|臉書|粉專)\s*(?:金鑰|權杖|token)\s*(\S+)\s*$/i);
   if (tk) return /^(IG|Instagram)$/i.test(tk[1]) ? igSetToken_(tk[2]) : /^(Threads|脆)$/i.test(tk[1]) ? thSetToken_(tk[2]) : fbSetToken_(tk[2]);
+  const tkk = r.match(/^\s*設定\s*(?:TK|TikTok|抖音)\s*(?:金鑰|權杖|key)\s*(\S+)\s+(\S+)\s*$/i);
+  if (tkk) return tkSetKey_(tkk[1], tkk[2]);
+  if (/^(TK|TikTok)(設定|連結|登入|重新連結)$/i.test(k)) return tkLink_();
   const ik = r.match(/^\s*📸 IG：@(\S+)\s*$/);
   if (ik) { const x = igPickPage_(ik[1]); if (x) return x; }
   const pk = r.match(/^\s*📘 粉專：(.+?)\s*$/);
   if (pk) { const x = fbPickPage_(pk[1]); if (x) return x; }
   if (/^(IG|ig|社群|發文|Threads|FB)(設定|狀態)$/i.test(k)) {
     const on = socOn_();
-    return on.length ? '📤 已設定：' + on.map(x => SOC[x].name + ' ' + SOC[x].who()).join('、') + (on.length < 3 ? '\n還沒設定：' + Object.keys(SOC).filter(x => on.indexOf(x) < 0).map(x => SOC[x].name).join('、') : '') : igNotReady_();
+    return on.length ? '📤 已設定：' + on.map(x => SOC[x].name + ' ' + SOC[x].who()).join('、') + (on.length < Object.keys(SOC).length ? '\n還沒設定：' + Object.keys(SOC).filter(x => on.indexOf(x) < 0).map(x => SOC[x].name).join('、') : '') : igNotReady_();
   }
   const pend = igState_('IG_PENDING'), live = pend && Date.now() - pend.at < 30 * 60 * 1000;
   const go = k.match(/^(?:確定發|全部發|只發)(.*)$/);
@@ -4991,7 +5004,7 @@ function igAsk_(t, raw) {
     const sent = igState_('IG_JOB');   // 防呆：剛按過「全部發」，第二下不要說過期
     if (!live && sent && Date.now() - (sent.at || 0) < 30 * 60 * 1000) return '⏳ 這則已經在發了，好了會傳連結給你，不用再按喔。';
     if (!live) return { text: '📤 要發的內容已經過期了（超過 30 分鐘），再按一次「' + IG_BTN + '」。', buttons: [[IG_BTN]].concat(QUICK) };
-    const on = socOn_();
+    const on = socFor_(pend);
     if (!on.length) return igNotReady_();
     const want = /^只發/.test(k) ? on.filter(x => new RegExp('^' + SOC[x].name + '$', 'i').test(go[1])) : on;
     if (!want.length) return igPreview_(pend);
@@ -5082,6 +5095,7 @@ function igJob() {
     if (r.link !== undefined || r.err) continue;
     try {
       if (t === 'fb') { r.link = fbPost_(job); save(); continue; }
+      if (t === 'tk') { tkPost_(job); r.link = '已送到草稿匣，打開 TikTok 的通知，加音樂、貼文案再發佈'; save(); continue; }
       if (!r.c) { r.c = t === 'ig' ? igCreate_(job) : thCreate_(job); save(); }
       let st = '';
       while (Date.now() - start < 4 * 60 * 1000) {
@@ -5189,6 +5203,76 @@ function thPublish_(c) {
   try { return thCall_('get', pub.id, { fields: 'permalink' }).permalink || ''; } catch (e) { console.error(e); return ''; }
 }
 // FB 粉專：檔案直接上傳（不用網址）；多張照片先上傳不發布，再合成一則貼文
+/* ---- TikTok：影片送到草稿匣（Content Posting API，video.upload；不用審核，只能發自己的帳號） ---- */
+const TK_API = 'https://open.tiktokapis.com/v2/';
+function tkRedirect_() { return ScriptApp.getService().getUrl(); }
+function tkSetKey_(key, secret) {
+  setProp_('TK_KEY', key);
+  setProp_('TK_SECRET', secret);
+  return tkLink_();
+}
+// 登入連結：按了用 TikTok 帳號允許，TikTok 會帶著一次性的碼回到小乖（doGet → tkCallback_）
+function tkLink_() {
+  if (!prop_('TK_KEY')) return '🎵 TikTok 還沒設定：先在 TikTok for Developers 建應用程式，Login Kit 的 Redirect URI 填：\n' + tkRedirect_()
+    + '\n\n建好後傳「設定 TK金鑰 Client key Client secret」（兩串中間空一格）。步驟在 README 的「TikTok」。';
+  const state = Utilities.getUuid().replace(/-/g, '');
+  setProp_('TK_STATE', state + '|' + Date.now());
+  const url = 'https://www.tiktok.com/v2/auth/authorize/?client_key=' + encodeURIComponent(prop_('TK_KEY'))
+    + '&scope=' + encodeURIComponent('user.info.basic,video.upload') + '&response_type=code'
+    + '&redirect_uri=' + encodeURIComponent(tkRedirect_()) + '&state=' + state;
+  return '🎵 TikTok 金鑰收到了。\n\n① 先確認應用程式的 Redirect URI 填的是：\n' + tkRedirect_()
+    + '\n\n② 再打開這個連結，用你的 TikTok 帳號按「允許」（10 分鐘內有效）：\n' + url;
+}
+function tkCallback_(p) {
+  const st = String(prop_('TK_STATE') || '').split('|');
+  const page = msg => HtmlService.createHtmlOutput('<meta name="viewport" content="width=device-width,initial-scale=1"><div style="font:18px/1.7 sans-serif;padding:32px 20px">' + msg + '</div>').setTitle('小乖 TikTok');
+  if (!st[0] || p.state !== st[0] || Date.now() - Number(st[1] || 0) > 10 * 60 * 1000) return page('🎵 這個連結過期了，請在小乖打「TK設定」拿新的連結。');
+  setProp_('TK_STATE', '');
+  if (p.error) return page('🎵 沒有連上 TikTok：' + String(p.error_description || p.error).replace(/[<>]/g, ''));
+  try {
+    tkSaveToken_(tkTokenCall_({ grant_type: 'authorization_code', code: String(p.code), redirect_uri: tkRedirect_() }));
+  } catch (e) {
+    return page('🎵 連接 TikTok 失敗：' + String(e.message).replace(/[<>]/g, '').slice(0, 200));
+  }
+  const tg = prop_('TG_OWNER_CHAT_ID');
+  if (tg) tgSend_(tg, '🎵 TikTok 連好了！之後剪好的 Reels 或自己的影片按「發社群」，可以一起送到 TikTok 草稿匣。');
+  return page('✅ TikTok 連好了，可以關掉這頁回到小乖。');
+}
+function tkTokenCall_(params) {
+  const res = UrlFetchApp.fetch(TK_API + 'oauth/token/', { method: 'post', muteHttpExceptions: true,
+    contentType: 'application/x-www-form-urlencoded',
+    payload: Object.assign({ client_key: prop_('TK_KEY'), client_secret: prop_('TK_SECRET') }, params) });
+  let j = {}; try { j = JSON.parse(res.getContentText()); } catch (e) { j = {}; }
+  if (!j.access_token) throw new Error(j.error_description || j.error || ('TikTok 回應 ' + res.getResponseCode()));
+  return j;
+}
+function tkSaveToken_(j) {
+  setProp_('TK_TOKEN', j.access_token);
+  setProp_('TK_EXP', String(Date.now() + (Number(j.expires_in) || 86400) * 1000 - 5 * 60 * 1000));
+  if (j.refresh_token) setProp_('TK_REFRESH', j.refresh_token);
+}
+// 權杖 24 小時到期，過期就用 refresh_token（一年有效）換新
+function tkToken_() {
+  if (prop_('TK_TOKEN') && Date.now() < Number(prop_('TK_EXP') || 0)) return prop_('TK_TOKEN');
+  try { tkSaveToken_(tkTokenCall_({ grant_type: 'refresh_token', refresh_token: prop_('TK_REFRESH') })); }
+  catch (e) { throw new Error('TikTok 登入過期了，請打「TK設定」重新連結（' + e.message + '）'); }
+  return prop_('TK_TOKEN');
+}
+function tkPost_(job) {
+  const m = job.media.filter(x => x.t === 'video')[0];
+  if (!m) throw new Error('TikTok 只能送影片');
+  const bytes = DriveApp.getFileById(m.id).getBlob().getBytes(), n = bytes.length;
+  const init = UrlFetchApp.fetch(TK_API + 'post/publish/inbox/video/init/', { method: 'post', muteHttpExceptions: true,
+    contentType: 'application/json; charset=UTF-8', headers: { Authorization: 'Bearer ' + tkToken_() },
+    payload: JSON.stringify({ source_info: { source: 'FILE_UPLOAD', video_size: n, chunk_size: n, total_chunk_count: 1 } }) });
+  let j = {}; try { j = JSON.parse(init.getContentText()); } catch (e) { j = {}; }
+  const up = j.data && j.data.upload_url;
+  if (!up) throw new Error((j.error && (j.error.message || j.error.code)) || ('TikTok 回應 ' + init.getResponseCode()));
+  const put = UrlFetchApp.fetch(up, { method: 'put', muteHttpExceptions: true, contentType: 'video/mp4',
+    headers: { 'Content-Range': 'bytes 0-' + (n - 1) + '/' + n }, payload: bytes });
+  if (put.getResponseCode() >= 300) throw new Error('影片上傳失敗（' + put.getResponseCode() + '）');
+  return j.data.publish_id;
+}
 function fbPost_(job) {
   const pg = prop_('FB_PAGE'), cap = String(job.cap || ''), md = job.media;
   const blob = m => DriveApp.getFileById(m.id).getBlob();
