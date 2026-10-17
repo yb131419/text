@@ -5323,13 +5323,13 @@ function igCleanup_(job) {
 
 /* ============ 💬 留言回覆：IG／FB 留言關鍵字 → 公開回一句＋私訊官方 LINE 連結 ============
    Meta 的 Webhook 要「原樣回 hub.challenge」而且不接受轉址，Apps Script 做不到，所以先經過 Cloudflare 中繼站（meta-relay/worker.js）。
-   設定值：LEAD_ON（1＝開）、LEAD_KW（關鍵字，逗號分開；沒設就用 7 張名單包的關鍵字）、LEAD_LINE（官方 LINE 加好友連結）、
+   設定值：LEAD_ON（1＝開）、LEAD_KW（關鍵字，逗號分開；沒設就用最近 10 組 7 張名單包的關鍵字）、LEAD_LINE（官方 LINE 加好友連結）、
    LEAD_RELAY／LEAD_VERIFY（中繼站用的通關密碼，「留言設定」自動產生）。 */
 const LEAD_LINE_DEFAULT = 'https://lin.ee/xm8z13A';   // 官方 LINE「彥彬｜生活筆記」
 const LEAD_PUBLIC = '已私訊你囉，記得看訊息 📩';
 function leadKws_() {
   let kws = String(prop_('LEAD_KW') || '').split(/[,，、\s]+/).filter(Boolean);
-  if (!kws.length) { try { kws = JSON.parse(prop_('KIT_KW_HIST') || '[]').slice(0, 5); } catch (e) { kws = []; } }
+  if (!kws.length) { try { kws = JSON.parse(prop_('KIT_KW_HIST') || '[]').slice(0, 10); } catch (e) { kws = []; } }
   return kws;
 }
 const leadNorm_ = s => String(s || '').replace(/[\s「」『』"'“”]/g, '').toLowerCase();
@@ -5386,6 +5386,11 @@ function leadSubscribe_() {
 function leadAsk_(t, raw) {
   const k = String(t || '').replace(/\s+/g, ''), r = String(raw || t);
   const kw = r.match(/^\s*設定\s*留言\s*關鍵字[\s：:]*(.+)$/);
+  if (kw && /^(自動|預設)$/.test(kw[1].trim())) {   // 改回自動：用最近 10 組 7 張名單包的關鍵字
+    setProp_('LEAD_KW', '');
+    const auto = leadKws_();
+    return '💬 留言關鍵字改回自動，用最近 10 組「📕 7張＋PDF」的關鍵字' + (auto.length ? '：' + auto.map(x => '「' + x + '」').join('、') : '（還沒做過，做好就會自動加入）');
+  }
   if (kw) {
     const list = kw[1].split(/[,，、\s]+/).filter(Boolean).slice(0, 10);
     setProp_('LEAD_KW', list.join(','));
@@ -5405,7 +5410,7 @@ function leadAsk_(t, raw) {
     const sub = k === '留言狀態' ? [] : leadSubscribe_();
     const kws = leadKws_();
     return '💬 留言回覆：' + (prop_('LEAD_ON') === '1' ? '開著' : '還沒開（設定好傳「留言回覆開」）')
-      + '\n關鍵字：' + (kws.length ? kws.map(x => '「' + x + '」').join('、') : '還沒設定（傳「設定 留言關鍵字 PDF」）')
+      + '\n關鍵字：' + (kws.length ? kws.map(x => '「' + x + '」').join('、') : '還沒有（做一組「📕 7張＋PDF」就會自動加入）')
       + '\n官方 LINE：' + (prop_('LEAD_LINE') || LEAD_LINE_DEFAULT)
       + '\n已私訊：' + (prop_('LEAD_N') || 0) + ' 人'
       + (sub.length ? '\n通知綁定：' + sub.join('、') : '')
