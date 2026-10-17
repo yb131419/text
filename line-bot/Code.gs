@@ -40,7 +40,7 @@ const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['💬 自動留言 開', 'IG／FB 留言回 LINE'], ['💬 自動留言 關', '暫停留言回覆']] },
+  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['💬 自動留言', '按一下開／關']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -75,7 +75,7 @@ function menuFlex_() {
     backgroundColor: first ? '#D9BC85' : '#FFFFFF',
     action: act(it[0]), contents: [
       { type: 'text', text: name(it[0]), size: 'sm', weight: 'bold', color: INK, flex: 0 },
-      { type: 'text', text: it[1], size: 'xxs', color: first ? '#5A4630' : SOFT, align: 'end', flex: 1, margin: 'md' },
+      { type: 'text', text: it[0] === '💬 自動留言' ? (prop_('LEAD_ON') === '1' ? '開著・按一下關' : '關著・按一下開') : it[1], size: 'xxs', color: first ? '#5A4630' : SOFT, align: 'end', flex: 1, margin: 'md' },
       { type: 'text', text: '›', size: 'md', weight: 'bold', color: first ? INK : GOLD, flex: 0, margin: 'md' },
     ] });
   return { type: 'carousel', contents: MENU_CARDS.map((c, i) => ({
@@ -904,7 +904,7 @@ function stratSetting_(t) {
 }
 
 // 「⚙️ 設定」：列出目前的署名、標題，按「改署名／改標題」後下一句話就是新的內容
-const SET_BTNS = [['✍️ 改署名', '🪶 改標題'], ['↩️ 署名預設', '↩️ 標題預設'], ['📝 改見證說明', '↩️ 見證說明預設'], ['💬 自動留言 開', '💬 自動留言 關']];   // 最後一列同 LEAD_ON_BTN／LEAD_OFF_BTN
+const SET_BTNS = [['✍️ 改署名', '🪶 改標題'], ['↩️ 署名預設', '↩️ 標題預設'], ['📝 改見證說明', '↩️ 見證說明預設'], ['💬 自動留言']];   // 最後一列同 LEAD_BTN
 // 「➕ 新增見證」的說明文字，可以在「⚙️ 設定」改（存在指令碼屬性 CASE_GUIDE）
 const CASE_GUIDE = '接下來 10 分鐘傳的圖片、影片，都會存成【見證案例】（可以一次選好幾張）。\n傳完按「✅ 存好了」。\n\n存好後按「💬 見證案例」就能看、轉傳分享。';
 function caseGuide_() { return prop_('CASE_GUIDE') || CASE_GUIDE; }
@@ -5423,8 +5423,8 @@ function leadAsk_(t, raw) {
   }
   const ln = r.match(/^\s*設定\s*留言\s*LINE[\s：:]*(https:\/\/\S+)\s*$/i);
   if (ln) { setProp_('LEAD_LINE', ln[1]); return '💬 私訊裡的官方 LINE 連結改成：' + ln[1]; }
-  const ab = k.replace(/^💬/, '').match(/^自動留言(開|打開|開啟|關|關閉|關掉)$/);   // 智囊軍師卡片上的按鈕
-  if (ab) return leadAsk_(/開/.test(ab[1]) ? '留言回覆開' : '留言回覆關');
+  const ab = k.replace(/^💬/, '').match(/^自動留言(開|打開|開啟|關|關閉|關掉)?$/);   // 「💬 自動留言」按鈕：按一下切換
+  if (ab) return leadAsk_(ab[1] ? (/開/.test(ab[1]) ? '留言回覆開' : '留言回覆關') : (prop_('LEAD_ON') === '1' ? '留言回覆關' : '留言回覆開'));
   if (/^留言回覆(開|打開|開啟)$/.test(k)) {
     if (!prop_('LEAD_RELAY')) return '還沒設定中繼站，先傳「留言設定」。';
     setProp_('LEAD_ON', '1');
@@ -5477,7 +5477,7 @@ function autoStatus_() {
 }
 // answer_ 用：自動發文 開／關／狀態、下一篇 主題
 const AUTO_ON_BTN = '🕗 自動發文 開', AUTO_OFF_BTN = '🕗 自動發文 關';   // 智囊軍師卡片上的按鈕
-const LEAD_ON_BTN = '💬 自動留言 開', LEAD_OFF_BTN = '💬 自動留言 關';   // 💎 選單「軍師」卡片、圖卡設定上的按鈕
+const LEAD_BTN = '💬 自動留言';   // 💎 選單「軍師」卡片、圖卡設定上的開關（按一下切換）
 function autoAsk_(t) {
   const k = String(t || '').replace(/\s+/g, '').replace(/^🕗/, '');
   const nx = k.match(/^下一篇(?:主題)?[：:]?(\S+)$/);
