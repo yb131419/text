@@ -53,11 +53,18 @@ jobs:
         with:
           sparse-checkout: reels
 
+      - name: 去背模型（環繞特效用，存起來下次不用再下載）
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-isnet-general-use
+
       - name: 安裝 ffmpeg 與中文字型
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-noto-cjk > /dev/null
           python3 -m pip install -q --break-system-packages edge-tts==7.3.1   # 台灣腔配音（微軟台灣聲音）
+          python3 -m pip install -q --break-system-packages opencv-python-headless onnxruntime   # 環繞／標題牆卡片特效（人像去背）
           fc-cache -f > /dev/null
           fc-list :lang=zh-tw family | head -3
 
