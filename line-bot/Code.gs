@@ -5555,6 +5555,7 @@ function autoPostJob() {
 // 2026-10-17 使用者選：1）做好「7張＋PDF」就把關鍵字和 PDF 對上，有人在官方 LINE 傳關鍵字自動回 PDF
 //                     2）有人加好友或傳訊息，通知主人（Telegram），主人打「官回 3 內容」就由官方 LINE 回他
 // 回覆（reply）不算官方 LINE 每月免費則數；主人「官回」是推播（push），會用掉額度
+const OA_KEEP = 14;   // 關鍵字自動給 PDF 保留最近 14 組（2026-10-17 使用者指定）
 const OA_GENERIC = /^(pdf|資料|電子書|免費資料|檔案|手冊|講義)$/i;
 function oaApi_(method, path, payload) {
   const res = UrlFetchApp.fetch('https://api.line.me/v2/bot/' + path, {
@@ -5570,7 +5571,7 @@ function oaNorm_(t) { return String(t || '').replace(/[\s，,。.！!？?、：:
 function oaPdfs_() { try { return JSON.parse(prop_('OA_PDF') || '[]'); } catch (e) { return []; } }
 function oaRemember_(kw, url, title) {
   kw = String(kw || '').trim(); if (!kw || !url) return;
-  const list = [{ kw: kw, url: url, title: String(title || kw), t: Date.now() }].concat(oaPdfs_().filter(x => oaNorm_(x.kw) !== oaNorm_(kw))).slice(0, 30);
+  const list = [{ kw: kw, url: url, title: String(title || kw), t: Date.now() }].concat(oaPdfs_().filter(x => oaNorm_(x.kw) !== oaNorm_(kw))).slice(0, OA_KEEP);
   setProp_('OA_PDF', JSON.stringify(list));
 }
 // 傳來的字等於關鍵字，或句子裡有關鍵字（兩個字以上）；只打「PDF」「資料」給最新一份
@@ -5620,8 +5621,8 @@ function oaStatus_() {
   let url = ''; try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { console.error(e); }
   const pdfs = oaPdfs_();
   return ['📮 官方 LINE：已接上' + (prop_('OA_NAME') ? '「' + prop_('OA_NAME') + '」' : ''),
-    '', '📄 關鍵字自動給 PDF（' + pdfs.length + ' 組，最新 5 組）：',
-    pdfs.length ? pdfs.slice(0, 5).map(x => '・「' + x.kw + '」→《' + x.title + '》').join('\n') : '・還沒有（做「📕 7張＋PDF」就會自動加；也可以打「官方LINE加 關鍵字 PDF連結」）',
+    '', '📄 關鍵字自動給 PDF（最近 ' + OA_KEEP + ' 組，目前 ' + pdfs.length + ' 組）：',
+    pdfs.length ? pdfs.map(x => '・「' + x.kw + '」→《' + x.title + '》').join('\n') : '・還沒有（做「📕 7張＋PDF」就會自動加；也可以打「官方LINE加 關鍵字 PDF連結」）',
     '', '👥 最近的朋友：' + (oaPeers_().slice(0, 5).map(x => '#' + x.n + ' ' + x.name).join('、') || '還沒有'),
     '', 'Webhook 網址（貼到官方 LINE 後台，不要給別人看）：', url ? url + '?oa=' + prop_('OA_KEY') : '（拿不到網址，請確認已部署）'].join('\n');
 }
