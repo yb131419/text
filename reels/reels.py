@@ -863,7 +863,7 @@ def wrap2(t, n=13):
     cut = len(vis) // 2
     for d in range(0, len(vis) // 2):
         for c in (cut + d, cut - d):
-            if 0 < c < len(vis) and vis[c - 1] in '，、。！？：；,!? ':
+            if 0 < c < len(vis) and vis[c - 1] in '，、。！？：；,!? 的':
                 cut = c
                 break
         else:
@@ -1019,7 +1019,7 @@ def build_ass(plan, segs, spans, opt, total, path):
     z = min(W, H) / 1080   # 依畫面大小縮放（直式 1080×1920 時是 1）
     land = W > H
     k = opt['sub_size'] * z * (.82 if land else 1)
-    fs, fs_en = int(150 * k), int(72 * k)   # 大字幕：一個字約 100px 寬、一行最多 8 個字（原本 74 太小）
+    fs, fs_en = int(128 * k), int(64 * k)   # 大字幕：一個字約 90px 寬、一行最多 8 個字（原本 74 太小，150 又太大）
     box = opt['sub_box']
     mv = int(LAND_Y[opt['sub_pos']] * H) if land else int(POS_Y[opt['sub_pos']] * H / 1920)
     px = lambda v: max(1, int(v * z))
@@ -1039,7 +1039,7 @@ def build_ass(plan, segs, spans, opt, total, path):
             FONT, fs, px(22), mv),
         # 頂部大標題：整支影片都在（像爆款 Reels 的固定標題），白字粗黑邊、重點詞亮色
         'Style: Ask,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00141414,&H64000000,-1,0,0,0,100,100,2,0,1,%d,%d,8,60,60,%d,1' % (
-            FONT, px(130 if not land else 84), px(10), px(5), px(250) if not land else int(H * .06)),
+            FONT, px(156 if not land else 96), px(11), px(5), px(250) if not land else int(H * .06)),
         # 標籤：沒打勾是深灰、打勾後變亮色
         'Style: Chip,%s,%d,&H00FFFFFF,&H00FFFFFF,&H50303030,&H00000000,-1,0,0,0,100,100,1,0,3,%d,0,7,0,0,0,1' % (
             FONT, px(44), px(12)),
@@ -1047,7 +1047,7 @@ def build_ass(plan, segs, spans, opt, total, path):
             FONT, px(44), ass_color(opt['accent']), px(12)),
         # 靜音剪的畫面字幕：大字、粗描邊，重點詞換亮色，彈出來
         'Style: Cap,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00141414,&H64000000,-1,0,0,0,100,100,2,0,1,%d,%d,5,60,60,0,1' % (
-            FONT, px(150 if not land else 96), px(11), px(5)),
+            FONT, px(128 if not land else 90), px(10), px(5)),
         # 進度條
         'Style: Bar,%s,10,%s,%s,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1' % (
             FONT, ass_color(opt['accent']), ass_color(opt['accent'])),
@@ -1068,8 +1068,8 @@ def build_ass(plan, segs, spans, opt, total, path):
                                          ass_text(t.replace('{', '').replace('}', '')))   # 重點詞換亮色、大一點
     plain = lambda t: ass_text(t.replace('**', ''))
     end_intro = min(opt['title_sec'], total)
-    if plan.get('title'):   # 頂部大標題：彈出來後整支影片都在，超過 8 個字拆兩行
-        lines = wrap2(plan['title'], 8 if not land else 14)
+    if plan.get('title'):   # 頂部大標題：彈出來後整支影片都在，超過 7 個字拆兩行
+        lines = wrap2(plan['title'], 7 if not land else 14)
         SFX.append((.2, 'hit'))
         add(2, .15, total, 'Ask', '{\\an8\\pos(%d,%d)\\fscx70\\fscy70\\t(0,160,\\fscx106\\fscy106)\\t(160,240,\\fscx100\\fscy100)\\fad(120,0)}%s'
             % (W // 2, px(250) if not land else int(H * .06), '\\N'.join(hl(l) for l in lines)))
