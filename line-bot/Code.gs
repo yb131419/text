@@ -645,6 +645,8 @@ function answer_(text) {
   const ad = addPending_(t2, raw);   // 「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
+  const ap = autoAsk_(t2);   // 「自動發文 開／關」：每天晚上自動發智囊軍師 7 張圖卡
+  if (ap) return ap;
   const la = leadAsk_(t2, raw);   // 「💬 留言回覆」：IG／FB 留言關鍵字 → 小乖私訊官方 LINE 連結
   if (la) return la;
   const ia = igAsk_(t2, raw);   // 「📤 發社群」：預覽 → 確定才發
@@ -1309,13 +1311,18 @@ let LAST_KIT_ = null, KIT_PENDING_ = '';   // 剛寫好的 7 張＋PDF 內容；
 // 款式（2026-10-16 使用者要「能選擇款式」）：底圖放在 line-bot/kit/<d>，字的顏色跟著換
 const KIT_LIGHT = { ink: '#2A221A', soft: '#5B4F40', gold: '#A07C34', mute: '#8D7F6C', top: '#9C7A3E', lab: '#7C6B55', orn: '#B8914A', sub: '#6E604E', strike: '#A39A8C', rule: '#C9AE7A' };
 const KIT_DARK = (soft, lab, mute) => ({ ink: '#F3EBDD', soft: soft, gold: '#D9B867', mute: mute, top: '#C9A65A', lab: lab, orn: '#C9A65A', sub: lab, strike: mute, rule: '#8C7440' });
-// 暖灰款（原淺綠）封面：灰白色系「暖灰香檳」（使用者 2026-10-16 要灰白）——暖灰紙底＋香檳金框，墨黑大字、金色重點
-const KIT_COVER_MINT = { ink: '#2A2620', gold: '#9C7A3E', top: '#9C7A3E', sub: '#5F574C', series: '#2A2620', by: '#2A2620' };   // 2026-10-16 改灰白色系（暖灰香檳）
-const KIT_STYLES = [   // 使用者 2026-10-16 只留 V1（綠底）、L3（淺綠→2026-10-16 改暖灰香檳、改名暖灰）
-  { n: '綠底', d: 'emerald/', tip: '封面黑金＋內頁象牙白卡、祖母綠底', c: KIT_LIGHT },
-  { n: '暖灰', old: '淺綠', d: 'mint/', tip: '封面＋內頁暖灰香檳（暖灰紙、香檳金框）', cv: KIT_COVER_MINT, c: Object.assign({}, KIT_LIGHT, { ink: '#2A2620', soft: '#5F574C', mute: '#8A8276', lab: '#8A7A62', sub: '#6E655A' }) }];
-let KIT_S_ = KIT_STYLES[0];   // 這次畫圖用的款式（kitMake_ 依 kit.style 設定）
-const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n || x.old === n)[0] || KIT_STYLES[0];   // 舊按鈕「淺綠」也認得
+// 2026-10-17 使用者：五款各配一個主題（t＝主題），自動發文照主題用對應款式；同日改成五款都是淺色萬元風格（淺色絲絨底＋象牙卡＋燙金框，字用該款深色）
+const KIT_PALE = (ink, gold, sub) => ({ cv: { ink: ink, gold: gold, top: gold, sub: sub, series: ink, by: ink },
+  c: Object.assign({}, KIT_LIGHT, { ink: ink, soft: sub, gold: gold, top: gold, orn: gold, sub: sub, lab: sub }) });
+const KIT_STYLES = [   // 舊按鈕名稱（old）也認得
+  Object.assign({ n: '暖灰', old: '淺綠', t: 'concept', d: 'mint/', tip: '暖灰香檳：暖灰底、象牙卡、香檳金框' }, KIT_PALE('#2A2620', '#9C7A3E', '#5F574C')),
+  Object.assign({ n: '駝色', t: 'health', d: 'camel/', tip: '駝色奶油：奶茶駝色底、奶油卡、燙金框' }, KIT_PALE('#3A2A1C', '#9A7038', '#6B5843')),
+  Object.assign({ n: '鼠尾草', old: '綠底', t: 'herb', d: 'emerald/', tip: '鼠尾草綠：淺灰綠底、象牙卡、燙金框' }, KIT_PALE('#22362B', '#977536', '#4F6356')),
+  Object.assign({ n: '霧藍', old: '藏青', t: 'biz', d: 'navy/', tip: '霧藍：淺霧藍底、珍珠白卡、燙金框、藏青字' }, KIT_PALE('#1E2C48', '#9A7A3C', '#56627A')),
+  Object.assign({ n: '玫瑰', old: '酒紅', t: 'net', d: 'wine/', tip: '玫瑰酒紅：淺玫瑰底、象牙卡、燙金框、酒紅字' }, KIT_PALE('#4A1A24', '#9A7038', '#7A5A5E'))];
+let KIT_S_ = KIT_STYLES[2];   // 預設鼠尾草（原綠底）；這次畫圖用的款式（kitMake_ 依 kit.style 設定）
+const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n || x.old === n)[0] || KIT_STYLES[2];   // 沒指定用鼠尾草（原綠底）；舊按鈕名稱也認得
+const kitThemeStyle_ = k => KIT_STYLES.filter(x => x.t === k)[0] || KIT_STYLES[2];   // 主題配套款式（軍師判定沒有固定款，用鼠尾草）
 
 function kitMenu_() {
   const b = STRAT_THEMES.map(t => '📕 ' + t.btn.replace(/^[^\p{L}\p{N}]+/u, ''));
@@ -1336,20 +1343,23 @@ function kitPick_(raw) {
 // 選好主題後問款式
 function kitStyleMenu_(th) {
   const name = th.btn.replace(/^[^\p{L}\p{N}]+/u, '');
-  const b = KIT_STYLES.map(x => '🎨 ' + name + '・' + x.n);
-  const imgs = KIT_STYLES.map(x => kitUrl_(x.d + 'preview.jpg'));
+  const mine = kitThemeStyle_(th.k), list = [mine].concat(KIT_STYLES.filter(x => x !== mine));   // 這個主題的配套款式排第一
+  const tip = x => x.tip + (x === mine && x.t === th.k ? '（' + name + '配套）' : '');
+  const b = list.map(x => '🎨 ' + name + '・' + x.n);
+  const imgs = list.map(x => kitUrl_(x.d + 'preview.jpg'));
   if (TALK_MODE_) ASK_IMGS_ = imgs;   // 對話頁直接顯示預覽圖
-  return { text: '📕 ' + name + '：選一個款式\n\n' + KIT_STYLES.map(x => '・' + x.n + '：' + x.tip).join('\n'), buttons: [b],
-    flex: kitStyleFlex_(name, imgs), alt: '🎨 選一個款式', imgs: imgs, caps: KIT_STYLES.map(x => x.n + '｜' + x.tip) };
+  return { text: '📕 ' + name + '：選一個款式（第一個是' + name + '的配套款）\n\n' + list.map(x => '・' + x.n + '：' + tip(x)).join('\n'), buttons: [b.slice(0, 3), b.slice(3)],
+    flex: kitStyleFlex_(name, imgs, list, tip), alt: '🎨 選一個款式', imgs: imgs, caps: list.map(x => x.n + '｜' + tip(x)) };
 }
 // LINE：每款一張預覽卡，點「用這款」就開始做
-function kitStyleFlex_(name, imgs) {
-  return { type: 'carousel', contents: KIT_STYLES.map((x, i) => ({ type: 'bubble', size: 'kilo',
+function kitStyleFlex_(name, imgs, list, tip) {
+  list = list || KIT_STYLES; tip = tip || (x => x.tip);
+  return { type: 'carousel', contents: list.map((x, i) => ({ type: 'bubble', size: 'kilo',
     hero: { type: 'image', url: imgs ? imgs[i] : kitUrl_(x.d + 'preview.jpg'), size: 'full', aspectRatio: '4:5', aspectMode: 'cover',
       action: { type: 'message', label: x.n, text: '🎨 ' + name + '・' + x.n } },
     body: { type: 'box', layout: 'vertical', paddingAll: '12px', backgroundColor: '#FBF8F2', spacing: 'xs', contents: [
       { type: 'text', text: x.n, size: 'md', weight: 'bold', color: '#2A2118', align: 'center' },
-      { type: 'text', text: x.tip, size: 'xxs', color: '#8D7F6C', align: 'center', wrap: true }] },
+      { type: 'text', text: tip(x), size: 'xxs', color: '#8D7F6C', align: 'center', wrap: true }] },
     footer: { type: 'box', layout: 'vertical', paddingAll: '10px', backgroundColor: '#FBF8F2', contents: [
       { type: 'button', style: 'primary', color: '#A07C34', height: 'sm',
         action: { type: 'message', label: '用這款', text: '🎨 ' + name + '・' + x.n } }] } })) };
@@ -5404,4 +5414,88 @@ function leadAsk_(t, raw) {
       + '\n步驟在 README 的「留言回覆」。';
   }
   return null;
+}
+
+/* ============ 🕗 自動發文：每天晚上自動做一組智囊軍師 7 張圖卡，發到社群 ============ */
+// 2026-10-17 使用者：用智囊軍師的 7 張圖卡自動發，五大主題照現在的順序輪流，時間在 20:00～21:30 之間
+// 打「自動發文 開」建立每天 20:30 左右（Apps Script 前後 15 分鐘內）的觸發條件；「自動發文 關」停掉；「自動發文」看狀態
+const AUTO_ORDER = ['concept', 'health', 'herb', 'biz', 'net'];   // 觀念 → 健康 → 草本 → 經營 → 行銷（跟軍師按鈕順序一樣）
+const AUTO_HOUR = 20, AUTO_MIN = 30;
+
+function autoTheme_(i) { const k = AUTO_ORDER[(Number(i) || 0) % AUTO_ORDER.length]; return STRAT_THEMES.filter(t => t.k === k)[0]; }
+function autoName_(th) { return th ? th.btn.replace(/^[^\p{L}\p{N}]+/u, '') : ''; }
+function autoTriggers_() { return ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'autoPostJob'); }
+function autoStatus_() {
+  const on = prop_('AUTO_POST') === 'on';
+  const next = autoTheme_(prop_('AUTO_IDX'));
+  const plat = socFor_({ items: [{ t: 'img' }] });
+  return { text: '🕗 自動發文：' + (on ? '開著' : '關著')
+    + '\n時間：每天 20:15～20:45 之間'
+    + '\n內容：智囊軍師 7 張圖卡＋貼文（PDF 一起傳給你）'
+    + '\n主題輪流：' + AUTO_ORDER.map(k => autoName_(autoTheme_(AUTO_ORDER.indexOf(k)))).join(' → ')
+    + '\n下一篇：' + autoName_(next)
+    + '\n發到：' + (plat.length ? socNames_(plat) : '（還沒設定社群）')
+    + '\n\n「自動發文 開」／「自動發文 關」；要換下一篇的主題，打「下一篇 健康」這樣。', buttons: [[on ? '自動發文 關' : '自動發文 開']].concat(QUICK) };
+}
+// answer_ 用：自動發文 開／關／狀態、下一篇 主題
+function autoAsk_(t) {
+  const k = String(t || '').replace(/\s+/g, '');
+  const nx = k.match(/^下一篇(?:主題)?[：:]?(\S+)$/);
+  if (nx) {
+    const i = AUTO_ORDER.findIndex(x => autoName_(autoTheme_(AUTO_ORDER.indexOf(x))) === nx[1].replace(/主題$/, ''));
+    if (i < 0) return null;
+    setProp_('AUTO_IDX', String(i));
+    return autoStatus_();
+  }
+  const m = k.match(/^(?:自動發文|自動發佈|自動發布|排程發文)(開|開啟|打開|關|關閉|停|停止|狀態)?$/);
+  if (!m) return null;
+  const v = m[1] || '狀態';
+  if (/^(開|開啟|打開)$/.test(v)) {
+    if (!socFor_({ items: [{ t: 'img' }] }).length) return { text: '🕗 要先設定好 IG 或 FB（「設定 IG金鑰」「設定 FB金鑰」），才能自動發文。', buttons: QUICK };
+    autoTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
+    ScriptApp.newTrigger('autoPostJob').timeBased().everyDays(1).atHour(AUTO_HOUR).nearMinute(AUTO_MIN).inTimezone(TZ).create();
+    setProp_('AUTO_POST', 'on');
+    return autoStatus_();
+  }
+  if (/^(關|關閉|停|停止)$/.test(v)) {
+    autoTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
+    setProp_('AUTO_POST', '');
+    return autoStatus_();
+  }
+  return autoStatus_();
+}
+// 觸發條件呼叫：寫文案 → 畫 7 張圖卡＋PDF（傳給你一份）→ 發到有設定的社群（IG、FB、Threads；TikTok 只收影片不發）
+function autoPostJob() {
+  if (prop_('AUTO_POST') !== 'on') return;
+  const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+  if (prop_('AUTO_DAY') === today) return;   // 一天只發一篇（重試的那次也不會重複）
+  const tg = prop_('TG_OWNER_CHAT_ID'), line = prop_('OWNER_USER_ID');
+  const tell = text => tg ? tgSend_(tg, text) : line && lineApi_('push', { to: line, messages: [{ type: 'text', text: text }] });
+  // 上一次排的「5 分鐘後再試」觸發條件用完就刪掉（每天那個不動）
+  const rid = prop_('AUTO_RETRY_ID');
+  if (rid) { autoTriggers_().filter(x => x.getUniqueId() === rid).forEach(x => ScriptApp.deleteTrigger(x)); setProp_('AUTO_RETRY_ID', ''); }
+  const retry = () => setProp_('AUTO_RETRY_ID', ScriptApp.newTrigger('autoPostJob').timeBased().after(5 * 60 * 1000).create().getUniqueId());
+  // 你剛好在做 7張＋PDF，或上一則還在發：5 分鐘後再來
+  const job = igState_('IG_JOB');
+  if ((job && Date.now() - (job.at || 0) < 30 * 60 * 1000) || busy_('KIT_BUSY', 10 * 60 * 1000)) return retry();
+  setProp_('AUTO_DAY', today);
+  const i = Number(prop_('AUTO_IDX')) || 0, th = autoTheme_(i);
+  try {
+    if (tg) { LINE_MODE_ = false; CURRENT_TG_CHAT_ = tg; } else { LINE_MODE_ = true; CURRENT_TG_CHAT_ = ''; }
+    setProp_('IG_LAST', '');
+    const w = kitWrite_(th.k);
+    if (!LAST_KIT_) throw new Error(String(w && w.text || w).slice(0, 120));
+    LAST_KIT_.style = kitThemeStyle_(th.k).n;   // 2026-10-17 使用者：五大主題各用配套款式
+    tell('🕗 自動發文：今天的主題是「' + autoName_(th) + '」，圖卡和 PDF 在下面，接著發到社群。');
+    if (tg) kitTg_(tg); else kitLine_(line);
+    const post = igState_('IG_LAST');
+    if (!post || !post.items || !post.items.length) throw new Error('圖卡沒畫出來');
+    post.targets = socFor_(post);
+    if (!post.targets.length) throw new Error('還沒設定 IG 或 FB');
+    setProp_('AUTO_IDX', String(i + 1));   // 成功做出圖卡才換下一個主題
+    igQueue_(post);
+  } catch (err) {
+    console.error('自動發文失敗：' + err.message);
+    tell('🕗 今天的自動發文（' + autoName_(th) + '）沒做成：' + noTok_(err.message) + '\n明天會再試同一個主題；想現在補發，按「📕 7張＋PDF」做好後按「📤 發社群」。');
+  } finally { busyEnd_('KIT_BUSY'); }
 }
