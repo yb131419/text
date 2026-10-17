@@ -179,6 +179,19 @@ TikTok 只收影片（剪好的 Reels、自己的影片），送到你 TikTok �
 
 之後影片按「發社群」，預覽就會多一個 TikTok。TikTok 登入一年內有效，過期打「TK設定」重新連結。
 
+### 💬 留言回覆（IG／FB 留言關鍵字 → 小乖私訊官方 LINE 連結）
+
+有人在 IG 或 FB 粉專留言關鍵字，小乖會公開回一句「已私訊你囉」，再私訊他官方 LINE 的連結；他在官方 LINE 傳同樣的關鍵字，官方 LINE 後台的「自動回應訊息」回 PDF。Meta 的通知要先經過 Cloudflare 免費中繼站（`meta-relay/worker.js`），因為 Apps Script 的網址會轉址，Meta 不接受。
+
+1. **權杖加權限**：圖形 API 測試工具，在原本的權限再加 `instagram_manage_comments`、`instagram_manage_messages`、`pages_messaging`、`pages_manage_metadata`、`pages_manage_engagement`、`pages_read_user_content` → 產生 → 延長 → 再傳一次「設定 FB金鑰 那串」和「設定 IG金鑰 那串」。
+2. 傳「**留言設定**」給小乖，會回 `APPS_URL`、`RELAY_KEY`、`VERIFY_TOKEN` 三個值（不要貼給別人）。
+3. **Cloudflare 中繼站**：dash.cloudflare.com 註冊 →「Workers 和 Pages」→「建立」→「從 Hello World 開始」→ 名稱 `xiaoguai-relay` →「部署」→「編輯程式碼」，全部換成 `meta-relay/worker.js` 的內容 →「部署」。再到「設定」→「變數和密碼」加：`APPS_URL`、`RELAY_KEY`、`VERIFY_TOKEN`（第 2 步的值），`APP_SECRET`（Meta 應用程式 →「應用程式設定」→「基本資料」→「應用程式密鑰」）。中繼站網址長得像 `https://xiaoguai-relay.你的帳號.workers.dev`。
+4. **Meta Webhooks**：Meta 開發者「小乖發文」→ 左邊「Webhooks」→ 上面選「Page」→「訂閱這個物件」，回呼網址填中繼站網址、驗證權杖填 `VERIFY_TOKEN` →「驗證並儲存」→ 訂閱 `feed`；再選「Instagram」同樣填一次 → 訂閱 `comments`。
+5. 再傳一次「**留言設定**」（讓粉專把通知送給應用程式），看到「通知綁定：FB 粉專 ✅、IG ✅」。
+6. 傳「**設定 留言關鍵字 PDF**」（可以好幾個，空格分開；沒設就用 7 張名單包的關鍵字），官方 LINE 後台也設一樣的關鍵字回 PDF。私訊裡的 LINE 連結預設是「彥彬｜生活筆記」，要換就傳「設定 留言LINE https://lin.ee/…」。
+7. 傳「**留言回覆開**」。用自己另一個帳號留言測試（自己帳號的留言小乖不會回）。關掉傳「留言回覆關」，看人數傳「留言狀態」。
+8. **送審（開放給所有人）**：審核通過前，只有應用程式裡的管理員、測試人員留言才會觸發。「應用程式設定 → 基本資料」隱私政策網址填 `https://yb131419.github.io/Tezhu/privacy.html`、資料刪除網址填 `https://yb131419.github.io/Tezhu/privacy.html#delete`；「應用程式審查」申請第 1 步那些權限的「進階存取」（附操作錄影：留言 → 收到私訊），可能要先完成商家驗證；通過後把應用程式切到「上線」。
+
 ## 常見問題
 
 **LINE／Telegram 上可以做什麼？** 傳「說明」看範例。傳「清除對話」會讓小乖忘掉聊天內容，待辦和筆記不受影響。也可以直接傳圖片（可以附一句說明，例如「幫我記下來」），小乖會讀出圖片內容幫你整理，要記的話會存成筆記。語音、貼圖、影片目前還不支援。LINE 和 Telegram 共用同一段聊天記憶，在 LINE 說到一半，可以到 Telegram 接著聊。

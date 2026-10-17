@@ -388,6 +388,13 @@ function doPost(e) {
     return ack_();
   }
 
+  // IG／FB 留言 → 小乖私訊（Meta 通知先到 Cloudflare 中繼站，中繼站把通關密碼放進 relay 再轉來）
+  if (body.object && Array.isArray(body.entry)) {
+    if (!prop_('LEAD_RELAY') || body.relay !== prop_('LEAD_RELAY')) return text_('forbidden');
+    try { leadHandle_(body); } catch (err) { console.error(err); }
+    return ack_();
+  }
+
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
 
@@ -638,6 +645,8 @@ function answer_(text) {
   const ad = addPending_(t2, raw);   // 「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
+  const la = leadAsk_(t2, raw);   // 「💬 留言回覆」：IG／FB 留言關鍵字 → 小乖私訊官方 LINE 連結
+  if (la) return la;
   const ia = igAsk_(t2, raw);   // 「📤 發社群」：預覽 → 確定才發
   if (ia) return ia;
   const rl = reelsAsk_(t2);   // 「🎬 剪 Reels」：接下來 10 分鐘內傳的影片拿去剪
@@ -5298,4 +5307,101 @@ function igTgBlob_(fileId, what) {
 }
 function igCleanup_(job) {
   (job && job.temp || []).forEach(id => { try { const f = DriveApp.getFileById(id); f.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); f.setTrashed(true); } catch (e) { console.error(e); } });
+}
+
+/* ============ 💬 留言回覆：IG／FB 留言關鍵字 → 公開回一句＋私訊官方 LINE 連結 ============
+   Meta 的 Webhook 要「原樣回 hub.challenge」而且不接受轉址，Apps Script 做不到，所以先經過 Cloudflare 中繼站（meta-relay/worker.js）。
+   設定值：LEAD_ON（1＝開）、LEAD_KW（關鍵字，逗號分開；沒設就用 7 張名單包的關鍵字）、LEAD_LINE（官方 LINE 加好友連結）、
+   LEAD_RELAY／LEAD_VERIFY（中繼站用的通關密碼，「留言設定」自動產生）。 */
+const LEAD_LINE_DEFAULT = 'https://lin.ee/xm8z13A';   // 官方 LINE「彥彬｜生活筆記」
+const LEAD_PUBLIC = '已私訊你囉，記得看訊息 📩';
+function leadKws_() {
+  let kws = String(prop_('LEAD_KW') || '').split(/[,，、\s]+/).filter(Boolean);
+  if (!kws.length) { try { kws = JSON.parse(prop_('KIT_KW_HIST') || '[]').slice(0, 5); } catch (e) { kws = []; } }
+  return kws;
+}
+const leadNorm_ = s => String(s || '').replace(/[\s「」『』"'“”]/g, '').toLowerCase();
+function leadMatch_(text) {
+  const t = leadNorm_(text);
+  return leadKws_().filter(k => t.indexOf(leadNorm_(k)) >= 0)[0] || '';
+}
+function leadDm_(kw) {
+  return '謝謝你的留言 🙌\nPDF 放在官方 LINE，兩步就拿到：\n1️⃣ 點這裡加好友：' + (prop_('LEAD_LINE') || LEAD_LINE_DEFAULT)
+    + '\n2️⃣ 在 LINE 傳「' + kw + '」給我，馬上給你';
+}
+function leadTell_(text) {
+  const tg = prop_('TG_OWNER_CHAT_ID'), owner = prop_('OWNER_USER_ID');
+  if (tg && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tg, text);
+  else if (owner) push_(owner, text);
+}
+// Meta 送來的一包通知：IG（object=instagram，field=comments）、粉專（object=page，field=feed，item=comment）
+function leadHandle_(body) {
+  if (prop_('LEAD_ON') !== '1') return;
+  const cache = CacheService.getScriptCache();
+  (body.entry || []).forEach(en => (en.changes || []).forEach(ch => {
+    const v = ch.value || {};
+    let c = null;
+    if (body.object === 'instagram' && ch.field === 'comments')
+      c = { p: 'ig', id: v.id, text: v.text, from: v.from && v.from.id, who: v.from && ('@' + v.from.username), self: prop_('IG_USER') };
+    else if (body.object === 'page' && ch.field === 'feed' && v.item === 'comment' && v.verb === 'add')
+      c = { p: 'fb', id: v.comment_id, text: v.message, from: v.from && v.from.id, who: v.from && v.from.name, self: prop_('FB_PAGE') };
+    if (!c || !c.id || !c.from || String(c.from) === String(c.self)) return;   // 自己的留言（含小乖的公開回覆）不理
+    const kw = leadMatch_(c.text);
+    if (!kw || cache.get('lead_' + c.id)) return;
+    cache.put('lead_' + c.id, '1', 21600);   // Meta 會重送，同一則留言只處理一次
+    try { leadReply_(c, kw); } catch (err) { console.error(err); leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + kw + '」（' + (c.who || '') + '），但小乖私訊失敗：' + err.message + '\n請你手動私訊他 LINE 連結。'); }
+  }));
+}
+function leadReply_(c, kw) {
+  const call = c.p === 'ig' ? igCall_ : fbCall_;
+  call('post', 'me/messages', { recipient: JSON.stringify({ comment_id: c.id }), message: JSON.stringify({ text: leadDm_(kw) }) });   // 留言私訊（官方叫 private reply，一則留言只能一次）
+  try { call('post', c.id + (c.p === 'ig' ? '/replies' : '/comments'), { message: LEAD_PUBLIC }); } catch (e) { console.error(e); }   // 公開回覆失敗不影響私訊
+  const n = Number(prop_('LEAD_N') || 0) + 1;
+  setProp_('LEAD_N', String(n));
+  leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + kw + '」：' + (c.who || '') + '\n已私訊官方 LINE 連結（累計 ' + n + ' 人）。');
+}
+function leadKey_() { return Utilities.getUuid().replace(/-/g, ''); }
+// 讓粉專把通知送給「小乖發文」應用程式（IG 留言也要靠綁定的粉專）
+function leadSubscribe_() {
+  const out = [];
+  if (prop_('FB_TOKEN')) { try { fbCall_('post', 'me/subscribed_apps', { subscribed_fields: 'feed' }); out.push('FB 粉專 ✅'); } catch (e) { out.push('FB 粉專 ❌ ' + e.message); } }
+  if (prop_('IG_TOKEN')) {
+    try { prop_('IG_API') === 'fb' ? igCall_('post', 'me/subscribed_apps', { subscribed_fields: 'feed' }) : igCall_('post', 'me/subscribed_apps', { subscribed_fields: 'comments' }); out.push('IG ✅'); }
+    catch (e) { out.push('IG ❌ ' + e.message); }
+  }
+  return out;
+}
+function leadAsk_(t, raw) {
+  const k = String(t || '').replace(/\s+/g, ''), r = String(raw || t);
+  const kw = r.match(/^\s*設定\s*留言\s*關鍵字[\s：:]*(.+)$/);
+  if (kw) {
+    const list = kw[1].split(/[,，、\s]+/).filter(Boolean).slice(0, 10);
+    setProp_('LEAD_KW', list.join(','));
+    return '💬 留言關鍵字改成：' + list.map(x => '「' + x + '」').join('、') + '\n記得官方 LINE 後台的「自動回應訊息」也要設一樣的關鍵字，回 PDF 連結。';
+  }
+  const ln = r.match(/^\s*設定\s*留言\s*LINE[\s：:]*(https:\/\/\S+)\s*$/i);
+  if (ln) { setProp_('LEAD_LINE', ln[1]); return '💬 私訊裡的官方 LINE 連結改成：' + ln[1]; }
+  if (/^留言回覆(開|打開|開啟)$/.test(k)) {
+    if (!prop_('LEAD_RELAY')) return '還沒設定中繼站，先傳「留言設定」。';
+    setProp_('LEAD_ON', '1');
+    return '💬 留言回覆打開了。有人在 IG／FB 留言' + leadKws_().map(x => '「' + x + '」').join('或') + '，小乖會私訊他官方 LINE 連結。';
+  }
+  if (/^留言回覆(關|關閉|關掉|暫停)$/.test(k)) { setProp_('LEAD_ON', ''); return '💬 留言回覆關掉了，傳「留言回覆開」可以再打開。'; }
+  if (/^(留言設定|留言回覆設定|留言回覆|留言狀態)$/.test(k)) {
+    if (!prop_('LEAD_RELAY')) { setProp_('LEAD_RELAY', leadKey_()); setProp_('LEAD_VERIFY', leadKey_()); }
+    let url = ''; try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { console.error(e); }
+    const sub = k === '留言狀態' ? [] : leadSubscribe_();
+    const kws = leadKws_();
+    return '💬 留言回覆：' + (prop_('LEAD_ON') === '1' ? '開著' : '還沒開（設定好傳「留言回覆開」）')
+      + '\n關鍵字：' + (kws.length ? kws.map(x => '「' + x + '」').join('、') : '還沒設定（傳「設定 留言關鍵字 PDF」）')
+      + '\n官方 LINE：' + (prop_('LEAD_LINE') || LEAD_LINE_DEFAULT)
+      + '\n已私訊：' + (prop_('LEAD_N') || 0) + ' 人'
+      + (sub.length ? '\n通知綁定：' + sub.join('、') : '')
+      + '\n\n🔧 Cloudflare 中繼站要填的（只給你自己看，不要貼給別人）：'
+      + '\nAPPS_URL＝' + url
+      + '\nRELAY_KEY＝' + prop_('LEAD_RELAY')
+      + '\nVERIFY_TOKEN＝' + prop_('LEAD_VERIFY')
+      + '\n步驟在 README 的「留言回覆」。';
+  }
+  return null;
 }
