@@ -2641,7 +2641,8 @@ function tts_(text, format) {
       model: prop_('TTS_MODEL') || 'gpt-4o-mini-tts', voice: ttsVoice_(), input: text,
       instructions: ttsVoice_() === 'shimmer'
         ? '用台灣口音的中文，聲音柔和、溫柔、輕聲細語，像貼心的女生助理在身邊說話；語氣放鬆、不要太亢奮，速度稍慢一點，句子之間自然停頓。'
-        : '用台灣口音的中文，語氣親切、自然、像貼心的助理，速度適中。', response_format: format || 'opus',
+        : ttsVoice_() === 'ash' ? '用台灣口音的中文，語氣親切、自然、像貼心的助理，速度適中。'
+        : '用台灣口音的中文，像溫柔親切的年輕女生助理，語氣甜美自然、帶點笑意，速度適中。', response_format: format || 'opus',
     }),
   });
   if (res.getResponseCode() !== 200) throw new Error('語音合成失敗（' + res.getResponseCode() + '）：' + res.getContentText().slice(0, 200));
@@ -4273,7 +4274,7 @@ function buildSys_(d) {
     .map(r => '- [' + r.id + '] ' + String(r.at).replace('T', ' ') + ' ' + r.text + (r.repeat && r.repeat !== 'none' ? '（' + (r.repeat === 'daily' ? '每天' : '每週') + '）' : '')).join('\n') || '（無）';
   const notes = d.notes.slice(0, 40)
     .map(n => '- [' + n.id + '] ' + (n.title || '（無標題）') + '：' + String(n.body || '').replace(/\s+/g, ' ').slice(0, 120)).join('\n') || '（無）';
-  return '你是「' + (p.title || '小乖') + '」，' + (p.nick || '使用者') + '的私人助理。個性貼心、可靠、說話簡潔溫暖，一律用繁體中文（台灣用語）。\n'
+  return '你是「' + (p.title || '小乖') + '」，' + (p.nick || '使用者') + '的私人助理。你是溫柔親切的年輕女生助理，個性貼心、可靠，說話簡潔溫暖、帶點女生的柔軟語氣（可以自然用「喔」「呢」「啦」，但不要每句都用、不要撒嬌過頭），自稱「小乖」或「我」。一律用繁體中文（台灣用語）。\n'
     + '你現在在 LINE 或 Telegram 上聊天：回覆要短，不要用 Markdown 標題、表格或粗體。\n'
     + '列出行程、提醒或待辦時，一筆一行、照時間排好，格式像「・15:00　開會＠公司」；不同天先寫一行「▍10/16（四）」再列那天的。\n'
     + '你看得懂使用者傳來的圖片：收到圖片就直接讀出內容，不要說你看不到圖片。\n'
