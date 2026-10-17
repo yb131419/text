@@ -787,7 +787,8 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」）', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN]] };
+  const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」）\n\n🕗 每晚自動發文：' + auto, buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN], [AUTO_ON_BTN, AUTO_OFF_BTN]] };
 }
 
 // 認得「健康主題」「智囊軍師 健康」「軍師判定」「再寫一篇」這些說法；不是就回 null
@@ -5435,11 +5436,12 @@ function autoStatus_() {
     + '\n主題輪流：' + AUTO_ORDER.map(k => autoName_(autoTheme_(AUTO_ORDER.indexOf(k)))).join(' → ')
     + '\n下一篇：' + autoName_(next)
     + '\n發到：' + (plat.length ? socNames_(plat) : '（還沒設定社群）')
-    + '\n\n「自動發文 開」／「自動發文 關」；要換下一篇的主題，打「下一篇 健康」這樣。', buttons: [[on ? '自動發文 關' : '自動發文 開']].concat(QUICK) };
+    + '\n\n「自動發文 開」／「自動發文 關」；要換下一篇的主題，打「下一篇 健康」這樣。', buttons: [[on ? AUTO_OFF_BTN : AUTO_ON_BTN]].concat(QUICK) };
 }
 // answer_ 用：自動發文 開／關／狀態、下一篇 主題
+const AUTO_ON_BTN = '🕗 自動發文 開', AUTO_OFF_BTN = '🕗 自動發文 關';   // 智囊軍師卡片上的按鈕
 function autoAsk_(t) {
-  const k = String(t || '').replace(/\s+/g, '');
+  const k = String(t || '').replace(/\s+/g, '').replace(/^🕗/, '');
   const nx = k.match(/^下一篇(?:主題)?[：:]?(\S+)$/);
   if (nx) {
     const i = AUTO_ORDER.findIndex(x => autoName_(autoTheme_(AUTO_ORDER.indexOf(x))) === nx[1].replace(/主題$/, ''));
