@@ -14,11 +14,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: reels
+      - name: 去背模型（環繞特效用，存起來下次不用再下載）
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-isnet-general-use
+
       - name: 安裝 ffmpeg 與中文字型
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-noto-cjk > /dev/null
           python3 -m pip install -q --break-system-packages edge-tts==7.3.1   # 台灣腔配音（微軟台灣聲音）
+          python3 -m pip install -q --break-system-packages opencv-python-headless onnxruntime   # 環繞／標題牆卡片特效（人像去背）
           fc-cache -f > /dev/null
       - name: 台灣腔配音能產生
         run: python3 -m edge_tts --voice zh-TW-HsiaoChenNeural --text 早安，今天也要好好照顧自己 --write-media /tmp/vo.mp3 && test -s /tmp/vo.mp3
@@ -53,3 +60,7 @@ jobs:
           python3 reels/reels.py --input /tmp/a.jpg,/tmp/b.jpg,/tmp/c.jpg --transcript reels/selftest_silent.json --note "每張3秒" --out /tmp/ph.mp4 --selftest
       - name: 照片和影片混在一起
         run: python3 reels/reels.py --input /tmp/a.jpg,/tmp/v2.mp4 --transcript reels/selftest_silent.json --kind silent --out /tmp/pm.mp4 --selftest
+      - name: 環繞卡片特效（截圖繞著人轉）和標題牆
+        run: |
+          python3 reels/reels.py --input /tmp/v2.mp4,/tmp/a.jpg,/tmp/b.jpg,/tmp/c.jpg --transcript reels/selftest_silent.json --kind silent --note "環繞 第1到4秒" --out /tmp/orb.mp4 --selftest
+          python3 reels/reels.py --input /tmp/in.mp4,/tmp/a.jpg,/tmp/b.jpg --transcript reels/selftest.json --mode long --note "標題牆 第2到5秒" --out /tmp/wall.mp4 --selftest

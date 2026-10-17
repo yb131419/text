@@ -34,10 +34,13 @@ import sys
 import tempfile
 import urllib.request
 
+from orbit import card_opts
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 W, H, FPS = 1080, 1920, 30
 MODE = 'reels'   # reels 直式短影音；long 剪大片（保留原本比例），由 make() 設定
 PHOTOS = None    # 照片做成的 Reels：每張照片在原片裡的 [開始, 結束] 秒數，由 main() 設定；None 是一般影片
+CARDS = None     # 卡片特效（環繞／標題牆）：(截圖路徑清單, orbit.card_opts 的設定)，由 main() 設定；None 是沒有
 FRAME = None     # 教學框：(框寬, 框高, 左, 上, 底圖 png)，由 make() 設定；None 是滿版
 OUTRO = 3.0      # 教學框結尾「重點整理」停留秒數
 FONT = os.environ.get('REELS_FONT') or 'Noto Sans CJK TC'
@@ -84,7 +87,7 @@ def resolve_font():
 def frame_gray(path, t, work, name):
     raw = os.path.join(work, name + '.gray')
     run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', '%.2f' % t, '-i', path, '-frames:v', '1',
-         '-vf', 'scale=180:320,format=gray', '-f', 'rawvideo', raw])
+         '-vf', 'scale=%d:%d,format=gray' % ((180, 320) if H >= W else (320, 180)), '-f', 'rawvideo', raw])
     with open(raw, 'rb') as f:
         return f.read()
 
@@ -103,7 +106,16 @@ def subs_check(joined, out, ass, work):
         return None
     x, y = frame_gray(joined, t, work, 'a'), frame_gray(out, t, work, 'b')
     n = min(len(x), len(y))
-    return sum(abs(x[i] - y[i]) for i in range(n)) / max(n, 1)
+    # 雜誌風的細字小字幕只佔一小條：分成 16 條橫帶，取差最多的那條（整張平均會被稀釋，2026-10-17 剪大片誤判）
+    cw = 180 if H >= W else 320
+    rows = n // cw
+    band = max(1, rows // 16)
+    ds = []
+    for r0 in range(0, rows, band):
+        a, b = r0 * cw, min(n, (r0 + band) * cw)
+        ds.append(sum(abs(x[i] - y[i]) for i in range(a, b)) / max(b - a, 1))
+    ds.sort()
+    return ds[-1] - ds[len(ds) // 2]   # 減掉一般橫帶的差（調色整張都會變），只算字幕多出來的
 
 
 # ---------------- 讀說明：時間長度、配樂、字幕選項 ----------------
@@ -1576,6 +1588,34 @@ def fx_summary(plan, opt, silent):
     return '、'.join(out)
 
 
+CARD_SKIP = ''
+
+
+def card_fx(joined, total, work):
+    """環繞／標題牆：剪好的影片在指定秒數疊上截圖卡片（reels/orbit.py）。回傳（新影片, 說明）；沒做回 None，原因放 CARD_SKIP。"""
+    global CARD_SKIP
+    if not CARDS:
+        return None
+    if FRAME:
+        CARD_SKIP = '教學框的版面不能加，說「不要教學框」就可以'
+        return None
+    pics, copt = CARDS
+    try:
+        import orbit
+        out = os.path.join(work, 'cards.mp4')
+        done = orbit.render(joined, pics, out, copt, total, FPS)
+    except Exception as e:   # noqa: BLE001  特效失敗就照原本的影片繼續剪
+        log('卡片特效失敗：', repr(e))
+        CARD_SKIP = '處理時出錯'
+        return None
+    if not done:
+        CARD_SKIP = '指定的秒數超出影片長度，或截圖讀不到'
+        return None
+    name = '標題牆' if copt['fx'] == 'wall' else '環繞卡片'
+    log('%s：%.1f～%.1f 秒' % (name, done[0], done[1]))
+    return out, '%s %d 張（第 %.1f～%.1f 秒）' % (name, min(len(pics), copt['n']), done[0], done[1])
+
+
 def make(src, out, note, transcript=None, style='', mode='reels', music_file='', kind='auto'):
     global MODE, W, H, FRAME
     opt = apply_tweaks(apply_style(parse_note(note, mode, kind), style), note)
@@ -1637,6 +1677,9 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
             joined = cut(src, spans, has_audio, work, punch=opt['fx'], shots=shots)
             total = float(json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-of', 'json', joined]))['format']['duration'])
             music, mine = get_music(music_file, opt, plan, work)
+        cards_done = card_fx(joined, total, work)
+        if cards_done:
+            joined = cards_done[0]
         ass = os.path.join(work, 'subs.ass')
         pad = OUTRO if FRAME and (plan or {}).get('tags') else 0   # 教學框：結尾多 3 秒放重點整理
         total += pad
@@ -1650,6 +1693,8 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent and not voice else .35, grade=opt['fx'], sfx=sfx,
                        look=look, pad=pad, voice=voice)
         fx_desc = fx_summary(plan, opt, silent)
+        if CARDS:
+            fx_desc = (cards_done[1] if cards_done else '卡片特效這次沒做成（%s）' % CARD_SKIP) + ('、' + fx_desc if fx_desc else '')
         if voice:
             fx_desc = '台灣腔%s配音' % ('男聲' if opt['voice_male'] else '女聲') + ('、' + fx_desc if fx_desc else '')
         log('特效：' + (fx_desc or '無'))
@@ -1682,7 +1727,7 @@ def main():
     a = ap.parse_args()
     resolve_font()
 
-    global PHOTOS
+    global PHOTOS, CARDS
     chat = os.environ.get('CHAT_ID')
     try:
         tmp = tempfile.mkdtemp()
@@ -1696,6 +1741,11 @@ def main():
                 tg_download(fid[2:] if fid.startswith('p:') else fid, srcs[-1], '照片' if fid.startswith('p:') else '影片')
         # 照片：每張先做成一段幾秒的影片，再跟影片一起接起來
         pics = [x for x in srcs if x.lower().endswith(IMG_EXT)]
+        copt, rest = card_opts(a.note)
+        if copt['used'] and pics and len(pics) < len(srcs):   # 說明寫「環繞」「標題牆」：截圖變成卡片疊在影片上，不另外排進去
+            CARDS = (pics, copt) if copt['fx'] else None   # 後來說「不要環繞」：截圖拿掉，只剪影片
+            srcs, pics, a.note = [x for x in srcs if x not in pics], [], rest
+            log('卡片特效：%s' % (copt['fx'] or '關掉'))
         if pics:
             sec = photo_sec(a.note, len(pics))
             a.note = re.sub(r'(?:每|一)張\s*\d+(?:\.\d+)?\s*秒', '', a.note or '')   # 不要被當成整支的秒數
