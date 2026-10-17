@@ -1586,8 +1586,8 @@ def main():
                 txt = '📝 貼文文案參考（長按可複製；配樂署名要保留）：\n\n' + post.strip()
                 extra = {}
                 if vid:
-                    # 發 IG：回覆這則打「發IG」，小乖從這行的連結拿到影片編號，文案就用這則的內容
-                    hint = '📤 要發到 IG：長按這則 →「回覆」打「發IG」'
+                    # 發社群：回覆這則打「發社群」，小乖從這行的連結拿到影片編號，文案就用這則的內容
+                    hint = '📤 要發到 IG／Threads／FB：長按這則 →「回覆」打「發社群」'
                     u16 = lambda x: len(x.encode('utf-16-le')) // 2   # Telegram 的位置用 UTF-16 算
                     extra = {'entities': [{'type': 'text_link', 'offset': u16(txt + '\n\n'), 'length': u16(hint),
                                            'url': 'https://yb131419.github.io/Tezhu/Assistant.html?igv=' + vid}],
