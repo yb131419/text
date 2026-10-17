@@ -327,7 +327,7 @@ function askByVoice_(q, image) {
       return '7 張圖卡和 PDF 做好了，在畫面上。';
     }
     if (tg) { const fail = kitRun_(() => kitTg_(tg)); return fail ? String(fail.text || fail) : '7 張圖卡和 PDF 做好了，已經傳到 Telegram。'; }
-    KIT_PENDING_ = '';
+    KIT_PENDING_ = ''; busyEnd_('KIT_BUSY');
     return '7張＋PDF 要在 LINE、Telegram 或對話頁按按鈕做喔。';
   }
   if (LAST_CARD_) {   // 智囊軍師：對話頁直接顯示圖卡；捷徑（嘿 小乖）就傳到 Telegram
@@ -659,7 +659,11 @@ function answer_(text) {
   const kp = kitPick_(raw);   // 「📕 7張＋PDF」：選主題後要做 1～2 分鐘，先回「製作中」，做好再傳
   if (kp === 'menu') return kitMenu_();
   if (kp && kp.style) return kitStyleMenu_(kp.style);
-  if (kp) { KIT_PENDING_ = kp; return '⏳ 收到！正在寫貼文、畫 7 張圖卡、做 PDF，大約 1～2 分鐘，好了就傳給你。'; }
+  if (kp) {
+    if (busy_('KIT_BUSY', 8 * 60 * 1000)) return '⏳ 上一組 7張＋PDF 還在做，好了就傳給你，不用再按喔。';
+    KIT_PENDING_ = kp;
+    return '⏳ 收到！正在寫貼文、畫 7 張圖卡、做 PDF，大約 1～2 分鐘，好了就傳給你。';
+  }
   const sp = stratPick_(raw) || stratPick_(t2);   // 先用原文對主題按鈕（「🌿 健康」要帶圖示才算按鈕）
   if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
   // 案例分類：列分類、看某一類、改剛存那筆的分類
@@ -809,6 +813,10 @@ function strategist_(k) {
   const th = STRAT_THEMES.filter(t => t.k === k)[0];
   if (!th) return stratMenu_();
   if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，沒辦法寫文案。';
+  if (busy_('STRAT_BUSY', 3 * 60 * 1000)) return '✍️ 上一篇還在寫，寫好就傳給你，不用再按喔。';
+  try { return stratWrite_(k, th); } finally { busyEnd_('STRAT_BUSY'); }
+}
+function stratWrite_(k, th) {
   setProp_('STRAT_LAST', k);
   let hist = [];
   try { hist = JSON.parse(prop_('STRAT_HIST') || '[]'); } catch (e) { hist = []; }
@@ -1702,12 +1710,14 @@ function kitDoneText_(kit, r) {
 function kitRun_(deliver) {
   const k = KIT_PENDING_.split('|'); KIT_PENDING_ = '';
   if (!k[0]) return null;
-  const w = kitWrite_(k[0]);
-  if (!LAST_KIT_) return w;
-  LAST_KIT_.style = k[1] || '';
-  logChat_('assistant', String(w.text || w).slice(0, 2000));
-  deliver();
-  return null;
+  try {
+    const w = kitWrite_(k[0]);
+    if (!LAST_KIT_) return w;
+    LAST_KIT_.style = k[1] || '';
+    logChat_('assistant', String(w.text || w).slice(0, 2000));
+    deliver();
+    return null;
+  } finally { busyEnd_('KIT_BUSY'); }
 }
 // LINE／Telegram：按了主題先回「製作中」，真正的製作交給另一次執行（觸發條件），
 // 不跟收訊息擠同一次執行的 6 分鐘上限；被中斷時，每 5 分鐘的提醒檢查會補發通知
@@ -4471,6 +4481,16 @@ function newestFirst_(sh, width) {
 }
 
 /* ============ 小工具 ============ */
+// 防呆（使用者 2026-10-17：智囊軍師重複動作加上防呆）：同一件事還在做，又按一次就不重做。
+// ms 內做過標記就回 true（表示在忙）；沒有就標記起來回 false。做完用 busyEnd_ 清掉，當掉也會在 ms 後自動解除
+function busy_(key, ms) {
+  return withLock_(() => {
+    if (Date.now() - (Number(prop_(key)) || 0) < ms) return true;
+    setProp_(key, String(Date.now()));
+    return false;
+  });
+}
+function busyEnd_(key) { setProp_(key, ''); }
 function withLock_(fn) {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -4968,16 +4988,24 @@ function igAsk_(t, raw) {
   const pend = igState_('IG_PENDING'), live = pend && Date.now() - pend.at < 30 * 60 * 1000;
   const go = k.match(/^(?:確定發|全部發|只發)(.*)$/);
   if (go && (pend || /^(確定發|全部發)/.test(k))) {
+    const sent = igState_('IG_JOB');   // 防呆：剛按過「全部發」，第二下不要說過期
+    if (!live && sent && Date.now() - (sent.at || 0) < 30 * 60 * 1000) return '⏳ 這則已經在發了，好了會傳連結給你，不用再按喔。';
     if (!live) return { text: '📤 要發的內容已經過期了（超過 30 分鐘），再按一次「' + IG_BTN + '」。', buttons: [[IG_BTN]].concat(QUICK) };
     const on = socOn_();
     if (!on.length) return igNotReady_();
     const want = /^只發/.test(k) ? on.filter(x => new RegExp('^' + SOC[x].name + '$', 'i').test(go[1])) : on;
     if (!want.length) return igPreview_(pend);
-    const busy = igState_('IG_JOB');
-    if (busy && Date.now() - (busy.at || 0) < 30 * 60 * 1000) return '⏳ 上一則還在發，等它好了再按一次。';
-    setProp_('IG_PENDING', '');
-    pend.targets = want;
-    igQueue_(pend);
+    // 防呆：連按兩次「全部發」時，第二次看到已經排好就不再發一次
+    const dup = withLock_(() => {
+      const busy = igState_('IG_JOB'), p2 = igState_('IG_PENDING');
+      if (busy && Date.now() - (busy.at || 0) < 30 * 60 * 1000) return '⏳ 上一則還在發，等它好了再按一次。';
+      if (!p2 || p2.at !== pend.at) return '⏳ 這則已經在發了，好了會傳連結給你，不用再按喔。';
+      setProp_('IG_PENDING', '');
+      pend.targets = want;
+      igQueue_(pend);
+      return '';
+    });
+    if (dup) return dup;
     return '⏳ 正在發到 ' + socNames_(want) + (pend.items.some(x => x.t === 'video') ? '，平台處理影片要一點時間（通常 1～3 分鐘）' : '') + '，好了傳連結給你。';
   }
   if (live && /^(不發|不要發|取消發文)$/.test(k)) { setProp_('IG_PENDING', ''); return { text: '好，不發了。', buttons: QUICK }; }
