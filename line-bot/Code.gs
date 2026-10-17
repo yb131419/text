@@ -4833,13 +4833,13 @@ function igSetToken_(tok) {
       ['IG_TOKEN', 'IG_USER', 'IG_NAME', 'IG_API', 'IG_TOKEN_AT'].forEach((k, i) => setProp_(k, [tok, String(me.user_id || me.id), me.username || '', 'ig', String(Date.now())][i]));
       return socSetDone_('IG @' + prop_('IG_NAME'));
     }
-    const pages = (get('https://graph.facebook.com/' + IG_VER + '/', 'me/accounts?fields=name,access_token,instagram_business_account{id,username}&limit=50').data || [])
+    const pages = (get('https://graph.facebook.com/' + IG_VER + '/', 'me/accounts?fields=' + encodeURIComponent('name,access_token,instagram_business_account{id,username}') + '&limit=50').data || [])
       .filter(p => p.instagram_business_account);
     if (!pages.length) return '📸 這個權杖找不到有綁 IG 的粉專。請確認 IG 已切換成專業帳號、並在粉專設定裡連結 IG，產生權杖時也要勾選那個粉專。';
     setProp_('IG_PAGES', JSON.stringify(pages.map(p => ({ t: p.access_token, id: p.instagram_business_account.id, u: p.instagram_business_account.username }))));
     if (pages.length === 1) return igPickPage_(pages[0].instagram_business_account.username);
     return { text: '📸 這個權杖有好幾個 IG 帳號，要發到哪一個？', buttons: chunk_(pages.map(p => '📸 IG：@' + p.instagram_business_account.username), 1) };
-  } catch (err) { return '📸 IG 權杖設定失敗：' + err.message; }
+  } catch (err) { return '📸 IG 權杖設定失敗：' + noTok_(err.message); }
 }
 function igPickPage_(u) {
   let pages = [];
@@ -4858,7 +4858,7 @@ function thSetToken_(tok) {
     if (me.error || !me.id) throw new Error(igErr_(me.error || { message: 'HTTP ' + res.getResponseCode() }));
     ['TH_TOKEN', 'TH_USER', 'TH_NAME', 'TH_TOKEN_AT'].forEach((k, i) => setProp_(k, [tok, String(me.id), me.username || '', String(Date.now())][i]));
     return socSetDone_('Threads @' + (me.username || ''));
-  } catch (err) { return '🧵 Threads 權杖設定失敗：' + err.message; }
+  } catch (err) { return '🧵 Threads 權杖設定失敗：' + noTok_(err.message); }
 }
 // FB：給 Facebook 的使用者權杖（EAA… 開頭），找出你管理的粉專，存粉專權杖；有好幾個粉專就讓你選
 function fbSetToken_(tok) {
@@ -4882,7 +4882,7 @@ function fbSetToken_(tok) {
     setProp_('FB_WARN', warn);
     if (pages.length === 1) return fbPickPage_(pages[0].name);
     return { text: '📘 你管理好幾個粉專，要發到哪一個？', buttons: chunk_(pages.map(p => '📘 粉專：' + p.name), 1) };
-  } catch (err) { return '📘 FB 權杖設定失敗：' + err.message; }
+  } catch (err) { return '📘 FB 權杖設定失敗：' + noTok_(err.message); }
 }
 function fbPickPage_(name) {
   let pages = [];
@@ -4896,6 +4896,8 @@ function fbPickPage_(name) {
   r.text += warn;
   return r;
 }
+// 錯誤訊息裡如果帶了網址，把權杖遮掉，不要顯示在聊天裡
+function noTok_(m) { return String(m || '').replace(/access_token=[^&\s]+/g, 'access_token=…').replace(/\b(EAA|IGAA|THAA)[A-Za-z0-9]{20,}/g, '$1…'); }
 function socSetDone_(what) {
   const on = socOn_();
   return { text: '✅ ' + what + ' 設定好了。\n目前會發到：' + on.map(k => SOC[k].name + ' ' + SOC[k].who()).join('、') + '\n\n怎麼發：\n・智囊軍師的圖卡做好後，按「' + IG_BTN + '」\n・剪好的 Reels：長按小乖給的「📝 貼文文案參考」那則 →「回覆」打「發社群」\n・自己的照片或影片：傳給小乖時說明寫「發社群 文案…」\n每次都先給你看預覽，按「✅ 全部發」或「只發 …」才會發出去。', buttons: [[IG_BTN]].concat(QUICK) };
