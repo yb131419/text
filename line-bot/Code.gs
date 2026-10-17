@@ -5337,7 +5337,10 @@ function leadMatch_(text) {
   const t = leadNorm_(text);
   return leadKws_().filter(k => t.indexOf(leadNorm_(k)) >= 0)[0] || '';
 }
+// 使用者 2026-10-17：「平台留言統一回覆官方 LINE 連結」→ 預設每則留言都回（LEAD_ONLYKW=1 才只回關鍵字）
+const leadAll_ = () => prop_('LEAD_ONLYKW') !== '1';
 function leadDm_(kw) {
+  if (!kw) return '謝謝你的留言 🙌\n想拿免費資料、問問題，加我的官方 LINE：' + (prop_('LEAD_LINE') || LEAD_LINE_DEFAULT) + '\n加好友後傳訊息給我，我會回你 😊';
   return '謝謝你的留言 🙌\nPDF 放在官方 LINE，兩步就拿到：\n1️⃣ 點這裡加好友：' + (prop_('LEAD_LINE') || LEAD_LINE_DEFAULT)
     + '\n2️⃣ 在 LINE 傳「' + kw + '」給我，馬上給你';
 }
@@ -5363,11 +5366,14 @@ function leadHandle_(body) {
     const src = (c.p === 'ig' ? 'IG' : 'FB') + ' 留言「' + String(c.text || '').slice(0, 20) + '」';
     if (c.from && String(c.from) === String(c.self)) { leadLog_(src + '：是你自己帳號的留言，不回'); return; }   // 自己的留言（含小乖的公開回覆）不理；FB 有時不給留言者，照樣回
     const kw = leadMatch_(c.text);
-    if (!kw) { leadLog_(src + '：沒有關鍵字（目前關鍵字：' + leadKws_().join('、') + '）'); return; }
+    if (!kw && !leadAll_()) { leadLog_(src + '：沒有關鍵字（目前關鍵字：' + leadKws_().join('、') + '）'); return; }
     if (cache.get('lead_' + c.id)) return;
-    leadLog_(src + '：有關鍵字「' + kw + '」，正在私訊');
+    // 沒關鍵字的一般留言：同一個人 6 小時內只私訊一次（快取最多 6 小時），免得一直留言一直被私訊
+    if (!kw && c.from && cache.get('leadu_' + c.from)) { leadLog_(src + '：同一個人 6 小時內已私訊過，不再私訊'); return; }
+    if (!kw && c.from) cache.put('leadu_' + c.from, '1', 21600);
+    leadLog_(src + '：' + (kw ? '有關鍵字「' + kw + '」' : '一般留言') + '，正在私訊');
     cache.put('lead_' + c.id, '1', 21600);   // Meta 會重送，同一則留言只處理一次
-    try { leadReply_(c, kw); leadLog_(src + '：已私訊 ✅'); } catch (err) { console.error(err); leadLog_(src + '：私訊失敗 ❌ ' + err.message); leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + kw + '」（' + (c.who || '') + '），但小乖私訊失敗：' + err.message + '\n請你手動私訊他 LINE 連結。'); }
+    try { leadReply_(c, kw); leadLog_(src + '：已私訊 ✅'); } catch (err) { console.error(err); leadLog_(src + '：私訊失敗 ❌ ' + err.message); leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + (kw || String(c.text || '').slice(0, 20)) + '」（' + (c.who || '') + '），但小乖私訊失敗：' + err.message + '\n請你手動私訊他 LINE 連結。'); }
   }));
 }
 function leadReply_(c, kw) {
@@ -5376,7 +5382,7 @@ function leadReply_(c, kw) {
   try { call('post', c.id + (c.p === 'ig' ? '/replies' : '/comments'), { message: LEAD_PUBLIC }); } catch (e) { console.error(e); }   // 公開回覆失敗不影響私訊
   const n = Number(prop_('LEAD_N') || 0) + 1;
   setProp_('LEAD_N', String(n));
-  leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + kw + '」：' + (c.who || '') + '\n已私訊官方 LINE 連結（累計 ' + n + ' 人）。');
+  leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + (kw || String(c.text || '').slice(0, 20)) + '」：' + (c.who || '') + '\n已私訊官方 LINE 連結（累計 ' + n + ' 人）。');
 }
 function leadKey_() { return Utilities.getUuid().replace(/-/g, ''); }
 // 讓粉專把通知送給「小乖發文」應用程式（IG 留言也要靠綁定的粉專）
@@ -5407,8 +5413,10 @@ function leadAsk_(t, raw) {
   if (/^留言回覆(開|打開|開啟)$/.test(k)) {
     if (!prop_('LEAD_RELAY')) return '還沒設定中繼站，先傳「留言設定」。';
     setProp_('LEAD_ON', '1');
-    return '💬 留言回覆打開了。有人在 IG／FB 留言' + leadKws_().map(x => '「' + x + '」').join('或') + '，小乖會私訊他官方 LINE 連結。';
+    return '💬 留言回覆打開了。' + (leadAll_() ? '有人在 IG／FB 留言，小乖都會私訊他官方 LINE 連結（留言關鍵字的人，會請他在 LINE 傳關鍵字拿 PDF）。' : '有人在 IG／FB 留言' + leadKws_().map(x => '「' + x + '」').join('或') + '，小乖會私訊他官方 LINE 連結。');
   }
+  if (/^留言回覆(全部|全部回|每則都回)$/.test(k)) { setProp_('LEAD_ONLYKW', ''); return '💬 好，每則留言都回官方 LINE 連結（同一個人 6 小時內只私訊一次）。'; }
+  if (/^留言回覆只回關鍵字$/.test(k)) { setProp_('LEAD_ONLYKW', '1'); return '💬 好，只有留言關鍵字的才回。'; }
   if (/^留言回覆(關|關閉|關掉|暫停)$/.test(k)) { setProp_('LEAD_ON', ''); return '💬 留言回覆關掉了，傳「留言回覆開」可以再打開。'; }
   if (/^(留言設定|留言回覆設定|留言回覆|留言狀態)$/.test(k)) {
     if (!prop_('LEAD_RELAY')) { setProp_('LEAD_RELAY', leadKey_()); setProp_('LEAD_VERIFY', leadKey_()); }
@@ -5416,6 +5424,7 @@ function leadAsk_(t, raw) {
     const sub = k === '留言狀態' ? [] : leadSubscribe_();
     const kws = leadKws_();
     return '💬 留言回覆：' + (prop_('LEAD_ON') === '1' ? '開著' : '還沒開（設定好傳「留言回覆開」）')
+      + '\n回哪些：' + (leadAll_() ? '每則留言都回（改只回關鍵字：「留言回覆只回關鍵字」）' : '只回關鍵字（改全部：「留言回覆全部」）')
       + '\n關鍵字：' + (kws.length ? kws.map(x => '「' + x + '」').join('、') : '還沒有（做一組「📕 7張＋PDF」就會自動加入）')
       + '\n官方 LINE：' + (prop_('LEAD_LINE') || LEAD_LINE_DEFAULT)
       + '\n已私訊：' + (prop_('LEAD_N') || 0) + ' 人'
