@@ -87,7 +87,7 @@ def resolve_font():
 def frame_gray(path, t, work, name):
     raw = os.path.join(work, name + '.gray')
     run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', '%.2f' % t, '-i', path, '-frames:v', '1',
-         '-vf', 'scale=180:320,format=gray', '-f', 'rawvideo', raw])
+         '-vf', 'scale=%d:%d,format=gray' % ((180, 320) if H >= W else (320, 180)), '-f', 'rawvideo', raw])
     with open(raw, 'rb') as f:
         return f.read()
 
@@ -106,7 +106,16 @@ def subs_check(joined, out, ass, work):
         return None
     x, y = frame_gray(joined, t, work, 'a'), frame_gray(out, t, work, 'b')
     n = min(len(x), len(y))
-    return sum(abs(x[i] - y[i]) for i in range(n)) / max(n, 1)
+    # 雜誌風的細字小字幕只佔一小條：分成 16 條橫帶，取差最多的那條（整張平均會被稀釋，2026-10-17 剪大片誤判）
+    cw = 180 if H >= W else 320
+    rows = n // cw
+    band = max(1, rows // 16)
+    ds = []
+    for r0 in range(0, rows, band):
+        a, b = r0 * cw, min(n, (r0 + band) * cw)
+        ds.append(sum(abs(x[i] - y[i]) for i in range(a, b)) / max(b - a, 1))
+    ds.sort()
+    return ds[-1] - ds[len(ds) // 2]   # 減掉一般橫帶的差（調色整張都會變），只算字幕多出來的
 
 
 # ---------------- 讀說明：時間長度、配樂、字幕選項 ----------------
