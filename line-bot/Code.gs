@@ -769,17 +769,17 @@ const STRAT_BTN = '🪶 智囊軍師';
 // 反骨開頭（使用者 2026-10-17：停留率跟轉換率很低，開頭要改反骨）：軍師貼文、封面、7 張名單包共用
 const STRAT_HOOK = '【反骨開頭】第一句決定別人會不會停下來。貼文第一行、封面主標和鉤子都要用反骨句：直接推翻大家以為對的常識，讓人一看就想「蛤？為什麼？」。句型例如「別再⋯⋯了」「你越⋯⋯，越⋯⋯」「⋯⋯不是你的錯，是⋯⋯」「大家都說⋯⋯，我偏不」「90% 的人都做反了」。只翻轉觀念，不罵人、不恐嚇，不用療效、收入或成效保證當反骨點；第一句 20 字內、單獨一行，第二句馬上接一個讓人對號入座的生活場景，不要用「你好」「今天想跟大家聊」這類暖場開頭。';
 const STRAT_THEMES = [   // 順序（2026-10-16 使用者指定）：軍師、觀念、健康、草本、經營、行銷
-  { k: 'auto', btn: '🪶 軍師', name: '智囊軍師判定',
+  { k: 'auto', btn: '🪶 軍師', kit: '🎯', name: '智囊軍師判定',
     guide: '請你（智囊軍師）先在五大分類中判斷今天最適合發文的方向：觀念、健康、火山草本、經營、網路行銷，cat 填所選分類，再依該分類的規則寫：觀念只談觀念與生活道理，不寫身體、毒素、排毒；健康用大健康原理的比喻切入，案例只說個人感受、不寫療效；火山草本只寫理念、生活場景與包裝故事，不寫功效；經營寫給新手能照著做的方向，不提收入或成效保證；網路行銷只寫經營技巧，不寫業績。' },
-  { k: 'concept', btn: '💡 觀念', name: '觀念主題',
+  { k: 'concept', btn: '💡 觀念', kit: '🧠', name: '觀念主題',
     guide: '【觀念分享】只講觀念與道理（財富觀、經營觀、人生觀、自律、選擇等），用對比與反問帶出思考。嚴禁出現身體、毒素、排毒、保健、療效等字眼，不寫成健康文章。' },
-  { k: 'health', btn: '🌿 健康', name: '健康主題',
+  { k: 'health', btn: '🌿 健康', kit: '💪', name: '健康主題',
     guide: '【健康分享】以大健康原理與生活比喻（例如鍋子、水管、警察、蒼蠅）解釋身體的道理；案例只說個人感受，遵守合規，不寫療效、不寫治療或改善疾病、不做前後對比。' },
-  { k: 'herb', btn: '🌱 草本', name: '火山草本',
+  { k: 'herb', btn: '🌱 草本', kit: '🌋', name: '火山草本',
     guide: '【火山草本】只寫產品的理念、日常使用的生活場景與包裝故事（例如一天中怎麼使用、為什麼選擇它、包裝上想傳達的心意）。不寫功效、成分的療效描述，不使用治療、改善疾病、藥效等字眼，不做前後對比。' },
-  { k: 'biz', btn: '🧭 經營', name: '經營主題',
+  { k: 'biz', btn: '🧭 經營', kit: '📈', name: '經營主題',
     guide: '【經營方向】寫給完全新手看、能照著做的經營方向與心法（例如專屬邀約訊息、第一次面談、把你會的事拆成步驟、每天的節奏），用一個具體的生活場景切入。只給方向與做法，不提收入或成效保證。' },
-  { k: 'net', btn: '📣 行銷', name: '網路行銷',
+  { k: 'net', btn: '📣 行銷', kit: '📱', name: '網路行銷',
     guide: '【網路行銷】只寫經營技巧，例如如何讓人停留（開頭的鉤子、前三秒、段落節奏）、如何回留言（回覆的語氣與引導互動的方式）等實用做法。不寫業績、收入、獲利或任何成效保證，不提具體金額。' },
 ];
 // 文案開頭只寫分類兩個字（使用者 2026-10-16）：選哪個主題就寫哪個；選「軍師」照 AI 判斷的五大主題填
@@ -1336,20 +1336,20 @@ const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n || x.old === n)[0] || KI
 const kitThemeStyle_ = k => KIT_STYLES.filter(x => x.t === k)[0] || KIT_STYLES[2];   // 主題配套款式（軍師判定沒有固定款，用鼠尾草）
 
 function kitMenu_() {
-  const b = STRAT_THEMES.map(t => '📕 ' + t.btn.replace(/^[^\p{L}\p{N}]+/u, ''));
+  const b = STRAT_THEMES.map(t => t.kit + ' ' + t.btn.replace(/^[^\p{L}\p{N}]+/u, ''));   // 每個主題用自己的圖示（使用者 2026-10-17：不要全部用書）
   return { text: '📕 7張＋PDF\n\n選一個主題：我寫一篇貼文、7 張輪播圖卡，再做一份同關鍵字的 PDF。\n最後一張圖卡會請大家留言關鍵字，你把 PDF 傳給他就好。\n（要做 1～2 分鐘）', buttons: [b.slice(0, 3), b.slice(3, 6)] };
 }
-// 「📕 7張＋PDF」→ 'menu'；「📕 健康」→ 'health'；不是就回 null
+// 「📕 7張＋PDF」→ 'menu'；「💪 健康」（舊的「📕 健康」也認得）→ 'health'；不是就回 null
 function kitPick_(raw) {
   const t = String(raw || '').replace(/\s+/g, ' ').trim();
   if (t === KIT_BTN || /^(7張|七張)[＋+]?PDF$|^名單包$/i.test(t.replace(/^📕 ?|\s/g, ''))) return 'menu';
   const th = name => STRAT_THEMES.filter(x => x.btn.replace(/^[^\p{L}\p{N}]+/u, '') === name)[0];
   const st = t.match(/^🎨 ?(\S+?)・(\S+)$/);   // 「🎨 健康・綠底」：主題＋款式都選好了
   if (st) { const hit = th(st[1]); const sy = KIT_STYLES.filter(x => x.n === st[2] || x.old === st[2])[0]; return hit && sy ? hit.k + '|' + sy.n : null; }
-  const m = t.match(/^📕 ?(\S+)$/);
+  const m = t.match(/^(\S+?) ?([\p{L}]+)$/u);
   if (!m) return null;
-  const hit = th(m[1]);
-  return hit ? { style: hit } : null;
+  const hit = th(m[2]);
+  return hit && (m[1] === '📕' || m[1] === hit.kit) ? { style: hit } : null;
 }
 // 選好主題後問款式
 function kitStyleMenu_(th) {
@@ -4837,15 +4837,15 @@ const SOC = {
   ig: { name: 'IG', ok: () => !!(prop_('IG_TOKEN') && prop_('IG_USER')), who: () => '@' + prop_('IG_NAME') },
   th: { name: 'Threads', ok: () => !!(prop_('TH_TOKEN') && prop_('TH_USER')), who: () => '@' + prop_('TH_NAME') },
   fb: { name: 'FB', ok: () => !!(prop_('FB_TOKEN') && prop_('FB_PAGE')), who: () => '粉專「' + prop_('FB_NAME') + '」' },
-  tk: { name: 'TikTok', ok: () => !!prop_('TK_REFRESH'), who: () => '草稿匣', video: true },   // TikTok 只收影片，送到草稿匣，你在 App 加音樂再發
+  tk: { name: 'TikTok', ok: () => !!prop_('TK_REFRESH'), who: () => '草稿匣', video: true },   // 送到草稿匣，你在 App 加音樂再發；圖卡要先設定「TK圖卡」（中繼站網址）
 };
 const TH_MAX = 500;   // Threads 一則最多 500 字
 
 function socOn_() { return Object.keys(SOC).filter(k => SOC[k].ok()); }
-// 這則可以發到哪些平台：TikTok 只收影片
+// 這則可以發到哪些平台：TikTok 影片直接送；圖卡要設定好 TK圖卡（TikTok 只從驗證過的網址抓圖，用 Cloudflare 中繼站轉）
 function socFor_(post) {
   const vid = !!(post && post.items && post.items.some(x => x.t === 'video'));
-  return socOn_().filter(k => !SOC[k].video || vid);
+  return socOn_().filter(k => !SOC[k].video || vid || !!prop_('TK_IMG'));
 }
 function igReady_() { return socOn_().length > 0; }
 function socNames_(ks) { return ks.map(k => SOC[k].name).join('＋'); }
@@ -5002,7 +5002,7 @@ function igPreview_(post) {
   if (!post || !post.items || !post.items.length) return { text: '📤 目前沒有要發的內容。先做圖卡（🪶 智囊軍師），或傳照片／影片時說明寫「發社群」。', buttons: QUICK };
   if (post.items.some(x => x.t === 'video') && post.items.length > 1) post.items = post.items.filter(x => x.t === 'video').slice(0, 1);
   const on = socFor_(post);
-  if (!on.length) return { text: '📤 TikTok 只能送影片（圖卡、照片不行）。剪好的 Reels 或自己的影片才能發到 TikTok。', buttons: QUICK };
+  if (!on.length) return { text: '📤 TikTok 的圖卡還沒設定（打「TK圖卡」看怎麼設），目前只能送影片。', buttons: QUICK };
   post.at = Date.now();
   setProp_('IG_PENDING', JSON.stringify(post));
   const cap = String(post.cap || '').trim();
@@ -5010,7 +5010,8 @@ function igPreview_(post) {
   return { text: '📤 準備發文\n發到：' + on.map(k => SOC[k].name + ' ' + SOC[k].who()).join('、') + '\n內容：' + igWhat_(post.items)
     + '\n\n文案：\n' + (cap ? (cap.length > 600 ? cap.slice(0, 600) + '…（共 ' + cap.length + ' 字）' : cap) : '（沒有文案）')
     + (on.indexOf('th') >= 0 && cap.length > TH_MAX ? '\n\n（Threads 一則最多 500 字，會自動截短）' : '')
-    + (on.indexOf('tk') >= 0 ? '\n\n（TikTok 會送到草稿匣：打開 TikTok 的通知，加音樂、貼文案再發佈）' : '')
+    + (on.indexOf('tk') >= 0 ? '\n\n（TikTok 會送到草稿匣：打開 TikTok 的通知，加音樂、貼文案再發佈）'
+      : socOn_().indexOf('tk') >= 0 ? '\n\n（TikTok 的圖卡還沒設定，這次不會送 TikTok；打「TK圖卡」看怎麼設）' : '')
     + '\n\n要發到哪裡？要換文案就打「發文文案 」加上新的文案。', buttons: btns };
 }
 // answer_ 用（LINE、Telegram、對話頁都會經過）
@@ -5021,6 +5022,9 @@ function igAsk_(t, raw) {
   const tkk = r.match(/^\s*設定\s*(?:TK|TikTok|抖音)\s*(?:金鑰|權杖|key)\s*(\S+)\s+(\S+)\s*$/i);
   if (tkk) return tkSetKey_(tkk[1], tkk[2]);
   if (/^(TK|TikTok)(設定|連結|登入|重新連結)$/i.test(k)) return tkLink_();
+  const ti = r.match(/^\s*設定\s*(?:TK|TikTok|抖音)\s*圖卡\s*(\S+)\s*$/i);
+  if (ti) return tkImgSet_(ti[1]);
+  if (/^(TK|TikTok)圖卡(設定)?$/i.test(k)) return tkImgHelp_();
   const ik = r.match(/^\s*📸 IG：@(\S+)\s*$/);
   if (ik) { const x = igPickPage_(ik[1]); if (x) return x; }
   const pk = r.match(/^\s*📘 粉專：(.+?)\s*$/);
@@ -5289,9 +5293,51 @@ function tkToken_() {
   catch (e) { throw new Error('TikTok 登入過期了，請打「TK設定」重新連結（' + e.message + '）'); }
   return prop_('TK_TOKEN');
 }
+// TikTok 圖卡：中繼站網址（要先在 TikTok for Developers 驗證這個網址，TikTok 才肯抓圖）
+function tkImgHelp_() {
+  return '🎵 TikTok 圖卡設定（做一次就好）\n\n'
+    + '① Cloudflare 的中繼站換成最新的 worker.js（GitHub：meta-relay/worker.js），按「部署」。\n'
+    + '② TikTok for Developers → 你的應用程式 →「URL properties」→ 新增「URL prefix」，填中繼站網址（https://…workers.dev/），選「下載檔案」驗證。\n'
+    + '③ 打開下載的檔案，把裡面那一行整串複製；到 Cloudflare 中繼站「設定 → 變數」新增 TK_VERIFY，貼上，部署，再回 TikTok 按「驗證」。\n'
+    + '④ 傳「設定 TK圖卡 中繼站網址」給小乖。\n\n'
+    + (prop_('TK_IMG') ? '目前：已設定（' + prop_('TK_IMG') + '）' : '目前：還沒設定');
+}
+function tkImgSet_(u) {
+  if (/^(關|關閉|刪除|取消)$/.test(u)) { setProp_('TK_IMG', ''); return '🎵 TikTok 圖卡關掉了，之後只送影片。'; }
+  const m = String(u).match(/^https:\/\/[\w.-]+\.[a-z]{2,}(?=\/|$)/i);
+  if (!m) return '🎵 網址不對，要像 https://xxx.workers.dev 這樣。';
+  setProp_('TK_IMG', m[0]);
+  return '🎵 TikTok 圖卡設定好了（' + m[0] + '）。之後按「✅ 全部發」，圖卡也會一起送到 TikTok 草稿匣。';
+}
+// 圖卡：給 TikTok 中繼站的網址，TikTok 自己抓（只能抓驗證過的網址），送到草稿匣
+function tkPhoto_(job) {
+  const imgs = job.media.filter(x => x.t !== 'video').slice(0, 35);
+  if (!imgs.length) throw new Error('沒有圖片');
+  if (!prop_('TK_IMG')) throw new Error('TikTok 圖卡還沒設定（打「TK圖卡」）');
+  const cap = String(job.cap || '').trim(), title = (cap.split('\n')[0] || '').slice(0, 90);
+  const res = UrlFetchApp.fetch(TK_API + 'post/publish/content/init/', { method: 'post', muteHttpExceptions: true,
+    contentType: 'application/json; charset=UTF-8', headers: { Authorization: 'Bearer ' + tkToken_() },
+    payload: JSON.stringify({ post_info: { title: title, description: cap.slice(0, 4000) }, post_mode: 'MEDIA_UPLOAD', media_type: 'PHOTO',
+      source_info: { source: 'PULL_FROM_URL', photo_cover_index: 0, photo_images: imgs.map(m => prop_('TK_IMG') + '/img/' + m.id) } }) });
+  let j = {}; try { j = JSON.parse(res.getContentText()); } catch (e) { j = {}; }
+  const id = j.data && j.data.publish_id;
+  if (!id) throw new Error(/url_ownership|domain|unaudited/i.test(JSON.stringify(j.error || '')) ? '中繼站網址還沒在 TikTok 驗證好（打「TK圖卡」看步驟）'
+    : (j.error && (j.error.message || j.error.code)) || ('TikTok 回應 ' + res.getResponseCode()));
+  // 等 TikTok 抓完圖（發完暫存檔會刪掉）
+  for (let i = 0; i < 20; i++) {
+    Utilities.sleep(3000);
+    const st = UrlFetchApp.fetch(TK_API + 'post/publish/status/fetch/', { method: 'post', muteHttpExceptions: true,
+      contentType: 'application/json; charset=UTF-8', headers: { Authorization: 'Bearer ' + tkToken_() }, payload: JSON.stringify({ publish_id: id }) });
+    let s = {}; try { s = JSON.parse(st.getContentText()); } catch (e) { s = {}; }
+    const v = s.data && s.data.status;
+    if (v === 'FAILED') throw new Error('TikTok 抓圖失敗：' + (s.data.fail_reason || '原因不明'));
+    if (v && v !== 'PROCESSING_DOWNLOAD' && v !== 'PROCESSING_UPLOAD') return id;
+  }
+  return id;
+}
 function tkPost_(job) {
   const m = job.media.filter(x => x.t === 'video')[0];
-  if (!m) throw new Error('TikTok 只能送影片');
+  if (!m) return tkPhoto_(job);
   const bytes = DriveApp.getFileById(m.id).getBlob().getBytes(), n = bytes.length;
   const init = UrlFetchApp.fetch(TK_API + 'post/publish/inbox/video/init/', { method: 'post', muteHttpExceptions: true,
     contentType: 'application/json; charset=UTF-8', headers: { Authorization: 'Bearer ' + tkToken_() },
@@ -5529,7 +5575,7 @@ function autoAsk_(t) {
   }
   return autoStatus_();
 }
-// 觸發條件呼叫：寫文案 → 畫 7 張圖卡＋PDF（傳給你一份）→ 發到有設定的社群（IG、FB、Threads；TikTok 只收影片不發）
+// 觸發條件呼叫：寫文案 → 畫 7 張圖卡＋PDF（傳給你一份）→ 發到有設定的社群（IG、FB、Threads；TikTok 設定好圖卡才送草稿匣）
 function autoPostJob() {
   if (prop_('AUTO_POST') !== 'on') return;
   const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');

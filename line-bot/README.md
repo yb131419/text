@@ -165,7 +165,7 @@ LINE 和 Telegram 可以兩個都接，也可以只接一個。只要 Telegram �
 
 ### 🎵 TikTok（送到草稿匣）
 
-TikTok 只收影片（剪好的 Reels、自己的影片），送到你 TikTok 的草稿匣（收件匣通知）；你打開 TikTok 加音樂庫的歌、貼文案再按發佈。用的是 TikTok 官方 Content Posting API 的「上傳到草稿」（`video.upload`），只發你自己的帳號，用沙盒（Sandbox）就好，不用送審。圖卡、照片 TikTok 官方 API 只能從驗證過的網域抓，所以不支援。
+TikTok 只收影片（剪好的 Reels、自己的影片），送到你 TikTok 的草稿匣（收件匣通知）；你打開 TikTok 加音樂庫的歌、貼文案再按發佈。用的是 TikTok 官方 Content Posting API 的「上傳到草稿」（`video.upload`），只發你自己的帳號，用沙盒（Sandbox）就好，不用送審。圖卡、照片 TikTok 官方 API 只能從驗證過的網址抓，所以要先做下面的「圖卡設定」。
 
 **設定（只要做一次）：**
 1. 到 https://developers.tiktok.com 用你的 TikTok 帳號登入 → 右上「Manage apps」→「Connect an app」→ 名稱「小乖發文」→ 建立。
@@ -178,6 +178,12 @@ TikTok 只收影片（剪好的 Reels、自己的影片），送到你 TikTok �
 8. 小乖回一個連結，打開、用 TikTok 帳號按「允許」，看到「✅ TikTok 連好了」就完成。
 
 之後影片按「發社群」，預覽就會多一個 TikTok。TikTok 登入一年內有效，過期打「TK設定」重新連結。
+
+**圖卡也送 TikTok（做一次）**：圖卡經過留言回覆用的 Cloudflare 中繼站轉給 TikTok。
+1. Cloudflare 中繼站換成最新的 `meta-relay/worker.js`，部署。
+2. TikTok for Developers → 應用程式 →「URL properties」→ 新增「URL prefix」，填中繼站網址（`https://…workers.dev/`），選下載檔案驗證。
+3. 檔案裡那一行整串，貼到 Cloudflare 中繼站的變數 `TK_VERIFY`，部署後回 TikTok 按「驗證」。
+4. 傳「設定 TK圖卡 中繼站網址」給小乖。之後按「✅ 全部發」，圖卡也會一起送到 TikTok 草稿匣（自動發文也會）。打「TK圖卡」看狀態，「設定 TK圖卡 關」關掉。
 
 **🕗 自動發文（2026-10-17）：** 打「自動發文 開」，小乖每天晚上 20:15～20:45（或選中午 12:15～12:45）之間自動做一組智囊軍師 7 張圖卡＋貼文＋PDF（圖卡和 PDF 會傳一份給你），接著發到有設定的社群（IG、FB、Threads）。五大主題照軍師按鈕順序輪流：觀念 → 健康 → 草本 → 經營 → 行銷，一天一篇。每個主題用自己的配套圖卡款式（觀念＝暖灰、健康＝駝色、草本＝鼠尾草、經營＝霧藍、行銷＝玫瑰，`KIT_STYLES` 的 `t`，2026-10-17）。「自動發文」看狀態、「自動發文 關」停掉、「下一篇 健康」指定下一篇的主題。這次沒做成會傳原因給你，隔天再試同一個主題。 智囊軍師卡片上按「🕗 自動發文」可以開／關、選「🌙 晚上 20:30 發」或「☀️ 中午 12:30 發」。
 
