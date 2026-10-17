@@ -638,6 +638,8 @@ function answer_(text) {
   const ad = addPending_(t2, raw);   // 「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
+  const ap = autoAsk_(t2);   // 「自動發文 開／關」：每天晚上自動發智囊軍師 7 張圖卡
+  if (ap) return ap;
   const ia = igAsk_(t2, raw);   // 「📤 發社群」：預覽 → 確定才發
   if (ia) return ia;
   const rl = reelsAsk_(t2);   // 「🎬 剪 Reels」：接下來 10 分鐘內傳的影片拿去剪
@@ -5298,4 +5300,89 @@ function igTgBlob_(fileId, what) {
 }
 function igCleanup_(job) {
   (job && job.temp || []).forEach(id => { try { const f = DriveApp.getFileById(id); f.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); f.setTrashed(true); } catch (e) { console.error(e); } });
+}
+
+
+/* ============ 🕗 自動發文：每天晚上自動做一組智囊軍師 7 張圖卡，發到社群 ============ */
+// 2026-10-17 使用者：用智囊軍師的 7 張圖卡自動發，五大主題照現在的順序輪流，時間在 20:00～21:30 之間
+// 打「自動發文 開」建立每天 20:30 左右（Apps Script 前後 15 分鐘內）的觸發條件；「自動發文 關」停掉；「自動發文」看狀態
+const AUTO_ORDER = ['concept', 'health', 'herb', 'biz', 'net'];   // 觀念 → 健康 → 草本 → 經營 → 行銷（跟軍師按鈕順序一樣）
+const AUTO_HOUR = 20, AUTO_MIN = 30;
+
+function autoTheme_(i) { const k = AUTO_ORDER[(Number(i) || 0) % AUTO_ORDER.length]; return STRAT_THEMES.filter(t => t.k === k)[0]; }
+function autoName_(th) { return th ? th.btn.replace(/^[^\p{L}\p{N}]+/u, '') : ''; }
+function autoTriggers_() { return ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'autoPostJob'); }
+function autoStatus_() {
+  const on = prop_('AUTO_POST') === 'on';
+  const next = autoTheme_(prop_('AUTO_IDX'));
+  const plat = socFor_({ items: [{ t: 'img' }] });
+  return { text: '🕗 自動發文：' + (on ? '開著' : '關著')
+    + '\n時間：每天 20:15～20:45 之間'
+    + '\n內容：智囊軍師 7 張圖卡＋貼文（PDF 一起傳給你）'
+    + '\n主題輪流：' + AUTO_ORDER.map(k => autoName_(autoTheme_(AUTO_ORDER.indexOf(k)))).join(' → ')
+    + '\n下一篇：' + autoName_(next)
+    + '\n發到：' + (plat.length ? socNames_(plat) : '（還沒設定社群）')
+    + '\n\n「自動發文 開」／「自動發文 關」；要換下一篇的主題，打「下一篇 健康」這樣。', buttons: [[on ? '自動發文 關' : '自動發文 開']].concat(QUICK) };
+}
+// answer_ 用：自動發文 開／關／狀態、下一篇 主題
+function autoAsk_(t) {
+  const k = String(t || '').replace(/\s+/g, '');
+  const nx = k.match(/^下一篇(?:主題)?[：:]?(\S+)$/);
+  if (nx) {
+    const i = AUTO_ORDER.findIndex(x => autoName_(autoTheme_(AUTO_ORDER.indexOf(x))) === nx[1].replace(/主題$/, ''));
+    if (i < 0) return null;
+    setProp_('AUTO_IDX', String(i));
+    return autoStatus_();
+  }
+  const m = k.match(/^(?:自動發文|自動發佈|自動發布|排程發文)(開|開啟|打開|關|關閉|停|停止|狀態)?$/);
+  if (!m) return null;
+  const v = m[1] || '狀態';
+  if (/^(開|開啟|打開)$/.test(v)) {
+    if (!socFor_({ items: [{ t: 'img' }] }).length) return { text: '🕗 要先設定好 IG 或 FB（「設定 IG金鑰」「設定 FB金鑰」），才能自動發文。', buttons: QUICK };
+    autoTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
+    ScriptApp.newTrigger('autoPostJob').timeBased().everyDays(1).atHour(AUTO_HOUR).nearMinute(AUTO_MIN).inTimezone(TZ).create();
+    setProp_('AUTO_POST', 'on');
+    return autoStatus_();
+  }
+  if (/^(關|關閉|停|停止)$/.test(v)) {
+    autoTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
+    setProp_('AUTO_POST', '');
+    return autoStatus_();
+  }
+  return autoStatus_();
+}
+// 觸發條件呼叫：寫文案 → 畫 7 張圖卡＋PDF（傳給你一份）→ 發到有設定的社群（IG、FB、Threads；TikTok 只收影片不發）
+function autoPostJob() {
+  if (prop_('AUTO_POST') !== 'on') return;
+  const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+  if (prop_('AUTO_DAY') === today) return;   // 一天只發一篇（重試的那次也不會重複）
+  const tg = prop_('TG_OWNER_CHAT_ID'), line = prop_('OWNER_USER_ID');
+  const tell = text => tg ? tgSend_(tg, text) : line && lineApi_('push', { to: line, messages: [{ type: 'text', text: text }] });
+  // 上一次排的「5 分鐘後再試」觸發條件用完就刪掉（每天那個不動）
+  const rid = prop_('AUTO_RETRY_ID');
+  if (rid) { autoTriggers_().filter(x => x.getUniqueId() === rid).forEach(x => ScriptApp.deleteTrigger(x)); setProp_('AUTO_RETRY_ID', ''); }
+  const retry = () => setProp_('AUTO_RETRY_ID', ScriptApp.newTrigger('autoPostJob').timeBased().after(5 * 60 * 1000).create().getUniqueId());
+  // 你剛好在做 7張＋PDF，或上一則還在發：5 分鐘後再來
+  const job = igState_('IG_JOB');
+  if ((job && Date.now() - (job.at || 0) < 30 * 60 * 1000) || busy_('KIT_BUSY', 10 * 60 * 1000)) return retry();
+  setProp_('AUTO_DAY', today);
+  const i = Number(prop_('AUTO_IDX')) || 0, th = autoTheme_(i);
+  try {
+    if (tg) { LINE_MODE_ = false; CURRENT_TG_CHAT_ = tg; } else { LINE_MODE_ = true; CURRENT_TG_CHAT_ = ''; }
+    setProp_('IG_LAST', '');
+    const w = kitWrite_(th.k);
+    if (!LAST_KIT_) throw new Error(String(w && w.text || w).slice(0, 120));
+    LAST_KIT_.style = prop_('AUTO_STYLE') || KIT_STYLES[0].n;
+    tell('🕗 自動發文：今天的主題是「' + autoName_(th) + '」，圖卡和 PDF 在下面，接著發到社群。');
+    if (tg) kitTg_(tg); else kitLine_(line);
+    const post = igState_('IG_LAST');
+    if (!post || !post.items || !post.items.length) throw new Error('圖卡沒畫出來');
+    post.targets = socFor_(post);
+    if (!post.targets.length) throw new Error('還沒設定 IG 或 FB');
+    setProp_('AUTO_IDX', String(i + 1));   // 成功做出圖卡才換下一個主題
+    igQueue_(post);
+  } catch (err) {
+    console.error('自動發文失敗：' + err.message);
+    tell('🕗 今天的自動發文（' + autoName_(th) + '）沒做成：' + noTok_(err.message) + '\n明天會再試同一個主題；想現在補發，按「📕 7張＋PDF」做好後按「📤 發社群」。');
+  } finally { busyEnd_('KIT_BUSY'); }
 }
