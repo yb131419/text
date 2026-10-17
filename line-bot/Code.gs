@@ -4868,7 +4868,10 @@ function fbCall_(method, path, params, video) { return metaCall_('https://graph'
 // Meta 的錯誤翻成看得懂的話
 function igErr_(e) {
   const m = String(e.error_user_msg || e.message || ''), code = Number(e.code), sub = Number(e.error_subcode);
-  if (code === 190 || /access token|session has expired/i.test(m)) return '金鑰失效或過期了，請重新產生權杖後再設定一次。';
+  if (code === 190 || /access token|session has expired/i.test(m)) {   // 附上 Meta 說的原因，才知道為什麼失效
+    const why = { 458: '應用程式的授權被移除了', 459: 'FB 帳號要先登入確認安全', 460: 'FB 密碼改過了', 463: '權杖到期了', 464: 'FB 帳號要先登入確認', 467: 'FB 登出或連線被重設了', 492: '你在粉專的管理權限變了' }[sub];
+    return '金鑰失效或過期了' + (why ? '（' + why + '）' : sub ? '（代碼 ' + sub + '）' : '') + '，請重新產生權杖後再設定一次。';
+  }
   if (code === 10 || code === 200 || /permission/i.test(m)) return '權限不夠（要有發文權限），請重新產生權杖並把權限都打勾。';
   if (sub === 2207009 || /aspect ratio/i.test(m)) return '圖片比例不符合（要在 4:5 直式到 1.91:1 橫式之間）。';
   if (code === 9004 || sub === 2207052 || /download/i.test(m)) return '平台抓不到圖片／影片檔案。';
