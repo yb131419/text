@@ -31,6 +31,8 @@ button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;backgrou
 #mic{width:64px;height:64px;font-size:30px;background:var(--accent);color:#fff}
 #mic.on{animation:p 1s infinite}@keyframes p{50%{transform:scale(1.08);box-shadow:0 0 0 10px rgba(255,138,61,.25)}}
 #hint{text-align:center;color:var(--soft);font-size:14px;padding:0 16px 6px}
+#endc{display:none;margin:0 auto 8px;height:34px;padding:0 16px;border-radius:17px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:14px;letter-spacing:1px}
+body.conv #endc{display:block}
 #login{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
 #login .box{background:var(--card);border-radius:18px;padding:20px;width:100%;max-width:360px}
 #login p{color:var(--soft);font-size:15px;margin:8px 0 12px}#login .row{display:flex;gap:8px}
@@ -130,7 +132,7 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 <header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="gear" type="button" title="設定" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg hello">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
-<div id="hint"></div>
+<div id="hint"></div><button id="endc" type="button">⏹ 結束對話</button>
 <div id="selbar"><button id="selno" type="button">取消</button><span id="seln">點訊息來選取</span><button id="selall" type="button">全選</button><button id="seldel" type="button" disabled>刪除</button></div>
 <div id="bar"><button id="cam" title="照片">📷</button><input id="q" placeholder="打字或按鍵盤上的麥克風" enterkeyhint="send"><button id="mic" title="講話"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg></button></div>
 <input type="file" id="file" accept="image/*" hidden><audio id="au" playsinline></audio>
@@ -273,15 +275,26 @@ let lpT=null;log.addEventListener('touchstart',e=>{const d=e.target.closest('.m'
 log.addEventListener('contextmenu',e=>{const d=e.target.closest('.m');if(d&&!d.classList.contains('hello')){e.preventDefault();if(!document.body.classList.contains('sel'))selMode(true,d);}});
 // iPhone 不讓網頁自己出聲：第一次按按鈕時先播一段無聲音檔「解鎖」，之後小乖的語音才放得出來
 const SIL='data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//NwwAAAAAAAAAAAAEluZm8AAAAPAAAABgAAAykAWlpaWlpaWlpaWlpaWlpaWnt7e3t7e3t7e3t7e3t7e3t7nJycnJycnJycnJycnJycnL29vb29vb29vb29vb29vb293t7e3t7e3t7e3t7e3t7e3t7/////////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQCowAAAAAAAAMpso+sIAAAAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NCxKMAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NAxKQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/80LEowAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=';
-function unlock(){const a=$('au');if(!a.dataset.ok){a.src=SIL;const p=a.play();if(p)p.then(()=>{a.dataset.ok=1;}).catch(()=>{});}if(window.speechSynthesis&&!window._su){window._su=1;const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}}
+// 共用一個音效環境：在你按按鈕時開好、之後一直沿用（iPhone 在按鈕以外新開的會卡在暫停，聽不到你講話，連續對話才會講一句就停）
+let AC=null,acSrc=null,auSrc=null,ttsT=null;
+function getAC(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume().catch(()=>{});}catch(e){AC=null;}return AC;}
+function unlock(){getAC();const a=$('au');if(!a.dataset.ok){a.src=SIL;const p=a.play();if(p)p.then(()=>{a.dataset.ok=1;}).catch(()=>{});}if(window.speechSynthesis&&!window._su){window._su=1;const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}}
 document.addEventListener('click',unlock,true);document.addEventListener('touchend',unlock,true);
 // 連續對話：小乖講完自動再聽你說；說「結束／沒事了」或不說話就停（螢幕會保持亮著）
 let conv=false,wl=null;
-function convOn(){conv=true;try{if(navigator.wakeLock&&!wl)navigator.wakeLock.request('screen').then(l=>{wl=l;}).catch(()=>{});}catch(e){}}
-function convOff(msg){conv=false;if(wl){wl.release().catch(()=>{});wl=null;}if(msg)hint.textContent=msg;}
-function next(){if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(conv&&!busy&&!recOn)micStart();},350);}
-function speak(t,audio){if(!$('spk').checked)return next();if(audio){const a=$('au');a.onended=next;a.src='data:audio/mpeg;base64,'+audio;const p=a.play();if(p)p.catch(()=>tts(t));return;}tts(t);}
-function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);}
+function convOn(){conv=true;document.body.classList.add('conv');try{if(navigator.audioSession)navigator.audioSession.type='play-and-record';}catch(e){}try{if(navigator.wakeLock&&!wl)navigator.wakeLock.request('screen').then(l=>{wl=l;}).catch(()=>{});}catch(e){}}
+function convOff(msg){conv=false;document.body.classList.remove('conv');if(wl){wl.release().catch(()=>{});wl=null;}if(msg)hint.textContent=msg;}
+// 小乖講完才開麥克風（講話時不聽，免得錄到自己的聲音）
+function next(){clearTimeout(ttsT);if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(!conv||busy||recOn)return;if(window.speechSynthesis&&speechSynthesis.speaking)return next();micStart();},500);}
+function stopTalk(){clearTimeout(ttsT);if(window.speechSynthesis)speechSynthesis.cancel();$('au').onended=null;$('au').pause();if(auSrc){const s=auSrc;auSrc=null;s.onended=null;try{s.stop();}catch(e){}}}
+function speak(t,audio){if(!$('spk').checked)return next();if(conv&&$('loop').checked)hint.textContent='小乖說話中…講完會自動再聽你說（按麥克風可以直接插話）';if(audio)return playMp3(t,audio);tts(t);}
+// 真人語音用同一個音效環境播放（iPhone 用 <audio> 播完常常把麥克風弄成靜音）；不行再退回 <audio>
+function playMp3(t,b64){const ac=getAC();if(!ac||ac.state!=='running')return playEl(t,b64);
+ try{const bin=atob(b64),buf=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
+  ac.decodeAudioData(buf.buffer,ab=>{const s=ac.createBufferSource();s.buffer=ab;s.connect(ac.destination);auSrc=s;s.onended=()=>{if(auSrc===s){auSrc=null;next();}};s.start(0);},()=>playEl(t,b64));}catch(e){playEl(t,b64);}}
+function playEl(t,b64){const a=$('au');a.onended=next;a.src='data:audio/mpeg;base64,'+b64;const p=a.play();if(p)p.catch(()=>tts(t));}
+// 手機內建聲音：有時候唸完不會通知，所以另外估時間當保險
+function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);clearTimeout(ttsT);ttsT=setTimeout(next,Math.min(90000,2000+String(t).length*320));}
 function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
  if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
  fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:aud?aud.b64:'',audioType:aud?aud.mime:''})})
@@ -289,31 +302,34 @@ function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)retur
  .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+e.message+'）';});}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 // 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
-let mr=null,chunks=[],stream=null,actx=null,recOn=false,stopT=null,heardAny=null,relT=null;
+let mr=null,chunks=[],stream=null,recOn=false,stopT=null,heardAny=null,relT=null,maxT=null,drop=false;
 function micUI(on){recOn=on;$('mic').classList.toggle('on',on);$('mic').innerHTML=on?'<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg>';}
 // 停止錄音和音量偵測；麥克風先不關（iPhone 每次重新開麥克風都要再按一次「允許」），5 分鐘沒用或離開頁面才真的關
-function micCleanup(){clearTimeout(stopT);if(actx){actx.close().catch(()=>{});actx=null;}mr=null;micUI(false);clearTimeout(relT);if(stream)relT=setTimeout(micRelease,300000);}
+function micCleanup(){clearTimeout(stopT);clearTimeout(maxT);if(acSrc){try{acSrc.disconnect();}catch(e){}acSrc=null;}mr=null;micUI(false);clearTimeout(relT);if(stream)relT=setTimeout(micRelease,300000);}
 function micRelease(){clearTimeout(relT);if(recOn)return;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!recOn)micRelease();});
-const micLive=()=>stream&&stream.getAudioTracks().some(t=>t.readyState==='live');
+const micLive=()=>stream&&stream.getAudioTracks().some(t=>t.readyState==='live'&&!t.muted);
 function kb(msg){$('q').focus();hint.textContent=msg||'點鍵盤右下角的 🎤 講話，講完按「傳送」';}
 async function micStart(){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder)return kb();
  micUI(true);hint.textContent='開麥克風中…';
  clearTimeout(relT);
- try{if(!micLive())stream=await navigator.mediaDevices.getUserMedia({audio:true});}
+ try{if(!micLive()){if(stream)stream.getTracks().forEach(t=>t.stop());stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});}}
  catch(e){stream=null;micCleanup();return kb('麥克風被擋住了：請到「設定 → App → Safari → 麥克風」選「允許」，或先按鍵盤上的 🎤 講話');}
  if(!recOn){micCleanup();hint.textContent='';return;}   // 開麥克風途中又按了一次＝取消
  const type=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
  try{mr=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream);}catch(e){micCleanup();return kb();}
- heardAny=null;chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
- mr.onstop=()=>{const mt=(mr&&mr.mimeType)||type||'audio/mp4';micCleanup();hint.textContent='';const blob=new Blob(chunks,{type:mt});
+ heardAny=null;drop=false;chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+ mr.onstop=()=>{const mt=(mr&&mr.mimeType)||type||'audio/mp4';micCleanup();hint.textContent='';if(drop)return;const blob=new Blob(chunks,{type:mt});
   if(blob.size<1500||heardAny===false){convOff(conv?'對話先停在這裡，要講話再按麥克風':'沒錄到聲音，再按一次麥克風');return;}
   const fr=new FileReader();fr.onload=()=>send($('q').value,null,{b64:String(fr.result).split(',')[1],mime:mt.split(';')[0]});fr.readAsDataURL(blob);};
  mr.start(250);micUI(true);hint.textContent=conv&&$('loop').checked?'我在聽…（連續對話中，說「結束」或不說話就停）':'我在聽…講完停一下會自動送出，或再按一次麥克風';
- // 講完安靜 3 秒才自動送出（中間想一下、換氣不會被切掉）；一直沒講話 8 秒就停；最長 2 分鐘
+ // 講完安靜 3 秒才自動送出（中間想一下、換氣不會被切掉）；一直沒講話 10 秒就停；最長 2 分鐘
  // 門檻跟著環境噪音調整：先量 0.4 秒的背景聲，小聲講話也算有在講
- try{actx=new (window.AudioContext||window.webkitAudioContext)();const an=actx.createAnalyser();an.fftSize=1024;actx.createMediaStreamSource(stream).connect(an);
+ const ac=getAC();if(ac&&ac.state!=='running')await Promise.race([ac.resume().catch(()=>{}),new Promise(r=>setTimeout(r,600))]);
+ if(!mr)return;
+ if(!ac||ac.state!=='running'){maxT=setTimeout(micStop,15000);return;}   // 偵測不到音量時：最多錄 15 秒就送出（也可以按麥克風提早送）
+ try{const an=ac.createAnalyser();an.fftSize=1024;acSrc=ac.createMediaStreamSource(stream);acSrc.connect(an);
   const d=new Uint8Array(an.fftSize),t0=Date.now();let heard=false,last=Date.now(),floor=0,th=10;heardAny=false;
   const tick=()=>{if(!mr)return;an.getByteTimeDomainData(d);let m=0;for(let i=0;i<d.length;i++)m=Math.max(m,Math.abs(d[i]-128));
    if(Date.now()-t0<700){floor=Math.max(floor,m);th=Math.min(14,Math.max(6,floor+5));}
@@ -321,10 +337,12 @@ async function micStart(){
    const quiet=Date.now()-last;
    if(heard&&quiet>1200&&quiet<=3000&&!/送出/.test(hint.textContent))hint.textContent='還在聽…沒話要說就會送出（也可以按麥克風直接送）';
    if(heard&&quiet<=1200&&/送出/.test(hint.textContent))hint.textContent='我在聽…';
-   if((heard&&quiet>3000)||(!heard&&Date.now()-t0>8000)||Date.now()-t0>120000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){}
+   if((heard&&quiet>3000)||(!heard&&Date.now()-t0>10000)||Date.now()-t0>120000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){maxT=setTimeout(micStop,15000);}
 }
 function micStop(){if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(e){micCleanup();return;}stopT=setTimeout(micCleanup,1500);}else micCleanup();}
-$('mic').onclick=()=>{unlock();if(window.speechSynthesis)speechSynthesis.cancel();$('au').pause();if(recOn)return micStop();if(busy)return;convOn();micStart();};
+$('mic').onclick=()=>{unlock();stopTalk();if(recOn)return micStop();if(busy)return;convOn();micStart();};
+// 結束對話：馬上停止講話和聆聽，不送出
+$('endc').onclick=()=>{stopTalk();convOff('好，有事再按麥克風叫我');if(recOn){drop=true;micStop();}};
 // 選照片／拍照（要使用者按按鈕才打得開，手機的限制）
 function pickPhoto(cam){const f=$('file');if(cam)f.setAttribute('capture','environment');else f.removeAttribute('capture');f.click();}
 $('cam').onclick=()=>pickPhoto(false);
