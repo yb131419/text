@@ -31,7 +31,7 @@ const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
-const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '⚙️ 設定'], ['❓ 說明']];
+const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '⚙️ 圖卡設定'], ['❓ 說明']];
 // 快速回覆只留最常用的 5 個，其他收進「💎 選單」精品卡片（LINE 輪播卡片；Telegram／對話頁用分組按鈕）
 const MENU_BTN = '💎 選單';
 const REELS_BTN = '🎬 剪 Reels';
@@ -40,7 +40,7 @@ const QUICK = [['🐾 對話頁', MENU_BTN, '📋 試算'], ['🪶 智囊軍師'
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 設定', '署名・標題']] },
+  { en: 'CONCIERGE', title: '軍師與設定', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題']] },
   { en: 'VIDEO', title: '影片剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證分享', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '業務試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -121,7 +121,7 @@ const HELP_MORE = [
   '【🪶 軍師與設定】',
   '・按「🪶 智囊軍師」選主題：軍師判定、觀念、健康、火山草本、經營、網路行銷',
   '・文案會畫成 3 張圖卡（不同切角）一起給你，長按圖片可以存；「🔁 再寫一篇」同主題換一篇',
-  '・按「⚙️ 設定」看、改圖卡署名、文案標題和「新增見證」的說明（打「預設」改回原本的）',
+  '・按「⚙️ 圖卡設定」看、改圖卡署名、文案標題和「新增見證」的說明（打「預設」改回原本的）',
   '',
   '【💬 見證分享】',
   '・按「➕ 新增見證」後 10 分鐘內傳的圖片、影片都存成見證（LINE、Telegram 都可以），傳完按「✅ 存好了」',
@@ -632,7 +632,7 @@ function answer_(text) {
   if (vb) return voicePick_(vb[1]);
   const vc = t2.match(/^(?:換聲音|聲音|語音聲音|換語音|真人語音) ?([a-zA-Z]+)?$/);
   if (vc) return voicePick_(vc[1] || '');
-  const sm = settingsMenu_(t2, raw);   // 「⚙️ 設定」按鈕：改圖卡署名、文案標題
+  const sm = settingsMenu_(t2, raw);   // 「⚙️ 圖卡設定」按鈕：改圖卡署名、文案標題
   if (sm) return sm;
   const ce = caseEdit_(t2, raw);   // 「✏️ 改說明」：改某一則圖片／影片的說明
   if (ce) return ce;
@@ -787,8 +787,9 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
-  const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」）\n\n🕗 每晚自動發文：' + auto, buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN], [AUTO_ON_BTN, AUTO_OFF_BTN]] };
+  const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著', lead = prop_('LEAD_ON') === '1' ? '開著' : '關著';
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」）\n\n🕗 每晚自動發文：' + auto + '\n💬 自動留言（IG／FB 留言回官方 LINE）：' + lead,
+    buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN], [AUTO_ON_BTN, AUTO_OFF_BTN], [LEAD_ON_BTN, LEAD_OFF_BTN]] };
 }
 
 // 認得「健康主題」「智囊軍師 健康」「軍師判定」「再寫一篇」這些說法；不是就回 null
@@ -1077,8 +1078,8 @@ function settingsMenu_(t, raw) {
       return { text: stratSetting_('設定' + (pend === 'by' ? '署名 ' : '標題 ') + (raw || t)), buttons: MENU };
     }
   }
-  if (flat === '設定') {
-    return { text: ['⚙️ 設定', '', '✍️ 圖卡署名：' + cardBy_(), '🪶 文案標題：' + stratHead_() + '｜主題',
+  if (flat === '設定' || flat === '圖卡設定') {
+    return { text: ['⚙️ 圖卡設定', '', '✍️ 圖卡署名：' + cardBy_(), '🪶 文案標題：' + stratHead_() + '｜主題',
       '📝 見證說明：' + caseGuide_().replace(/\s+/g, ' ').slice(0, 30) + '…', '',
       '按「改署名」「改標題」或「改見證說明」，再打新的字給我就好。'].join('\n'), buttons: SET_BTNS.concat(MENU) };
   }
@@ -5423,6 +5424,8 @@ function leadAsk_(t, raw) {
   }
   const ln = r.match(/^\s*設定\s*留言\s*LINE[\s：:]*(https:\/\/\S+)\s*$/i);
   if (ln) { setProp_('LEAD_LINE', ln[1]); return '💬 私訊裡的官方 LINE 連結改成：' + ln[1]; }
+  const ab = k.replace(/^💬/, '').match(/^自動留言(開|打開|開啟|關|關閉|關掉)$/);   // 智囊軍師卡片上的按鈕
+  if (ab) return leadAsk_(/開/.test(ab[1]) ? '留言回覆開' : '留言回覆關');
   if (/^留言回覆(開|打開|開啟)$/.test(k)) {
     if (!prop_('LEAD_RELAY')) return '還沒設定中繼站，先傳「留言設定」。';
     setProp_('LEAD_ON', '1');
@@ -5475,6 +5478,7 @@ function autoStatus_() {
 }
 // answer_ 用：自動發文 開／關／狀態、下一篇 主題
 const AUTO_ON_BTN = '🕗 自動發文 開', AUTO_OFF_BTN = '🕗 自動發文 關';   // 智囊軍師卡片上的按鈕
+const LEAD_ON_BTN = '💬 自動留言 開', LEAD_OFF_BTN = '💬 自動留言 關';
 function autoAsk_(t) {
   const k = String(t || '').replace(/\s+/g, '').replace(/^🕗/, '');
   const nx = k.match(/^下一篇(?:主題)?[：:]?(\S+)$/);
