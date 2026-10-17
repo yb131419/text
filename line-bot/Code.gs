@@ -409,7 +409,7 @@ function doPost(e) {
   }
 
   // 見證庫網頁（Cases.html）：列案例、⭐ 常用、取分享連結
-  if (body.action === 'cases' || body.action === 'caseStar' || body.action === 'caseLink') {
+  if (['cases', 'caseStar', 'caseLink', 'caseDel'].indexOf(body.action) >= 0) {
     if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return json_({ ok: false, error: '同步密碼不對' });
     try { return json_(wallApi_(body)); } catch (err) { console.error(err); return json_({ ok: false, error: String(err && err.message || err) }); }
   }
@@ -1984,6 +1984,11 @@ function storeCase_(type, text, fid, imgFn, src, force) {
   setProp_('CASE_LAST_TIME', String(row));
   const NAME = { photo: '圖片', video: '影片', animation: '動圖', document: '檔案', text: '文字' };
   const tags = [join(info.products), join(info.people)].filter(Boolean).join('｜');
+  if (type === 'text') return {   // 文字見證不歸類，只在全部／搜尋找得到
+    text: '📁 已存進見證庫（文字，不分類）' + (info.summary || text ? '\n' + String(info.summary || text).replace(/\s+/g, ' ').slice(0, 60) : '')
+      + (tags ? '\n🏷️ ' + tags : '') + '\n要改說明按「✏️ 改說明」；不要了按「🗑️ 刪除見證」',
+    buttons: [['✏️ 改說明', '🗑️ 刪除見證']],
+  };
   return {
     text: '📁 已存進【' + info.category + '】（' + NAME[type] + '）'
       + (info.summary || text ? '\n' + String(info.summary || text).replace(/\s+/g, ' ').slice(0, 60) : '')
@@ -2081,7 +2086,7 @@ let TALK_CASES_ = [];
 function talkCase_(c, d) {
   const ids = d ? driveIds_(d) : [];
   const KIND = { photo: '圖片', video: '影片', animation: '動圖', document: '檔案', text: '文字' };
-  return { k: caseKey_(c), type: c.type, kind: KIND[c.type] || '', cat: c.cat,
+  return { k: caseKey_(c), type: c.type, kind: KIND[c.type] || '', cat: c.type === 'text' ? '' : c.cat,
     day: c.time instanceof Date ? Utilities.formatDate(c.time, TZ, 'M/d') : '',
     cap: String(c.summary || c.text || '').replace(/\s+/g, ' ').slice(0, 120), text: String(c.text || c.summary || '').trim().slice(0, 500),
     tags: [c.products, c.people].filter(Boolean).join('｜'),
@@ -2097,6 +2102,25 @@ function wallApi_(b) {
     return { ok: true };
   }
   const list = allCases_(), stars = caseStars_();
+  if (b.action === 'caseDel') {   // 見證庫打勾多筆刪除（頁面上先確認過）
+    const ks = [].concat(b.ks || []).map(String);
+    const pick = list.filter(c => ks.indexOf(String(caseKey_(c))) >= 0).sort((x, y) => y.row - x.row);   // 從下面刪，列號才不會亂
+    const n = withLock_(() => {
+      const sh = ss_().getSheetByName(CASE_SHEET);
+      let k = 0;
+      pick.forEach(c => {
+        const cell = sh && c.row && sh.getRange(c.row, 1).getValue();
+        if (cell instanceof Date && c.time instanceof Date && cell.getTime() === c.time.getTime()) { sh.deleteRow(c.row); k++; }
+      });
+      return k;
+    });
+    pick.forEach(c => [c.fid, c.drive].filter(x => /^drive:/.test(x)).forEach(d => driveIds_(d).forEach(id => {
+      try { DriveApp.getFileById(id).setTrashed(true); } catch (e) {}   // 30 天內還能從垃圾桶救回
+    })));
+    const gone = pick.map(c => String(caseKey_(c)));
+    setProp_('CASE_STARS', JSON.stringify(stars.filter(k => gone.indexOf(k) < 0)));
+    return { ok: true, n: n };
+  }
   if (b.action === 'caseLink') {   // 還沒放進雲端硬碟的 Telegram 檔案：現在複製；超過 20MB 就改傳到主人的 Telegram
     const c = list.find(x => String(caseKey_(x)) === String(b.k));
     if (!c) return { ok: false, error: '找不到這一則了，可能已經刪掉。' };
@@ -2162,10 +2186,11 @@ function findCases_(words) {
 function caseCatsMenu_() {
   const cats = caseCats_(), cases = allCases_();   // 先整理分類，再數
   const count = {};
-  cases.forEach(c => { count[c.cat] = (count[c.cat] || 0) + 1; });
+  cases.forEach(c => { if (c.type !== 'text') count[c.cat] = (count[c.cat] || 0) + 1; });   // 文字見證不歸類（使用者 2026-10-17）
+  const nText = cases.filter(c => c.type === 'text').length;
   const used = cats.filter(c => count[c]);   // 沒有案例的分類不出按鈕，畫面比較乾淨
   return {
-    text: '🗂️ 案例分類（共 ' + cases.length + ' 筆）\n\n' + cats.map(c => '・' + c + '：' + (count[c] || 0) + ' 筆').join('\n')
+    text: '🗂️ 案例分類（共 ' + cases.length + ' 筆）\n\n' + cats.map(c => '・' + c + '：' + (count[c] || 0) + ' 筆').join('\n') + (nText ? '\n（文字見證 ' + nText + ' 筆不分類，用「🔍 查詢案例」或見證庫網頁找）' : '')
       + '\n\n按下面的分類看案例。\n整理分類：「新增分類 名稱」「分類改名 舊 新」「刪除分類 名稱」',
     buttons: chunk_(used.map(c => '🗂️ ' + c + '（' + count[c] + '）'), 2).slice(0, 5),
   };
@@ -2204,7 +2229,7 @@ function caseFind_(t, raw) {
 }
 
 function browseCat_(cat, page) {
-  const list = allCases_().filter(c => c.cat === cat);
+  const list = allCases_().filter(c => c.cat === cat && c.type !== 'text');
   if (!list.length) return { text: '【' + cat + '】還沒有案例。轉傳圖片、影片或文字給小乖就會存進來。', buttons: MENU };
   return browseList_('【' + cat + '】', list, page, cat);
 }
@@ -2235,7 +2260,7 @@ function caseBubble_(c) {
     type: 'bubble', size: 'kilo',
     styles: { body: { backgroundColor: '#FBF8F2' }, footer: { backgroundColor: '#FBF8F2' } },
     body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'sm', contents: [
-      { type: 'text', text: [c.cat, KIND[c.type] || '', day].filter(Boolean).join(' · '), size: 'xxs', color: '#B08D57', weight: 'bold' },
+      { type: 'text', text: [c.type === 'text' ? '' : c.cat, KIND[c.type] || '', day].filter(Boolean).join(' · '), size: 'xxs', color: '#B08D57', weight: 'bold' },
       { type: 'text', text: String(c.summary || c.text || '（沒有說明）').replace(/\s+/g, ' ').slice(0, 80), size: 'sm', weight: 'bold', color: '#2A2118', wrap: true, maxLines: 3 },
     ].concat(tags ? [{ type: 'text', text: '🏷️ ' + tags, size: 'xxs', color: '#9A8B74', wrap: true, maxLines: 2 }] : []) },
     footer: { type: 'box', layout: 'horizontal', spacing: 'sm', paddingAll: '12px', paddingTop: '0px', contents: [{
