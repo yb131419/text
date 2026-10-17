@@ -109,6 +109,21 @@ h1{font-family:var(--serif);font-weight:700;font-size:34px;letter-spacing:.12em;
 .sub button{flex:1;border:1px solid var(--line);background:transparent;border-radius:12px;padding:10px;font-size:14px;color:var(--soft);letter-spacing:.06em}
 .toast{position:fixed;z-index:40;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 26px);transform:translate(-50%,20px);opacity:0;background:var(--champ);color:var(--onc);font-weight:700;padding:10px 20px;border-radius:999px;font-size:14px;transition:all .3s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+/* 打勾多筆刪除 */
+.tools{display:flex;gap:8px;flex:none}
+.selbtn{height:44px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--gold);padding:0 16px;font-size:14px;letter-spacing:.1em}
+.selbtn.on{background:var(--champ);color:var(--onc);border-color:transparent}
+.ck{position:absolute;z-index:2;top:8px;left:8px;width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.85);background:rgba(16,14,11,.28);display:none;place-items:center;color:#fff;font-size:16px;font-weight:700}
+body.sel .ck{display:grid}body.sel .pin{display:none}
+.card.pk{outline:3px solid var(--gold);outline-offset:-3px}.card.pk .ck{background:var(--champ);border-color:transparent;color:var(--onc)}
+.card.pk .ck::before{content:"✓"}
+.selbar{position:fixed;z-index:15;left:0;right:0;bottom:0;background:var(--sheet);border-top:1px solid var(--line2);box-shadow:0 -14px 30px -20px rgba(0,0,0,.35);
+ padding:12px max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 12px) max(16px,env(safe-area-inset-left,0px));transform:translateY(110%);transition:transform .3s}
+body.sel .selbar{transform:none}body.sel main{padding-bottom:96px}
+.selbar .in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.selbar .n{flex:1;min-width:0;font-size:14px;color:var(--soft)}
+.selbar button{border-radius:12px;padding:10px 14px;font-size:14px;font-weight:700;border:1px solid var(--line2);background:transparent;color:var(--ink)}
+.selbar .del{background:#9A3B2E;border-color:transparent;color:#fff}.selbar .del:disabled{opacity:.4}
 /* 登入 */
 #login{position:fixed;inset:0;z-index:30;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
 #login .box{width:100%;max-width:380px;display:grid;gap:14px;text-align:center}
@@ -121,7 +136,7 @@ h1{font-family:var(--serif);font-weight:700;font-size:34px;letter-spacing:.12em;
 <main>
  <div class="top">
   <div><div class="kick">Testimony Archive</div><h1>見證庫</h1><div class="count" id="count">讀取中…</div></div>
-  <button class="ico" id="thm" aria-label="換顏色">☀︎</button>
+  <div class="tools"><button class="selbtn" id="selbtn">選取</button><button class="ico" id="thm" aria-label="換顏色">☀︎</button></div>
  </div>
  <div class="steps" id="steps">
   <div class="step on" data-s="1"><i>1</i><span>找見證</span></div>
@@ -138,6 +153,7 @@ h1{font-family:var(--serif);font-weight:700;font-size:34px;letter-spacing:.12em;
 
 <div class="veil" id="veil"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="in" id="sin"></div></div>
+<div class="selbar" id="selbar"><div class="in" id="selin"></div></div>
 <div class="toast" id="toast"></div>
 
 <div id="login"><div class="box">
@@ -173,7 +189,7 @@ function load(){if(!window.XG_DEMO&&(!KEY||!URL)){login();return;}
 function chips(el,arr,cur,set){el.innerHTML='';arr.forEach(v=>{const b=document.createElement('button');b.className='chip'+(cur===v?' on':'');b.textContent=v;b.onclick=()=>{set(v);draw();};el.appendChild(b);});}
 const prodsOf=x=>String(x.products||'').split(/[、,，\s|｜]+/).filter(Boolean);
 function draw(){
- const used=new Set(ALL.map(x=>x.cat));const cs=['全部'].concat(ALL.some(x=>x.star)?['⭐ 常用']:[]).concat(CATS.filter(c=>used.has(c))).concat([...used].filter(c=>CATS.indexOf(c)<0));
+ const used=new Set(ALL.map(x=>x.cat).filter(Boolean));const cs=['全部'].concat(ALL.some(x=>x.star)?['⭐ 常用']:[]).concat(CATS.filter(c=>used.has(c))).concat([...used].filter(c=>CATS.indexOf(c)<0));
  if(cs.indexOf(cat)<0)cat='全部';chips($('cats'),cs,cat,v=>cat=v);
  const ps=['全部',...new Set(ALL.flatMap(prodsOf))];if(ps.indexOf(prod)<0)prod='全部';$('pbox').hidden=ps.length<2;chips($('prods'),ps,prod,v=>prod=v);
  const q=$('q').value.trim().toLowerCase();$('clr').hidden=!q;const ws=q.split(/\s+/).filter(Boolean);
@@ -186,13 +202,27 @@ function draw(){
 function thumbEl(x,box){if(x.thumb){const i=new Image();i.alt='';i.loading='lazy';i.onerror=()=>i.remove();i.src=x.thumb;box.appendChild(i);}
  else{const p=document.createElement('div');p.className='ph';p.textContent=x.type==='text'?'“':x.type==='document'?'✦':'❦';box.appendChild(p);}
  if(x.type==='video'||x.type==='animation'){const p=document.createElement('span');p.className='play';box.appendChild(p);}}
-function card(x){const c=document.createElement('div');c.className='card'+(x.star?' star':'');c.setAttribute('role','button');c.tabIndex=0;
+function card(x){const c=document.createElement('div');c._x=x;c.className='card'+(x.star?' star':'');c.setAttribute('role','button');c.tabIndex=0;
  const th=document.createElement('div');th.className='th';thumbEl(x,th);
  const bg=document.createElement('div');bg.className='badge';bg.innerHTML='<b></b>';bg.firstChild.textContent=x.kind||'';bg.append(x.day?'　'+x.day:'');th.appendChild(bg);
  const pin=document.createElement('button');pin.className='pin'+(x.star?' on':'');pin.textContent='★';pin.setAttribute('aria-label','常用');pin.onclick=e=>{e.stopPropagation();star(x);};th.appendChild(pin);
- const bd=document.createElement('div');bd.className='bd';const ct=document.createElement('div');ct.className='cat';ct.textContent=x.cat;const tx=document.createElement('p');tx.className='tx';tx.textContent=x.cap||'（沒有說明）';bd.append(ct,tx);
+ const ck=document.createElement('span');ck.className='ck';th.appendChild(ck);if(SEL.has(x.k))c.classList.add('pk');
+ const bd=document.createElement('div');bd.className='bd';const ct=document.createElement('div');ct.className='cat';ct.textContent=x.cat||'文字';const tx=document.createElement('p');tx.className='tx';tx.textContent=x.cap||'（沒有說明）';bd.append(ct,tx);
  if(x.tags){const t=document.createElement('div');t.className='tg';t.textContent=x.tags;bd.appendChild(t);}
- c.append(th,bd);c.onclick=()=>open(x);c.onkeydown=e=>{if(e.key==='Enter')open(x);};return c;}
+ c.append(th,bd);c.onclick=()=>{if(selOn){pick(x,c);return;}open(x);};c.onkeydown=e=>{if(e.key==='Enter')c.onclick();};return c;}
+// 打勾多筆刪除：按「選取」→ 點卡片打勾 →「刪除」→ 確定（使用者 2026-10-17）
+let selOn=false,ask=false;const SEL=new Set();
+function selMode(on){selOn=on;ask=false;SEL.clear();document.body.classList.toggle('sel',on);$('selbtn').classList.toggle('on',on);$('selbtn').textContent=on?'完成':'選取';draw();selBar();}
+function shown(){return [...document.querySelectorAll('#list .card')].map(c=>c._x).filter(Boolean);}
+function pick(x,c){if(SEL.has(x.k))SEL.delete(x.k);else SEL.add(x.k);c.classList.toggle('pk',SEL.has(x.k));ask=false;selBar();}
+function selBar(){const b=$('selin');b.innerHTML='';const n=SEL.size;const t=document.createElement('div');t.className='n';
+ if(ask){t.textContent='確定刪除這 '+n+' 則？刪掉後找不回來。';const y=document.createElement('button');y.className='del';y.textContent='確定刪除';y.onclick=doDel;const no=document.createElement('button');no.textContent='不刪了';no.onclick=()=>{ask=false;selBar();};b.append(t,no,y);return;}
+ t.textContent=n?'已選 '+n+' 則':'點卡片打勾，可以選好幾則';const all=document.createElement('button');const sh=shown();const every=sh.length&&sh.every(x=>SEL.has(x.k));all.textContent=every?'全不選':'全選';
+ all.onclick=()=>{sh.forEach(x=>every?SEL.delete(x.k):SEL.add(x.k));draw();selBar();};const d=document.createElement('button');d.className='del';d.textContent=n?'刪除（'+n+'）':'刪除';d.disabled=!n;d.onclick=()=>{ask=true;selBar();};b.append(t,all,d);}
+function doDel(){const ks=[...SEL];const t=$('selin');t.innerHTML='<div class="n">刪除中…</div>';
+ api({action:'caseDel',ks:ks}).then(r=>{if(!r.ok)throw new Error(r.error||'');ALL=ALL.filter(x=>ks.indexOf(x.k)<0);toast('已刪除 '+r.n+' 則');selMode(false);})
+ .catch(e=>{ask=false;selBar();toast('沒刪成功，再試一次'+(e.message?'（'+e.message+'）':''));});}
+$('selbtn').onclick=()=>selMode(!selOn);
 function star(x){x.star=!x.star;draw();if(cur===x)open(x,true);api({action:'caseStar',k:x.k,on:x.star}).then(r=>{if(!r.ok)throw 0;toast(x.star?'已設為常用，會排在最前面':'已取消常用');}).catch(()=>{x.star=!x.star;draw();toast('沒存成功，再試一次');});}
 
 // 詳細：照順序 ① 看內容 → ② 分享到 LINE → ③ 在 LINE 選人傳送
