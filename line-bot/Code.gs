@@ -390,7 +390,7 @@ function doPost(e) {
 
   // IG／FB 留言 → 小乖私訊（Meta 通知先到 Cloudflare 中繼站，中繼站把通關密碼放進 relay 再轉來）
   if (body.object && Array.isArray(body.entry)) {
-    if (!prop_('LEAD_RELAY') || body.relay !== prop_('LEAD_RELAY')) return text_('forbidden');
+    if (!prop_('LEAD_RELAY') || body.relay !== prop_('LEAD_RELAY')) { leadLog_('收到通知，但中繼站的 RELAY_KEY 對不上（Cloudflare 的 RELAY_KEY 要跟「留言設定」給的一樣）'); return text_('forbidden'); }
     try { leadHandle_(body); } catch (err) { console.error(err); }
     return ack_();
   }
@@ -5347,8 +5347,10 @@ function leadTell_(text) {
   else if (owner) push_(owner, text);
 }
 // Meta 送來的一包通知：IG（object=instagram，field=comments）、粉專（object=page，field=feed，item=comment）
+// 「留言狀態」看得到最近一次收到通知的結果，方便查為什麼沒回
+function leadLog_(what) { setProp_('LEAD_LAST', Utilities.formatDate(new Date(), TZ, 'MM/dd HH:mm') + ' ' + what); }
 function leadHandle_(body) {
-  if (prop_('LEAD_ON') !== '1') return;
+  if (prop_('LEAD_ON') !== '1') { leadLog_('收到留言通知，但留言回覆是關著的（傳「留言回覆開」）'); return; }
   const cache = CacheService.getScriptCache();
   (body.entry || []).forEach(en => (en.changes || []).forEach(ch => {
     const v = ch.value || {};
@@ -5357,11 +5359,15 @@ function leadHandle_(body) {
       c = { p: 'ig', id: v.id, text: v.text, from: v.from && v.from.id, who: v.from && ('@' + v.from.username), self: prop_('IG_USER') };
     else if (body.object === 'page' && ch.field === 'feed' && v.item === 'comment' && v.verb === 'add')
       c = { p: 'fb', id: v.comment_id, text: v.message, from: v.from && v.from.id, who: v.from && v.from.name, self: prop_('FB_PAGE') };
-    if (!c || !c.id || !c.from || String(c.from) === String(c.self)) return;   // 自己的留言（含小乖的公開回覆）不理
+    if (!c || !c.id) { leadLog_('收到通知，但不是新留言（' + body.object + '／' + ch.field + (v.item ? '／' + v.item : '') + '）'); return; }
+    const src = (c.p === 'ig' ? 'IG' : 'FB') + ' 留言「' + String(c.text || '').slice(0, 20) + '」';
+    if (c.from && String(c.from) === String(c.self)) { leadLog_(src + '：是你自己帳號的留言，不回'); return; }   // 自己的留言（含小乖的公開回覆）不理；FB 有時不給留言者，照樣回
     const kw = leadMatch_(c.text);
-    if (!kw || cache.get('lead_' + c.id)) return;
+    if (!kw) { leadLog_(src + '：沒有關鍵字（目前關鍵字：' + leadKws_().join('、') + '）'); return; }
+    if (cache.get('lead_' + c.id)) return;
+    leadLog_(src + '：有關鍵字「' + kw + '」，正在私訊');
     cache.put('lead_' + c.id, '1', 21600);   // Meta 會重送，同一則留言只處理一次
-    try { leadReply_(c, kw); } catch (err) { console.error(err); leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + kw + '」（' + (c.who || '') + '），但小乖私訊失敗：' + err.message + '\n請你手動私訊他 LINE 連結。'); }
+    try { leadReply_(c, kw); leadLog_(src + '：已私訊 ✅'); } catch (err) { console.error(err); leadLog_(src + '：私訊失敗 ❌ ' + err.message); leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + kw + '」（' + (c.who || '') + '），但小乖私訊失敗：' + err.message + '\n請你手動私訊他 LINE 連結。'); }
   }));
 }
 function leadReply_(c, kw) {
@@ -5413,6 +5419,7 @@ function leadAsk_(t, raw) {
       + '\n關鍵字：' + (kws.length ? kws.map(x => '「' + x + '」').join('、') : '還沒有（做一組「📕 7張＋PDF」就會自動加入）')
       + '\n官方 LINE：' + (prop_('LEAD_LINE') || LEAD_LINE_DEFAULT)
       + '\n已私訊：' + (prop_('LEAD_N') || 0) + ' 人'
+      + '\n最近一次通知：' + (prop_('LEAD_LAST') || '還沒收到（Meta 沒送到小乖：檢查 Webhooks 訂閱、中繼站、再傳一次「留言設定」）')
       + (sub.length ? '\n通知綁定：' + sub.join('、') : '')
       + '\n\n🔧 Cloudflare 中繼站要填的（只給你自己看，不要貼給別人）：'
       + '\nAPPS_URL＝' + url
