@@ -797,7 +797,7 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」）\n\n🕗 每晚自動發文：' + auto, buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN], [AUTO_ON_BTN, AUTO_OFF_BTN]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN, AUTO_BTN]] };
 }
 
 // 認得「健康主題」「智囊軍師 健康」「軍師判定」「再寫一篇」這些說法；不是就回 null
@@ -5466,9 +5466,16 @@ function leadAsk_(t, raw) {
 
 /* ============ 🕗 自動發文：每天晚上自動做一組智囊軍師 7 張圖卡，發到社群 ============ */
 // 2026-10-17 使用者：用智囊軍師的 7 張圖卡自動發，五大主題照現在的順序輪流，時間在 20:00～21:30 之間
-// 打「自動發文 開」建立每天 20:30 左右（Apps Script 前後 15 分鐘內）的觸發條件；「自動發文 關」停掉；「自動發文」看狀態
+// 打「自動發文 開」建立每天 20:30（或中午 12:30）左右（Apps Script 前後 15 分鐘內）的觸發條件；「自動發文 關」停掉；「自動發文」看狀態
 const AUTO_ORDER = ['concept', 'health', 'herb', 'biz', 'net'];   // 觀念 → 健康 → 草本 → 經營 → 行銷（跟軍師按鈕順序一樣）
-const AUTO_HOUR = 20, AUTO_MIN = 30;
+// 發文時段（2026-10-17 使用者：晚上 20:15～20:45 或中午 12:15～12:45 可選），存在 AUTO_TIME
+const AUTO_SLOTS = { night: { h: 20, m: 30, label: '晚上 20:15～20:45' }, noon: { h: 12, m: 30, label: '中午 12:15～12:45' } };
+function autoSlot_() { return AUTO_SLOTS[prop_('AUTO_TIME')] || AUTO_SLOTS.night; }
+function autoArm_() {
+  autoTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
+  const sl = autoSlot_();
+  ScriptApp.newTrigger('autoPostJob').timeBased().everyDays(1).atHour(sl.h).nearMinute(sl.m).inTimezone(TZ).create();
+}
 
 function autoTheme_(i) { const k = AUTO_ORDER[(Number(i) || 0) % AUTO_ORDER.length]; return STRAT_THEMES.filter(t => t.k === k)[0]; }
 function autoName_(th) { return th ? th.btn.replace(/^[^\p{L}\p{N}]+/u, '') : ''; }
@@ -5478,15 +5485,16 @@ function autoStatus_() {
   const next = autoTheme_(prop_('AUTO_IDX'));
   const plat = socFor_({ items: [{ t: 'img' }] });
   return { text: '🕗 自動發文：' + (on ? '開著' : '關著')
-    + '\n時間：每天 20:15～20:45 之間'
+    + '\n時間：每天' + autoSlot_().label + ' 之間'
     + '\n內容：智囊軍師 7 張圖卡＋貼文（PDF 一起傳給你）'
     + '\n主題輪流：' + AUTO_ORDER.map(k => autoName_(autoTheme_(AUTO_ORDER.indexOf(k)))).join(' → ')
     + '\n下一篇：' + autoName_(next)
     + '\n發到：' + (plat.length ? socNames_(plat) : '（還沒設定社群）')
-    + '\n\n「自動發文 開」／「自動發文 關」；要換下一篇的主題，打「下一篇 健康」這樣。', buttons: [[on ? AUTO_OFF_BTN : AUTO_ON_BTN]].concat(QUICK) };
+    + '\n\n按下面的按鈕開／關、選時段；要換下一篇的主題，打「下一篇 健康」這樣。', buttons: [[on ? AUTO_OFF_BTN : AUTO_ON_BTN], [AUTO_NIGHT_BTN, AUTO_NOON_BTN]].concat(QUICK) };
 }
 // answer_ 用：自動發文 開／關／狀態、下一篇 主題
-const AUTO_ON_BTN = '🕗 自動發文 開', AUTO_OFF_BTN = '🕗 自動發文 關';   // 智囊軍師卡片上的按鈕
+const AUTO_BTN = '🕗 自動發文';   // 智囊軍師卡片上的按鈕：點進去開／關、選時段
+const AUTO_ON_BTN = '🕗 自動發文 開', AUTO_OFF_BTN = '🕗 自動發文 關', AUTO_NIGHT_BTN = '🌙 晚上 20:30 發', AUTO_NOON_BTN = '☀️ 中午 12:30 發';
 const LEAD_BTN = '💬 自動留言';   // 💎 選單「軍師」卡片、圖卡設定上的開關（按一下切換）
 function autoAsk_(t) {
   const k = String(t || '').replace(/\s+/g, '').replace(/^🕗/, '');
@@ -5497,13 +5505,18 @@ function autoAsk_(t) {
     setProp_('AUTO_IDX', String(i));
     return autoStatus_();
   }
+  const tm = k.replace(/^[^\p{L}\p{N}]+/u, '').match(/^(?:(?:自動發文|發文時間)(晚上|中午)|(晚上|中午)(?:20:30|12:30)?發)$/u);
+  if (tm) {   // 選時段：開著的話馬上換觸發條件
+    setProp_('AUTO_TIME', (tm[1] || tm[2]) === '中午' ? 'noon' : 'night');
+    if (prop_('AUTO_POST') === 'on') autoArm_();
+    return autoStatus_();
+  }
   const m = k.match(/^(?:自動發文|自動發佈|自動發布|排程發文)(開|開啟|打開|關|關閉|停|停止|狀態)?$/);
   if (!m) return null;
   const v = m[1] || '狀態';
   if (/^(開|開啟|打開)$/.test(v)) {
     if (!socFor_({ items: [{ t: 'img' }] }).length) return { text: '🕗 要先設定好 IG 或 FB（「設定 IG金鑰」「設定 FB金鑰」），才能自動發文。', buttons: QUICK };
-    autoTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
-    ScriptApp.newTrigger('autoPostJob').timeBased().everyDays(1).atHour(AUTO_HOUR).nearMinute(AUTO_MIN).inTimezone(TZ).create();
+    autoArm_();
     setProp_('AUTO_POST', 'on');
     return autoStatus_();
   }
