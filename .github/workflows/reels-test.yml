@@ -42,3 +42,11 @@ jobs:
         run: python3 reels/reels.py --input /tmp/sil.mp4 --transcript reels/selftest_silent.json --kind silent --note 教學框 --out /tmp/fs.mp4 --selftest
       - name: 靜音剪大片
         run: python3 reels/reels.py --input /tmp/sil.mp4 --transcript reels/selftest_silent.json --kind silent --mode long --out /tmp/sl.mp4 --selftest
+      - name: 照片 Reels（好幾張照片、直橫都有）
+        run: |
+          ffmpeg -y -loglevel error -f lavfi -i testsrc2=size=1200x1600 -frames:v 1 /tmp/a.jpg
+          ffmpeg -y -loglevel error -f lavfi -i testsrc=size=1600x1000 -frames:v 1 /tmp/b.jpg
+          ffmpeg -y -loglevel error -f lavfi -i smptebars=size=1080x1080 -frames:v 1 /tmp/c.jpg
+          python3 reels/reels.py --input /tmp/a.jpg,/tmp/b.jpg,/tmp/c.jpg --transcript reels/selftest_silent.json --note "每張3秒" --out /tmp/ph.mp4 --selftest
+      - name: 照片和影片混在一起
+        run: python3 reels/reels.py --input /tmp/a.jpg,/tmp/v2.mp4 --transcript reels/selftest_silent.json --kind silent --out /tmp/pm.mp4 --selftest

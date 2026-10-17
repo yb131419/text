@@ -37,6 +37,7 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 W, H, FPS = 1080, 1920, 30
 MODE = 'reels'   # reels 直式短影音；long 剪大片（保留原本比例），由 make() 設定
+PHOTOS = None    # 照片做成的 Reels：每張照片在原片裡的 [開始, 結束] 秒數，由 main() 設定；None 是一般影片
 FRAME = None     # 教學框：(框寬, 框高, 左, 上, 底圖 png)，由 make() 設定；None 是滿版
 OUTRO = 3.0      # 教學框結尾「重點整理」停留秒數
 FONT = os.environ.get('REELS_FONT') or 'Noto Sans CJK TC'
@@ -247,6 +248,8 @@ def tg(method, **data):
 def tg_download(file_id, dest, what='影片'):
     info = tg('getFile', file_id=file_id)
     if not info.get('ok'):
+        if what == '照片':
+            raise Oops('拿不到你傳的照片（%s），請再傳一次。' % info.get('description', ''))
         if what != '影片':
             raise Oops('拿不到你傳的%s（%s），這次先用小乖的配樂。' % (what, info.get('description', '')))
         if 'too big' in str(info.get('description', '')):
@@ -412,6 +415,30 @@ def probe(path):
     if abs(rot) % 180 == 90:   # 手機直拍的影片常常是橫的畫面加「轉 90 度」標記
         w, h = h, w
     return dur, has_audio, (w, h)
+
+
+IMG_EXT = ('.jpg', '.jpeg', '.png', '.webp', '.heic')
+
+
+def photo_clip(img, out, sec, size):
+    """一張照片 → 一段影片：整張照片放中間，後面墊同一張照片放大模糊（直式不會有黑邊），配上無聲音軌。"""
+    w, h = size
+    run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-t', '%.3f' % sec, '-i', img,
+         '-f', 'lavfi', '-t', '%.3f' % sec, '-i', 'anullsrc=r=48000:cl=stereo', '-filter_complex',
+         '[0:v]scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,boxblur=28:2,eq=brightness=-0.06[bg];'
+         '[0:v]scale=%d:%d:force_original_aspect_ratio=decrease[fg];'
+         '[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1,fps=%d,format=yuv420p[v]' % (w, h, w, h, w, h, FPS),
+         '-map', '[v]', '-map', '1:a', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
+         '-c:a', 'aac', '-ar', '48000', '-ac', '2', '-shortest', out])
+    return out
+
+
+def photo_sec(note, n):
+    """每張照片幾秒：說明寫「每張 3 秒」就照寫的；沒寫就 2.5 秒（照片多就短一點，總長不超過約 40 秒）。"""
+    m = re.search(r'(?:每|一)張\s*(\d+(?:\.\d+)?)\s*秒', note or '')
+    if m:
+        return max(1.0, min(8.0, float(m.group(1))))
+    return max(1.6, min(2.5, 40.0 / max(1, n)))
 
 
 def join_sources(paths, work):
@@ -1256,7 +1283,9 @@ def spread(caps, slots):
 
 def silent_cut(src, opt, note, dur, has_audio, work, music_file, given):
     """靜音剪：配樂卡點、運鏡、轉場、文字動畫。回傳（成品, 段落, 計畫, 配樂, 是不是你的配樂）。"""
-    if MODE == 'reels' and not re.search(r'\d+\s*(秒|s|sec|分)', note or '', re.I):
+    if PHOTOS:   # 照片 Reels：每張照片都留，長度照照片張數
+        opt['target'] = int(dur) + 1
+    elif MODE == 'reels' and not re.search(r'\d+\s*(秒|s|sec|分)', note or '', re.I):
         opt['target'] = 20   # 靜音短影音預設 20 秒左右
     if opt['title_sec'] == DEFAULTS['title_sec']:
         opt['title_sec'] = 2.5
@@ -1270,10 +1299,14 @@ def silent_cut(src, opt, note, dur, has_audio, work, music_file, given):
         plan.update({k: v for k, v in given.items() if v})
         plan.update(silent_fx(plan))
     music, mine = get_music(music_file, opt, plan, work)
-    if MODE == 'long':
+    if MODE == 'long' and not PHOTOS:
         spans = [[0, dur]]
         joined = cut(src, spans, has_audio, work)
         starts = None
+    elif PHOTOS:   # 一張照片一段：每段自己的運鏡，段跟段之間轉場
+        spans = [list(x) for x in PHOTOS]
+        joined, starts = montage(src, spans, work, opt['fx'], plan.get('moves'), plan.get('trans'))
+        plan['xfades'] = starts[1:] if opt['fx'] else []
     else:
         beat = 60.0 / MUSIC_BPM.get(os.path.basename(music or '')[:-4], 100)
         spans = silent_spans(src, dur, opt['target'], beat)
@@ -1338,6 +1371,8 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
             W, H = long_size(src_wh, dur)
         if dur > MAX_SOURCE_SEC:
             raise Oops('影片超過 20 分鐘，請先剪短一點再傳。')
+        if PHOTOS:
+            opt['kind'] = 'silent'   # 照片沒有人講話，一律靜音剪
         segs = []
         if opt['kind'] != 'silent':
             if isinstance(transcript, list):
@@ -1420,6 +1455,7 @@ def main():
     a = ap.parse_args()
     resolve_font()
 
+    global PHOTOS
     chat = os.environ.get('CHAT_ID')
     try:
         tmp = tempfile.mkdtemp()
@@ -1428,9 +1464,19 @@ def main():
         else:
             ids = [x.strip() for x in os.environ['FILE_ID'].split(',') if x.strip()]
             srcs = []
-            for n, fid in enumerate(ids):
-                srcs.append(os.path.join(tmp, 'input%02d.mp4' % n))
-                tg_download(fid, srcs[-1])
+            for n, fid in enumerate(ids):   # 「p:」開頭的是照片
+                srcs.append(os.path.join(tmp, 'input%02d.%s' % (n, 'jpg' if fid.startswith('p:') else 'mp4')))
+                tg_download(fid[2:] if fid.startswith('p:') else fid, srcs[-1], '照片' if fid.startswith('p:') else '影片')
+        # 照片：每張先做成一段幾秒的影片，再跟影片一起接起來
+        pics = [x for x in srcs if x.lower().endswith(IMG_EXT)]
+        if pics:
+            sec = photo_sec(a.note, len(pics))
+            a.note = re.sub(r'(?:每|一)張\s*\d+(?:\.\d+)?\s*秒', '', a.note or '')   # 不要被當成整支的秒數
+            size = (1920, 1080) if (a.mode == 'long' and len(pics) == len(srcs)) else (1080, 1920)
+            srcs = [photo_clip(x, os.path.join(tmp, 'photo%02d.mp4' % n), sec, size) if x in pics else x for n, x in enumerate(srcs)]
+            if len(pics) == len(srcs):
+                PHOTOS = [[i * sec, (i + 1) * sec] for i in range(len(srcs))]
+            log('照片 %d 張，每張 %.1f 秒' % (len(pics), sec))
         src = srcs[0] if len(srcs) == 1 else join_sources(srcs, tmp)
         tr = json.load(open(a.transcript, encoding='utf-8')) if a.transcript else None
         info = make(src, a.out, a.note, tr, a.style, a.mode, a.music_file, a.kind)
@@ -1449,6 +1495,7 @@ def main():
             silent = info['kind'] == 'silent'
             cap += '\n' + '、'.join(x for x in ['大片 %d×%d' % (W, H) if MODE == 'long' else 'Reels 直式 9:16',
                                                 '教學框' if FRAME else '',
+                                                '照片 %d 張' % len(PHOTOS) if PHOTOS else '',
                                                 '靜音剪' if silent else '口播剪',
                                                 ('文字動畫' if silent else {'both': '中英字幕', 'zh': '中文字幕', 'en': '英文字幕'}.get(info['subs_lang'], '')) if info['subs'] else '',
                                                 ('運鏡＋轉場' if silent else '推近鏡頭') if info['fx'] and not info.get('fx_desc') else '',
