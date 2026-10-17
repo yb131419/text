@@ -2690,8 +2690,17 @@ function handleTelegram_(update) {
     const rv = reelsRevise_(msg, text);
     if (rv) return reelsRun_(chatId, rv.fileId, rv.note, rv.ver, rv.ack, rv.mode, rv.kind);
   }
-  // 傳一張喜歡的影片截圖（按了「🎬 剪 Reels」後，或說明有「風格」）：學下字幕的樣子，之後都照這個剪
-  if (owner && chatId === owner && fileId && (reelsPending_() || /風格/.test(text))) return reelsStyle_(chatId, fileId, doc);
+  // 照片也能剪 Reels（使用者 2026-10-17）：按了剪片按鈕後傳的照片，或照片說明寫「剪 Reels」，排進去一起剪；說明寫「風格」才是學字幕風格
+  if (owner && chatId === owner && fileId && !/風格/.test(text) && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date)))
+    return reelsAdd_(chatId, { file_id: 'p:' + fileId, photo: true }, text);
+  if (owner && chatId === owner && !fileId && /^(最後一張是風格截圖|學最後一張的風格)$/.test(rk)) {
+    const q = reelsQueue_(), last = q.ids[q.ids.length - 1] || '';
+    if (!/^p:/.test(last)) return tgSend_(chatId, '🎨 最後收到的不是照片，請把截圖重新傳一次，說明寫「風格」。');
+    q.ids.pop(); setProp_('REELS_Q', JSON.stringify(q));
+    return reelsStyle_(chatId, last.slice(2), null);
+  }
+  // 傳一張喜歡的影片截圖（說明有「風格」）：學下字幕的樣子，之後都照這個剪
+  if (owner && chatId === owner && fileId && /風格/.test(text)) return reelsStyle_(chatId, fileId, doc);
   // 設定 GitHub 金鑰（剪 Reels 要用）：打完就把那則訊息刪掉
   const gk = text.match(/^設定\s*GitHub\s*金鑰\s*(\S+)$/i);
   if (owner && chatId === owner && gk) {
@@ -4594,10 +4603,10 @@ function reelsAsk_(t) {
     + '大片會保留整支影片的內容和原本的橫直，只剪掉停頓和口誤，上中文字幕、開頭動畫字卡、配樂。\n\n'
     + '影片說明可以寫要求，例如：\n・中英字幕\n・標題：準提佛祖開運加持\n・不要配樂，或配樂要溫暖鋼琴／禪意\n' + mine
     + '\n剪好後長按影片按「回覆」說要改哪裡，就會再剪一版。';
-  return '🎬 好！10 分鐘內把影片傳給我（按左下角的迴紋針 📎 選影片，可以一次選好幾支），傳完選一種剪法：\n' + REELS_KIND_TIP + '\n\n'
+  return '🎬 好！10 分鐘內把影片或照片傳給我（按左下角的迴紋針 📎，可以一次選好幾個，最多 ' + REELS_MAX + ' 個；只傳照片也可以，會做成照片 Reels），傳完選一種剪法：\n' + REELS_KIND_TIP + '\n\n'
     + '影片說明可以順便寫要求，例如：\n・30秒\n・標題：我想要做短影音\n・只要中文字幕／不要字幕\n・不要特效／不要進度條\n・不要配樂，或配樂要輕快／溫暖鋼琴／大氣／禪意\n' + mine + '\n'
     + '沒寫就照預設：直式 9:16、口播最長 60 秒、靜音約 20 秒、依氣氛挑配樂、上方進度條。\n'
-    + '先傳一張喜歡的影片截圖，小乖會學那個字幕風格。\n'
+    + '想學某支影片的字幕風格：傳截圖時說明寫「風格」。\n'
     + '剪好後長按影片按「回覆」說要改哪裡，就會再剪一版。';
 }
 function reelsMusic_(chatId, music) {
@@ -4614,18 +4623,24 @@ const REELS_MAX = 10;
 const REELS_GO_BTN = '✂️ 開始剪';
 const REELS_TALK_BTN = '🎤 口播剪', REELS_SILENT_BTN = '🎵 靜音剪';
 const REELS_KIND_TIP = '・' + REELS_TALK_BTN + '：影片裡有人講話。上字幕、剪掉停頓和口誤、推近鏡頭、重點字卡跳出來。\n'
-  + '・' + REELS_SILENT_BTN + '：沒有講話的畫面（產品、活動、風景）。跟著配樂節奏切、轉場特效、運鏡、文字動畫。\n'
+  + '・' + REELS_SILENT_BTN + '：沒有講話的畫面（產品、活動、風景、照片）。跟著配樂節奏切、轉場特效、運鏡、文字動畫。\n'
   + '・' + REELS_GO_BTN + '：小乖自己判斷有沒有人講話。';
 function reelsQueue_() {
   try { const q = JSON.parse(prop_('REELS_Q') || 'null'); if (q && q.ids && Date.now() - (q.at || 0) < 60 * 60 * 1000) return q; } catch (e) { /* 壞掉就重來 */ }
   return { ids: [], note: '', sec: 0, mode: '', kind: '', at: 0 };
 }
+// 收到幾支影片、幾張照片（照片的編號前面有「p:」）
+function reelsCount_(ids) {
+  const p = ids.filter(x => /^p:/.test(x)).length, v = ids.length - p;
+  return [v ? v + ' 支影片' : '', p ? p + ' 張照片' : ''].filter(Boolean).join('、');
+}
+const REELS_STYLE_BTN = '🎨 最後一張是風格截圖';
 function reelsAdd_(chatId, video, note) {
-  if (video.file_size && video.file_size > 20 * 1024 * 1024) {
+  if (!video.photo && video.file_size && video.file_size > 20 * 1024 * 1024) {
     return tgSend_(chatId, '🎬 這支影片超過 20MB，Telegram 不讓機器人下載。請傳影片時選「壓縮」（不要用檔案傳），或先剪短一點再傳。其他影片照樣收著。');
   }
   const q = reelsQueue_();
-  if (q.ids.length >= REELS_MAX) return tgSend_(chatId, { text: '🎬 已經收到 ' + REELS_MAX + ' 支了（最多 ' + REELS_MAX + ' 支），選一種剪法開始剪。', buttons: [[REELS_TALK_BTN, REELS_SILENT_BTN], [REELS_GO_BTN]] });
+  if (q.ids.length >= REELS_MAX) return tgSend_(chatId, { text: '🎬 已經收到 ' + REELS_MAX + ' 個了（影片和照片加起來最多 ' + REELS_MAX + ' 個），選一種剪法開始剪。', buttons: [[REELS_TALK_BTN, REELS_SILENT_BTN], [REELS_GO_BTN]] });
   note = String(note || '').trim();
   if (!q.mode) q.mode = /大片/.test(note) ? 'long' : /reels/i.test(note) ? 'reels' : (prop_('REELS_MODE') || 'reels');
   else if (/大片/.test(note)) q.mode = 'long';
@@ -4639,18 +4654,27 @@ function reelsAdd_(chatId, video, note) {
   setProp_('REELS_Q', JSON.stringify(q));
   setProp_('REELS_UNTIL', String(Date.now() + 10 * 60 * 1000));   // 繼續傳下一支
   const kind = q.mode === 'long' ? '🎞️ 剪大片' : '🎬 剪 Reels';
-  return tgSend_(chatId, { text: kind + '：收到第 ' + q.ids.length + ' 支影片' + (video.duration ? '（' + video.duration + ' 秒）' : '') + '。\n'
-    + '還有要一起剪的就繼續傳（照傳的順序接起來），傳完選一種剪法：\n' + REELS_KIND_TIP,
+  const onlyPhotos = q.ids.every(x => /^p:/.test(x));
+  if (video.photo) return tgSend_(chatId, { text: kind + '：收到第 ' + q.ids.length + ' 個（目前 ' + reelsCount_(q.ids) + '）。\n'
+    + '還有要一起剪的照片或影片就繼續傳（照傳的順序接起來，最多 ' + REELS_MAX + ' 個）。'
+    + (onlyPhotos ? '\n全部是照片會用' + REELS_SILENT_BTN + '：每張照片運鏡、轉場、跟著配樂、文字動畫，每張約 2.5 秒（說明寫「每張 3 秒」可以改）。傳完按「' + REELS_GO_BTN + '」。'
+      : '\n傳完選一種剪法：\n' + REELS_KIND_TIP)
+    + '\n\n這張其實是想學字幕風格的截圖？按「' + REELS_STYLE_BTN + '」。',
+    buttons: onlyPhotos ? [[REELS_GO_BTN], [REELS_STYLE_BTN, '🗑️ 重選影片']] : [[REELS_TALK_BTN, REELS_SILENT_BTN], [REELS_GO_BTN, '🗑️ 重選影片'], [REELS_STYLE_BTN]] });
+  return tgSend_(chatId, { text: kind + '：收到第 ' + q.ids.length + ' 個' + (video.duration ? '（這支 ' + video.duration + ' 秒）' : '') + '，目前 ' + reelsCount_(q.ids) + '。\n'
+    + '還有要一起剪的影片或照片就繼續傳（照傳的順序接起來），傳完選一種剪法：\n' + REELS_KIND_TIP,
     buttons: [[REELS_TALK_BTN, REELS_SILENT_BTN], [REELS_GO_BTN, '🗑️ 重選影片']] });
 }
 function reelsGo_(chatId, kind) {
   const q = reelsQueue_();
   kind = kind === 'talk' || kind === 'silent' ? kind : (q.kind || 'auto');
+  const onlyPhotos = q.ids.length && q.ids.every(x => /^p:/.test(x));
+  if (onlyPhotos) kind = 'silent';   // 照片沒有人講話
   setProp_('REELS_Q', '');
   setProp_('REELS_UNTIL', '0');
-  const n = q.ids.length, sec = q.sec ? '（共 ' + q.sec + ' 秒）' : '';
-  const what = n > 1 ? n + ' 支影片' + sec + '接起來' : '影片' + sec;
-  const how = kind === 'silent' ? '靜音剪：跟著配樂節奏切、轉場特效、運鏡、文字動畫'
+  const n = q.ids.length, sec = q.sec ? '（影片共 ' + q.sec + ' 秒）' : '';
+  const what = onlyPhotos ? n + ' 張照片' : n > 1 ? reelsCount_(q.ids) + sec + '接起來' : '影片' + sec;
+  const how = onlyPhotos ? '每張照片運鏡、轉場、跟著配樂、文字動畫' : kind === 'silent' ? '靜音剪：跟著配樂節奏切、轉場特效、運鏡、文字動畫'
     : kind === 'talk' ? '口播剪：剪掉停頓和口誤、上字幕、推近鏡頭、動畫字卡' : '自動判斷有沒有人講話，再選口播剪或靜音剪';
   return reelsRun_(chatId, q.ids.join(','), q.note, 1,
     q.mode === 'long'
