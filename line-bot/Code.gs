@@ -5304,7 +5304,8 @@ function fbPost_(job) {
     const p = fbCall_('post', pg + '/photos', { source: blob(md[0]), message: cap });
     return 'https://www.facebook.com/' + (p.post_id || p.id);
   }
-  const ids = md.map(m => fbCall_('post', pg + '/photos', { source: blob(m), published: 'false' }).id);
+  // FB 的相片會照上傳時間「新的在上」排：從最後一張先傳，第 1 張最後傳，看起來才是 1 在最上面；貼文本身仍照 attached_media 的順序
+  const ids = md.slice().reverse().map(m => fbCall_('post', pg + '/photos', { source: blob(m), published: 'false' }).id).reverse();
   const params = { message: cap };
   ids.forEach((id, i) => { params['attached_media[' + i + ']'] = JSON.stringify({ media_fbid: id }); });
   return 'https://www.facebook.com/' + fbCall_('post', pg + '/feed', params).id;
