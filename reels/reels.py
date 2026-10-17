@@ -108,7 +108,7 @@ def subs_check(joined, out, ass, work):
 
 # ---------------- 讀說明：時間長度、配樂、字幕選項 ----------------
 DEFAULTS = {
-    'target': 60, 'music': True, 'subs': 'zh',   # 預設只放中文大字幕（使用者 2026-10-17：字幕太小、排版太亂）；說明寫「中英」才加英文
+    'target': 60, 'music': True, 'subs': 'both',   # 預設中英都放（使用者 2026-10-17）
     'mood': '', 'title': '',
     'jumpcut': True,        # 剪掉講話中間的停頓
     'cards': True,          # 動畫字卡：開頭打字標題、標籤打勾、重點跳出來
@@ -135,7 +135,7 @@ def clamp_opt(opt):
     if opt.get('sub_pos') not in POS_Y:
         opt['sub_pos'] = 'lower'
     if opt.get('subs') not in ('both', 'zh', 'en', 'none'):
-        opt['subs'] = 'zh'
+        opt['subs'] = 'both'
     for k in ('sub_color', 'sub_outline', 'accent'):
         if not re.match(r'^#[0-9A-Fa-f]{6}$', str(opt.get(k) or '')):
             opt[k] = DEFAULTS[k]
@@ -1019,7 +1019,7 @@ def build_ass(plan, segs, spans, opt, total, path):
     z = min(W, H) / 1080   # 依畫面大小縮放（直式 1080×1920 時是 1）
     land = W > H
     k = opt['sub_size'] * z * (.82 if land else 1)
-    fs, fs_en = int(150 * k), int(64 * k)   # 大字幕：一個字約 100px 寬、一行最多 8 個字（原本 74 太小）
+    fs, fs_en = int(150 * k), int(72 * k)   # 大字幕：一個字約 100px 寬、一行最多 8 個字（原本 74 太小）
     box = opt['sub_box']
     mv = int(LAND_Y[opt['sub_pos']] * H) if land else int(POS_Y[opt['sub_pos']] * H / 1920)
     px = lambda v: max(1, int(v * z))
