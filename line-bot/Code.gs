@@ -2598,7 +2598,7 @@ const VOICES = [['nova', '原本', '明亮親切'], ['shimmer', '柔和', '輕�
 const VOICE_OK = ['nova', 'shimmer', 'coral', 'sage', 'ash', 'alloy', 'ballad', 'verse', 'fable', 'echo', 'onyx'];
 function ttsVoice_() {
   if (!prop_('VOICE_RESET_V2')) { setProp_('TTS_VOICE', 'nova'); setProp_('VOICE_RESET_V2', '1'); }   // 一次性換回原本的 nova
-  if (!prop_('VOICE_RESET_V3')) { setProp_('TTS_VOICE', 'shimmer'); setProp_('VOICE_RESET_V3', '1'); }   // 2026-10-17 使用者要預設「柔和」年輕女生的聲音（一次性）
+  if (!prop_('VOICE_RESET_V4')) { setProp_('TTS_VOICE', 'nova'); setProp_('VOICE_RESET_V3', '1'); setProp_('VOICE_RESET_V4', '1'); }   // 2026-10-17 使用者改要「明亮親切」女聲、說話輕柔（一次性）
   const v = prop_('TTS_VOICE');
   return VOICE_OK.indexOf(v) >= 0 ? v : 'nova';
 }
@@ -2642,6 +2642,7 @@ function tts_(text, format) {
       model: prop_('TTS_MODEL') || 'gpt-4o-mini-tts', voice: ttsVoice_(), input: text,
       instructions: ttsVoice_() === 'shimmer'
         ? '用台灣口音的中文，像二十出頭的年輕女生，聲音柔和、甜美、輕聲細語，像貼心的女生助理在身邊說話；語氣放鬆、不要太亢奮，速度稍慢一點，句子之間自然停頓。'
+        : ttsVoice_() === 'nova' ? '用台灣口音的中文，像明亮親切的年輕女生助理，聲音輕柔、溫柔、帶點笑意，不要太大聲或太亢奮，速度適中、句子之間自然停頓。'
         : ttsVoice_() === 'ash' ? '用台灣口音的中文，語氣親切、自然、像貼心的助理，速度適中。'
         : '用台灣口音的中文，像溫柔親切的年輕女生助理，語氣甜美自然、帶點笑意，速度適中。', response_format: format || 'opus',
     }),
