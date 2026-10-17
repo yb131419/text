@@ -323,15 +323,22 @@ def ask_ai(system, user, images=None):
 RULE_REELS = '''1. 挑出要保留的句子，總長不超過 {target} 秒（原片比較短就全部留，只刪口誤、重複、無意義的句子）。
    要挑最吸引人、意思完整、前後接得起來的段落，第一句最好能抓住注意力。保留的句子照原本順序。'''
 RULE_LONG = '''1. 這是完整的長影片（剪大片）：保留全部句子，只刪掉口誤、講錯重講、重複和沒有意義的句子，不要刪內容，照原本順序。'''
+# 停留率（使用者 2026-10-17 給的「會成交的限動，不是一直推銷」圖卡）：反骨開頭留人，再照「問題 → 方法 → 需要」三步走，不推銷
+HOOK_LOGIC = '''【內容邏輯，一定要照做】這支影片的目的不是推銷，是讓看的人慢慢產生三個念頭：
+   ①「原來我有這個問題」→ ②「原來你有方法可以解決」→ ③「我好像真的需要這個」。
+   標題（第一秒就出現）用反骨句推翻大家以為對的常識，例如「會成交的限動，**不是一直推銷**」「你越努力存錢，**越存不到錢**」，用 ** 標出翻轉的那幾個字；
+   不要用「今天跟大家分享」「你知道嗎」這種平淡開頭。
+   字幕前段點出一個大家都有的生活問題讓人對號入座，中段給一個簡單的方法或觀念，後段讓人覺得「這跟我有關」；
+   不叫人買、不報價、不寫產品功效，也不寫療效、收入或業績保證。'''
 PLAN_PROMPT = '''你是影片剪輯師，幫一位台灣的直銷事業經營者剪影片。
 會給你影片逐句辨識結果（i 是編號，秒數是時間），和使用者的說明。請：
 {rule}
 2. 每一句改成字幕：繁體中文（台灣用語），依上下文修正辨識錯字，句尾不加標點；
    拆成短句，一行 4～8 個字（字幕是大字，太長會擠成兩行）、照說話的停頓斷句（像抖音、Reels 那種一句一句跳出來的字幕）。
    每行附上自然口語的英文翻譯；中文每行可以用 ** 標出最多一個重點詞（例如「每天**三分鐘**」），不是每行都要標。
-3. 想一個 12 個字以內、像在跟 AI 下指令或抓住注意力的開頭標題（使用者說明裡有指定標題就用那個）。
+3. 想一個 14 個字以內的反骨開頭標題（照下面的內容邏輯；使用者說明裡有指定標題就用那個）。
 4. 挑 3～4 個影片重點標籤，每個 2～4 個字（例如：字幕、剪輯、動畫、字卡）。
-5. 挑 1～3 句最重要的話做重點字卡：給那句的 i 和 10 個字以內的重點。
+5. 挑 1～3 句最重要的話做重點字卡：給那句的 i 和 10 個字以內的重點（最好是「問題」「方法」「需要」那幾個轉折點）。
 6. 寫一段 IG 貼文文案（3～5 行，繁體中文，結尾 5 個 hashtag）。
 7. 依影片內容和氣氛，從這些配樂挑最適合的一首，只寫名稱：{moods}
 8. 看這支影片的內容和氣氛，自己決定動畫和特效（每支影片要不一樣，配合內容，不要亂加）：
@@ -339,6 +346,7 @@ PLAN_PROMPT = '''你是影片剪輯師，幫一位台灣的直銷事業經營者
    keep 每句另外給 fx，只有重點、情緒高、轉折的句子才加（大約三分之一的句子），其他給空字串：
    zoom 推近鏡頭（強調）／push 慢慢推近（娓娓道來、感動）／shake 震動（驚訝、超重要）／flash 閃白（換話題、轉折）。
 9. 把保留的句子依內容分成 2～5 個段落（像教學影片的「第一步、第二步」），每段給開始那句的 i 和 4～8 個字的小標 name（不用寫編號）。
+{hook}
 {wish}只回 JSON：{{"title": "", "tags": [""], "keep": [{{"i": 0, "fx": "", "lines": [{{"zh": "", "en": ""}}]}}], "pops": [{{"i": 0, "text": ""}}], "music": "", "look": "", "sub_anim": "", "sections": [{{"i": 0, "name": ""}}], "post": ""}}'''
 
 FX_MENU = '''   look 調色，挑一個：clean 自然清爽／warm 溫暖（生活、感恩、家人）／cool 冷調（專業、科技）／vivid 鮮豔（活力、促銷）／film 電影感（故事、見證）／soft 柔和（療癒、女性、保養）
@@ -367,7 +375,7 @@ def plan_clips(segs, opt, note):
     lines = '\n'.join('i=%d [%.1f-%.1f] %s' % (i, s['start'], s['end'], s['text']) for i, s in enumerate(segs))
     wish = '使用者另外的要求：%s\n' % opt['wish'] if opt.get('wish') else ''
     rule = (RULE_LONG if opt['mode'] == 'long' else RULE_REELS).format(target=opt['target'])
-    plan = ask_ai(PLAN_PROMPT.format(rule=rule, wish=wish, moods='／'.join(music_names()) or '（無）', fx_menu=FX_MENU),
+    plan = ask_ai(PLAN_PROMPT.format(rule=rule, wish=wish, hook=HOOK_LOGIC, moods='／'.join(music_names()) or '（無）', fx_menu=FX_MENU),
                   '使用者說明：%s\n\n逐句辨識：\n%s' % (note or '（無）', lines))
     keep, total, seen = [], 0.0, set()
     for k in plan.get('keep') or []:
@@ -403,7 +411,7 @@ def plan_clips(segs, opt, note):
         if name and j is not None and j not in [y['i'] for y in secs]:
             secs.append({'i': j, 'name': name})
     secs.sort(key=lambda x: x['i'])
-    return {'title': opt['title'] or (plan.get('title') or '').strip()[:16], 'keep': keep, 'tags': tags, 'sections': secs[:5],
+    return {'title': opt['title'] or (plan.get('title') or '').strip()[:22], 'keep': keep, 'tags': tags, 'sections': secs[:5],
             'pops': pops[:3], 'post': (plan.get('post') or '').strip(), 'music': str(plan.get('music') or '').strip(),
             'look': pick(plan.get('look'), LOOKS, 'clean'), 'sub_anim': pick(plan.get('sub_anim'), SUB_ANIMS, 'pop')}
 
@@ -589,10 +597,10 @@ def vf(zoom=1.0, move='', L=0, p=(0, 1), zp=''):
 # ---------------- 靜音剪：配樂卡點、運鏡、轉場 ----------------
 SILENT_PROMPT = '''你是爆款短影音剪輯師，幫一位台灣的直銷事業經營者把「沒有人講話」的影片剪成短影音（像萬人按讚的那種）。
 會給你影片裡的幾張畫面和使用者說明。請：
-1. 想一個 12 個字以內、抓住注意力的開頭標題（說明裡有指定標題就用那個）。
-2. 依畫面內容和說明，寫 {n} 句畫面字幕，每句 5～8 個字，照影片順序、像在說一個小故事、有節奏感；
+1. 想一個 14 個字以內的反骨開頭標題（照下面的內容邏輯；說明裡有指定標題就用那個）。
+2. 依畫面內容和說明，寫 {n} 句畫面字幕，每句 5～8 個字，照影片順序、照「問題 → 方法 → 需要」的順序，像在說一個小故事、有節奏感；
    每句用 ** 標出一個重點詞（例如「每天 **3 分鐘**」），並附上自然口語的英文翻譯（en，不用標 **）。
-3. 結尾一句行動呼籲，12 個字以內（例如「想知道更多 **留言** 告訴我」）。
+3. 結尾一句 12 個字以內的收尾，讓人想一想或想存起來，不推銷（例如「你也是 **這樣** 嗎？」「先 **存起來** 慢慢看」）。
 4. 3～4 個重點標籤，每個 2～4 個字。
 5. 依畫面氣氛，從這些配樂挑最適合的一首，只寫名稱：{moods}
 6. 一段 IG 貼文文案（3～5 行，繁體中文，結尾 5 個 hashtag）。
@@ -601,6 +609,7 @@ SILENT_PROMPT = '''你是爆款短影音剪輯師，幫一位台灣的直銷事�
    moves 每段運鏡，照順序給 4～8 個：in 推近／out 拉遠／right 往右移／left 往左移／up 往上移／down 往下移／shake 震動
    trans 段落之間的轉場，照順序給 3～8 個：{trans}
 不可以寫療效、治療、收入或業績保證；「私訊」一律改說「留言」。繁體中文（台灣用語）。
+{hook}
 {wish}只回 JSON：{{"title": "", "caps": [{{"zh": "", "en": ""}}], "cta": "", "tags": [""], "music": "", "look": "", "sub_anim": "", "moves": [""], "trans": [""], "post": ""}}'''
 
 MUSIC_BPM = {'陽光吉他': 106, '輕快生活': 88, '浪漫鋼琴': 93, '療癒琴聲': 80, '活力節奏': 131,
@@ -639,11 +648,11 @@ def silent_plan(src, dur, opt, note, work, n_caps):
     if not os.environ.get('OPENAI_API_KEY'):
         return base
     wish = '使用者另外的要求：%s\n' % opt['wish'] if opt.get('wish') else ''
-    p = ask_ai(SILENT_PROMPT.format(n=n_caps, moods='／'.join(music_names()) or '（無）', wish=wish, fx_menu=FX_MENU,
+    p = ask_ai(SILENT_PROMPT.format(n=n_caps, moods='／'.join(music_names()) or '（無）', wish=wish, hook=HOOK_LOGIC, fx_menu=FX_MENU,
                                     trans='／'.join('%s %s' % kv for kv in TRANS.items())),
                '使用者說明：%s' % (note or '（無）'), frames_b64(src, dur, work))
     fix = lambda v: str(v or '').replace('私訊', '留言').strip()
-    base.update({'title': opt['title'] or fix(p.get('title'))[:16], 'cta': fix(p.get('cta'))[:20],
+    base.update({'title': opt['title'] or fix(p.get('title'))[:22], 'cta': fix(p.get('cta'))[:20],
                  'caps': [c for c in (cap_line(x, fix) for x in (p.get('caps') or [])) if c['zh']][:n_caps],
                  'tags': [fix(t)[:5] for t in (p.get('tags') or []) if fix(t)][:4],
                  'music': fix(p.get('music')), 'post': fix(p.get('post'))})
