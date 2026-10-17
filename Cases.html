@@ -207,7 +207,7 @@ function card(x){const c=document.createElement('div');c._x=x;c.className='card'
  const bg=document.createElement('div');bg.className='badge';bg.innerHTML='<b></b>';bg.firstChild.textContent=x.kind||'';bg.append(x.day?'　'+x.day:'');th.appendChild(bg);
  const pin=document.createElement('button');pin.className='pin'+(x.star?' on':'');pin.textContent='★';pin.setAttribute('aria-label','常用');pin.onclick=e=>{e.stopPropagation();star(x);};th.appendChild(pin);
  const ck=document.createElement('span');ck.className='ck';th.appendChild(ck);if(SEL.has(x.k))c.classList.add('pk');
- const bd=document.createElement('div');bd.className='bd';const ct=document.createElement('div');ct.className='cat';ct.textContent=x.cat||'文字見證';const tx=document.createElement('p');tx.className='tx';tx.textContent=x.cap||'（沒有說明）';bd.append(ct,tx);
+ const bd=document.createElement('div');bd.className='bd';const ct=document.createElement('div');ct.className='cat';ct.textContent=x.cat||'文字';const tx=document.createElement('p');tx.className='tx';tx.textContent=x.cap||'（沒有說明）';bd.append(ct,tx);
  if(x.tags){const t=document.createElement('div');t.className='tg';t.textContent=x.tags;bd.appendChild(t);}
  c.append(th,bd);c.onclick=()=>{if(selOn){pick(x,c);return;}open(x);};c.onkeydown=e=>{if(e.key==='Enter')c.onclick();};return c;}
 // 打勾多筆刪除：按「選取」→ 點卡片打勾 →「刪除」→ 確定（使用者 2026-10-17）
