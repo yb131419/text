@@ -3,6 +3,9 @@
 //   GET  驗證：verify_token 對了就原樣回 challenge
 //   POST 通知：（有設 APP_SECRET 就先驗簽章）馬上回 200 給 Meta，再把內容加上 relay 通關密碼轉給小乖的 Apps Script
 // 要在 Cloudflare 設定的變數：APPS_URL、RELAY_KEY、VERIFY_TOKEN（傳「留言設定」給小乖就會看到），APP_SECRET（Meta 應用程式密鑰，建議設）
+// TikTok 圖卡（傳「TK圖卡」給小乖看步驟）：TikTok 只從驗證過的網址抓圖，所以圖卡經過這裡轉
+//   GET /tiktok….txt  回 TK_VERIFY（TikTok「URL prefix」驗證檔裡的那一行）
+//   GET /img/<雲端硬碟檔案 id>  轉發小乖發文暫存的圖片（只轉圖片）
 export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
@@ -10,6 +13,14 @@ export default {
       if (u.searchParams.get('hub.mode') === 'subscribe') {
         if (u.searchParams.get('hub.verify_token') !== env.VERIFY_TOKEN) return new Response('verify token 不對', { status: 403 });
         return new Response(u.searchParams.get('hub.challenge') || '');
+      }
+      if (/^\/tiktok[\w-]*\.txt$/.test(u.pathname) && env.TK_VERIFY) return new Response(env.TK_VERIFY, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+      const img = u.pathname.match(/^\/img\/([\w-]{20,})$/);
+      if (img) {
+        const r = await fetch('https://lh3.googleusercontent.com/d/' + img[1]);
+        const type = r.headers.get('content-type') || '';
+        if (!r.ok || !/^image\//.test(type)) return new Response('not found', { status: 404 });
+        return new Response(r.body, { headers: { 'Content-Type': type, 'Cache-Control': 'no-store' } });
       }
       return new Response('小乖中繼站運作中');
     }
