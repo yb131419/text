@@ -124,6 +124,8 @@ DEFAULTS = {
     'sfx': True,            # 音效：打字聲、字卡「啵」、重點「叮」、轉場「咻」
     'layout': 'full',       # full 滿版；frame 教學框（綠底、畫面縮在中間圓角框、上方黑底標題框、右上名牌、結尾重點整理）
     'tag': '彥彬｜生活筆記',  # 教學框右上角的名牌
+    'voice': True,          # 靜音剪、照片 Reels 加台灣腔配音（唸標題、每句字幕、結尾）；有人講話的影片不加
+    'voice_male': False,    # 說明寫「男聲」改男生的聲音
 }
 POS_Y = {'bottom': 320, 'lower': 430, 'middle': 820, 'upper': 1250}   # 字幕底邊離畫面最下面的距離（使用者 2026-10-17：再往下一點，留給 IG 下方按鈕的空間）
 
@@ -139,7 +141,7 @@ def clamp_opt(opt):
     for k in ('sub_color', 'sub_outline', 'accent'):
         if not re.match(r'^#[0-9A-Fa-f]{6}$', str(opt.get(k) or '')):
             opt[k] = DEFAULTS[k]
-    for k in ('music', 'jumpcut', 'cards', 'sub_box', 'bar', 'fx', 'sfx'):
+    for k in ('music', 'jumpcut', 'cards', 'sub_box', 'bar', 'fx', 'sfx', 'voice', 'voice_male'):
         opt[k] = bool(opt.get(k))
     if opt.get('kind') not in ('talk', 'silent'):
         opt['kind'] = 'auto'
@@ -218,6 +220,10 @@ def parse_note(note, mode='reels', kind='auto'):
         opt['cards'] = False
     if re.search(r'(不要|無|沒有|免|關掉?)\s*音效', note):
         opt['sfx'] = False
+    if re.search(r'(不要|無|沒有|免|關掉?)\s*(配音|旁白|語音|人聲)', note):
+        opt['voice'] = False
+    if re.search(r'男(聲|生|的聲音)', note):
+        opt['voice_male'] = True
     if re.search(r'(不要|無|沒有|免|關掉?)\s*字幕', note):
         opt['subs'] = 'none'
     elif re.search(r'中英|雙語|加英文', note):
@@ -1019,7 +1025,7 @@ def build_ass(plan, segs, spans, opt, total, path):
     z = min(W, H) / 1080   # 依畫面大小縮放（直式 1080×1920 時是 1）
     land = W > H
     k = opt['sub_size'] * z * (.82 if land else 1)
-    fs, fs_en = int(128 * k), int(64 * k)   # 大字幕：一個字約 90px 寬、一行最多 8 個字（原本 74 太小，150 又太大）
+    fs, fs_en = int(112 * k), int(56 * k)   # 大字幕：一個字約 78px 寬（使用者 2026-10-17 一路調：74 太小、150 太大、128 再縮一號）
     box = opt['sub_box']
     mv = int(LAND_Y[opt['sub_pos']] * H) if land else int(POS_Y[opt['sub_pos']] * H / 1920)
     px = lambda v: max(1, int(v * z))
@@ -1047,7 +1053,7 @@ def build_ass(plan, segs, spans, opt, total, path):
             FONT, px(44), ass_color(opt['accent']), px(12)),
         # 靜音剪的畫面字幕：大字、粗描邊，重點詞換亮色，彈出來
         'Style: Cap,%s,%d,&H00FFFFFF,&H00FFFFFF,&H00141414,&H64000000,-1,0,0,0,100,100,2,0,1,%d,%d,5,60,60,0,1' % (
-            FONT, px(128 if not land else 90), px(10), px(5)),
+            FONT, px(112 if not land else 84), px(9), px(5)),
         # 進度條
         'Style: Bar,%s,10,%s,%s,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1' % (
             FONT, ass_color(opt['accent']), ass_color(opt['accent'])),
@@ -1208,7 +1214,59 @@ def sfx_inputs(events, total, first):
     return args, ';'.join(fc)
 
 
-def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean', pad=0):
+VOICE = {False: ('zh-TW-HsiaoChenNeural', 'nova'), True: ('zh-TW-YunJheNeural', 'onyx')}   # 台灣腔：微軟台灣女聲／男聲；備用 OpenAI
+VOICE_HINT = '用台灣口音的國語，像朋友在分享生活小事，親切自然、有起伏，語速稍快，不要播音腔。'
+
+
+def tts(text, path, male=False):
+    """台灣腔配音（使用者 2026-10-17：不要機械音）。先用微軟台灣聲音（edge-tts），不行再用 OpenAI 語音。成功回傳 True。"""
+    ms, oa = VOICE[bool(male)]
+    try:
+        subprocess.run([sys.executable, '-m', 'edge_tts', '--voice', ms, '--rate=+6%', '--text', text, '--write-media', path],
+                       capture_output=True, timeout=60, check=True)
+        if os.path.getsize(path) > 1000:
+            return True
+    except Exception as e:   # noqa: BLE001
+        log('微軟配音失敗：', type(e).__name__)
+    if not os.environ.get('OPENAI_API_KEY'):
+        return False
+    body = {'model': 'gpt-4o-mini-tts', 'voice': oa, 'input': text, 'instructions': VOICE_HINT, 'response_format': 'mp3'}
+    req = urllib.request.Request('https://api.openai.com/v1/audio/speech', data=json.dumps(body).encode(),
+                                 headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % os.environ['OPENAI_API_KEY']})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r, open(path, 'wb') as f:
+            f.write(r.read())
+        return os.path.getsize(path) > 1000
+    except Exception as e:   # noqa: BLE001
+        log('OpenAI 配音失敗：', type(e).__name__)
+        return False
+
+
+def voiceover(plan, opt, total, work):
+    """把標題、每句畫面字幕、結尾那句唸出來，各放在出現的時間點；比時段長就稍微加快（最多 1.35 倍）。回傳 [(秒, 檔, 速度)]。"""
+    lines = []
+    if plan.get('title'):
+        lines.append((.2, min(opt['title_sec'], total), plan['title']))
+    lines += [(a, b, cap_line(c)['zh']) for a, b, c in plan.get('caps_t') or []]
+    if plan.get('cta_t'):
+        lines.append(plan['cta_t'])
+    out = []
+    for n, (a, b, t) in enumerate(lines):
+        t = re.sub(r'\*\*|[{}\\]', '', str(t or '')).strip()
+        if not t or a >= total - .3:
+            continue
+        f = os.path.join(work, 'vo%d.mp3' % n)
+        if not tts(t, f, opt.get('voice_male')):
+            if not out:
+                return []   # 第一句就失敗：這支不加配音
+            continue
+        d = float(json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-of', 'json', f]))['format']['duration'])
+        room = max(.5, min(b, total) - a)
+        out.append((a, f, max(1.0, min(1.35, d / room))))
+    return out
+
+
+def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean', pad=0, voice=None):
     # 控制檔案大小，Telegram 機器人傳影片上限 50MB
     kbps = int(min(6000, (TG_LIMIT * 8 / 1000) / max(total, 1) - 200))
     vf = "[0:v]%s%sass='%s'[v]" % ('tpad=stop_mode=clone:stop_duration=%.2f,' % pad if pad else '',   # 教學框結尾停在最後一格放重點整理
@@ -1220,16 +1278,31 @@ def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx
         cmd += ['-stream_loop', '-1', '-i', music]
     fx_args, fx_fc = sfx_inputs(sfx or [], total, 2 if music else 1)
     cmd += fx_args
+    # 配音：每句延遲到出現的時間點，混成一軌 [vo]；配樂遇到配音會自動壓低
+    voice = voice or []
+    v0 = (2 if music else 1) + len(fx_args) // 2
+    vo_fc = ''
+    for j, (t, f, tempo) in enumerate(voice):
+        cmd += ['-i', f]
+        ms = int(max(0, t) * 1000)
+        vo_fc += '[%d:a]aresample=48000,aformat=channel_layouts=stereo,%svolume=1.5,adelay=%d|%d[vo%d];' % (
+            v0 + j, 'atempo=%.3f,' % tempo if tempo > 1.01 else '', ms, ms, j)
+    if voice:
+        vo_fc += '%samix=inputs=%d:normalize=0:duration=longest%s' % (
+            ''.join('[vo%d]' % j for j in range(len(voice))), len(voice), ',asplit[vo][vok];' if music else '[vo]')
     mix = ['[s1]']
     if music:
-        # 配樂：先把每首的音量校成一樣，開頭淡入；有人講話時自動壓低（講完慢慢回來）
-        fc = (vf + ';[0:a]%sasplit[s1][s2];' % ('apad,' if pad else '') +
+        # 配樂：先把每首的音量校成一樣，開頭淡入；有人講話（或有配音）時自動壓低（講完慢慢回來）
+        key = '[vok]' if voice else '[s2]'
+        fc = (vf + ';[0:a]%s%s;' % ('apad,' if pad else '', 'anull[s1]' if voice else 'asplit[s1][s2]') + vo_fc +
               '[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-18:TP=-2:LRA=9,aresample=48000,'
               'afade=t=in:d=1.2,volume=%.2f[m0];'
-              '[m0][s2]sidechaincompress=threshold=0.03:ratio=8:attack=15:release=450[m]' % music_vol)
+              '[m0]%ssidechaincompress=threshold=0.03:ratio=8:attack=15:release=450[m]' % (music_vol, key))
         mix.append('[m]')
     else:
-        fc = vf + ';[0:a]%s[s1]' % ('apad' if pad else 'anull')
+        fc = vf + ';[0:a]%s[s1]' % ('apad' if pad else 'anull') + (';' + vo_fc if voice else '')
+    if voice:
+        mix.append('[vo]')
     if fx_fc:
         fc += ';' + fx_fc
         mix.append('[fx]')
@@ -1410,8 +1483,13 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         sfx = (list(SFX) + [(t - .25, 'whoosh') for t in (plan or {}).get('xfades') or []]) if opt['sfx'] else []
         log('音效 %d 個' % len(sfx))
         look = (plan or {}).get('look') or 'clean'
-        thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent else .35, grade=opt['fx'], sfx=sfx, look=look, pad=pad)
+        voice = voiceover(plan, opt, total, work) if silent and opt['voice'] and plan else []
+        log('配音 %d 句' % len(voice))
+        thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent and not voice else .35, grade=opt['fx'], sfx=sfx,
+                       look=look, pad=pad, voice=voice)
         fx_desc = fx_summary(plan, opt, silent)
+        if voice:
+            fx_desc = '台灣腔%s配音' % ('男聲' if opt['voice_male'] else '女聲') + ('、' + fx_desc if fx_desc else '')
         log('特效：' + (fx_desc or '無'))
         diff = subs_check(joined, out, ass, work) if n else None
         if diff is not None:
@@ -1488,7 +1566,7 @@ def main():
                                                 ('運鏡＋轉場' if silent else '推近鏡頭') if info['fx'] and not info.get('fx_desc') else '',
                                                 '配樂「%s」' % info['music'] if info['music'] else ''] if x)
             cap += ('\n\n想改哪裡，長按這支影片按「回覆」直接說，例如：'
-                    '\n・字幕大一點／放上面一點\n・開頭標題久一點\n・剪成 30 秒\n・用教學框（綠底、畫面放中間）／不要教學框\n・換溫暖鋼琴的配樂／不要配樂\n・不要特效／不要進度條'
+                    '\n・字幕大一點／放上面一點\n・開頭標題久一點\n・剪成 30 秒\n・用教學框（綠底、畫面放中間）／不要教學框\n・換溫暖鋼琴的配樂／不要配樂\n・不要特效／不要進度條\n・換男聲配音／不要配音'
                     '\n也可以先傳一首音樂給小乖當配樂。'
                     '\n也可以傳一張喜歡的影片截圖，說「我要這種風格」。')
             tg_send_video(chat, a.out, cap, a.out + '.jpg')

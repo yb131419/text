@@ -18,7 +18,10 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-noto-cjk > /dev/null
+          python3 -m pip install -q --break-system-packages edge-tts==7.3.1   # 台灣腔配音（微軟台灣聲音）
           fc-cache -f > /dev/null
+      - name: 台灣腔配音能產生
+        run: python3 -m edge_tts --voice zh-TW-HsiaoChenNeural --text 早安，今天也要好好照顧自己 --write-media /tmp/vo.mp3 && test -s /tmp/vo.mp3
       - name: 剪 Reels（直式）
         run: |
           ffmpeg -y -loglevel error -f lavfi -i testsrc=size=1280x720:rate=30:d=12 -f lavfi -i sine=d=12 -c:v libx264 -c:a aac /tmp/in.mp4
