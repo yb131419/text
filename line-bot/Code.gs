@@ -905,7 +905,7 @@ function stratSetting_(t) {
 }
 
 // 「⚙️ 設定」：列出目前的署名、標題，按「改署名／改標題」後下一句話就是新的內容
-const SET_BTNS = [['✍️ 改署名', '🪶 改標題'], ['↩️ 署名預設', '↩️ 標題預設'], ['📝 改見證說明', '↩️ 見證說明預設']];
+const SET_BTNS = [['✍️ 改署名', '🪶 改標題'], ['↩️ 署名預設', '↩️ 標題預設'], ['📝 改見證說明', '↩️ 見證說明預設'], ['💬 自動留言 開', '💬 自動留言 關']];   // 最後一列同 LEAD_ON_BTN／LEAD_OFF_BTN
 // 「➕ 新增見證」的說明文字，可以在「⚙️ 設定」改（存在指令碼屬性 CASE_GUIDE）
 const CASE_GUIDE = '接下來 10 分鐘傳的圖片、影片，都會存成【見證案例】（可以一次選好幾張）。\n傳完按「✅ 存好了」。\n\n存好後按「💬 見證案例」就能看、轉傳分享。';
 function caseGuide_() { return prop_('CASE_GUIDE') || CASE_GUIDE; }
@@ -1080,7 +1080,7 @@ function settingsMenu_(t, raw) {
   }
   if (flat === '設定' || flat === '圖卡設定') {
     return { text: ['⚙️ 圖卡設定', '', '✍️ 圖卡署名：' + cardBy_(), '🪶 文案標題：' + stratHead_() + '｜主題',
-      '📝 見證說明：' + caseGuide_().replace(/\s+/g, ' ').slice(0, 30) + '…', '',
+      '📝 見證說明：' + caseGuide_().replace(/\s+/g, ' ').slice(0, 30) + '…', '💬 自動留言（IG／FB 留言回官方 LINE）：' + (prop_('LEAD_ON') === '1' ? '開著' : '關著'), '',
       '按「改署名」「改標題」或「改見證說明」，再打新的字給我就好。'].join('\n'), buttons: SET_BTNS.concat(MENU) };
   }
   const ask = flat.match(/^改(署名|標題)$/);
