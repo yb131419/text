@@ -148,6 +148,7 @@ LINE 和 Telegram 可以兩個都接，也可以只接一個。只要 Telegram �
 1. **IG 切換成專業帳號**：IG App → 個人檔案 → 右上 ☰ →「帳號類型和工具」→「切換為專業帳號」→ 選「商業」（或「創作者」）。
 2. **建 Meta 應用程式**：https://developers.facebook.com/apps →「建立應用程式」→ 名稱「小乖發文」→ 使用案例勾「管理 Instagram 上的訊息和內容」和「管理粉絲專頁的所有內容」（Threads 能一起勾就勾「存取 Threads API」；不能一起勾就另建一個「小乖Threads」只勾 Threads）→ 商家選「我還不想連結商家資產管理組合」→ 建立。
 3. **IG 權杖**：左邊「使用案例」→ Instagram「自訂」→「使用 Instagram 登入的 API 設定」→「產生存取權杖」按「新增帳號」→ 登入 IG、允許 →「產生權杖」→ 複製（`IGAA…` 開頭）→ 在 Telegram 傳「設定 IG金鑰 那串」。
+   - 按「新增帳號」出現「無法新增在應用程式所屬企業管理平台擔任角色的用戶」（IG 掛在企業管理平台底下）：改用第 5 步的 FB 權杖，先在粉專設定把 IG 連結到粉專，權限再多加 `instagram_basic`、`instagram_content_publish`、`business_management`，同一串分別傳「設定 FB金鑰 那串」和「設定 IG金鑰 那串」。
 4. **Threads 權杖**：Threads 使用案例 →「自訂」→ 權限加 `threads_basic`、`threads_content_publish` →「設定」→「使用者權杖產生器」→「新增或移除 Threads 測試人員」把自己加進去，到 Threads App「設定 → 帳號 → 網站權限 → 邀請」接受 → 回到權杖產生器按「產生存取權杖」→ 複製（`THAA…` 開頭）→ 傳「設定 Threads金鑰 那串」。
 5. **FB 粉專權杖**：打開「圖形 API 測試工具」https://developers.facebook.com/tools/explorer → 右邊選「小乖發文」→ 權限加 `pages_show_list`、`pages_manage_posts`、`pages_read_engagement` →「Generate Access Token」→ 選你的粉專、允許 → 複製權杖 → 到「存取權杖偵錯工具」https://developers.facebook.com/tools/debug/accesstoken 貼上按「偵錯」→ 最下面按「延長存取權杖」→ 複製新的那串 → 傳「設定 FB金鑰 那串」（有好幾個粉專會讓你選要發哪一個）。
 6. **更新 Apps Script**：Code.gs 貼上新版 →「助理小乖007」→ 管理部署作業 → 鉛筆 → 新版本 → 部署。

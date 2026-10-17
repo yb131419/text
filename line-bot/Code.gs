@@ -4836,11 +4836,19 @@ function igSetToken_(tok) {
     const pages = (get('https://graph.facebook.com/' + IG_VER + '/', 'me/accounts?fields=name,access_token,instagram_business_account{id,username}&limit=50').data || [])
       .filter(p => p.instagram_business_account);
     if (!pages.length) return '📸 這個權杖找不到有綁 IG 的粉專。請確認 IG 已切換成專業帳號、並在粉專設定裡連結 IG，產生權杖時也要勾選那個粉專。';
-    const u = pages[0].instagram_business_account;
-    if (pages.length > 1) return '📸 這個權杖有好幾個粉專綁了 IG（' + pages.map(p => '@' + p.instagram_business_account.username).join('、') + '），請改用「Instagram 登入」產生的 IG 權杖（IGAA… 開頭），才不會發錯帳號。';
-    ['IG_TOKEN', 'IG_USER', 'IG_NAME', 'IG_API', 'IG_TOKEN_AT'].forEach((k, i) => setProp_(k, [pages[0].access_token, u.id, u.username, 'fb', String(Date.now())][i]));
-    return socSetDone_('IG @' + u.username);
+    setProp_('IG_PAGES', JSON.stringify(pages.map(p => ({ t: p.access_token, id: p.instagram_business_account.id, u: p.instagram_business_account.username }))));
+    if (pages.length === 1) return igPickPage_(pages[0].instagram_business_account.username);
+    return { text: '📸 這個權杖有好幾個 IG 帳號，要發到哪一個？', buttons: chunk_(pages.map(p => '📸 IG：@' + p.instagram_business_account.username), 1) };
   } catch (err) { return '📸 IG 權杖設定失敗：' + err.message; }
+}
+function igPickPage_(u) {
+  let pages = [];
+  try { pages = JSON.parse(prop_('IG_PAGES') || '[]'); } catch (e) { pages = []; }
+  const p = pages.filter(x => x.u === u)[0];
+  if (!p) return null;
+  ['IG_TOKEN', 'IG_USER', 'IG_NAME', 'IG_API', 'IG_TOKEN_AT'].forEach((k, i) => setProp_(k, [p.t, p.id, p.u, 'fb', String(Date.now())][i]));
+  setProp_('IG_PAGES', '');
+  return socSetDone_('IG @' + p.u);
 }
 function thSetToken_(tok) {
   tok = String(tok || '').trim();
@@ -4947,6 +4955,8 @@ function igAsk_(t, raw) {
   const k = String(t || '').replace(/\s+/g, ''), r = String(raw || t);
   const tk = r.match(/^\s*設定\s*(IG|Instagram|Threads|脆|FB|Facebook|臉書|粉專)\s*(?:金鑰|權杖|token)\s*(\S+)\s*$/i);
   if (tk) return /^(IG|Instagram)$/i.test(tk[1]) ? igSetToken_(tk[2]) : /^(Threads|脆)$/i.test(tk[1]) ? thSetToken_(tk[2]) : fbSetToken_(tk[2]);
+  const ik = r.match(/^\s*📸 IG：@(\S+)\s*$/);
+  if (ik) { const x = igPickPage_(ik[1]); if (x) return x; }
   const pk = r.match(/^\s*📘 粉專：(.+?)\s*$/);
   if (pk) { const x = fbPickPage_(pk[1]); if (x) return x; }
   if (/^(IG|ig|社群|發文|Threads|FB)(設定|狀態)$/i.test(k)) {
