@@ -5373,16 +5373,29 @@ function leadHandle_(body) {
     if (!kw && c.from) cache.put('leadu_' + c.from, '1', 21600);
     leadLog_(src + '：' + (kw ? '有關鍵字「' + kw + '」' : '一般留言') + '，正在私訊');
     cache.put('lead_' + c.id, '1', 21600);   // Meta 會重送，同一則留言只處理一次
-    try { leadReply_(c, kw); leadLog_(src + '：已私訊 ✅'); } catch (err) { console.error(err); leadLog_(src + '：私訊失敗 ❌ ' + err.message); leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + (kw || String(c.text || '').slice(0, 20)) + '」（' + (c.who || '') + '），但小乖私訊失敗：' + err.message + '\n請你手動私訊他 LINE 連結。'); }
+    try { leadLog_(src + '：' + leadReply_(c, kw)); } catch (err) { console.error(err); leadLog_(src + '：私訊失敗 ❌ ' + err.message); leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + (kw || String(c.text || '').slice(0, 20)) + '」（' + (c.who || '') + '），但小乖私訊和公開回覆都失敗：' + err.message + '\n請你手動回他 LINE 連結。'); }
   }));
 }
 function leadReply_(c, kw) {
-  const call = c.p === 'ig' ? igCall_ : fbCall_;
-  call('post', 'me/messages', { recipient: JSON.stringify({ comment_id: c.id }), message: JSON.stringify({ text: leadDm_(kw) }) });   // 留言私訊（官方叫 private reply，一則留言只能一次）
-  try { call('post', c.id + (c.p === 'ig' ? '/replies' : '/comments'), { message: LEAD_PUBLIC }); } catch (e) { console.error(e); }   // 公開回覆失敗不影響私訊
+  const call = c.p === 'ig' ? igCall_ : fbCall_, tag = c.p === 'ig' ? 'IG' : 'FB', what = kw || String(c.text || '').slice(0, 20);
+  const dm = { recipient: JSON.stringify({ comment_id: c.id }), message: JSON.stringify({ text: leadDm_(kw) }) };
+  // 留言私訊（官方叫 private reply，一則留言只能一次）；FB 先用粉專編號送，不行再用 me
+  let dmErr = '';
+  const paths = c.p === 'fb' && prop_('FB_PAGE') ? [prop_('FB_PAGE') + '/messages', 'me/messages'] : ['me/messages'];
+  for (let i = 0; i < paths.length; i++) {
+    try { call('post', paths[i], dm); dmErr = ''; break; } catch (e) { dmErr = e.message; console.error(e); }
+  }
+  // 私訊失敗就把 LINE 連結直接公開回在留言底下，對方一樣拿得到
+  const pub = dmErr ? '謝謝你的留言 🙌 加我的官方 LINE 拿資料：' + (prop_('LEAD_LINE') || LEAD_LINE_DEFAULT) : LEAD_PUBLIC;
+  let pubErr = '';
+  try { call('post', c.id + (c.p === 'ig' ? '/replies' : '/comments'), { message: pub }); } catch (e) { pubErr = e.message; console.error(e); }
+  if (dmErr && pubErr) throw new Error('私訊：' + dmErr + '／公開回覆：' + pubErr);
   const n = Number(prop_('LEAD_N') || 0) + 1;
   setProp_('LEAD_N', String(n));
-  leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + (kw || String(c.text || '').slice(0, 20)) + '」：' + (c.who || '') + '\n已私訊官方 LINE 連結（累計 ' + n + ' 人）。');
+  leadTell_('💬 ' + tag + ' 有人留言「' + what + '」：' + (c.who || '') + '\n'
+    + (dmErr ? '私訊沒成功（' + dmErr + '），已改成在留言底下公開回 LINE 連結' : '已私訊官方 LINE 連結' + (pubErr ? '（公開回覆沒成功）' : ''))
+    + '（累計 ' + n + ' 人）。');
+  return dmErr ? '已公開回 LINE 連結（私訊失敗：' + dmErr + '）' : '已私訊 ✅';
 }
 function leadKey_() { return Utilities.getUuid().replace(/-/g, ''); }
 // 讓粉專把通知送給「小乖發文」應用程式（IG 留言也要靠綁定的粉專）
